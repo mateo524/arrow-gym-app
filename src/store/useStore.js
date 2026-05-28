@@ -321,14 +321,25 @@ const useStore = create(
     }),
     {
       name: "arrow-gym-v4",
-      version: 5,
-      partialize: (state) => ({
-        workouts: state.workouts,
-        coachReports: state.coachReports,
-        customExercises: state.customExercises,
-        customRoutines: state.customRoutines,
-        bodyMetrics: state.bodyMetrics,
-      }),
+      version: 4,
+      migrate: (persisted, version) => {
+        const base = { ...persisted };
+        if (!base.bodyMetrics) base.bodyMetrics = [];
+        if (!base.customRoutines) base.customRoutines = [];
+        if (!base.globalCoachReport) base.globalCoachReport = null;
+        return base;
+      },
+      partialize: (state) => {
+        try {
+          return {
+            workouts: state.workouts,
+            coachReports: state.coachReports,
+            customExercises: state.customExercises,
+            customRoutines: state.customRoutines,
+            bodyMetrics: state.bodyMetrics,
+          };
+        } catch { return {}; }
+      },
     }
   )
 );

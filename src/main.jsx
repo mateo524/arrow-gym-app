@@ -5,8 +5,8 @@ import "./styles.css";
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js?v=5", { updateViaCache: "none" }).catch(() => {});
-    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== "arrow-gym-v5").map((k) => caches.delete(k)))).catch(() => {});
+    navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" }).catch(() => {});
+    try { caches.keys().then((keys) => Promise.all(keys.filter((k) => !k.includes("arrow-gym")).map((k) => caches.delete(k)))).catch(() => {}); } catch (e) {}
   });
 }
 
