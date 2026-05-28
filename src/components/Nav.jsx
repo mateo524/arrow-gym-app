@@ -64,7 +64,7 @@ export default function Nav() {
           type="button"
           aria-label="Más"
         >
-          <span>⋯</span>
+          <span>+</span>
           <small>Más</small>
         </button>
       </nav>
