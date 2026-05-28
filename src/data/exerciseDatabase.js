@@ -1,4 +1,4 @@
-export const BODY_GROUPS = ["Hombros", "Pecho", "Espalda", "Brazos", "Piernas", "Core"];
+export const BODY_GROUPS = ["Hombros", "Pecho", "Espalda", "Brazos", "Piernas", "Core", "Cardio"];
 
 export const MUSCLES_BY_GROUP = {
   Hombros: ["Deltoide anterior", "Deltoide lateral", "Deltoide posterior", "Manguito rotador", "Trapecio superior"],
@@ -7,6 +7,7 @@ export const MUSCLES_BY_GROUP = {
   Brazos: ["Bíceps", "Tríceps", "Braquial", "Antebrazo", "Braquiorradial"],
   Piernas: ["Cuádriceps", "Isquios", "Glúteos", "Aductores", "Abductores", "Gemelos", "Sóleo"],
   Core: ["Recto abdominal", "Oblicuos", "Transverso abdominal", "Lumbar", "Flexores de cadera"],
+  Cardio: ["Cardio general", "Cardio intensidad", "Cardio potencia"],
 };
 
 const IMPORTANT = [
@@ -40,6 +41,10 @@ const IMPORTANT = [
   ["External Rotation Cable", "Hombros", "Manguito rotador", "Polea", "rehab"],
   ["Pallof Press", "Core", "Transverso abdominal", "Polea", "core"],
   ["Plank", "Core", "Transverso abdominal", "Peso corporal", "core"],
+  ["Bicicleta fija Technogym", "Cardio", "Cardio general", "Technogym", "cardio"],
+  ["Boxeo - Físico HIIT", "Cardio", "Cardio intensidad", "Peso corporal", "cardio"],
+  ["Boxeo - Bolsa", "Cardio", "Cardio potencia", "Bolsa", "cardio"],
+  ["Cinta de correr", "Cardio", "Cardio general", "Technogym", "cardio"],
 ];
 
 const MOVES = {
@@ -49,8 +54,9 @@ const MOVES = {
   Brazos: ["Curl", "Extension", "Pushdown", "Skullcrusher", "Kickback", "Reverse Curl"],
   Piernas: ["Squat", "Press", "Extension", "Curl", "Lunge", "Raise", "Thrust"],
   Core: ["Crunch", "Plank", "Twist", "Raise", "Carry", "Anti Rotation", "Dead Bug"],
+  Cardio: ["Bicicleta", "HIIT", "Bolsa", "Cinta", "Remo", "Elíptico"],
 };
-const EQUIPMENT = ["Máquina", "Polea", "Mancuernas", "Barra", "Kettlebell", "Peso corporal", "Banda", "Banco", "Smith", "Landmine"];
+const EQUIPMENT = ["Máquina", "Polea", "Mancuernas", "Barra", "Kettlebell", "Peso corporal", "Banda", "Banco", "Smith", "Landmine", "Technogym", "Bolsa", "Guantes"];
 
 function slug(value) { return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""); }
 function item(name, group, muscle, equipment, pattern, builtin = true) { return { id: slug(name), name, group, muscle, equipment, pattern, builtin }; }

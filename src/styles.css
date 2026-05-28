@@ -268,6 +268,8 @@ small { color: var(--muted); font-size: 12px; }
 
 .routine-card b { font-size: 22px; display: block; margin: 6px 0; }
 .routine-card.free { border-color: #46624f; }
+.routine-card.cardio { border-color: #3a6b8a; background: linear-gradient(135deg,#10202a,#0a0f13); }
+.start-categories .eyebrow { margin-top: 16px; }
 
 /* Layout */
 .top-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
@@ -604,6 +606,17 @@ small { color: var(--muted); font-size: 12px; }
   border-radius: 14px;
   font-weight: 800;
   font-size: 12px;
+}
+
+.quick-grid select {
+  width: 100%;
+  margin-top: 4px;
+  background: #05090a;
+  color: #f4fff8;
+  border: 1px solid #28383a;
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 15px;
 }
 
 .compact-set-card {

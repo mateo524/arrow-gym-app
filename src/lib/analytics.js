@@ -124,9 +124,45 @@ function previousSetsForExercise(exercise, history) {
 
 export function buildCoachReport(workout, allWorkouts = []) {
   const hydratedWorkout = { ...workout, sets: (workout.sets || []).map(hydrateSet) };
+  const isCardio = ["Bicicleta", "Boxeo", "Cardio"].includes(workout.type) || hydratedWorkout.sets.every((s) => s.group === "Cardio");
   const history = (allWorkouts || []).filter((item) => item.id !== workout.id);
   const totals = getGroupTotals([hydratedWorkout]);
   const totalVolume = Math.round(getWorkoutVolume(hydratedWorkout));
+  const totalMinutes = hydratedWorkout.sets.reduce((sum, s) => sum + (Number(s.reps) || 0), 0);
+
+  const alerts = [];
+  const recommendations = [];
+
+  if (isCardio) {
+    const status = totalMinutes > 0
+      ? `${workout.type}: ${totalMinutes} min total · ${hydratedWorkout.sets.length} fases.`
+      : `${workout.type}: sesión completada.`;
+    for (const set of hydratedWorkout.sets) {
+      const mins = Number(set.reps) || 0;
+      const intensity = Number(set.weight) || 0;
+      if (mins >= 35) recommendations.push({ exercise: set.exercise, type: "cardio-endurance", msg: `${set.exercise}: sesión larga (${mins} min). Mantené hidratación.` });
+      else if (mins >= 20) recommendations.push({ exercise: set.exercise, type: "cardio-maintain", msg: `${set.exercise}: ${mins} min de buena duración.` });
+      else recommendations.push({ exercise: set.exercise, type: "cardio-build", msg: `${set.exercise}: podés aumentar 5 min la próxima vez.` });
+      if (workout.type === "Boxeo" && set.exercise === "Boxeo - Bolsa" && intensity >= 4) {
+        alerts.push({ type: "boxing-intensity", msg: "Boxeo Bolsa a intensidad alta. Cuidá muñecas; usá vendajes si es necesario." });
+      }
+    }
+    if (workout.type === "Boxeo" && totalMinutes < 45) alerts.push({ type: "boxing-duration", msg: "Sesión de boxeo menor a 45 min. Ideal llegar a 60 min combinando HIIT y bolsa." });
+    return {
+      id: `coach-${workout.id || Date.now()}`,
+      workoutId: workout.id,
+      date: workout.date,
+      title: `${workout.type} · ${workout.date}`,
+      status,
+      alerts: alerts.slice(0, 3),
+      recommendations: recommendations.slice(0, 4),
+      alert: alerts[0]?.msg || "Sesión de cardio registrada.",
+      recommendation: recommendations[0]?.msg || "Buen trabajo cardio.",
+      totalVolume: totalMinutes,
+      sessionType: workout.type,
+      createdAt: new Date().toISOString(),
+    };
+  }
 
   const pushCount = history.filter((w) => ["Push", "Full Body"].includes(w.type)).length;
   const pullCount = history.filter((w) => ["Pull", "Full Body"].includes(w.type)).length;
@@ -138,9 +174,6 @@ export function buildCoachReport(workout, allWorkouts = []) {
     if (!byExercise[set.exercise]) byExercise[set.exercise] = [];
     byExercise[set.exercise].push(set);
   });
-
-  const alerts = [];
-  const recommendations = [];
 
   Object.entries(byExercise).forEach(([exercise, sets]) => {
     const reps = sets.map((s) => Number(s.reps) || 0);

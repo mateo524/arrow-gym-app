@@ -199,6 +199,8 @@ export const ROUTINES = {
     "Toe Touches",
     "Plank",
   ],
+  "Bicicleta": ["Bicicleta fija Technogym"],
+  "Boxeo": ["Boxeo - Físico HIIT", "Boxeo - Bolsa"],
 };
 
 export const EXERCISE_MUSCLE = {
