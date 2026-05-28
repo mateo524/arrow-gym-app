@@ -220,29 +220,22 @@ const useStore = create(
       },
 
       addBodyMetric: (payload) => {
-        const metric = {
-          id: uid("bm"),
-          date: payload.date || today(),
-          bodyWeight: payload.bodyWeight != null ? Number(payload.bodyWeight) : undefined,
-          waist: payload.waist != null ? Number(payload.waist) : undefined,
-          chest: payload.chest != null ? Number(payload.chest) : undefined,
-          rightArm: payload.rightArm != null ? Number(payload.rightArm) : undefined,
-          leftArm: payload.leftArm != null ? Number(payload.leftArm) : undefined,
-          rightLeg: payload.rightLeg != null ? Number(payload.rightLeg) : undefined,
-          leftLeg: payload.leftLeg != null ? Number(payload.leftLeg) : undefined,
-          hips: payload.hips != null ? Number(payload.hips) : undefined,
-          shoulders: payload.shoulders != null ? Number(payload.shoulders) : undefined,
-          neck: payload.neck != null ? Number(payload.neck) : undefined,
-          notes: payload.notes || "",
-          createdAt: new Date().toISOString(),
-        };
+        const NUM = ["bodyWeight","waist","chest","rightArm","leftArm","rightLeg","leftLeg","hips","shoulders","neck"];
+        const metric = { id: uid("bm"), date: payload.date || today(), createdAt: new Date().toISOString(), notes: payload.notes || "" };
+        NUM.forEach((k) => { if (payload[k] != null && payload[k] !== "") metric[k] = Number(payload[k]); });
         set((state) => ({ bodyMetrics: [metric, ...state.bodyMetrics] }));
         get().refreshGlobalCoach();
       },
 
-      updateBodyMetric: (id, patch) => set((state) => ({
-        bodyMetrics: state.bodyMetrics.map((m) => m.id === id ? { ...m, ...patch } : m),
-      })),
+      updateBodyMetric: (id, patch) => set((state) => {
+        const NUM = ["bodyWeight","waist","chest","rightArm","leftArm","rightLeg","leftLeg","hips","shoulders","neck"];
+        const clean = {};
+        Object.entries(patch).forEach(([k,v]) => {
+          if (NUM.includes(k)) { if (v != null && v !== "") clean[k] = Number(v); }
+          else clean[k] = v;
+        });
+        return { bodyMetrics: state.bodyMetrics.map((m) => m.id === id ? { ...m, ...clean } : m) };
+      }),
 
       deleteBodyMetric: (id) => set((state) => ({
         bodyMetrics: state.bodyMetrics.filter((m) => m.id !== id),
