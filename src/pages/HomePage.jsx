@@ -1,5 +1,7 @@
 import useStore from "../store/useStore.js";
-import { getWorkoutVolume } from "../lib/analytics.js";
+import { getWorkoutVolume, filterCurrentWeek, getMuscleIntensity } from "../lib/analytics.js";
+import AdvancedMuscleDiagram from "../components/AdvancedMuscleDiagram.jsx";
+import WorkoutCalendar from "../components/WorkoutCalendar.jsx";
 
 function getWeekKey(dateStr) {
   const d = new Date(dateStr + "T12:00:00");
@@ -25,6 +27,7 @@ export default function HomePage() {
   const weekCardio = weekWorkouts.filter(isCardio).length;
   const weekMin = weekWorkouts.reduce((sum, w) => sum + (w.sets || []).reduce((s, set) => s + (Number(set.reps) || 0), 0), 0);
   const weekDays = [...new Set(weekWorkouts.map((w) => w.date))].length;
+  const intensity = getMuscleIntensity(filterCurrentWeek(workouts));
 
   return (
     <section className="page">
@@ -42,6 +45,8 @@ export default function HomePage() {
         <div><b>{totalSets}</b><span>series</span></div>
         <div><b>{totalCardioMin}</b><span>min cardio</span></div>
       </div>
+
+      <AdvancedMuscleDiagram intensity={intensity} />
 
       <div className="card">
         <h2>Esta semana</h2>
@@ -73,6 +78,8 @@ export default function HomePage() {
           <p>{globalReport.alerts[0].msg}</p>
         </div>
       )}
+
+      <WorkoutCalendar workouts={workouts} />
     </section>
   );
 }

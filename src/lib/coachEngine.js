@@ -1,4 +1,4 @@
-import { getGroupTotals, getWorkoutVolume, hydrateSet, getSetVolume } from "./analytics.js";
+import { getGroupTotals, getWorkoutVolume, hydrateSet, getSetVolume, getExerciseStats } from "./analytics.js";
 
 function getLatestBodyMetric(bodyMetrics) {
   if (!bodyMetrics || bodyMetrics.length === 0) return null;
@@ -236,6 +236,45 @@ export function buildGlobalCoachReport({ workouts, bodyMetrics, customRoutines, 
   progressionInsights.slice(0, 2).forEach((p) => recommendations.push({ type: "progression", msg: p }));
   trainingInsights.slice(0, 2).forEach((t) => recommendations.push({ type: "training", msg: t }));
   bodyInsights.slice(0, 2).forEach((b) => recommendations.push({ type: "body", msg: b }));
+
+  // PR detection
+  const prs = [];
+  if (currentWorkout) {
+    (currentWorkout.sets || []).forEach((s) => {
+      const stats = getExerciseStats(allWorkouts.filter((w) => w.id !== currentWorkout.id), s.exercise);
+      const currentVol = (Number(s.weight) || 0) * (Number(s.reps) || 0);
+      if (currentVol > 0 && s.weight && s.reps) {
+        const prevBestVol = stats.bestVolume || 0;
+        const prevBestWeight = Number(stats.bestWeight) || 0;
+        if (currentVol > prevBestVol && prevBestVol > 0) prs.push({ exercise: s.exercise, type: "volume", msg: `${s.exercise}: nuevo récord de volumen (${Math.round(currentVol)} kg).` });
+        else if (Number(s.weight) > prevBestWeight && prevBestWeight > 0) prs.push({ exercise: s.exercise, type: "weight", msg: `${s.exercise}: nuevo récord de carga (${s.weight} kg).` });
+      }
+    });
+  }
+  if (prs.length > 0) {
+    prs.slice(0, 2).forEach((p) => recommendations.push({ type: "pr", msg: p.msg }));
+    allAlerts.push(...prs.slice(0, 1).map((p) => ({ type: "pr", msg: p.msg })));
+  }
+
+  // Deload detection
+  let deloadSuggestion = null;
+  const sortedWorkouts = [...allWorkouts].sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  if (sortedWorkouts.length >= 12) {
+    const recent12 = sortedWorkouts.slice(-12);
+    const weeksSet = new Set(recent12.map((w) => getWeekKey(w.date)));
+    const totalWeeks = weeksSet.size;
+    const strengthWeeks = new Set();
+    recent12.filter(isStrengthWorkout).forEach((w) => strengthWeeks.add(getWeekKey(w.date)));
+    if (totalWeeks >= 6 && strengthWeeks.size >= 6) {
+      const lastWeeks = [...weeksSet].sort().slice(-4);
+      const allTrained = lastWeeks.every((wk) => recent12.some((w) => getWeekKey(w.date) === wk && isStrengthWorkout(w)));
+      if (allTrained) deloadSuggestion = "Entrenaste todas las semanas seguidas con fuerza. Considerá una semana de descarga (deload): reduce carga al 50-60% o tomá una semana liviana.";
+    }
+  }
+  if (deloadSuggestion) {
+    recommendations.push({ type: "deload", msg: deloadSuggestion });
+    allAlerts.push({ type: "deload", msg: deloadSuggestion });
+  }
 
   const strengthWorkouts = allWorkouts.filter(isStrengthWorkout);
   const cardioWorkouts = allWorkouts.filter(isCardioWorkout);

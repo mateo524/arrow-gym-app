@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import useStore from "../store/useStore.js";
 import ExercisePicker from "../components/ExercisePicker.jsx";
 import WorkoutSetCard from "../components/WorkoutSetCard.jsx";
+import RestTimer from "../components/RestTimer.jsx";
 
 function groupSetsByExercise(sets) {
   const map = new Map();
@@ -24,6 +25,7 @@ export default function WorkoutPage() {
   const cancel = useStore((state) => state.cancelWorkout);
   const setPage = useStore((state) => state.setPage);
   const [showPicker, setShowPicker] = useState(false);
+  const [showTimer, setShowTimer] = useState(false);
 
   const groupedExercises = useMemo(() => groupSetsByExercise(active?.sets || []), [active?.sets]);
 
@@ -79,6 +81,7 @@ export default function WorkoutPage() {
                   onUpdate={(patch) => update(setItem.id, patch)}
                   onRepeat={() => repeat(setItem.id)}
                   onRemove={() => remove(setItem.id)}
+                  onStartTimer={() => setShowTimer(true)}
                 />
               ))}
             </div>
@@ -97,6 +100,8 @@ export default function WorkoutPage() {
       )}
 
       <button className="finish-button" onClick={finish}>Finalizar entrenamiento</button>
+
+      {showTimer && <RestTimer onClose={() => setShowTimer(false)} />}
     </section>
   );
 }

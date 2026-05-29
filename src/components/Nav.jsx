@@ -13,6 +13,7 @@ const MORE_TABS = [
   { id: "exercises", label: "Ejercicios", icon: "+" },
   { id: "history", label: "Historial", icon: "☰" },
   { id: "map", label: "Mapa", icon: "◈" },
+  { id: "sync", label: "Sync", icon: "☁" },
 ];
 
 const HIDE_NAV_PAGES = ["workout", "workoutDetail"];

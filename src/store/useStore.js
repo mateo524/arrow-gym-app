@@ -40,6 +40,7 @@ function makeSet(exercise, weight = "", reps = "", workouts = []) {
     exercise,
     weight,
     reps,
+    rpe: "",
     group: meta.group || resolveExerciseGroup(exercise),
     muscle: meta.muscle || resolveExerciseMuscle(exercise),
     equipment: meta.equipment || "",

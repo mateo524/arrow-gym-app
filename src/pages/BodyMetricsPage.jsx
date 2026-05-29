@@ -153,6 +153,9 @@ export default function BodyMetricsPage() {
 
       {weightData.length >= 2 && <TrendChart data={weightData} label="Evolución peso corporal" color="#6df2a4" />}
       {waistData.length >= 2 && <TrendChart data={waistData} label="Evolución cintura" color="#75d9ff" />}
+      {getBodyMetricTrendData(bodyMetrics, "chest").length >= 2 && <TrendChart data={getBodyMetricTrendData(bodyMetrics, "chest")} label="Evolución pecho" color="#f59e0b" />}
+      {getBodyMetricTrendData(bodyMetrics, "rightArm").length >= 2 && <TrendChart data={getBodyMetricTrendData(bodyMetrics, "rightArm")} label="Evolución brazo derecho" color="#a855f7" />}
+      {getBodyMetricTrendData(bodyMetrics, "leftArm").length >= 2 && <TrendChart data={getBodyMetricTrendData(bodyMetrics, "leftArm")} label="Evolución brazo izquierdo" color="#ec4899" />}
 
       <h2 style={{ marginTop: 20 }}>Historial de mediciones</h2>
       <div className="metric-history">

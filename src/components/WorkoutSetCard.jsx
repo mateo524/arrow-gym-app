@@ -1,4 +1,4 @@
-export default function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onRemove }) {
+export default function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onRemove, onStartTimer }) {
   const isCardio = setItem.group === "Cardio";
   const currentWeight = Number(setItem.weight || 0);
   const currentReps = Number(setItem.reps || 0);
@@ -16,12 +16,7 @@ export default function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onR
         <div className="quick-grid">
           <label>
             Duración
-            <input
-              inputMode="numeric"
-              value={setItem.reps}
-              placeholder="minutos"
-              onChange={(e) => onUpdate({ reps: e.target.value })}
-            />
+            <input inputMode="numeric" value={setItem.reps} placeholder="minutos" onChange={(e) => onUpdate({ reps: e.target.value })} />
           </label>
           <label>
             Intensidad
@@ -62,6 +57,32 @@ export default function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onR
           Reps
           <input inputMode="numeric" value={setItem.reps} placeholder="reps" onChange={(e) => onUpdate({ reps: e.target.value })} />
         </label>
+        <label>
+          RPE
+          <select value={setItem.rpe || ""} onChange={(e) => onUpdate({ rpe: e.target.value })}>
+            <option value="">—</option>
+            <option value="6">6</option>
+            <option value="6.5">6.5</option>
+            <option value="7">7</option>
+            <option value="7.5">7.5</option>
+            <option value="8">8</option>
+            <option value="8.5">8.5</option>
+            <option value="9">9</option>
+            <option value="9.5">9.5</option>
+            <option value="10">10</option>
+          </select>
+        </label>
+        <label>
+          RIR
+          <select value={setItem.rir || ""} onChange={(e) => onUpdate({ rir: e.target.value })}>
+            <option value="">—</option>
+            <option value="0">0</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+          </select>
+        </label>
       </div>
       <div className="quick-actions">
         <button onClick={() => onUpdate({ weight: currentWeight + 2.5 })}>+2.5kg</button>
@@ -69,6 +90,11 @@ export default function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onR
         <button onClick={() => onUpdate({ reps: currentReps + 1 })}>+1 rep</button>
         <button onClick={onRepeat}>Duplicar</button>
       </div>
+      {onStartTimer && (
+        <button className="ghost tiny" style={{ marginTop: 6, width: "100%" }} onClick={onStartTimer}>
+          ⏱ Iniciar descanso
+        </button>
+      )}
     </div>
   );
 }

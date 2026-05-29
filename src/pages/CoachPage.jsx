@@ -130,7 +130,7 @@ export default function CoachPage() {
               <span>Recomendaciones</span>
               {coach.recommendations.map((r, i) => (
                 <div className="rec-item" key={i}>
-                  <span className="rec-icon">{r.type === "progression" ? "↑" : r.type === "training" ? "✓" : "●"}</span>
+                  <span className="rec-icon">{r.type === "progression" ? "↑" : r.type === "pr" ? "🏆" : r.type === "deload" ? "💤" : r.type === "training" ? "✓" : "●"}</span>
                   <p>{r.msg}</p>
                 </div>
               ))}

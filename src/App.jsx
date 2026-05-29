@@ -9,6 +9,7 @@ import CoachPage from "./pages/CoachPage.jsx";
 import RoutinesPage from "./pages/RoutinesPage.jsx";
 import BodyMetricsPage from "./pages/BodyMetricsPage.jsx";
 import ProgressPage from "./pages/ProgressPage.jsx";
+import SyncPage from "./pages/SyncPage.jsx";
 import Nav from "./components/Nav.jsx";
 import useStore from "./store/useStore.js";
 
@@ -28,6 +29,7 @@ export default function App() {
         {currentPage === "routines" && <RoutinesPage />}
         {currentPage === "bodyMetrics" && <BodyMetricsPage />}
         {currentPage === "progress" && <ProgressPage />}
+        {currentPage === "sync" && <SyncPage />}
       </main>
       <Nav />
     </div>
