@@ -312,6 +312,23 @@ const useStore = create(
           customRoutines: state.customRoutines.map((r) => r.id !== routineId ? r : { ...r, exercises, updatedAt: new Date().toISOString() }),
         };
       }),
+
+      importBackup: (data) => set((state) => {
+        const workoutsMap = new Map(state.workouts.map((w) => [w.id, w]));
+        (data.workouts || []).forEach((w) => { if (!workoutsMap.has(w.id)) workoutsMap.set(w.id, w); });
+        const bmMap = new Map(state.bodyMetrics.map((m) => [m.id, m]));
+        (data.bodyMetrics || []).forEach((m) => { if (!bmMap.has(m.id)) bmMap.set(m.id, m); });
+        const crMap = new Map(state.customRoutines.map((r) => [r.id, r]));
+        (data.customRoutines || []).forEach((r) => { if (!crMap.has(r.id)) crMap.set(r.id, r); });
+        const ceMap = new Map(state.customExercises.map((e) => [e.id, e]));
+        (data.customExercises || []).forEach((e) => { if (!ceMap.has(e.id)) ceMap.set(e.id, e); });
+        return {
+          workouts: Array.from(workoutsMap.values()).sort((a, b) => String(b.date).localeCompare(String(a.date))),
+          bodyMetrics: Array.from(bmMap.values()),
+          customRoutines: Array.from(crMap.values()),
+          customExercises: Array.from(ceMap.values()),
+        };
+      }),
     }),
     {
       name: "arrow-gym-v4",

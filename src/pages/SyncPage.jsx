@@ -1,14 +1,17 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import useStore from "../store/useStore.js";
 
 export default function SyncPage() {
   const [token, setToken] = useState(() => localStorage.getItem("gh_sync_token") || "");
   const [status, setStatus] = useState("");
+  const [status2, setStatus2] = useState("");
   const [lastSync, setLastSync] = useState(() => localStorage.getItem("gh_last_sync") || null);
   const workouts = useStore((state) => state.workouts);
   const bodyMetrics = useStore((state) => state.bodyMetrics);
   const customRoutines = useStore((state) => state.customRoutines);
   const customExercises = useStore((state) => state.customExercises);
+  const importBackup = useStore((state) => state.importBackup);
+  const fileRef = useRef(null);
 
   function saveToken(t) {
     setToken(t);
@@ -50,6 +53,57 @@ export default function SyncPage() {
     }
   }
 
+  function downloadBackup() {
+    const data = {
+      workouts,
+      bodyMetrics,
+      customRoutines,
+      customExercises,
+      exportedAt: new Date().toISOString(),
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `arrow-gym-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    setStatus2("✅ Backup descargado");
+    setTimeout(() => setStatus2(""), 3000);
+  }
+
+  function handleImport(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (!data.workouts && !data.bodyMetrics) {
+          setStatus2("❌ El archivo no tiene datos válidos de Arrow Gym");
+          return;
+        }
+        if (!data.workouts && !data.bodyMetrics) {
+          setStatus2("❌ El archivo no tiene datos válidos de Arrow Gym");
+          return;
+        }
+        const confirmed = window.confirm(
+          `¿Importar ${data.workouts?.length || 0} entrenamientos y ${data.bodyMetrics?.length || 0} mediciones? Los datos actuales se van a COMBINAR (no se borra nada).`
+        );
+        if (!confirmed) return;
+        importBackup(data);
+        setStatus2("✅ Datos importados correctamente");
+        setTimeout(() => setStatus2(""), 3000);
+      } catch {
+        setStatus2("❌ Error al leer el archivo");
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  }
+
   return (
     <section className="page">
       <p className="eyebrow">Sincronización</p>
@@ -70,6 +124,18 @@ export default function SyncPage() {
         </div>
         {status && <p style={{ marginTop: 8, fontSize: 13 }}>{status}</p>}
         {lastSync && <p style={{ marginTop: 4, fontSize: 11, color: "var(--muted)" }}>Última sincronización: {new Date(lastSync).toLocaleString("es")}</p>}
+      </div>
+      <div className="card" style={{ marginTop: 12 }}>
+        <h2>Backup local (JSON)</h2>
+        <p>Descargá tus datos como archivo JSON para guardarlos donde quieras. Si perdés los datos, podés importar el archivo de vuelta.</p>
+        <div className="metric-actions" style={{ marginTop: 12 }}>
+          <button className="primary" onClick={downloadBackup} style={{ flex: 1 }}>📥 Descargar backup</button>
+        </div>
+        <div className="metric-actions" style={{ marginTop: 8 }}>
+          <button className="secondary" onClick={() => fileRef.current?.click()} style={{ flex: 1 }}>📤 Importar backup</button>
+          <input ref={fileRef} type="file" accept=".json" onChange={handleImport} style={{ display: "none" }} />
+        </div>
+        {status2 && <p style={{ marginTop: 8, fontSize: 13 }}>{status2}</p>}
       </div>
     </section>
   );
