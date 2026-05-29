@@ -1,8 +1,10 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import useStore from "../store/useStore.js";
 import ExercisePicker from "../components/ExercisePicker.jsx";
 import WorkoutSetCard from "../components/WorkoutSetCard.jsx";
 import RestTimer from "../components/RestTimer.jsx";
+
+const MAX_VISIBLE_SETS = 3;
 
 function groupSetsByExercise(sets) {
   const map = new Map();
@@ -26,8 +28,28 @@ export default function WorkoutPage() {
   const setPage = useStore((state) => state.setPage);
   const [showPicker, setShowPicker] = useState(false);
   const [showTimer, setShowTimer] = useState(false);
+  const [collapsed, setCollapsed] = useState({});
+  const listRef = useRef(null);
 
   const groupedExercises = useMemo(() => groupSetsByExercise(active?.sets || []), [active?.sets]);
+
+  const lastCountRef = useRef(active?.sets?.length || 0);
+  useEffect(() => {
+    const current = active?.sets?.length || 0;
+    if (current > lastCountRef.current && listRef.current) {
+      const children = listRef.current.querySelectorAll(".exercise-block");
+      if (children.length) children[children.length - 1].scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+    lastCountRef.current = current;
+  }, [active?.sets?.length]);
+
+  function collapseAll(sets) {
+    if (sets.length <= MAX_VISIBLE_SETS) return null;
+    const hidden = sets.slice(0, -MAX_VISIBLE_SETS);
+    const lastId = hidden[hidden.length - 1]?.id;
+    if (collapsed[lastId]) return null;
+    return hidden;
+  }
 
   if (!active) {
     return (
@@ -49,7 +71,7 @@ export default function WorkoutPage() {
         <button className="ghost" onClick={() => { if (window.confirm("¿Cancelar el entrenamiento? Se perderán los datos no guardados.")) cancel(); }}>Cancelar</button>
       </div>
 
-      <div className="sets-list">
+      <div className="sets-list" ref={listRef}>
         {groupedExercises.length === 0 && (
           <div className="notice">
             <b>Entrenamiento libre</b>
@@ -59,6 +81,8 @@ export default function WorkoutPage() {
 
         {groupedExercises.map(({ exercise, sets }) => {
           const first = sets[0];
+          const hidden = collapseAll(sets);
+          const visible = hidden ? sets.slice(-MAX_VISIBLE_SETS) : sets;
           return (
             <div className="exercise-block" key={exercise}>
               <div className="exercise-block-head">
@@ -73,17 +97,29 @@ export default function WorkoutPage() {
                 <button className="secondary small" onClick={() => addSeriesToExercise(exercise, true)}>+ Serie</button>
               </div>
 
-              {sets.map((setItem, index) => (
-                <WorkoutSetCard
-                  key={setItem.id}
-                  index={index + 1}
-                  setItem={setItem}
-                  onUpdate={(patch) => update(setItem.id, patch)}
-                  onRepeat={() => repeat(setItem.id)}
-                  onRemove={() => remove(setItem.id)}
-                  onStartTimer={() => setShowTimer(true)}
-                />
-              ))}
+              {hidden && (
+                <button className="collapsed-bar" onClick={() => {
+                  const lastId = hidden[hidden.length - 1]?.id;
+                  setCollapsed((c) => ({ ...c, [lastId]: true }));
+                }}>
+                  {hidden.length} serie{hidden.length > 1 ? "s" : ""} anteriores — mostrar
+                </button>
+              )}
+
+              {visible.map((setItem, index) => {
+                const globalIndex = sets.indexOf(setItem);
+                return (
+                  <WorkoutSetCard
+                    key={setItem.id}
+                    index={globalIndex + 1}
+                    setItem={setItem}
+                    onUpdate={(patch) => update(setItem.id, patch)}
+                    onRepeat={() => repeat(setItem.id)}
+                    onRemove={() => remove(setItem.id)}
+                    onStartTimer={() => setShowTimer(true)}
+                  />
+                );
+              })}
             </div>
           );
         })}
