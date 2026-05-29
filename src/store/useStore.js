@@ -195,6 +195,7 @@ const useStore = create(
             currentWorkout: clean,
             latestWorkout: clean,
           });
+          try { localStorage.setItem("arrow-gym-recovery", JSON.stringify({ workouts: newWorkouts, bodyMetrics: state.bodyMetrics, customRoutines: state.customRoutines, customExercises: state.customExercises })); } catch {}
           return {
             workouts: newWorkouts,
             coachReports: [report, ...state.coachReports.filter((item) => item.workoutId !== clean.id)],
@@ -224,7 +225,11 @@ const useStore = create(
         const NUM = ["bodyWeight","waist","chest","rightArm","leftArm","rightLeg","leftLeg","hips","shoulders","neck"];
         const metric = { id: uid("bm"), date: payload.date || today(), createdAt: new Date().toISOString(), notes: payload.notes || "" };
         NUM.forEach((k) => { if (payload[k] != null && payload[k] !== "") metric[k] = Number(String(payload[k]).replace(",", ".")); });
-        set((state) => ({ bodyMetrics: [metric, ...state.bodyMetrics] }));
+        set((state) => {
+          const bodyMetrics = [metric, ...state.bodyMetrics];
+          try { localStorage.setItem("arrow-gym-recovery", JSON.stringify({ workouts: state.workouts, bodyMetrics, customRoutines: state.customRoutines, customExercises: state.customExercises })); } catch {}
+          return { bodyMetrics };
+        });
         get().refreshGlobalCoach();
       },
 
@@ -338,6 +343,17 @@ const useStore = create(
         if (!base.bodyMetrics) base.bodyMetrics = [];
         if (!base.customRoutines) base.customRoutines = [];
         if (!base.globalCoachReport) base.globalCoachReport = null;
+        if (!base.workouts || base.workouts.length === 0) {
+          try {
+            const recovery = JSON.parse(localStorage.getItem("arrow-gym-recovery"));
+            if (recovery?.workouts?.length) {
+              base.workouts = recovery.workouts;
+              if (!base.bodyMetrics?.length && recovery.bodyMetrics?.length) base.bodyMetrics = recovery.bodyMetrics;
+              if (!base.customRoutines?.length && recovery.customRoutines?.length) base.customRoutines = recovery.customRoutines;
+              if (!base.customExercises?.length && recovery.customExercises?.length) base.customExercises = recovery.customExercises;
+            }
+          } catch {}
+        }
         return base;
       },
       partialize: (state) => {

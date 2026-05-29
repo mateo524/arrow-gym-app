@@ -13,6 +13,25 @@ export default function SyncPage() {
   const importBackup = useStore((state) => state.importBackup);
   const fileRef = useRef(null);
 
+  function restoreAuto() {
+    try {
+      const recovery = JSON.parse(localStorage.getItem("arrow-gym-recovery"));
+      if (!recovery || (!recovery.workouts?.length && !recovery.bodyMetrics?.length)) {
+        setStatus2("No hay backup automático disponible.");
+        return;
+      }
+      const confirmed = window.confirm(
+        `¿Restaurar backup automático del ${recovery.workouts?.[0]?.date || "?"}? Tiene ${recovery.workouts?.length || 0} entrenamientos. Los datos actuales se COMBINAN (no se borra nada).`
+      );
+      if (!confirmed) return;
+      importBackup(recovery);
+      setStatus2("✅ Backup automático restaurado");
+      setTimeout(() => setStatus2(""), 3000);
+    } catch {
+      setStatus2("❌ Error al leer backup automático");
+    }
+  }
+
   function saveToken(t) {
     setToken(t);
     localStorage.setItem("gh_sync_token", t);
@@ -85,10 +104,6 @@ export default function SyncPage() {
           setStatus2("❌ El archivo no tiene datos válidos de Arrow Gym");
           return;
         }
-        if (!data.workouts && !data.bodyMetrics) {
-          setStatus2("❌ El archivo no tiene datos válidos de Arrow Gym");
-          return;
-        }
         const confirmed = window.confirm(
           `¿Importar ${data.workouts?.length || 0} entrenamientos y ${data.bodyMetrics?.length || 0} mediciones? Los datos actuales se van a COMBINAR (no se borra nada).`
         );
@@ -136,6 +151,11 @@ export default function SyncPage() {
           <input ref={fileRef} type="file" accept=".json" onChange={handleImport} style={{ display: "none" }} />
         </div>
         {status2 && <p style={{ marginTop: 8, fontSize: 13 }}>{status2}</p>}
+      </div>
+      <div className="card" style={{ marginTop: 12 }}>
+        <h2>Backup automático</h2>
+        <p>Cada vez que terminás un entrenamiento o guardás una medición, la app guarda una copia de seguridad automática en tu navegador. Si perdés los datos, podés restaurarla.</p>
+        <button className="secondary full" onClick={restoreAuto}>🔄 Restaurar desde backup automático</button>
       </div>
     </section>
   );
