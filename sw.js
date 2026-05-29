@@ -1,5 +1,5 @@
 const BASE = self.location.pathname.replace(/\/sw\.js$/,"");
-const CACHE = "arrow-gym-v5";
+const CACHE = "arrow-gym-v6";
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll([BASE+"/", BASE+"/index.html", BASE+"/manifest.json", BASE+"/icon.svg"])));
@@ -13,5 +13,11 @@ self.addEventListener("activate", (e) => {
 
 self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET") return;
-  e.respondWith(caches.match(e.request).then((cached) => cached || fetch(e.request).then((res) => { const c = res.clone(); caches.open(CACHE).then((cache) => cache.put(e.request, c)); return res; }).catch(() => caches.match(BASE+"/index.html"))));
+  e.respondWith(
+    fetch(e.request).then((res) => {
+      const c = res.clone();
+      caches.open(CACHE).then((cache) => cache.put(e.request, c));
+      return res;
+    }).catch(() => caches.match(e.request).then((cached) => cached || caches.match(BASE+"/index.html")))
+  );
 });
