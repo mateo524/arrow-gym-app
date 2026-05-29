@@ -1,33 +1,46 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 const PRESETS = [60, 90, 120, 180, 300];
 
 export default function RestTimer({ onClose }) {
-  const [seconds, setSeconds] = useState(90);
+  const [duration, setDuration] = useState(90);
   const [remaining, setRemaining] = useState(null);
   const [running, setRunning] = useState(false);
   const intervalRef = useRef(null);
+  const startTimeRef = useRef(null);
+  const overlayRef = useRef(null);
 
   useEffect(() => {
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, []);
+    overlayRef.current?.focus();
+    const handler = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", handler);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      window.removeEventListener("keydown", handler);
+    };
+  }, [onClose]);
+
+  useEffect(() => {
+    if (!running) return;
+    const id = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
+      const rem = Math.max(0, duration - elapsed);
+      setRemaining(rem);
+      if (rem <= 0) {
+        clearInterval(id);
+        intervalRef.current = null;
+        setRunning(false);
+      }
+    }, 200);
+    intervalRef.current = id;
+    return () => clearInterval(id);
+  }, [running, duration]);
 
   function start(duration) {
-    setSeconds(duration);
+    setDuration(duration);
     setRemaining(duration);
     setRunning(true);
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    intervalRef.current = setInterval(() => {
-      setRemaining((prev) => {
-        if (prev <= 1) {
-          clearInterval(intervalRef.current);
-          intervalRef.current = null;
-          setRunning(false);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+    startTimeRef.current = Date.now();
   }
 
   function stop() {
@@ -40,7 +53,7 @@ export default function RestTimer({ onClose }) {
   const isFinished = remaining === 0;
 
   return (
-    <div className="rest-timer-overlay" onClick={() => { if (isFinished) onClose(); }}>
+    <div className="rest-timer-overlay" ref={overlayRef} tabIndex={-1} onClick={() => { if (isFinished) onClose(); }}>
       <div className="rest-timer" onClick={(e) => e.stopPropagation()}>
         <div className="rest-timer-head">
           <span>⏱ Descanso</span>

@@ -30,6 +30,11 @@ button, input, select, textarea {
   outline: none;
 }
 
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+
 button {
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
@@ -40,10 +45,11 @@ button {
   max-width: 520px;
   margin: 0 auto;
   position: relative;
+  background: #050709;
 }
 
 .app-main {
-  padding: 18px 14px 100px;
+  padding: 18px 14px calc(100px + env(safe-area-inset-bottom, 0px));
 }
 
 .page { animation: fade .18s ease; }
@@ -165,7 +171,7 @@ input:focus, select:focus, textarea:focus {
 
 .finish-button {
   position: sticky;
-  bottom: 88px;
+  bottom: calc(88px + env(safe-area-inset-bottom, 0px));
   width: 100%;
   background: linear-gradient(90deg,var(--green),var(--cyan));
   color: #03100a;
@@ -193,7 +199,7 @@ input:focus, select:focus, textarea:focus {
   gap: 2px;
   background: rgba(5,7,9,.98);
   border-top: 1px solid #1c2c2e;
-  padding: 6px 6px 10px;
+  padding: 6px 6px calc(10px + env(safe-area-inset-bottom, 0px));
   z-index: 50;
 }
 

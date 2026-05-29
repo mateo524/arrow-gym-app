@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import useStore from "../store/useStore.js";
-import { getWeeklyVolume, getFrequencyRanking, getGroupTrends, getGroupTotals, filterByRange, RANGE_OPTIONS } from "../lib/analytics.js";
+import { getWeeklyVolume, getFrequencyRanking, getGroupTotals, filterByRange, RANGE_OPTIONS } from "../lib/analytics.js";
 import RadarChart from "../components/RadarChart.jsx";
 
 function MiniBar({ value, max, label, sub }) {

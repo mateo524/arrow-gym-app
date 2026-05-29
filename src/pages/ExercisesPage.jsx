@@ -102,6 +102,7 @@ export default function ExercisesPage() {
   const addCustomExercise = useStore((state) => state.addCustomExercise);
   const [form, setForm] = useState({ name: "", group: "Hombros", muscle: "Deltoide anterior", equipment: "Custom" });
   const [selectedExercise, setSelectedExercise] = useState(null);
+  const [savedMsg, setSavedMsg] = useState(false);
 
   if (selectedExercise) {
     return (
@@ -127,7 +128,14 @@ export default function ExercisesPage() {
             {MUSCLES_BY_GROUP[form.group].map((m) => <option key={m}>{m}</option>)}
           </select>
         </div>
-        <button className="primary" onClick={() => { addCustomExercise(form); setForm({ ...form, name: "" }); }}>Guardar ejercicio</button>
+        <button className="primary" onClick={() => {
+          if (!form.name.trim()) return;
+          addCustomExercise(form);
+          setForm({ ...form, name: "" });
+          setSavedMsg(true);
+          setTimeout(() => setSavedMsg(false), 2000);
+        }}>Guardar ejercicio</button>
+        {savedMsg && <p style={{ color: "var(--green)", fontSize: 12, marginTop: 4 }}>✓ Ejercicio guardado</p>}
       </div>
     </section>
   );

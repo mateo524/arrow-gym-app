@@ -1,4 +1,6 @@
-export default function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onRemove, onStartTimer }) {
+import { memo } from "react";
+
+function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onRemove, onStartTimer }) {
   const isCardio = setItem.group === "Cardio";
   const currentWeight = Number(setItem.weight || 0);
   const currentReps = Number(setItem.reps || 0);
@@ -98,3 +100,5 @@ export default function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onR
     </div>
   );
 }
+
+export default memo(WorkoutSetCard);

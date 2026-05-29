@@ -46,7 +46,7 @@ export default function WorkoutPage() {
           <h1>{active.type}</h1>
           <small>{active.date}</small>
         </div>
-        <button className="ghost" onClick={cancel}>Cancelar</button>
+        <button className="ghost" onClick={() => { if (window.confirm("¿Cancelar el entrenamiento? Se perderán los datos no guardados.")) cancel(); }}>Cancelar</button>
       </div>
 
       <div className="sets-list">

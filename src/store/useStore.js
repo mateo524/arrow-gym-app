@@ -325,6 +325,13 @@ const useStore = create(
       },
       partialize: (state) => {
         try {
+          JSON.stringify({
+            workouts: state.workouts,
+            coachReports: state.coachReports,
+            customExercises: state.customExercises,
+            customRoutines: state.customRoutines,
+            bodyMetrics: state.bodyMetrics,
+          });
           return {
             workouts: state.workouts,
             coachReports: state.coachReports,
@@ -332,7 +339,16 @@ const useStore = create(
             customRoutines: state.customRoutines,
             bodyMetrics: state.bodyMetrics,
           };
-        } catch { return {}; }
+        } catch (e) {
+          console.error("Arrow Gym: localStorage write failed — data NOT saved!", e);
+          return {
+            workouts: state.workouts,
+            coachReports: state.coachReports,
+            customExercises: state.customExercises,
+            customRoutines: state.customRoutines,
+            bodyMetrics: state.bodyMetrics,
+          };
+        }
       },
     }
   )

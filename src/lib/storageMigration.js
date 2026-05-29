@@ -132,20 +132,25 @@ export function normalizeWorkout(workout) {
 }
 
 export function loadInitialWorkouts() {
-  if (typeof localStorage === "undefined") return SEED_WORKOUTS.map(normalizeWorkout);
+  try {
+    if (typeof localStorage === "undefined") return SEED_WORKOUTS.map(normalizeWorkout);
 
-  const found = [];
-  OLD_KEYS.forEach((key) => extractWorkouts(readJSON(key)).forEach((workout) => found.push(normalizeWorkout(workout))));
+    const found = [];
+    OLD_KEYS.forEach((key) => {
+      try { extractWorkouts(readJSON(key)).forEach((workout) => found.push(normalizeWorkout(workout))); }
+      catch {}
+    });
 
-  // Primero datos reales guardados, después seed original como respaldo.
-  // Deduplicamos por id y, si no hay id confiable, por fecha+tipo+cantidad de series.
-  const byKey = new Map();
-  [...found, ...SEED_WORKOUTS.map(normalizeWorkout)].forEach((workout) => {
-    const key = workout.id || `${workout.date}-${workout.type}-${workout.sets?.length || 0}`;
-    if (!byKey.has(key)) byKey.set(key, workout);
-  });
+    const byKey = new Map();
+    [...found, ...SEED_WORKOUTS.map(normalizeWorkout)].forEach((workout) => {
+      const key = workout.id || `${workout.date}-${workout.type}-${workout.sets?.length || 0}`;
+      if (!byKey.has(key)) byKey.set(key, workout);
+    });
 
-  return Array.from(byKey.values()).sort((a, b) => String(b.date).localeCompare(String(a.date)));
+    return Array.from(byKey.values()).sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  } catch {
+    return SEED_WORKOUTS.map(normalizeWorkout);
+  }
 }
 
 export function loadInitialBodyMetrics() {

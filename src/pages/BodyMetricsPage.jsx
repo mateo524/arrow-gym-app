@@ -66,6 +66,14 @@ export default function BodyMetricsPage() {
   function handleSave() {
     const hasValue = FIELDS.some((f) => form[f.key] != null && form[f.key] !== "");
     if (!hasValue) return;
+    const hasInvalid = FIELDS.some((f) => {
+      if (form[f.key] == null || form[f.key] === "") return false;
+      return isNaN(Number(String(form[f.key]).replace(",", ".")));
+    });
+    if (hasInvalid) {
+      alert("Revisá los valores numéricos. Alguno no es un número válido.");
+      return;
+    }
     if (editingId) {
       updateBodyMetric(editingId, form);
       setEditingId(null);

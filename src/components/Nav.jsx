@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import useStore from "../store/useStore.js";
 
 const MAIN_TABS = [
@@ -23,6 +24,13 @@ export default function Nav() {
   const setPage = useStore((state) => state.setPage);
   const showMoreMenu = useStore((state) => state.showMoreMenu);
   const toggleMoreMenu = useStore((state) => state.toggleMoreMenu);
+
+  useEffect(() => {
+    if (!showMoreMenu) return;
+    const handler = (e) => { if (e.key === "Escape") toggleMoreMenu(); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [showMoreMenu, toggleMoreMenu]);
 
   if (HIDE_NAV_PAGES.includes(currentPage)) return null;
 
