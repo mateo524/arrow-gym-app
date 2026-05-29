@@ -56,6 +56,36 @@ function makePrefilledSet(exercise, workouts) {
   return makeSet(exercise, stats.lastWeight || "", stats.lastReps || "", workouts);
 }
 
+async function autoSync(workouts, bodyMetrics, customRoutines, customExercises) {
+  try {
+    const token = localStorage.getItem("gh_sync_token");
+    if (!token) return;
+    const data = { workouts, bodyMetrics, customRoutines, customExercises, syncedAt: new Date().toISOString() };
+    const content = JSON.stringify(data, null, 2);
+    const filename = `arrow-gym-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    const existingRes = await fetch("https://api.github.com/gists", {
+      headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github.v3+json" },
+    });
+    if (!existingRes.ok) return;
+    const existingGists = await existingRes.json();
+    const arrowGist = existingGists.find((g) => g.description?.startsWith("Arrow Gym"));
+    if (arrowGist) {
+      await fetch(`https://api.github.com/gists/${arrowGist.id}`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", Accept: "application/vnd.github.v3+json" },
+        body: JSON.stringify({ files: { [filename]: { content } } }),
+      });
+    } else {
+      await fetch("https://api.github.com/gists", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", Accept: "application/vnd.github.v3+json" },
+        body: JSON.stringify({ description: "Arrow Gym backup", public: false, files: { [filename]: { content } } }),
+      });
+    }
+    localStorage.setItem("gh_last_sync", new Date().toISOString());
+  } catch {}
+}
+
 const useStore = create(
   persist(
     (set, get) => ({
@@ -196,6 +226,7 @@ const useStore = create(
             latestWorkout: clean,
           });
           try { localStorage.setItem("arrow-gym-recovery", JSON.stringify({ workouts: newWorkouts, bodyMetrics: state.bodyMetrics, customRoutines: state.customRoutines, customExercises: state.customExercises })); } catch {}
+          setTimeout(() => autoSync(newWorkouts, state.bodyMetrics, state.customRoutines, state.customExercises), 100);
           return {
             workouts: newWorkouts,
             coachReports: [report, ...state.coachReports.filter((item) => item.workoutId !== clean.id)],
