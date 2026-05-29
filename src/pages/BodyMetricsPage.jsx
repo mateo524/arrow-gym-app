@@ -125,8 +125,7 @@ export default function BodyMetricsPage() {
               <label key={field.key} className="metric-field">
                 <span>{field.label}</span>
                 <input
-                  type="number"
-                  step="0.1"
+                  type="text"
                   inputMode="decimal"
                   placeholder={field.placeholder}
                   value={form[field.key] ?? ""}

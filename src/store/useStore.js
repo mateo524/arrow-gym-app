@@ -223,7 +223,7 @@ const useStore = create(
       addBodyMetric: (payload) => {
         const NUM = ["bodyWeight","waist","chest","rightArm","leftArm","rightLeg","leftLeg","hips","shoulders","neck"];
         const metric = { id: uid("bm"), date: payload.date || today(), createdAt: new Date().toISOString(), notes: payload.notes || "" };
-        NUM.forEach((k) => { if (payload[k] != null && payload[k] !== "") metric[k] = Number(payload[k]); });
+        NUM.forEach((k) => { if (payload[k] != null && payload[k] !== "") metric[k] = Number(String(payload[k]).replace(",", ".")); });
         set((state) => ({ bodyMetrics: [metric, ...state.bodyMetrics] }));
         get().refreshGlobalCoach();
       },
@@ -232,7 +232,7 @@ const useStore = create(
         const NUM = ["bodyWeight","waist","chest","rightArm","leftArm","rightLeg","leftLeg","hips","shoulders","neck"];
         const clean = {};
         Object.entries(patch).forEach(([k,v]) => {
-          if (NUM.includes(k)) { if (v != null && v !== "") clean[k] = Number(v); }
+          if (NUM.includes(k)) { if (v != null && v !== "") clean[k] = Number(String(v).replace(",", ".")); }
           else clean[k] = v;
         });
         return { bodyMetrics: state.bodyMetrics.map((m) => m.id === id ? { ...m, ...clean } : m) };

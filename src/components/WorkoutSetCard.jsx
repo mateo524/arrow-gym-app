@@ -16,7 +16,7 @@ export default function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onR
         <div className="quick-grid">
           <label>
             Duración
-            <input inputMode="numeric" value={setItem.reps} placeholder="minutos" onChange={(e) => onUpdate({ reps: e.target.value })} />
+            <input type="text" inputMode="decimal" value={setItem.reps} placeholder="minutos" onChange={(e) => onUpdate({ reps: e.target.value.replace(",", ".") })} />
           </label>
           <label>
             Intensidad
@@ -51,11 +51,11 @@ export default function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onR
       <div className="quick-grid">
         <label>
           Peso
-          <input inputMode="decimal" value={setItem.weight} placeholder="kg" onChange={(e) => onUpdate({ weight: e.target.value })} />
+          <input type="text" inputMode="decimal" value={setItem.weight} placeholder="kg" onChange={(e) => onUpdate({ weight: e.target.value.replace(",", ".") })} />
         </label>
         <label>
           Reps
-          <input inputMode="numeric" value={setItem.reps} placeholder="reps" onChange={(e) => onUpdate({ reps: e.target.value })} />
+          <input type="text" inputMode="numeric" value={setItem.reps} placeholder="reps" onChange={(e) => onUpdate({ reps: e.target.value.replace(",", ".") })} />
         </label>
         <label>
           RPE
