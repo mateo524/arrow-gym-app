@@ -52,7 +52,6 @@ export default function BodyMetricsPage() {
   const addBodyMetric = useStore((state) => state.addBodyMetric);
   const updateBodyMetric = useStore((state) => state.updateBodyMetric);
   const deleteBodyMetric = useStore((state) => state.deleteBodyMetric);
-  const setPage = useStore((state) => state.setPage);
 
   const [form, setForm] = useState({ date: today() });
   const [editingId, setEditingId] = useState(null);

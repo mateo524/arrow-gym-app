@@ -1,4 +1,4 @@
-import { getGroupTotals, getWorkoutVolume, hydrateSet, getSetVolume, getExerciseStats } from "./analytics.js";
+import { getWorkoutVolume, hydrateSet, getExerciseStats } from "./analytics.js";
 
 function getLatestBodyMetric(bodyMetrics) {
   if (!bodyMetrics || bodyMetrics.length === 0) return null;
@@ -15,7 +15,7 @@ function getBodyMetricTrend(bodyMetrics, field, range = 30) {
   return { values: recent, direction: change > 0.5 ? "up" : change < -0.5 ? "down" : "stable", change: Math.abs(change), first: firstVal, last: lastVal };
 }
 
-function analyzeBodyMetrics(bodyMetrics, latestWorkout, workouts) {
+function analyzeBodyMetrics(bodyMetrics, latestWorkout) {
   const insights = [];
   if (!bodyMetrics || bodyMetrics.length === 0) return insights;
   const latest = getLatestBodyMetric(bodyMetrics);
@@ -73,7 +73,6 @@ function analyzeTraining(workouts) {
   const cardioCount = recents.filter(isCardioWorkout).length;
   const boxingCount = recents.filter((w) => w.type === "Boxeo").length;
   const bikeCount = recents.filter((w) => w.type === "Bicicleta" || (w.sets || []).some((s) => String(s.exercise || "").toLowerCase().includes("bicicleta"))).length;
-  const totalCardioMin = recents.reduce((sum, w) => sum + getCardioMinutes(w), 0);
   const pushCount = recents.filter((w) => ["Push", "Full Body"].includes(w.type)).length;
   const pullCount = recents.filter((w) => ["Pull", "Full Body"].includes(w.type)).length;
   const legCount = recents.filter((w) => w.type === "Legs").length;
@@ -216,11 +215,11 @@ function computeNextActions(workouts, bodyMetrics) {
   return actions;
 }
 
-export function buildGlobalCoachReport({ workouts, bodyMetrics, customRoutines, currentWorkout, latestWorkout }) {
+export function buildGlobalCoachReport({ workouts, bodyMetrics, currentWorkout, latestWorkout }) {
   const allWorkouts = workouts || [];
   const allMetrics = bodyMetrics || [];
   const latestW = latestWorkout || allWorkouts[0] || null;
-  const bodyInsights = analyzeBodyMetrics(allMetrics, latestW, allWorkouts);
+  const bodyInsights = analyzeBodyMetrics(allMetrics, latestW);
   const trainingInsights = analyzeTraining(allWorkouts);
   const progressionInsights = analyzeProgression(allWorkouts);
   const shoulderWarnings = analyzeShoulder(allWorkouts);
@@ -277,7 +276,6 @@ export function buildGlobalCoachReport({ workouts, bodyMetrics, customRoutines, 
   }
 
   const strengthWorkouts = allWorkouts.filter(isStrengthWorkout);
-  const cardioWorkouts = allWorkouts.filter(isCardioWorkout);
   const totalSets = allWorkouts.reduce((s, w) => s + (w.sets?.length || 0), 0);
   const totalStrengthVolume = strengthWorkouts.reduce((s, w) => s + getWorkoutVolume(w), 0);
   const totalCardioMin = allWorkouts.reduce((s, w) => s + getCardioMinutes(w), 0);

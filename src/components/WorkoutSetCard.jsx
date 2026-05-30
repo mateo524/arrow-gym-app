@@ -48,6 +48,7 @@ function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onRemove, onStartT
           <span className="chip">{setItem.weight || "—"} kg</span>
           <span className="chip">{setItem.reps || "—"} reps</span>
           {setItem.rpe && <span className="chip rpe-chip">RPE {setItem.rpe}</span>}
+          {setItem.rir && <span className="chip">RIR {setItem.rir}</span>}
           <button className="chip danger-chip" onClick={onRemove}>×</button>
         </div>
       </div>

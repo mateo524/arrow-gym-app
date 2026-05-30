@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import useStore from "../store/useStore.js";
 import { BODY_GROUPS, MUSCLES_BY_GROUP } from "../data/exerciseDatabase.js";
 import ExercisePicker from "../components/ExercisePicker.jsx";
-import { getExerciseStats, getGroupTotals } from "../lib/analytics.js";
+import { getExerciseStats } from "../lib/analytics.js";
 
 function ExerciseDetail({ exercise, onBack }) {
   const workouts = useStore((state) => state.workouts);

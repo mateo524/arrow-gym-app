@@ -12,5 +12,26 @@ export default function MapPage() {
   const radar = useMemo(() => getRadarData(rangeWorkouts), [rangeWorkouts]);
   const intensity = useMemo(() => getMuscleIntensity(weeklyWorkouts), [weeklyWorkouts]);
   const totals = useMemo(() => getGroupTotals(rangeWorkouts), [rangeWorkouts]);
-  return <section className="page"><p className="eyebrow">Mapa muscular</p><h1>Radar + diagrama avanzado</h1><div className="range-tabs">{RANGE_OPTIONS.map(option => <button key={option.id} className={range === option.id ? "active" : ""} onClick={() => setRange(option.id)}>{option.label}</button>)}</div><RadarChart data={radar}/><AdvancedMuscleDiagram intensity={intensity}/><div className="grid-list">{Object.entries(totals).map(([group,total]) => <div className="mini-card" key={group}><b>{group}</b><span>{total.sets} series</span><small>{total.exercises.slice(0,4).join(", ") || "Sin datos"}</small></div>)}</div></section>;
+  return (
+    <section className="page">
+      <p className="eyebrow">Mapa muscular</p>
+      <h1>Radar + diagrama avanzado</h1>
+      <div className="range-tabs">
+        {RANGE_OPTIONS.map((option) => (
+          <button key={option.id} className={range === option.id ? "active" : ""} onClick={() => setRange(option.id)}>{option.label}</button>
+        ))}
+      </div>
+      <RadarChart data={radar} />
+      <AdvancedMuscleDiagram intensity={intensity} />
+      <div className="grid-list">
+        {Object.entries(totals).map(([group, total]) => (
+          <div className="mini-card" key={group}>
+            <b>{group}</b>
+            <span>{total.sets} series</span>
+            <small>{total.exercises.slice(0, 4).join(", ") || "Sin datos"}</small>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
 }

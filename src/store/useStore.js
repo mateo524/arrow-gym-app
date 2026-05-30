@@ -18,16 +18,6 @@ function sameExercise(a, b) {
   return String(a || "").trim().toLowerCase() === String(b || "").trim().toLowerCase();
 }
 
-function getLastCompletedSet(workouts, exercise) {
-  const ordered = [...(workouts || [])].sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
-  for (const workout of ordered) {
-    const sets = [...(workout.sets || [])].reverse();
-    const found = sets.find((set) => sameExercise(set.exercise, exercise) && (set.weight !== "" || set.reps !== ""));
-    if (found) return found;
-  }
-  return null;
-}
-
 function getExerciseStatsForPrefill(workouts, exercise) {
   return getAnalyticsExerciseStats(workouts, exercise);
 }
@@ -41,6 +31,7 @@ function makeSet(exercise, weight = "", reps = "", workouts = []) {
     weight,
     reps,
     rpe: "",
+    rir: "",
     group: meta.group || resolveExerciseGroup(exercise),
     muscle: meta.muscle || resolveExerciseMuscle(exercise),
     equipment: meta.equipment || "",
@@ -369,7 +360,7 @@ const useStore = create(
     {
       name: "arrow-gym-v4",
       version: 4,
-      migrate: (persisted, version) => {
+      migrate: (persisted, _version) => {
         const base = { ...persisted };
         if (!base.bodyMetrics) base.bodyMetrics = [];
         if (!base.customRoutines) base.customRoutines = [];

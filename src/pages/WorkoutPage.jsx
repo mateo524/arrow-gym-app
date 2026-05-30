@@ -35,12 +35,7 @@ export default function WorkoutPage() {
 
   const lastCountRef = useRef(active?.sets?.length || 0);
   useEffect(() => {
-    const current = active?.sets?.length || 0;
-    if (current > lastCountRef.current && listRef.current) {
-      const children = listRef.current.querySelectorAll(".exercise-block");
-      if (children.length) children[children.length - 1].scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }
-    lastCountRef.current = current;
+    lastCountRef.current = active?.sets?.length || 0;
   }, [active?.sets?.length]);
 
   function collapseAll(sets) {
@@ -106,7 +101,7 @@ export default function WorkoutPage() {
                 </button>
               )}
 
-              {visible.map((setItem, index) => {
+              {visible.map((setItem) => {
                 const globalIndex = sets.indexOf(setItem);
                 return (
                   <WorkoutSetCard

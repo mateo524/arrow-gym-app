@@ -18,7 +18,7 @@ export default function HomePage() {
   const globalReport = useStore((state) => state.globalCoachReport);
   const last = workouts[0];
   const totalSets = workouts.reduce((sum, w) => sum + (w.sets?.length || 0), 0);
-  const totalCardioMin = workouts.reduce((sum, w) => sum + (w.sets || []).reduce((s, set) => s + (Number(set.reps) || 0), 0), 0);
+  const totalCardioMin = workouts.filter((w) => ["Bicicleta", "Boxeo", "Cardio"].includes(w.type)).reduce((sum, w) => sum + (w.sets || []).reduce((s, set) => s + (Number(set.reps) || 0), 0), 0);
   const isStrength = (w) => !["Bicicleta", "Boxeo", "Cardio"].includes(w.type) && (w.sets || []).some((s) => Number(s.weight) > 0);
   const isCardio = (w) => ["Bicicleta", "Boxeo", "Cardio"].includes(w.type);
   const weekKey = getWeekKey(new Date().toISOString().slice(0, 10));
