@@ -59,6 +59,32 @@ export default function CoachPage() {
           <p>{coach.summary}</p>
         </div>
 
+        <div className="coach-mini-stats">
+          <div>
+            <b>{coach.recovery.score}</b>
+            <span style={{ color: coach.recovery.color }}>{coach.recovery.label}</span>
+          </div>
+          <div>
+            <b>{coach.weekDays}</b>
+            <span>días/ sem</span>
+          </div>
+          <div>
+            <b>{coach.totalWorkouts}</b>
+            <span>total</span>
+          </div>
+        </div>
+
+        <div className="recovery-bar-track">
+          <div className="recovery-bar-fill" style={{ width: `${coach.recovery.score}%`, background: coach.recovery.color }} />
+        </div>
+
+        {coach.prs.length > 0 && (
+          <div className="coach-block prs">
+            <span>🏆 Récords ({coach.prs.length})</span>
+            {coach.prs.map((p, i) => <p key={i}>{p.msg}</p>)}
+          </div>
+        )}
+
         {!showCompleteCoach && (
           <>
             {coach.alerts.length > 0 && (
@@ -83,54 +109,64 @@ export default function CoachPage() {
 
         {showCompleteCoach && (
           <>
-            {coach.nextActions.length > 0 && (
-              <div className="coach-block rec">
-                <span>Próximas acciones</span>
-                {coach.nextActions.map((a, i) => <p key={i}>→ {a}</p>)}
-              </div>
-            )}
+            <div className="coach-sections">
+              {coach.nextActions.length > 0 && (
+                <div className="coach-block rec">
+                  <span>Próximas acciones</span>
+                  {coach.nextActions.map((a, i) => <p key={i}>→ {a}</p>)}
+                </div>
+              )}
 
-            {coach.alerts.length > 0 && (
-              <div className="coach-block warn">
-                <span>Alertas ({coach.alerts.length})</span>
-                {coach.alerts.map((a, i) => <p key={i}>⚠️ {a.msg}</p>)}
-              </div>
-            )}
+              {coach.alerts.length > 0 && (
+                <div className="coach-block warn">
+                  <span>Alertas ({coach.alerts.length})</span>
+                  {coach.alerts.map((a, i) => <p key={i}>⚠️ {a.msg}</p>)}
+                </div>
+              )}
 
-            <div className="coach-block">
-              <span>Entrenamiento</span>
-              {coach.trainingInsights.length > 0
-                ? coach.trainingInsights.map((t, i) => <p key={i}>✓ {t}</p>)
-                : <p>Sin datos de entrenamiento suficientes.</p>}
-            </div>
-
-            <div className="coach-block">
-              <span>Mediciones corporales</span>
-              <p><b>Última:</b> {coach.metricSummary}</p>
-              {coach.bodyInsights.length > 0
-                ? coach.bodyInsights.map((b, i) => <p key={i}>✓ {b}</p>)
-                : <p>Cargá mediciones para obtener análisis.</p>}
-            </div>
-
-            {coach.progressionInsights.length > 0 && (
               <div className="coach-block">
-                <span>Progresión de fuerza</span>
-                {coach.progressionInsights.map((p, i) => <p key={i}>↑ {p}</p>)}
+                <span>Entrenamiento</span>
+                {coach.trainingInsights.length > 0
+                  ? coach.trainingInsights.map((t, i) => (
+                      <p key={i} className={t.startsWith("Balance") || t.startsWith("Promedio") || t.startsWith("Llevás") ? "insight-positive" : t.startsWith("Volumen semanal en descenso") || t.includes("3 días o menos") ? "insight-warn" : ""}>
+                        {(t.startsWith("Balance") || t.startsWith("Promedio") || t.includes("Buena consistencia") || t.includes("equilibrado") || t.includes("Bien.")) ? "✓ " : t.startsWith("Volumen") || t.includes("cuidado") || t.includes("No se detectan") ? "⚠ " : "• "}{t}
+                      </p>
+                    ))
+                  : <p>Sin datos de entrenamiento suficientes.</p>}
               </div>
-            )}
 
-            {coach.shoulderWarnings.length > 0 && (
-              <div className="coach-block warn">
-                <span>Hombro</span>
-                {coach.shoulderWarnings.map((s, i) => <p key={i}>⚠️ {s}</p>)}
+              <div className="coach-block">
+                <span>Mediciones corporales</span>
+                <p><b>Última:</b> {coach.metricSummary}</p>
+                {coach.bodyInsights.length > 0
+                  ? coach.bodyInsights.map((b, i) => <p key={i}>✓ {b}</p>)
+                  : <p>Cargá mediciones para obtener análisis.</p>}
               </div>
-            )}
+
+              {coach.progressionInsights.length > 0 && (
+                <div className="coach-block">
+                  <span>Progresión de fuerza</span>
+                  {coach.progressionInsights.map((p, i) => (
+                    <p key={i} className={p.includes("estancado") || p.includes("mismo peso") ? "insight-warn" : "insight-positive"}>
+                      {p.includes("estancado") || p.includes("mismo peso") ? "⚠ " : "↑ "}{p}
+                    </p>
+                  ))}
+                </div>
+              )}
+
+              {coach.shoulderWarnings.length > 0 && (
+                <div className="coach-block warn">
+                  <span>Hombro</span>
+                  {coach.shoulderWarnings.map((s, i) => <p key={i}>⚠️ {s}</p>)}
+                </div>
+              )}
+            </div>
 
             <div className="recommendations-list">
               <span>Recomendaciones</span>
               {coach.recommendations.map((r, i) => (
                 <div className="rec-item" key={i}>
-                  <span className="rec-icon">{r.type === "progression" ? "↑" : r.type === "pr" ? "🏆" : r.type === "deload" ? "💤" : r.type === "training" ? "✓" : "●"}</span>
+                  <span className="rec-icon">{r.type === "progression" ? "↑" : r.type === "pr" ? "🏆" : r.type === "deload" ? "💤" : r.type === "training" ? "✓" : r.type === "body" ? "📏" : "●"}</span>
                   <p>{r.msg}</p>
                 </div>
               ))}

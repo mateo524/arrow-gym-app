@@ -22,14 +22,23 @@ function analyzeBodyMetrics(bodyMetrics, latestWorkout) {
   if (!latest) return insights;
   const wt = getBodyMetricTrend(bodyMetrics, "bodyWeight");
   const wa = getBodyMetricTrend(bodyMetrics, "waist");
+  const chest = getBodyMetricTrend(bodyMetrics, "chest");
+  const rArm = getBodyMetricTrend(bodyMetrics, "rightArm");
+  const lArm = getBodyMetricTrend(bodyMetrics, "leftArm");
   const hasStrengthData = latestWorkout && latestWorkout.sets && latestWorkout.sets.length > 0;
   const strengthUp = hasStrengthData && latestWorkout.sets.some((s) => Number(s.weight) > 0);
+
   if (wt.direction === "stable" && wa.direction === "down") insights.push("Peso estable y cintura bajando: posible recomposición positiva. Seguí así.");
   else if (wt.direction === "stable" && strengthUp) insights.push("Peso estable pero fuerza subiendo: progreso posible. No te guíes solo por la balanza.");
   else if (wt.direction === "up" && (wa.direction === "stable" || wa.direction === "down")) insights.push("Subió peso pero cintura no aumentó: posible ganancia muscular.");
   else if (wt.direction === "down" && wt.change > 3 && bodyMetrics.length >= 3) insights.push("El peso bajó más de 3kg en poco tiempo. Revisá que no sea un déficit agresivo que comprometa músculo.");
   else if (wa.direction === "up" && bodyMetrics.filter((m) => m.waist != null).length >= 3) insights.push("Cintura subiendo en las últimas mediciones. Revisá pasos diarios, sueño, estrés y consistencia nutricional.");
   if (wa.direction === "down" && strengthUp) insights.push("Cintura bajando y fuerza subiendo: progreso excelente. Esto es mucho más importante que el peso.");
+
+  if (chest.direction === "up" && chest.change > 1) insights.push(`Pecho en crecimiento (${chest.change.toFixed(1)}cm). Buen indicador de desarrollo de torso.`);
+  if (rArm.direction === "up" && lArm.direction === "up") insights.push("Ambos brazos creciendo. Mantené el trabajo unilateral.");
+  if (rArm.direction === "up" && lArm.direction === "stable") insights.push("Brazo derecho creciendo pero izquierdo estable. Priorizá más trabajo unilateral del lado rezagado.");
+
   if (latest.rightArm != null && latest.leftArm != null) {
     const diff = Math.abs(latest.rightArm - latest.leftArm);
     if (diff > 1.5) insights.push(`Diferencia de ${diff.toFixed(1)}cm entre brazos. Sumá trabajo unilateral controlado unos minutos al final.`);
@@ -73,9 +82,17 @@ function analyzeTraining(workouts) {
   const cardioCount = recents.filter(isCardioWorkout).length;
   const boxingCount = recents.filter((w) => w.type === "Boxeo").length;
   const bikeCount = recents.filter((w) => w.type === "Bicicleta" || (w.sets || []).some((s) => String(s.exercise || "").toLowerCase().includes("bicicleta"))).length;
-  const pushCount = recents.filter((w) => ["Push", "Full Body"].includes(w.type)).length;
-  const pullCount = recents.filter((w) => ["Pull", "Full Body"].includes(w.type)).length;
   const legCount = recents.filter((w) => w.type === "Legs").length;
+
+  let pushSets = 0, pullSets = 0;
+  recents.filter(isStrengthWorkout).forEach((w) => {
+    (w.sets || []).forEach((s) => {
+      const h = hydrateSet(s);
+      if (h.group === "Pecho" || h.group === "Hombros" || (h.group === "Brazos" && h.muscle === "Tríceps")) pushSets++;
+      if (h.group === "Espalda" || (h.group === "Brazos" && h.muscle === "Bíceps")) pullSets++;
+    });
+  });
+  const ratio = pullSets > 0 ? (pushSets / pullSets).toFixed(1) : "—";
 
   if (boxingCount > 0) {
     const boxingDays = recents.filter((w) => w.type === "Boxeo").map((w) => {
@@ -97,12 +114,13 @@ function analyzeTraining(workouts) {
       insights.push("Mucha bici + gym. Asegurate de comer suficiente para recuperarte.");
     }
   }
-  if (pushCount > pullCount + 2) {
-    insights.push("Hay más sesiones de empuje que de tirón. Priorizá espalda y Face Pull la próxima semana.");
+
+  if (pushSets > 0 || pullSets > 0) {
+    if (pushSets > pullSets * 1.5) insights.push(`Empuje vs tirón: ${pushSets}/${pullSets} series (${ratio}:1). Priorizá espalda y Face Pull.`);
+    else if (pullSets > pushSets * 1.5) insights.push(`Tirón vs empuje: ${pullSets}/${pushSets} series. No descuides pecho y hombro anterior.`);
+    else insights.push(`Balance empuje/tirón equilibrado (${pushSets}/${pullSets} series, ratio ${ratio}:1). Bien.`);
   }
-  if (pullCount > pushCount + 2) {
-    insights.push("Hay más tirón que empuje. No descuides el trabajo de pecho y hombro anterior.");
-  }
+
   if (legCount < 1 && strengthCount > 3) {
     insights.push("No se detectan sesiones de piernas recientes. Incluí al menos un día de piernas por semana.");
   }
@@ -110,9 +128,10 @@ function analyzeTraining(workouts) {
   const weeksMap = {};
   recents.forEach((w) => {
     const wk = getWeekKey(w.date);
-    if (!weeksMap[wk]) weeksMap[wk] = { strength: 0, cardio: 0, boxing: 0, bike: 0, totalMin: 0, days: new Set() };
+    if (!weeksMap[wk]) weeksMap[wk] = { strength: 0, cardio: 0, boxing: 0, bike: 0, totalMin: 0, days: new Set(), volume: 0 };
     weeksMap[wk].days.add(w.date);
     weeksMap[wk].totalMin += getCardioMinutes(w);
+    weeksMap[wk].volume += getWorkoutVolume(w);
     if (isStrengthWorkout(w)) weeksMap[wk].strength++;
     if (isCardioWorkout(w)) weeksMap[wk].cardio++;
     if (w.type === "Boxeo") weeksMap[wk].boxing++;
@@ -126,8 +145,38 @@ function analyzeTraining(workouts) {
     insights.push(`Promedio semanal: ${avgStrength} sesiones de fuerza · ${avgCardio} cardio · ${avgDays} días de entrenamiento.`);
     if (avgDays <= 3) insights.push("Entrenás 3 días o menos por semana. Podés sumar un día extra si la recuperación lo permite.");
     if (avgDays >= 6) insights.push("Entrenás casi todos los días. Asegurá al menos 1 día de descanso completo por semana.");
+
+    const volumes = weeks.map((wk) => wk.volume);
+    const midIdx = Math.floor(volumes.length / 2);
+    const firstHalf = volumes.slice(0, midIdx).reduce((s, v) => s + v, 0) / midIdx;
+    const secondHalf = volumes.slice(midIdx).reduce((s, v) => s + v, 0) / (volumes.length - midIdx);
+    const volChange = firstHalf > 0 ? ((secondHalf - firstHalf) / firstHalf * 100).toFixed(0) : 0;
+    if (Math.abs(volChange) > 15) {
+      if (volChange > 0) insights.push(`Volumen semanal en ascenso (${volChange}%). Buen progreso — monitoreá recuperación.`);
+      else insights.push(`Volumen semanal en descenso (${volChange}%). Podría ser fatiga acumulada o falta de tiempo.`);
+    }
   }
+
+  const consecutiveWeeks = getConsecutiveTrainingStreak(workouts);
+  if (consecutiveWeeks >= 4) insights.push(`Llevás ${consecutiveWeeks} semanas consecutivas entrenando. Buena consistencia.`);
+  if (consecutiveWeeks >= 8) insights.push(`${consecutiveWeeks} semanas sin pausa. Considerá una semana de descarga si sentís fatiga.`);
+
   return insights;
+}
+
+function getConsecutiveTrainingStreak(workouts) {
+  if (!workouts || workouts.length === 0) return 0;
+  const weeks = [...new Set(workouts.map((w) => getWeekKey(w.date)))].sort().reverse();
+  let streak = 0;
+  const now = getWeekKey(new Date().toISOString().slice(0, 10));
+  for (let i = 0; i < weeks.length; i++) {
+    const expected = new Date(now + "T12:00:00");
+    expected.setDate(expected.getDate() - i * 7);
+    const expectedKey = expected.toISOString().slice(0, 10);
+    if (weeks[i] === expectedKey) streak++;
+    else break;
+  }
+  return streak;
 }
 
 function analyzeProgression(workouts) {
@@ -151,31 +200,33 @@ function analyzeProgression(workouts) {
     const earlyAvgWeight = first3.reduce((s, r) => s + r.weight, 0) / first3.length;
     if (avgWeight > earlyAvgWeight + 2 && avgReps >= 10) insights.push(`${exercise}: la carga subió y mantenés reps. Buen progreso.`);
     if (recent.length >= 3 && recent.every((r) => r.weight === recent[0].weight && r.reps === recent[0].reps)) insights.push(`${exercise}: mismo peso y reps 3 sesiones. Probá subir carga o sumar repeticiones.`);
+    if (sorted.length >= 4) {
+      const last4 = sorted.slice(-4);
+      if (last4.every((r) => r.weight === last4[0].weight && r.reps === last4[0].reps)) insights.push(`${exercise}: estancado 4 sesiones seguidas. Cambiá estímulo: más peso, más reps o variante.`);
+    }
   });
-  return insights.slice(0, 4);
+  return insights.slice(0, 5);
 }
 
 function analyzeShoulder(workouts) {
   const warnings = [];
   if (!workouts || workouts.length === 0) return warnings;
   const recent = workouts.slice(0, 5);
-  let pushSets = 0;
-  let pullSets = 0;
-  let shoulderSets = 0;
-  let facePullSets = 0;
+  let pushSets = 0, pullSets = 0, shoulderSets = 0, facePullSets = 0, landmineWeight = 0;
   recent.forEach((w) => {
     (w.sets || []).forEach((s) => {
       const h = hydrateSet(s);
-      if (h.exercise.toLowerCase().includes("chest") || h.exercise.toLowerCase().includes("press") && h.group === "Hombros") pushSets++;
+      const ex = h.exercise.toLowerCase();
+      if (ex.includes("chest") || (ex.includes("press") && h.group === "Hombros")) pushSets++;
       if (h.group === "Hombros") shoulderSets++;
-      if (h.exercise.toLowerCase().includes("face pull") || h.exercise.toLowerCase().includes("rear delt")) { facePullSets++; pullSets++; }
+      if (ex.includes("face pull") || ex.includes("rear delt")) { facePullSets++; pullSets++; }
       if (h.group === "Espalda") pullSets++;
+      if (ex === "landmine shoulder press") landmineWeight = Math.max(landmineWeight, Number(s.weight) || 0);
     });
   });
   if (pushSets > pullSets + 6) warnings.push("Hay mucho más empuje que tirón en las últimas sesiones. Agregá más trabajo de espalda y deltoide posterior.");
   if (shoulderSets > 15 && facePullSets < 4) warnings.push("Volumen alto de hombros sin suficiente deltoide posterior. Incluí Face Pull o Rear Delt Fly.");
-  const hasLandmine = recent.some((w) => (w.sets || []).some((s) => s.exercise === "Landmine Shoulder Press" && Number(s.weight) >= 30));
-  if (hasLandmine) warnings.push("Landmine Shoulder Press cerca del límite. Mantené 30kg o menos y priorizá control.");
+  if (landmineWeight >= 30) warnings.push("Landmine Shoulder Press cerca del límite. Mantené 30kg o menos y priorizá control.");
   return warnings;
 }
 
@@ -215,49 +266,75 @@ function computeNextActions(workouts, bodyMetrics) {
   return actions;
 }
 
-export function buildGlobalCoachReport({ workouts, bodyMetrics, currentWorkout, latestWorkout }) {
-  const allWorkouts = workouts || [];
-  const allMetrics = bodyMetrics || [];
-  const latestW = latestWorkout || allWorkouts[0] || null;
-  const bodyInsights = analyzeBodyMetrics(allMetrics, latestW);
-  const trainingInsights = analyzeTraining(allWorkouts);
-  const progressionInsights = analyzeProgression(allWorkouts);
-  const shoulderWarnings = analyzeShoulder(allWorkouts);
-  const nextActions = computeNextActions(allWorkouts, allMetrics);
-  const allAlerts = [];
-  if (shoulderWarnings.length > 0) allAlerts.push(...shoulderWarnings.map((w) => ({ type: "shoulder", msg: w })));
-  if (trainingInsights.length > 0) allAlerts.push(...trainingInsights.slice(0, 2).map((t) => ({ type: "training", msg: t })));
-  if (bodyInsights.length > 0) {
-    const criticalInsights = bodyInsights.filter((i) => i.includes("cintura subiendo") || i.includes("déficit agresivo") || i.includes("diferencia"));
-    criticalInsights.forEach((i) => allAlerts.push({ type: "body", msg: i }));
-  }
-  const recommendations = [];
-  progressionInsights.slice(0, 2).forEach((p) => recommendations.push({ type: "progression", msg: p }));
-  trainingInsights.slice(0, 2).forEach((t) => recommendations.push({ type: "training", msg: t }));
-  bodyInsights.slice(0, 2).forEach((b) => recommendations.push({ type: "body", msg: b }));
+function computeRecoveryScore(workouts, bodyMetrics) {
+  if (!workouts || workouts.length < 3) return { score: 50, label: "Estimado", color: "#8ea0a0" };
+  const recents = workouts.slice(0, 14);
+  const weekWorkouts = recents.filter((w) => {
+    const wk = getWeekKey(w.date);
+    return wk === getWeekKey(new Date().toISOString().slice(0, 10));
+  });
+  const lastWeek = recents.filter((w) => {
+    const d = new Date(w.date + "T12:00:00");
+    const lastWeekStart = new Date();
+    lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+    const wk = getWeekKey(d.toISOString().slice(0, 10));
+    const target = getWeekKey(lastWeekStart.toISOString().slice(0, 10));
+    return wk === target;
+  });
 
-  // PR detection
+  const daysTrainedThisWeek = weekWorkouts.length;
+  const daysTrainedLastWeek = lastWeek.length;
+  const volumeThisWeek = weekWorkouts.reduce((s, w) => s + getWorkoutVolume(w), 0);
+  const volumeLastWeek = lastWeek.reduce((s, w) => s + getWorkoutVolume(w), 0);
+
+  let score = 70;
+
+  if (daysTrainedThisWeek >= 5) score -= 10;
+  else if (daysTrainedThisWeek >= 4) score -= 5;
+  else if (daysTrainedThisWeek <= 2) score += 10;
+
+  if (volumeLastWeek > 0) {
+    const volChange = ((volumeThisWeek - volumeLastWeek) / volumeLastWeek) * 100;
+    if (volChange > 30) score -= 15;
+    else if (volChange > 15) score -= 8;
+    else if (volChange < -30) score += 5;
+  }
+
+  if (bodyMetrics && bodyMetrics.length > 2) {
+    const wt = getBodyMetricTrend(bodyMetrics, "bodyWeight");
+    if (wt.direction === "down" && wt.change > 2) score -= 10;
+  }
+
+  score = Math.max(10, Math.min(100, score));
+
+  let label, color;
+  if (score >= 80) { label = "Óptima"; color = "#6df2a4"; }
+  else if (score >= 60) { label = "Buena"; color = "#75d9ff"; }
+  else if (score >= 40) { label = "Moderada"; color = "#f59e0b"; }
+  else { label = "Baja — considerá descanso"; color = "#ff6b6b"; }
+
+  return { score, label, color };
+}
+
+function computePRs(workouts, currentWorkout) {
   const prs = [];
-  if (currentWorkout) {
-    (currentWorkout.sets || []).forEach((s) => {
-      const stats = getExerciseStats(allWorkouts.filter((w) => w.id !== currentWorkout.id), s.exercise);
-      const currentVol = (Number(s.weight) || 0) * (Number(s.reps) || 0);
-      if (currentVol > 0 && s.weight && s.reps) {
-        const prevBestVol = stats.bestVolume || 0;
-        const prevBestWeight = Number(stats.bestWeight) || 0;
-        if (currentVol > prevBestVol && prevBestVol > 0) prs.push({ exercise: s.exercise, type: "volume", msg: `${s.exercise}: nuevo récord de volumen (${Math.round(currentVol)} kg).` });
-        else if (Number(s.weight) > prevBestWeight && prevBestWeight > 0) prs.push({ exercise: s.exercise, type: "weight", msg: `${s.exercise}: nuevo récord de carga (${s.weight} kg).` });
-      }
-    });
-  }
-  if (prs.length > 0) {
-    prs.slice(0, 2).forEach((p) => recommendations.push({ type: "pr", msg: p.msg }));
-    allAlerts.push(...prs.slice(0, 1).map((p) => ({ type: "pr", msg: p.msg })));
-  }
+  if (!currentWorkout) return prs;
+  (currentWorkout.sets || []).forEach((s) => {
+    const stats = getExerciseStats(workouts.filter((w) => w.id !== currentWorkout.id), s.exercise);
+    const currentVol = (Number(s.weight) || 0) * (Number(s.reps) || 0);
+    if (currentVol > 0 && s.weight && s.reps) {
+      const prevBestVol = stats.bestVolume || 0;
+      const prevBestWeight = Number(stats.bestWeight) || 0;
+      if (currentVol > prevBestVol && prevBestVol > 0) prs.push({ exercise: s.exercise, type: "volume", msg: `${s.exercise}: nuevo récord de volumen (${Math.round(currentVol)} kg).` });
+      else if (Number(s.weight) > prevBestWeight && prevBestWeight > 0) prs.push({ exercise: s.exercise, type: "weight", msg: `${s.exercise}: nuevo récord de carga (${s.weight} kg).` });
+    }
+  });
+  return prs;
+}
 
-  // Deload detection
+function computeDeload(workouts) {
   let deloadSuggestion = null;
-  const sortedWorkouts = [...allWorkouts].sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  const sortedWorkouts = [...workouts].sort((a, b) => String(a.date).localeCompare(String(b.date)));
   if (sortedWorkouts.length >= 12) {
     const recent12 = sortedWorkouts.slice(-12);
     const weeksSet = new Set(recent12.map((w) => getWeekKey(w.date)));
@@ -267,8 +344,53 @@ export function buildGlobalCoachReport({ workouts, bodyMetrics, currentWorkout, 
     if (totalWeeks >= 6 && strengthWeeks.size >= 6) {
       const lastWeeks = [...weeksSet].sort().slice(-4);
       const allTrained = lastWeeks.every((wk) => recent12.some((w) => getWeekKey(w.date) === wk && isStrengthWorkout(w)));
-      if (allTrained) deloadSuggestion = "Entrenaste todas las semanas seguidas con fuerza. Considerá una semana de descarga (deload): reduce carga al 50-60% o tomá una semana liviana.";
+
+      const volumes = lastWeeks.map((wk) => {
+        const weekWorkouts = recent12.filter((w) => getWeekKey(w.date) === wk);
+        return weekWorkouts.reduce((s, w) => s + getWorkoutVolume(w), 0);
+      });
+      const volDeclining = volumes.length >= 3 && volumes[volumes.length - 1] < volumes[0] * 0.85;
+
+      if (allTrained || volDeclining) {
+        deloadSuggestion = allTrained
+          ? "Entrenaste todas las semanas seguidas con fuerza. Considerá una semana de descarga (deload): reduce carga al 50-60% o tomá una semana liviana."
+          : "El volumen viene bajando las últimas semanas. Podría ser fatiga acumulada. Probá una semana de descarga.";
+      }
     }
+  }
+  return deloadSuggestion;
+}
+
+export function buildGlobalCoachReport({ workouts, bodyMetrics, currentWorkout, latestWorkout }) {
+  const allWorkouts = workouts || [];
+  const allMetrics = bodyMetrics || [];
+  const latestW = latestWorkout || allWorkouts[0] || null;
+  const bodyInsights = analyzeBodyMetrics(allMetrics, latestW);
+  const trainingInsights = analyzeTraining(allWorkouts);
+  const progressionInsights = analyzeProgression(allWorkouts);
+  const shoulderWarnings = analyzeShoulder(allWorkouts);
+  const nextActions = computeNextActions(allWorkouts, allMetrics);
+  const recovery = computeRecoveryScore(allWorkouts, allMetrics);
+  const prs = computePRs(allWorkouts, currentWorkout);
+  const deloadSuggestion = computeDeload(allWorkouts);
+
+  const allAlerts = [];
+  if (shoulderWarnings.length > 0) allAlerts.push(...shoulderWarnings.map((w) => ({ type: "shoulder", msg: w })));
+  if (trainingInsights.length > 0) allAlerts.push(...trainingInsights.slice(0, 2).map((t) => ({ type: "training", msg: t })));
+  if (bodyInsights.length > 0) {
+    const criticalInsights = bodyInsights.filter((i) => i.includes("cintura subiendo") || i.includes("déficit agresivo") || i.includes("diferencia"));
+    criticalInsights.forEach((i) => allAlerts.push({ type: "body", msg: i }));
+  }
+  if (recovery.score < 40) allAlerts.push({ type: "recovery", msg: "Score de recuperación bajo. Priorizá sueño, alimentación y descanso." });
+
+  const recommendations = [];
+  progressionInsights.slice(0, 2).forEach((p) => recommendations.push({ type: "progression", msg: p }));
+  trainingInsights.slice(0, 2).forEach((t) => recommendations.push({ type: "training", msg: t }));
+  bodyInsights.slice(0, 2).forEach((b) => recommendations.push({ type: "body", msg: b }));
+
+  if (prs.length > 0) {
+    prs.slice(0, 2).forEach((p) => recommendations.push({ type: "pr", msg: p.msg }));
+    allAlerts.push(...prs.slice(0, 1).map((p) => ({ type: "pr", msg: p.msg })));
   }
   if (deloadSuggestion) {
     recommendations.push({ type: "deload", msg: deloadSuggestion });
@@ -305,11 +427,13 @@ export function buildGlobalCoachReport({ workouts, bodyMetrics, currentWorkout, 
   return {
     summary,
     metricSummary,
+    recovery,
+    prs: prs.slice(0, 3),
     alerts: allAlerts.slice(0, 5),
     recommendations: recommendations.slice(0, 6),
-    trainingInsights: trainingInsights.slice(0, 4),
+    trainingInsights: trainingInsights.slice(0, 5),
     bodyInsights: bodyInsights.slice(0, 4),
-    progressionInsights: progressionInsights.slice(0, 4),
+    progressionInsights: progressionInsights.slice(0, 5),
     shoulderWarnings: shoulderWarnings.slice(0, 3),
     nextActions: nextActions.slice(0, 4),
     totalWorkouts: allWorkouts.length,

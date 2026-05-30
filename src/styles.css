@@ -536,8 +536,34 @@ small { color: var(--muted); font-size: 12px; }
   text-align: center;
 }
 
-.coach-mini-stats span { display: block; color: var(--muted); font-size: 9px; }
-.coach-mini-stats b { font-size: 12px; color: #eafff2; }
+.coach-mini-stats span { display: block; color: var(--muted); font-size: 9px; font-weight: 700; }
+.coach-mini-stats b { font-size: 18px; color: #eafff2; }
+
+.recovery-bar-track {
+  height: 6px;
+  background: #1a282b;
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 8px 0 4px;
+}
+.recovery-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width .4s ease;
+}
+
+.coach-block.prs {
+  border-color: #6d4f17;
+  background: linear-gradient(135deg,#1a1507,#0f0d06);
+  margin-top: 10px;
+}
+.coach-block.prs span { color: #f5c542; }
+.coach-block.prs p { color: #ffe499; font-weight: 700; }
+
+.coach-sections { margin-top: 10px; }
+
+.insight-positive { color: var(--green) !important; }
+.insight-warn { color: #f5c542 !important; }
 
 .notice.compact { margin-top: 10px; padding: 10px; }
 .notice.compact p { margin: 4px 0 0; font-size: 11px; }
