@@ -7,6 +7,16 @@ import { buildGlobalCoachReport } from "../lib/coachEngine.js";
 import { loadInitialWorkouts, loadInitialBodyMetrics, normalizeSet } from "../lib/storageMigration.js";
 import { createIdbStorage } from "../lib/idbStorage.js";
 
+function autoTagWorkout(workout) {
+  if (["Bicicleta", "Boxeo", "Cardio"].includes(workout.type)) return ["Cardio"];
+  const strengthSets = (workout.sets || []).filter((s) => Number(s.weight) > 0 && Number(s.reps) > 0);
+  if (!strengthSets.length) return [];
+  const avgReps = strengthSets.reduce((sum, s) => sum + Number(s.reps), 0) / strengthSets.length;
+  if (avgReps <= 6) return ["Fuerza"];
+  if (avgReps <= 12) return ["Volumen"];
+  return ["Resistencia"];
+}
+
 function uid(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
@@ -205,8 +215,11 @@ const useStore = create(
           sets: active.sets
             .filter((setItem) => setItem.exercise && (setItem.weight !== "" || setItem.reps !== ""))
             .map(normalizeSet),
+          tags: autoTagWorkout(active),
         };
         if (!clean.sets.length) return;
+        const prev = get().workouts.find((w) => w.type === active.type && w.id !== clean.id);
+        if (prev) clean.prevWorkoutId = prev.id;
         const report = buildCoachReport(clean, get().workouts);
         set((state) => {
           const newWorkouts = [clean, ...state.workouts.filter((item) => item.id !== clean.id)];

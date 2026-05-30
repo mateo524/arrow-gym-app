@@ -1,6 +1,42 @@
-import { useEffect } from "react";
+import { useMemo, useEffect } from "react";
 import useStore from "../store/useStore.js";
 import { buildCoachReport } from "../lib/analytics.js";
+
+function computeComparison(current, workouts) {
+  if (!current?.prevWorkoutId) return null;
+  const prevWorkout = workouts.find((w) => w.id === current.prevWorkoutId);
+  if (!prevWorkout) return null;
+  const currentSets = (current.sets || []).filter((s) => Number(s.weight) > 0);
+  if (!currentSets.length) return null;
+  const exerciseMap = {};
+  (prevWorkout.sets || []).forEach((s) => {
+    const key = String(s.exercise || "").trim().toLowerCase();
+    if (Number(s.weight) > 0) exerciseMap[key] = s;
+  });
+  const comparisons = [];
+  currentSets.forEach((cs) => {
+    const key = String(cs.exercise || "").trim().toLowerCase();
+    const ps = exerciseMap[key];
+    const cw = Number(cs.weight) || 0;
+    const cr = Number(cs.reps) || 0;
+    if (!ps) {
+      comparisons.push({ exercise: cs.exercise, currentWeight: cw, currentReps: cr, prevWeight: null, delta: null });
+      return;
+    }
+    const pw = Number(ps.weight) || 0;
+    const pr = Number(ps.reps) || 0;
+    comparisons.push({
+      exercise: cs.exercise,
+      currentWeight: cw,
+      currentReps: cr,
+      prevWeight: pw,
+      prevReps: pr,
+      delta: cw - pw,
+      deltaVol: (cw * cr) - (pw * pr),
+    });
+  });
+  return { prevDate: prevWorkout.date, comparisons };
+}
 
 export default function CoachPage() {
   const reports = useStore((state) => state.coachReports);
@@ -11,14 +47,21 @@ export default function CoachPage() {
   const setPage = useStore((state) => state.setPage);
   const showCompleteCoach = useStore((state) => state.showCompleteCoach);
   const setShowCompleteCoach = useStore((state) => state.setShowCompleteCoach);
+  const selectedWorkoutId = useStore((state) => state.selectedWorkoutId);
 
   useEffect(() => {
     refreshGlobalCoach();
   }, []);
 
-  const computed = reports.length ? reports : workouts.slice(0, 12).map((workout) => buildCoachReport(workout, workouts));
+  const computed = useMemo(() => reports.length ? reports : workouts.slice(0, 12).map((workout) => buildCoachReport(workout, workouts)), [reports, workouts]);
   const latest = computed[0];
   const coach = globalCoachReport;
+
+  const currentWorkout = useMemo(() => {
+    if (!selectedWorkoutId) return workouts[0];
+    return workouts.find((w) => w.id === selectedWorkoutId);
+  }, [selectedWorkoutId, workouts]);
+  const comparison = useMemo(() => computeComparison(currentWorkout, workouts), [currentWorkout, workouts]);
 
   if (!coach) {
     return (
@@ -82,6 +125,30 @@ export default function CoachPage() {
           <div className="coach-block prs">
             <span>🏆 Récords ({coach.prs.length})</span>
             {coach.prs.map((p, i) => <p key={i}>{p.msg}</p>)}
+          </div>
+        )}
+
+        {comparison && comparison.comparisons.length > 0 && (
+          <div className="coach-block comparison">
+            <span>📊 vs {comparison.prevDate}</span>
+            {comparison.comparisons.map((c) => (
+              <div className="cmp-row" key={c.exercise}>
+                <b>{c.exercise}</b>
+                {c.delta != null ? (
+                  <>
+                    <span className={`delta ${c.delta > 0 ? "up" : c.delta < 0 ? "down" : "same"}`}>
+                      {c.delta > 0 ? "+" : ""}{c.delta} kg
+                    </span>
+                    <span className={`delta ${c.deltaVol > 0 ? "up" : c.deltaVol < 0 ? "down" : "same"}`}>
+                      {c.deltaVol > 0 ? "+" : ""}{Math.round(c.deltaVol)} vol
+                    </span>
+                  </>
+                ) : (
+                  <span className="delta new">Nuevo</span>
+                )}
+                <small>{c.prevWeight != null ? `${c.prevWeight}kg → ${c.currentWeight}kg` : `${c.currentWeight}kg`}</small>
+              </div>
+            ))}
           </div>
         )}
 

@@ -1170,6 +1170,25 @@ small { color: var(--muted); font-size: 12px; }
 .calendar-day.today { border: 1px solid var(--cyan); }
 .calendar-day.other-month { opacity: .25; }
 
+/* Workout tags */
+.workout-tags { display: flex; gap: 4px; margin: 4px 0 10px; flex-wrap: wrap; }
+.tag { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; padding: 2px 8px; border-radius: 99px; background: rgba(109,242,164,.15); color: var(--green); }
+.tag-sm { font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 99px; background: rgba(109,242,164,.15); color: var(--green); margin-left: 6px; }
+
+/* Delta / comparison */
+.delta-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 12px; border-bottom: 1px solid rgba(255,255,255,.04); }
+.delta-row b { flex: 1; font-size: 12px; }
+.delta { font-weight: 800; font-size: 12px; min-width: 48px; text-align: right; }
+.delta.up { color: var(--green); }
+.delta.down { color: var(--orange); }
+.delta.same { color: var(--muted); }
+.delta.new { color: var(--cyan); }
+.cmp-row { display: flex; align-items: center; gap: 6px; padding: 5px 0; font-size: 12px; border-bottom: 1px solid rgba(255,255,255,.04); }
+.cmp-row b { flex: 1; font-size: 12px; }
+.cmp-row small { color: var(--muted); font-size: 10px; min-width: 60px; text-align: right; }
+.coach-block.comparison { border-color: var(--cyan); }
+.coach-block.comparison > span { color: var(--cyan); }
+
 /* As button */
 .as-button {
   text-align: left;
