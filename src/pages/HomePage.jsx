@@ -2,47 +2,7 @@ import useStore from "../store/useStore.js";
 import { getWorkoutVolume, filterCurrentWeek, getMuscleIntensity } from "../lib/analytics.js";
 import AdvancedMuscleDiagram from "../components/AdvancedMuscleDiagram.jsx";
 import WorkoutCalendar from "../components/WorkoutCalendar.jsx";
-
-function getWeekKey(dateStr) {
-  const d = new Date(dateStr + "T12:00:00");
-  const day = d.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  d.setDate(d.getDate() + diff);
-  return d.toISOString().slice(0, 10);
-}
-
-function getConsecutiveDays(workouts) {
-  if (!workouts || workouts.length === 0) return 0;
-  const dates = [...new Set(workouts.map((w) => w.date))].sort().reverse();
-  let streak = 1;
-  const today = new Date().toISOString().slice(0, 10);
-  if (dates[0] !== today && dates[0] !== yesterday()) return 0;
-  for (let i = 1; i < dates.length; i++) {
-    const prev = new Date(dates[i - 1] + "T12:00:00");
-    const curr = new Date(dates[i] + "T12:00:00");
-    const diff = (prev.getTime() - curr.getTime()) / 86400000;
-    if (Math.round(diff) === 1) streak++;
-    else break;
-  }
-  return streak;
-}
-
-function yesterday() {
-  const d = new Date();
-  d.setDate(d.getDate() - 1);
-  return d.toISOString().slice(0, 10);
-}
-
-function getLastWeekWorkouts(workouts) {
-  const now = new Date();
-  const lastWeekStart = new Date(now);
-  lastWeekStart.setDate(lastWeekStart.getDate() - 7);
-  const lastWeekKey = getWeekKey(lastWeekStart.toISOString().slice(0, 10));
-  return workouts.filter((w) => {
-    const wk = getWeekKey(w.date);
-    return wk === lastWeekKey;
-  });
-}
+import { useStreak, getWeekKey, getLastWeekWorkouts } from "../lib/hooks/useStreak.js";
 
 export default function HomePage() {
   const workouts = useStore((state) => state.workouts);
@@ -61,47 +21,47 @@ export default function HomePage() {
   const weekMin = weekWorkouts.reduce((sum, w) => sum + (w.sets || []).reduce((s, set) => s + (Number(set.reps) || 0), 0), 0);
   const weekDays = [...new Set(weekWorkouts.map((w) => w.date))].length;
   const intensity = getMuscleIntensity(filterCurrentWeek(workouts));
-  const streak = getConsecutiveDays(workouts);
+  const streak = useStreak(workouts);
   const lastWeek = getLastWeekWorkouts(workouts);
   const lastWeekDays = [...new Set(lastWeek.map((w) => w.date))].length;
   const lastWeekVolume = lastWeek.reduce((s, w) => s + getWorkoutVolume(w), 0);
   const thisWeekVolume = weekWorkouts.reduce((s, w) => s + getWorkoutVolume(w), 0);
 
   return (
-    <section className="page">
+    <section className="page" role="main" aria-label="Inicio">
       <div className="hero">
         <p className="eyebrow">Arrow Gym</p>
         <h1>Entrená rápido. Medí cada músculo.</h1>
         <p>Mapa muscular, radar por grupos y registro sin fricción.</p>
-        <button className="primary big" onClick={() => setPage(activeWorkout ? "workout" : "start")}>
+        <button className="primary big" onClick={() => setPage(activeWorkout ? "workout" : "start")} aria-label={activeWorkout ? "Continuar entrenamiento" : "Empezar entrenamiento"}>
           {activeWorkout ? "Continuar entrenamiento" : "Empezar entrenamiento"}
         </button>
       </div>
 
-      <div className="stats-grid">
-        <div><b>{workouts.length}</b><span>entrenos</span></div>
-        <div><b>{totalSets}</b><span>series</span></div>
-        <div><b>{streak > 0 ? `🔥${streak}` : totalCardioMin}</b><span>{streak > 0 ? "días seguidos" : "min cardio"}</span></div>
+      <div className="stats-grid" role="list" aria-label="Estadísticas generales">
+        <div role="listitem"><b>{workouts.length}</b><span>entrenos</span></div>
+        <div role="listitem"><b>{totalSets}</b><span>series</span></div>
+        <div role="listitem"><b>{streak > 0 ? `🔥${streak}` : totalCardioMin}</b><span>{streak > 0 ? "días seguidos" : "min cardio"}</span></div>
       </div>
 
-      <div className="card">
+      <div className="card" role="region" aria-label="Resumen semanal">
         <div className="card-head-row">
           <h2>Esta semana</h2>
           {lastWeekDays > 0 && (
-            <small className={weekDays >= lastWeekDays ? "vs-up" : "vs-down"}>
+            <small className={weekDays >= lastWeekDays ? "vs-up" : "vs-down"} aria-live="polite">
               {weekDays >= lastWeekDays ? "↑" : "↓"} {lastWeekDays} ant.
             </small>
           )}
         </div>
         {weekWorkouts.length > 0 ? (
           <>
-            <div className="stats-grid" style={{ marginBottom: 0 }}>
-              <div><b>{weekStrength}</b><span>fuerza</span></div>
-              <div><b>{weekCardio}</b><span>cardio</span></div>
-              <div><b>{weekMin}</b><span>min</span></div>
-              <div><b>{weekDays}</b><span>días</span></div>
+            <div className="stats-grid" style={{ marginBottom: 0 }} role="list">
+              <div role="listitem"><b>{weekStrength}</b><span>fuerza</span></div>
+              <div role="listitem"><b>{weekCardio}</b><span>cardio</span></div>
+              <div role="listitem"><b>{weekMin}</b><span>min</span></div>
+              <div role="listitem"><b>{weekDays}</b><span>días</span></div>
             </div>
-            <div className="week-goal-bar">
+            <div className="week-goal-bar" role="progressbar" aria-valuenow={weekDays} aria-valuemin={0} aria-valuemax={5} aria-label={`${weekDays} de 5 días`}>
               <div className="week-goal-label">
                 <span>Meta semanal</span>
                 <b>{weekDays}/5 días</b>
@@ -126,7 +86,7 @@ export default function HomePage() {
       <AdvancedMuscleDiagram intensity={intensity} />
 
       {last && (
-        <button className="card as-button" onClick={() => useStore.getState().openWorkout(last.id)}>
+        <button className="card as-button" onClick={() => useStore.getState().openWorkout(last.id)} aria-label={`Último entrenamiento: ${last.type}`}>
           <h2>Último entrenamiento</h2>
           <p>{last.type} · {last.date}</p>
           <strong>{last.sets.length} series · {Math.round(getWorkoutVolume(last))} kg</strong>
@@ -134,7 +94,7 @@ export default function HomePage() {
       )}
 
       {globalReport?.alerts?.length > 0 && (
-        <div className="notice" style={{ borderLeft: "3px solid #f59e0b" }}>
+        <div className="notice" style={{ borderLeft: "3px solid #f59e0b" }} role="alert">
           <b>Coach dice</b>
           <p>{globalReport.alerts[0].msg}</p>
         </div>

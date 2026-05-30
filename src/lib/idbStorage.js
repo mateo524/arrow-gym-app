@@ -1,4 +1,4 @@
-import { get, set, del, keys } from "idb-keyval";
+import { get, set, del } from "idb-keyval";
 
 export function createIdbStorage(migrateFromLocalStorage = true) {
   return {
@@ -10,7 +10,9 @@ export function createIdbStorage(migrateFromLocalStorage = true) {
         if (ls) {
           try {
             await set(name, ls);
-          } catch {}
+          } catch (e) {
+            console.warn("Arrow Gym: IDB migrate from localStorage failed", e);
+          }
           return ls;
         }
       }

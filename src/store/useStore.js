@@ -85,7 +85,7 @@ async function autoSync(workouts, bodyMetrics, customRoutines, customExercises) 
       });
     }
     localStorage.setItem("gh_last_sync", new Date().toISOString());
-  } catch {}
+  } catch (e) { console.warn("Arrow Gym: autoSync failed", e); }
 }
 
 const useStore = create(
@@ -230,7 +230,7 @@ const useStore = create(
             currentWorkout: clean,
             latestWorkout: clean,
           });
-          try { localStorage.setItem("arrow-gym-recovery", JSON.stringify({ workouts: newWorkouts, bodyMetrics: state.bodyMetrics, customRoutines: state.customRoutines, customExercises: state.customExercises })); } catch {}
+          try { localStorage.setItem("arrow-gym-recovery", JSON.stringify({ workouts: newWorkouts, bodyMetrics: state.bodyMetrics, customRoutines: state.customRoutines, customExercises: state.customExercises })); } catch (e) { console.warn("Arrow Gym: recovery backup failed", e); }
           setTimeout(() => autoSync(newWorkouts, state.bodyMetrics, state.customRoutines, state.customExercises), 100);
           return {
             workouts: newWorkouts,
@@ -263,7 +263,7 @@ const useStore = create(
         NUM.forEach((k) => { if (payload[k] != null && payload[k] !== "") metric[k] = Number(String(payload[k]).replace(",", ".")); });
         set((state) => {
           const bodyMetrics = [metric, ...state.bodyMetrics];
-          try { localStorage.setItem("arrow-gym-recovery", JSON.stringify({ workouts: state.workouts, bodyMetrics, customRoutines: state.customRoutines, customExercises: state.customExercises })); } catch {}
+          try { localStorage.setItem("arrow-gym-recovery", JSON.stringify({ workouts: state.workouts, bodyMetrics, customRoutines: state.customRoutines, customExercises: state.customExercises })); } catch (e) { console.warn("Arrow Gym: recovery backup failed", e); }
           return { bodyMetrics };
         });
         get().refreshGlobalCoach();
@@ -389,7 +389,7 @@ const useStore = create(
               if (!base.customRoutines?.length && recovery.customRoutines?.length) base.customRoutines = recovery.customRoutines;
               if (!base.customExercises?.length && recovery.customExercises?.length) base.customExercises = recovery.customExercises;
             }
-          } catch {}
+          } catch (e) { console.warn("Arrow Gym: recovery restore during migration failed", e); }
         }
         return base;
       },

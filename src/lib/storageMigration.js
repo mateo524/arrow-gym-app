@@ -57,7 +57,8 @@ function cleanKey(value) {
 function readJSON(key) {
   try {
     return JSON.parse(localStorage.getItem(key) || "null");
-  } catch {
+  } catch (e) {
+    console.warn("Arrow Gym: readJSON failed for", key, e);
     return null;
   }
 }
@@ -138,7 +139,7 @@ export function loadInitialWorkouts() {
     const found = [];
     OLD_KEYS.forEach((key) => {
       try { extractWorkouts(readJSON(key)).forEach((workout) => found.push(normalizeWorkout(workout))); }
-      catch {}
+      catch (e) { console.warn("Arrow Gym: migration from", key, "failed", e); }
     });
 
     const byKey = new Map();
@@ -148,7 +149,8 @@ export function loadInitialWorkouts() {
     });
 
     return Array.from(byKey.values()).sort((a, b) => String(b.date).localeCompare(String(a.date)));
-  } catch {
+  } catch (e) {
+    console.warn("Arrow Gym: loadInitialWorkouts failed", e);
     return SEED_WORKOUTS.map(normalizeWorkout);
   }
 }
@@ -159,6 +161,6 @@ export function loadInitialBodyMetrics() {
     const own = readJSON("arrow-gym-v4");
     if (own?.state?.bodyMetrics) return own.state.bodyMetrics;
     if (own?.state?.workouts && own.state.workouts.length > 0) return [];
-  } catch {}
+  } catch (e) { console.warn("Arrow Gym: loadInitialBodyMetrics failed", e); }
   return SEED_BODY_METRICS;
 }

@@ -283,7 +283,6 @@ function computeRecoveryScore(workouts, bodyMetrics) {
   });
 
   const daysTrainedThisWeek = weekWorkouts.length;
-  const daysTrainedLastWeek = lastWeek.length;
   const volumeThisWeek = weekWorkouts.reduce((s, w) => s + getWorkoutVolume(w), 0);
   const volumeLastWeek = lastWeek.reduce((s, w) => s + getWorkoutVolume(w), 0);
 

@@ -37,33 +37,50 @@ export default function Nav() {
   return (
     <>
       {showMoreMenu && (
-        <div className="more-overlay" onClick={toggleMoreMenu}>
+        <div className="more-overlay" onClick={toggleMoreMenu} role="dialog" aria-modal="true" aria-label="Más opciones">
           <div className="more-menu" onClick={(e) => e.stopPropagation()}>
-            <p className="more-menu-title">Más opciones</p>
-            {MORE_TABS.map((tab) => (
-              <button
-                key={tab.id}
-                className={`more-item ${currentPage === tab.id ? "active" : ""}`}
-                onClick={() => setPage(tab.id)}
-              >
-                <span>{tab.icon}</span>
-                <span>{tab.label}</span>
-              </button>
-            ))}
+            <p className="more-menu-title" id="more-menu-title">Más opciones</p>
+            <div role="tablist" aria-labelledby="more-menu-title">
+              {MORE_TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  className={`more-item ${currentPage === tab.id ? "active" : ""}`}
+                  onClick={() => setPage(tab.id)}
+                  role="tab"
+                  aria-selected={currentPage === tab.id}
+                  aria-label={tab.label}
+                >
+                  <span aria-hidden="true">{tab.icon}</span>
+                  <span>{tab.label}</span>
+                </button>
+              ))}
+            </div>
             <button className="ghost full" onClick={toggleMoreMenu}>Cerrar</button>
+            {window.arrowGymInstall && (
+              <button className="secondary full" style={{ marginTop: 8 }} onClick={async () => { const r = await window.arrowGymInstall(); if (r === "accepted") toggleMoreMenu(); }}>
+                📲 Instalar app
+              </button>
+            )}
+            {typeof window.arrowGymInstall === "function" && (
+              <button className="secondary full" style={{ marginTop: 8 }} onClick={async () => { const r = await window.arrowGymInstall(); if (r === "accepted") toggleMoreMenu(); }}>
+                📲 Instalar app
+              </button>
+            )}
           </div>
         </div>
       )}
-      <nav className="bottom-nav">
+      <nav className="bottom-nav" role="tablist" aria-label="Navegación principal">
         {MAIN_TABS.map((tab) => (
           <button
             key={tab.id}
             className={`nav-item ${currentPage === tab.id ? "active" : ""}`}
             onClick={() => setPage(tab.id)}
             type="button"
+            role="tab"
+            aria-selected={currentPage === tab.id}
             aria-label={tab.label}
           >
-            <span>{tab.icon}</span>
+            <span aria-hidden="true">{tab.icon}</span>
             <small>{tab.label}</small>
           </button>
         ))}
@@ -71,9 +88,11 @@ export default function Nav() {
           className={`nav-item ${showMoreMenu || MORE_TABS.some((t) => t.id === currentPage) ? "active" : ""}`}
           onClick={toggleMoreMenu}
           type="button"
-          aria-label="Más"
+          role="tab"
+          aria-selected={showMoreMenu || MORE_TABS.some((t) => t.id === currentPage)}
+          aria-label="Más opciones"
         >
-          <span>+</span>
+          <span aria-hidden="true">+</span>
           <small>Más</small>
         </button>
       </nav>

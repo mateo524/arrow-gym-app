@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useState, useCallback, useEffect } from "react";
 
 function progressionTip(lastWeight, lastReps, currentWeight, currentReps) {
   const lw = Number(lastWeight) || 0;
@@ -11,11 +11,27 @@ function progressionTip(lastWeight, lastReps, currentWeight, currentReps) {
   return null;
 }
 
+const OPTIONS = { RPE: [6,6.5,7,7.5,8,8.5,9,9.5,10], RIR: ["0","1","2","3","4"] };
+
 function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onRemove, onStartTimer }) {
   const isCardio = setItem.group === "Cardio";
   const currentWeight = Number(setItem.weight || 0);
   const currentReps = Number(setItem.reps || 0);
   const tip = progressionTip(setItem.lastWeight, setItem.lastReps, currentWeight, currentReps);
+
+  const [localWeight, setLocalWeight] = useState(setItem.weight);
+  const [localReps, setLocalReps] = useState(setItem.reps);
+  const [localRpe, setLocalRpe] = useState(setItem.rpe || "");
+  const [localRir, setLocalRir] = useState(setItem.rir || "");
+
+  useEffect(() => { setLocalWeight(setItem.weight); }, [setItem.weight]);
+  useEffect(() => { setLocalReps(setItem.reps); }, [setItem.reps]);
+  useEffect(() => { setLocalRpe(setItem.rpe || ""); }, [setItem.rpe]);
+  useEffect(() => { setLocalRir(setItem.rir || ""); }, [setItem.rir]);
+
+  const commit = useCallback((patch) => {
+    onUpdate(patch);
+  }, [onUpdate]);
 
   if (isCardio) {
     return (
@@ -23,31 +39,27 @@ function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onRemove, onStartT
         <div className="set-head">
           <b>#{index}</b>
           <div className="set-chips">
-            <span className="chip">{setItem.reps || "—"} min</span>
+            <span className="chip">{localReps || "—"} min</span>
             <button className="chip danger-chip" onClick={onRemove}>×</button>
           </div>
         </div>
         <div className="quick-grid compact-grid">
           <label>
-            <input type="text" inputMode="decimal" value={setItem.reps} placeholder="min" onChange={(e) => onUpdate({ reps: e.target.value.replace(",", ".") })} />
+            <input type="text" inputMode="decimal" value={localReps} placeholder="min" onChange={(e) => setLocalReps(e.target.value.replace(",", "."))} onBlur={() => commit({ reps: localReps })} />
           </label>
           <label>
-            <select value={setItem.weight || ""} onChange={(e) => onUpdate({ weight: e.target.value })}>
+            <select value={localWeight || ""} onChange={(e) => { const v = e.target.value; setLocalWeight(v); commit({ weight: v }); }}>
               <option value="">Intensidad</option>
-              <option value="1">1</option>
-              <option value="2">2</option>
-              <option value="3">3</option>
-              <option value="4">4</option>
-              <option value="5">5</option>
+              {[1,2,3,4,5].map((v) => <option key={v} value={v}>{v}</option>)}
             </select>
           </label>
         </div>
-        {tip && <div className={`progression-tip ${tip.type}`}>{tip.text}</div>}
+        {tip && <div className={`progression-tip ${tip.type}`} role="status">{tip.text}</div>}
         <div className="quick-actions">
-          <button onClick={() => onUpdate({ reps: currentReps + 5 })}>+5</button>
-          <button onClick={() => onUpdate({ reps: Math.max(0, currentReps - 5) })}>-5</button>
-          <button onClick={onRepeat}>Duplicar</button>
-          <button className="action-timer" onClick={onStartTimer}>⏱</button>
+          <button onClick={() => { const v = String(currentReps + 5); setLocalReps(v); commit({ reps: v }); }} onPointerDown={(e) => e.preventDefault()}>+5</button>
+          <button onClick={() => { const v = String(Math.max(0, currentReps - 5)); setLocalReps(v); commit({ reps: v }); }} onPointerDown={(e) => e.preventDefault()}>-5</button>
+          <button onClick={onRepeat} onPointerDown={(e) => e.preventDefault()}>Duplicar</button>
+          <button className="action-timer" onClick={onStartTimer} onPointerDown={(e) => e.preventDefault()}>⏱</button>
         </div>
       </div>
     );
@@ -58,43 +70,39 @@ function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onRemove, onStartT
       <div className="set-head">
         <b>#{index}</b>
         <div className="set-chips">
-          <span className="chip">{setItem.weight || "—"} kg</span>
-          <span className="chip">{setItem.reps || "—"} reps</span>
-          {setItem.rpe && <span className="chip rpe-chip">RPE {setItem.rpe}</span>}
-          {setItem.rir && <span className="chip">RIR {setItem.rir}</span>}
+          <span className="chip">{localWeight || "—"} kg</span>
+          <span className="chip">{localReps || "—"} reps</span>
+          {localRpe && <span className="chip rpe-chip">RPE {localRpe}</span>}
+          {localRir && <span className="chip">RIR {localRir}</span>}
           <button className="chip danger-chip" onClick={onRemove}>×</button>
         </div>
       </div>
       <div className="quick-grid compact-grid">
         <label>
-          <input type="text" inputMode="decimal" value={setItem.weight} placeholder="kg" onChange={(e) => onUpdate({ weight: e.target.value.replace(",", ".") })} />
+          <input type="text" inputMode="decimal" value={localWeight} placeholder="kg" onChange={(e) => setLocalWeight(e.target.value.replace(",", "."))} onBlur={() => commit({ weight: localWeight })} />
         </label>
         <label>
-          <input type="text" inputMode="numeric" value={setItem.reps} placeholder="reps" onChange={(e) => onUpdate({ reps: e.target.value.replace(",", ".") })} />
+          <input type="text" inputMode="numeric" value={localReps} placeholder="reps" onChange={(e) => setLocalReps(e.target.value.replace(",", "."))} onBlur={() => commit({ reps: localReps })} />
         </label>
         <label>
-          <select value={setItem.rpe || ""} onChange={(e) => onUpdate({ rpe: e.target.value })}>
+          <select value={localRpe} onChange={(e) => { const v = e.target.value; setLocalRpe(v); commit({ rpe: v }); }}>
             <option value="">RPE</option>
-            {[6,6.5,7,7.5,8,8.5,9,9.5,10].map((v) => <option key={v} value={v}>{v}</option>)}
+            {OPTIONS.RPE.map((v) => <option key={v} value={v}>{v}</option>)}
           </select>
         </label>
         <label>
-          <select value={setItem.rir || ""} onChange={(e) => onUpdate({ rir: e.target.value })}>
+          <select value={localRir} onChange={(e) => { const v = e.target.value; setLocalRir(v); commit({ rir: v }); }}>
             <option value="">RIR</option>
-            <option value="0">0</option>
-            <option value="1">1</option>
-            <option value="2">2</option>
-            <option value="3">3</option>
-            <option value="4">4</option>
+            {OPTIONS.RIR.map((v) => <option key={v} value={v}>{v}</option>)}
           </select>
         </label>
       </div>
-      {tip && <div className={`progression-tip ${tip.type}`}>{tip.text}</div>}
+      {tip && <div className={`progression-tip ${tip.type}`} role="status">{tip.text}</div>}
       <div className="quick-actions">
-        <button onClick={() => onUpdate({ weight: currentWeight + 2.5 })}>+2.5</button>
-        <button onClick={() => onUpdate({ weight: Math.max(0, currentWeight - 2.5) })}>-2.5</button>
-        <button onClick={() => onUpdate({ reps: currentReps + 1 })}>+1 rep</button>
-        <button onClick={onRepeat}>Duplicar</button>
+        <button onClick={() => { const v = String(currentWeight + 2.5); setLocalWeight(v); commit({ weight: v }); }} onPointerDown={(e) => e.preventDefault()}>+2.5</button>
+        <button onClick={() => { const v = String(Math.max(0, currentWeight - 2.5)); setLocalWeight(v); commit({ weight: v }); }} onPointerDown={(e) => e.preventDefault()}>-2.5</button>
+        <button onClick={() => { const v = String(currentReps + 1); setLocalReps(v); commit({ reps: v }); }} onPointerDown={(e) => e.preventDefault()}>+1 rep</button>
+        <button onClick={onRepeat} onPointerDown={(e) => e.preventDefault()}>Duplicar</button>
       </div>
       <button className="action-timer full" onClick={onStartTimer}>⏱ Descanso</button>
     </div>

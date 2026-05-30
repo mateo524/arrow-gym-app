@@ -41,7 +41,7 @@ function playBeep() {
       osc3.start(ctx.currentTime);
       osc3.stop(ctx.currentTime + 0.6);
     }, 500);
-  } catch {}
+  } catch (e) { console.warn("Arrow Gym: beep AudioContext failed", e); }
 }
 
 export default function RestTimer({ onClose }) {
@@ -52,14 +52,17 @@ export default function RestTimer({ onClose }) {
   const startTimeRef = useRef(null);
   const overlayRef = useRef(null);
   const finishedRef = useRef(false);
+  const prevFocusRef = useRef(null);
 
   useEffect(() => {
+    prevFocusRef.current = document.activeElement;
     overlayRef.current?.focus();
     const handler = (e) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", handler);
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
       window.removeEventListener("keydown", handler);
+      prevFocusRef.current?.focus();
     };
   }, [onClose]);
 
@@ -101,17 +104,17 @@ export default function RestTimer({ onClose }) {
   const isFinished = remaining === 0;
 
   return (
-    <div className="rest-timer-overlay" ref={overlayRef} tabIndex={-1} onClick={() => { if (isFinished) onClose(); }}>
+    <div className="rest-timer-overlay" ref={overlayRef} tabIndex={-1} onClick={() => { if (isFinished) onClose(); }} role="dialog" aria-modal="true" aria-label="Temporizador de descanso">
       <div className="rest-timer" onClick={(e) => e.stopPropagation()}>
         <div className="rest-timer-head">
           <span>⏱ Descanso</span>
-          <button className="ghost tiny" onClick={onClose}>Cerrar</button>
+          <button className="ghost tiny" onClick={onClose} aria-label="Cerrar temporizador">Cerrar</button>
         </div>
 
         {!running && !isFinished && (
-          <div className="rest-presets">
+          <div className="rest-presets" role="group" aria-label="Duración del descanso">
             {PRESETS.map((p) => (
-              <button key={p} className="secondary small" onClick={() => start(p)}>
+              <button key={p} className="secondary small" onClick={() => start(p)} aria-label={`${Math.floor(p / 60)} minutos ${p % 60} segundos`}>
                 {p >= 60 ? `${Math.floor(p / 60)}:${(p % 60).toString().padStart(2, "0")}` : `${p}s`}
               </button>
             ))}
@@ -119,12 +122,12 @@ export default function RestTimer({ onClose }) {
         )}
 
         {(running || isFinished) && (
-          <div className={`rest-display ${isFinished ? "finished" : ""}`}>
+          <div className={`rest-display ${isFinished ? "finished" : ""}`} role="timer" aria-live="assertive" aria-label={`Tiempo restante: ${Math.floor(remaining / 60)} minutos ${remaining % 60} segundos`}>
             <span className="rest-time">
               {Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, "0")}
             </span>
             {isFinished && <p className="rest-done">¡Tiempo! 💪</p>}
-            {running && <button className="ghost" onClick={stop}>Detener</button>}
+            {running && <button className="ghost" onClick={stop} aria-label="Detener temporizador">Detener</button>}
           </div>
         )}
       </div>
