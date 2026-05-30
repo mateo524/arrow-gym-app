@@ -1,7 +1,15 @@
 import { useMemo, useState } from "react";
 import useStore from "../store/useStore.js";
-import { getWeeklyVolume, getFrequencyRanking, getGroupTotals, filterByRange, RANGE_OPTIONS } from "../lib/analytics.js";
+import { getFrequencyRanking, getGroupTotals, filterByRange, RANGE_OPTIONS, hydrateSet } from "../lib/analytics.js";
 import RadarChart from "../components/RadarChart.jsx";
+
+function est1RM(weight, reps) {
+  const w = Number(weight) || 0;
+  const r = Number(reps) || 0;
+  if (w <= 0 || r <= 0) return null;
+  if (r === 1) return w;
+  return Math.round(w * (1 + r / 30));
+}
 
 function MiniBar({ value, max, label, sub }) {
   const pct = max > 0 ? (value / max) * 100 : 0;
@@ -14,38 +22,11 @@ function MiniBar({ value, max, label, sub }) {
   );
 }
 
-function VolumeChart({ weeks }) {
-  if (!weeks || weeks.length < 2) return null;
-  const maxV = Math.max(...weeks.map((w) => w.volume));
-  const h = 80;
-  const barW = Math.max(8, Math.min(24, 200 / weeks.length));
-  const w = weeks.length * (barW + 4);
-  return (
-    <div className="volume-chart">
-      <small>Volumen semanal (kg)</small>
-      <svg viewBox={`0 0 ${Math.max(w, 200)} ${h}`}>
-        {weeks.map((wk, i) => {
-          const bh = maxV > 0 ? (wk.volume / maxV) * (h - 12) : 0;
-          const x = i * (barW + 4);
-          const y = h - 6 - bh;
-          return (
-            <g key={wk.week}>
-              <rect x={x} y={y} width={barW} height={bh} fill="#6df2a4" rx="2" />
-              <text x={x + barW / 2} y={h - 1} textAnchor="middle" fill="#8ea0a0" fontSize="6">{wk.week.slice(5)}</text>
-            </g>
-          );
-        })}
-      </svg>
-    </div>
-  );
-}
-
 export default function ProgressPage() {
   const workouts = useStore((state) => state.workouts);
   const [range, setRange] = useState("30d");
   const rangeWorkouts = useMemo(() => filterByRange(workouts, range), [workouts, range]);
 
-  const weekly = useMemo(() => getWeeklyVolume(rangeWorkouts), [rangeWorkouts]);
   const ranking = useMemo(() => getFrequencyRanking(rangeWorkouts).slice(0, 10), [rangeWorkouts]);
   const totals = useMemo(() => getGroupTotals(rangeWorkouts), [rangeWorkouts]);
   const radarData = useMemo(() => {
@@ -60,6 +41,47 @@ export default function ProgressPage() {
   }, [totals]);
   const totalVolume = rangeWorkouts.reduce((s, w) => s + (w.sets || []).reduce((s2, set) => s2 + (Number(set.weight) || 0) * (Number(set.reps) || 0), 0), 0);
   const totalSets = rangeWorkouts.reduce((s, w) => s + (w.sets?.length || 0), 0);
+
+  const rmData = useMemo(() => {
+    const byExercise = {};
+    rangeWorkouts.forEach((wo) => {
+      (wo.sets || []).forEach((raw) => {
+        const set = hydrateSet(raw);
+        const weight = Number(set.weight) || 0;
+        const reps = Number(set.reps) || 0;
+        if (weight > 0 && reps > 0) {
+          const rm = est1RM(weight, reps);
+          if (rm) {
+            if (!byExercise[set.exercise]) byExercise[set.exercise] = { name: set.exercise, bestRM: 0, bestSet: null, sets: [] };
+            if (rm > byExercise[set.exercise].bestRM) {
+              byExercise[set.exercise].bestRM = rm;
+              byExercise[set.exercise].bestSet = { weight, reps, date: wo.date };
+            }
+            byExercise[set.exercise].sets.push({ weight, reps, rm, date: wo.date });
+          }
+        }
+      });
+    });
+    return Object.values(byExercise).sort((a, b) => b.bestRM - a.bestRM).slice(0, 8);
+  }, [rangeWorkouts]);
+
+  const pbData = useMemo(() => {
+    const byExercise = {};
+    rangeWorkouts.forEach((wo) => {
+      (wo.sets || []).forEach((raw) => {
+        const set = hydrateSet(raw);
+        const weight = Number(set.weight) || 0;
+        if (weight > 0) {
+          if (!byExercise[set.exercise]) byExercise[set.exercise] = { name: set.exercise, bestWeight: 0, bestWeightDate: null };
+          if (weight > byExercise[set.exercise].bestWeight) {
+            byExercise[set.exercise].bestWeight = weight;
+            byExercise[set.exercise].bestWeightDate = wo.date;
+          }
+        }
+      });
+    });
+    return Object.values(byExercise).sort((a, b) => b.bestWeight - a.bestWeight).slice(0, 8);
+  }, [rangeWorkouts]);
 
   return (
     <section className="page">
@@ -80,14 +102,46 @@ export default function ProgressPage() {
 
       <RadarChart data={radarData} />
 
-      <VolumeChart weeks={weekly} />
-
       <h2>Distribución por grupo</h2>
       <div className="progress-groups">
         {Object.entries(totals).map(([group, data]) => (
           <MiniBar key={group} label={group} value={data.sets} max={Math.max(1, ...Object.values(totals).map((t) => t.sets))} sub={`${data.exercises.slice(0, 3).join(", ")}`} />
         ))}
       </div>
+
+      {rmData.length > 0 && (
+        <>
+          <h2>1RM estimado por ejercicio</h2>
+          <div className="rm-list">
+            {rmData.map((item) => (
+              <div className="rm-item" key={item.name}>
+                <div className="rm-info">
+                  <b>{item.name}</b>
+                  <small>{item.bestSet.weight}kg × {item.bestSet.reps} reps</small>
+                </div>
+                <span className="rm-value">{item.bestRM} kg</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {pbData.length > 0 && (
+        <>
+          <h2>Mejores marcas personales</h2>
+          <div className="ranking-list">
+            {pbData.map((item, i) => (
+              <div className="ranking-item" key={item.name}>
+                <span className="rank-num">#{i + 1}</span>
+                <div className="rank-info">
+                  <b>{item.name}</b>
+                  <small>{item.bestWeight} kg{/*item.bestWeightDate ? ` · ${item.bestWeightDate}` : ""*/}</small>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
       <h2>Ejercicios más entrenados</h2>
       <div className="ranking-list">

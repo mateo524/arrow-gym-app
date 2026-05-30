@@ -2,6 +2,48 @@ import { useState, useEffect, useRef } from "react";
 
 const PRESETS = [60, 90, 120, 180, 300];
 
+function playBeep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = 880;
+    osc.type = "sine";
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.5);
+
+    setTimeout(() => {
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.frequency.value = 1100;
+      osc2.type = "sine";
+      gain2.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+      osc2.start(ctx.currentTime);
+      osc2.stop(ctx.currentTime + 0.4);
+    }, 250);
+
+    setTimeout(() => {
+      const osc3 = ctx.createOscillator();
+      const gain3 = ctx.createGain();
+      osc3.connect(gain3);
+      gain3.connect(ctx.destination);
+      osc3.frequency.value = 1320;
+      osc3.type = "sine";
+      gain3.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain3.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
+      osc3.start(ctx.currentTime);
+      osc3.stop(ctx.currentTime + 0.6);
+    }, 500);
+  } catch {}
+}
+
 export default function RestTimer({ onClose }) {
   const [duration, setDuration] = useState(90);
   const [remaining, setRemaining] = useState(null);
@@ -9,6 +51,7 @@ export default function RestTimer({ onClose }) {
   const intervalRef = useRef(null);
   const startTimeRef = useRef(null);
   const overlayRef = useRef(null);
+  const finishedRef = useRef(false);
 
   useEffect(() => {
     overlayRef.current?.focus();
@@ -30,6 +73,10 @@ export default function RestTimer({ onClose }) {
         clearInterval(id);
         intervalRef.current = null;
         setRunning(false);
+        if (!finishedRef.current) {
+          finishedRef.current = true;
+          playBeep();
+        }
       }
     }, 200);
     intervalRef.current = id;
@@ -40,6 +87,7 @@ export default function RestTimer({ onClose }) {
     setDuration(duration);
     setRemaining(duration);
     setRunning(true);
+    finishedRef.current = false;
     startTimeRef.current = Date.now();
   }
 

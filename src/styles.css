@@ -1176,6 +1176,30 @@ small { color: var(--muted); font-size: 12px; }
 }
 
 /* Media queries */
+/* Card head row */
+.card-head-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.card-head-row h2 { margin-bottom: 0; }
+.vs-up { color: var(--green); font-weight: 800; }
+.vs-down { color: var(--orange); font-weight: 800; }
+
+/* Week goal bar */
+.week-goal-bar { margin-top: 12px; }
+.week-goal-label { display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin-bottom: 4px; }
+.week-goal-label span { color: var(--muted); }
+.week-goal-label b { color: var(--green); }
+.week-goal-track { height: 6px; background: rgba(255,255,255,.08); border-radius: 99px; overflow: hidden; }
+.week-goal-fill { height: 100%; background: var(--green); border-radius: 99px; transition: width .3s ease; }
+
+/* Week compare */
+.week-compare { margin-top: 10px; font-size: 12px; color: var(--muted); }
+
+/* 1RM list */
+.rm-list { display: grid; gap: 6px; margin-top: 8px; }
+.rm-item { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,.2); border-radius: 12px; padding: 10px 12px; }
+.rm-info b { display: block; font-size: 13px; }
+.rm-info small { font-size: 10px; color: var(--muted); }
+.rm-value { font-size: 18px; font-weight: 900; color: var(--cyan); }
+
 @media (min-width: 460px) {
   .routine-grid { grid-template-columns: 1fr 1fr; }
   .filters { grid-template-columns: 1fr 1fr; }
