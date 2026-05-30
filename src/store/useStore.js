@@ -5,6 +5,7 @@ import { ROUTINES } from "../data/seedData.js";
 import { buildCoachReport, hydrateSet, getExerciseStats as getAnalyticsExerciseStats } from "../lib/analytics.js";
 import { buildGlobalCoachReport } from "../lib/coachEngine.js";
 import { loadInitialWorkouts, loadInitialBodyMetrics, normalizeSet } from "../lib/storageMigration.js";
+import { createIdbStorage } from "../lib/idbStorage.js";
 
 function uid(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -360,6 +361,7 @@ const useStore = create(
     {
       name: "arrow-gym-v4",
       version: 4,
+      storage: createIdbStorage(),
       migrate: (persisted, _version) => {
         const base = { ...persisted };
         if (!base.bodyMetrics) base.bodyMetrics = [];

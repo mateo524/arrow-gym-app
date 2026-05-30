@@ -634,6 +634,17 @@ small { color: var(--muted); font-size: 12px; }
 
 .last-line { font-size: 10px; }
 
+.block-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.block-actions .secondary.small { padding: 4px 8px; font-size: 11px; }
+.secondary.small.linking { background: var(--cyan); color: #031009; }
+.link-hint { font-size: 11px; color: var(--cyan); font-weight: 700; cursor: pointer; padding: 4px 6px; border-radius: 8px; white-space: nowrap; }
+.link-hint:active { background: rgba(109,242,164,.1); }
+.superset-block { border-color: var(--cyan); background: rgba(109,242,164,.04); }
+.superset-set-row { display: flex; align-items: flex-start; gap: 6px; }
+.superset-label { font-size: 10px; font-weight: 800; color: var(--cyan); writing-mode: vertical-lr; text-orientation: mixed; padding: 4px 2px; min-width: 14px; text-align: center; letter-spacing: 1px; text-transform: uppercase; }
+.superset-block .exercise-block-head b span { display: inline; font-size: 12px; }
+.superset-block .exercise-block-head b span + span::before { content: " + "; color: var(--cyan); }
+
 .secondary.small {
   min-width: auto;
   padding: 6px 10px;
@@ -1122,6 +1133,11 @@ small { color: var(--muted); font-size: 12px; }
 }
 .rest-display.finished .rest-time { color: var(--cyan); }
 .rest-done { color: var(--cyan); font-weight: 800; font-size: 18px; margin: 6px 0; }
+
+/* Progression tip */
+.progression-tip { font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 8px; margin: 4px 0; text-align: center; }
+.progression-tip.positive { background: rgba(109,242,164,.15); color: var(--green); }
+.progression-tip.warn { background: rgba(245,158,11,.15); color: #f59e0b; }
 
 /* Calendar */
 .calendar-grid {

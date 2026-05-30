@@ -1,9 +1,21 @@
 import { memo } from "react";
 
+function progressionTip(lastWeight, lastReps, currentWeight, currentReps) {
+  const lw = Number(lastWeight) || 0;
+  const lr = Number(lastReps) || 0;
+  const cw = Number(currentWeight) || 0;
+  if (lw > 0 && lr >= 12) return { text: "⚡ Probá +2.5kg", type: "positive" };
+  if (lw > 0 && lr >= 9) return { text: "🎯 Llegá a 12 reps antes de subir", type: "warn" };
+  if (lw > 0 && lr < 9) return { text: "🏗️ Bajá peso, enfocate en técnica", type: "warn" };
+  if (cw > 0 && currentReps >= 12) return { text: "✅ Listo para aumentar peso", type: "positive" };
+  return null;
+}
+
 function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onRemove, onStartTimer }) {
   const isCardio = setItem.group === "Cardio";
   const currentWeight = Number(setItem.weight || 0);
   const currentReps = Number(setItem.reps || 0);
+  const tip = progressionTip(setItem.lastWeight, setItem.lastReps, currentWeight, currentReps);
 
   if (isCardio) {
     return (
@@ -30,6 +42,7 @@ function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onRemove, onStartT
             </select>
           </label>
         </div>
+        {tip && <div className={`progression-tip ${tip.type}`}>{tip.text}</div>}
         <div className="quick-actions">
           <button onClick={() => onUpdate({ reps: currentReps + 5 })}>+5</button>
           <button onClick={() => onUpdate({ reps: Math.max(0, currentReps - 5) })}>-5</button>
@@ -76,6 +89,7 @@ function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onRemove, onStartT
           </select>
         </label>
       </div>
+      {tip && <div className={`progression-tip ${tip.type}`}>{tip.text}</div>}
       <div className="quick-actions">
         <button onClick={() => onUpdate({ weight: currentWeight + 2.5 })}>+2.5</button>
         <button onClick={() => onUpdate({ weight: Math.max(0, currentWeight - 2.5) })}>-2.5</button>

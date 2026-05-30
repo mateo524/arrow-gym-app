@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import Nav from "./components/Nav.jsx";
 import useStore from "./store/useStore.js";
 
@@ -19,8 +19,21 @@ function PageFallback() {
   return <div className="page" style={{ padding: 20 }}><p className="muted">Cargando...</p></div>;
 }
 
+function useHydrated() {
+  const [hydrated, setHydrated] = useState(useStore.persist?.hasHydrated?.() ?? true);
+  useEffect(() => {
+    if (!hydrated) {
+      const unsub = useStore.persist?.onFinishHydration?.(() => setHydrated(true));
+      return () => unsub?.();
+    }
+  }, [hydrated]);
+  return hydrated;
+}
+
 export default function App() {
   const currentPage = useStore((state) => state.currentPage);
+  const hydrated = useHydrated();
+  if (!hydrated) return <div className="page" style={{ padding: 20, textAlign: "center" }}><p className="muted">Cargando...</p></div>;
   return (
     <div className="app-shell">
       <main className="app-main">
