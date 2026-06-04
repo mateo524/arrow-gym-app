@@ -1,0 +1,21 @@
+<!-- @dsCard group="Components" -->
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;box-sizing:border-box}
+  body{font-family:Inter,system-ui,sans-serif;background:#050709;color:#f4fff8;padding:22px}
+  label{display:block;font-size:11px;color:#8ea0a0;font-weight:600;margin-bottom:4px}
+  input,select{width:100%;background:#05090a;color:#f4fff8;border:1px solid #28383a;border-radius:12px;padding:12px;font-size:15px;font-family:inherit;margin-bottom:12px}
+  input.focus{border-color:#6df2a4;box-shadow:0 0 0 2px rgba(109,242,164,.15)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .search{background:#0a1113;border:1px solid #28383a;border-radius:14px;padding:10px 14px;font-size:14px}
+</style></head><body>
+  <label>Peso (kg)</label>
+  <input class="focus" value="80" placeholder="kg">
+  <div class="grid">
+    <div><label>Reps</label><input value="10" placeholder="reps"></div>
+    <div><label>RPE</label><select><option>8</option></select></div>
+  </div>
+  <label>Buscar</label>
+  <input class="search" type="search" value="" placeholder="Buscar en +1000 ejercicios" style="margin-bottom:0">
+</body></html>

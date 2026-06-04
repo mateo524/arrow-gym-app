@@ -1,0 +1,22 @@
+<!-- @dsCard group="Spacing" -->
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;box-sizing:border-box}
+  body{font-family:Inter,system-ui,sans-serif;background:#050709;color:#f4fff8;padding:22px}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .d{border-radius:16px;padding:14px;min-height:88px}
+  .t{font-size:11px;font-weight:800;margin-bottom:4px}
+  .r{font-size:10px;color:#8ea0a0;line-height:1.4}
+  .well{background:rgba(0,0,0,.22);border:1px solid #213033}
+  .surf{background:rgba(13,18,20,.92);border:1px solid #213033}
+  .glass{background:rgba(5,7,9,.6);border:1px solid #1c2c2e;backdrop-filter:blur(12px)}
+</style></head><body>
+  <div style="grid-column:1/-1;background:linear-gradient(120deg,#15324a,#1a4a3a);border-radius:16px;padding:0">
+  <div class="grid" style="background:transparent">
+    <div class="d surf"><div class="t">surface</div><div class="r">border + .92 fill. No shadow.</div></div>
+    <div class="d well"><div class="t">well</div><div class="r">rgba(0,0,0,.22) inset</div></div>
+    <div class="d glass"><div class="t">glass chrome</div><div class="r">blur(12px) — header & nav only</div></div>
+  </div></div>
+  <p style="grid-column:1/-1;font-size:12px;color:#8ea0a0;margin:0;line-height:1.5">Elevation = <b style="color:#6df2a4">border + surface tint</b>, not drop-shadow. Depth on chrome comes from translucency + blur over content.</p>
+</body></html>

@@ -1,0 +1,23 @@
+<!-- @dsCard group="Components" -->
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;box-sizing:border-box}
+  body{font-family:Inter,system-ui,sans-serif;background:#050709;color:#f4fff8;padding:22px}
+  .bar{display:grid;grid-template-columns:repeat(5,1fr);gap:2px;background:rgba(5,7,9,.98);border:1px solid #1c2c2e;border-radius:18px;padding:6px}
+  .item{background:transparent;color:#778b8b;border:0;border-radius:14px;padding:8px 2px;display:flex;flex-direction:column;align-items:center;gap:3px}
+  .item span{font-size:18px;line-height:1}
+  .item small{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#778b8b}
+  .item.active{background:#13201b;color:#6df2a4}
+  .item.active small{color:#6df2a4}
+  .cap{font-size:11px;color:#8ea0a0;margin-top:12px;text-align:center}
+</style></head><body>
+  <div class="bar">
+    <div class="item active"><span>⚡</span><small>Inicio</small></div>
+    <div class="item"><span>▶</span><small>Start</small></div>
+    <div class="item"><span>🧠</span><small>Coach</small></div>
+    <div class="item"><span>📈</span><small>Progreso</small></div>
+    <div class="item"><span>+</span><small>Más</small></div>
+  </div>
+  <div class="cap">Fixed bottom tab bar · active = green text on #13201b well</div>
+</body></html>

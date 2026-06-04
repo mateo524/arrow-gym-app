@@ -1,0 +1,112 @@
+/* ============================================================
+   ARROW GYM — Design Tokens
+   Source of truth: mateo524/arrow-gym-app · src/styles.css
+   Dark, neon, mobile-first training app. Spanish (Rioplatense).
+   ============================================================ */
+
+/* Inter is the product font (Inter, system-ui fallback).
+   Load via Google Fonts in HTML:
+   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"> */
+
+:root {
+  /* ---- BASE COLOR PALETTE ---- */
+  --bg:        #050709; /* app background — near-black, cold */
+  --panel:     #0d1214; /* card / panel surface */
+  --panel2:    #11191b; /* raised panel */
+  --line:      #213033; /* hairline borders */
+  --text:      #f4fff8; /* primary text — minty white */
+  --text-soft: #c7d5d2; /* paragraph text */
+  --muted:     #8ea0a0; /* secondary / labels */
+
+  /* ---- ACCENTS ---- */
+  --green:  #6df2a4; /* PRIMARY — actions, success, brand */
+  --cyan:   #75d9ff; /* SECONDARY — data, links, cardio */
+  --yellow: #e8f777; /* highlight */
+  --orange: #f59e0b; /* warnings / caution */
+  --danger: #ff6b6b; /* destructive / errors */
+  --purple: #a855f7; /* extra chart series */
+
+  /* Ink that sits ON green/cyan fills (always dark) */
+  --on-accent: #03100a;
+
+  /* ---- SURFACE TINTS (states / wells) ---- */
+  --well:        rgba(0, 0, 0, .22);  /* inset wells inside cards */
+  --hover-light: rgba(255, 255, 255, .045);
+  --press-light: rgba(255, 255, 255, .06);
+  --green-wash:  rgba(109, 242, 164, .15);
+  --cyan-wash:   rgba(117, 217, 255, .12);
+
+  /* ---- SEMANTIC SURFACE BLOCKS ---- */
+  --ok-bg:    #0a1d13;  --ok-border:   #2d7650;  /* success / status */
+  --warn-bg:  #1a1207;  --warn-border: #6e4b17;  /* warning */
+  --info-bg:  #081525;  --info-border: #25518a;  /* info / recommendation */
+  --danger-bg:#2a1517;  --danger-border:#643034; /* danger */
+
+  /* ---- GRADIENTS ---- */
+  --grad-hero:   linear-gradient(135deg, #111b1a, #07100d);
+  --grad-brand:  linear-gradient(135deg, var(--green), var(--cyan));
+  --grad-action: linear-gradient(90deg, var(--green), var(--cyan));
+  --grad-cardio: linear-gradient(135deg, #10202a, #0a0f13);
+  --grad-routine:linear-gradient(135deg, #14201f, #0b0f11);
+
+  /* ---- TYPE ---- */
+  --font-sans: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  /* Type scale (px) — mobile-first, compact */
+  --fs-h1: 28px;   --lh-h1: 1.1;
+  --fs-h2: 17px;   --lh-h2: 1.3;
+  --fs-body: 15px; --lh-body: 1.5;
+  --fs-small: 12px;
+  --fs-eyebrow: 11px;
+  --fs-nano: 9px;  /* nav labels, micro-captions */
+
+  /* Heavy weights are the brand — 800/900 are everyday, not exceptional */
+  --fw-reg: 400;
+  --fw-med: 600;
+  --fw-bold: 800;
+  --fw-black: 900;
+
+  --tracking-eyebrow: .14em; /* uppercase label tracking */
+
+  /* ---- RADII ---- */
+  --r-chip: 999px;  /* pills, tags, range tabs */
+  --r-sm: 8px;
+  --r-md: 12px;     /* inputs, small buttons, danger */
+  --r-lg: 16px;     /* buttons, blocks */
+  --r-xl: 20px;     /* cards */
+  --r-2xl: 24px;    /* hero, sheets, feature panels */
+
+  /* ---- SPACING (the app lives on a 2/4/6/8/10/12/14 rhythm) ---- */
+  --sp-1: 2px;  --sp-2: 4px;  --sp-3: 6px;  --sp-4: 8px;
+  --sp-5: 10px; --sp-6: 12px; --sp-7: 14px; --sp-8: 18px;
+
+  /* ---- LAYOUT ---- */
+  --app-max: 520px;        /* phone column cap */
+  --nav-h: 64px;           /* bottom nav height-ish */
+  --hit: 44px;             /* min touch target */
+
+  /* ---- MOTION ---- */
+  --ease: cubic-bezier(.4, 0, .2, 1);
+  --t-fast: .12s;
+  --t-base: .18s;
+  --t-slow: .3s;
+}
+
+/* ============================================================
+   SEMANTIC TYPE — apply directly or copy into components
+   ============================================================ */
+.ag-eyebrow {
+  font-size: var(--fs-eyebrow);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-eyebrow);
+  color: var(--green);
+  font-weight: var(--fw-bold);
+  margin: 0 0 6px;
+}
+.ag-h1 { font-size: var(--fs-h1); line-height: var(--lh-h1); margin: 0 0 10px; font-weight: var(--fw-bold); color: var(--text); }
+.ag-h2 { font-size: var(--fs-h2); line-height: var(--lh-h2); margin: 0 0 8px; font-weight: var(--fw-bold); color: var(--text); }
+.ag-p  { color: var(--text-soft); line-height: var(--lh-body); font-size: var(--fs-body); }
+.ag-muted { color: var(--muted); font-size: var(--fs-small); }
+
+/* Big readout numbers (stats, scores) — black weight, accent color */
+.ag-stat { font-size: 22px; font-weight: var(--fw-black); color: var(--green); line-height: 1.2; }

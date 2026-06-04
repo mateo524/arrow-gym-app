@@ -1,0 +1,26 @@
+<!-- @dsCard group="Components" -->
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;box-sizing:border-box}
+  body{font-family:Inter,system-ui,sans-serif;background:#050709;color:#f4fff8;padding:22px}
+  .grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;align-items:end}
+  .panel{background:rgba(13,18,20,.92);border:1px solid #213033;border-radius:14px;padding:10px}
+  .panel small{font-size:10px;color:#8ea0a0;display:block;margin-bottom:6px;font-weight:700}
+  .bars{display:flex;align-items:flex-end;gap:4px;height:56px}
+  .bars i{flex:1;background:#6df2a4;border-radius:4px 4px 0 0}
+  .legend{display:flex;gap:5px;align-items:center;margin-top:8px}
+  .legend i{width:18px;height:8px;border-radius:99px;display:inline-block}
+  .legend span{font-size:9px;color:#8ea0a0}
+</style></head><body>
+  <div class="grid">
+    <div class="panel"><small>Carga máxima</small><svg viewBox="0 0 120 56" style="width:100%"><polyline points="4,48 28,40 52,30 76,32 100,16 116,10" fill="none" stroke="#6df2a4" stroke-width="2.5" stroke-linecap="round"/><circle cx="116" cy="10" r="3" fill="#eafff2"/></svg></div>
+    <div class="panel"><small>Volumen semanal</small><div class="bars"><i style="height:40%"></i><i style="height:62%"></i><i style="height:50%"></i><i style="height:80%"></i><i style="height:70%"></i><i style="height:95%"></i></div></div>
+    <div class="panel"><small>Intensidad muscular</small><div style="display:flex;gap:3px;margin-top:14px">
+      <span style="width:30px;height:30px;border-radius:6px;background:#1a3d42"></span>
+      <span style="width:30px;height:30px;border-radius:6px;background:#1a6875"></span>
+      <span style="width:30px;height:30px;border-radius:6px;background:#30a2b8"></span>
+      <span style="width:30px;height:30px;border-radius:6px;background:#5ee0ff"></span>
+    </div><div class="legend"><span>menos</span><i style="background:#1a3d42"></i><i style="background:#30a2b8"></i><i style="background:#5ee0ff"></i><span>más</span></div></div>
+  </div>
+</body></html>

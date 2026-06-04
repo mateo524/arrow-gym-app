@@ -1,0 +1,19 @@
+<!-- @dsCard group="Components" -->
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;box-sizing:border-box}
+  body{font-family:Inter,system-ui,sans-serif;background:#050709;color:#f4fff8;padding:22px}
+  .group{margin-bottom:14px}
+  .lbl{font-size:10px;color:#8ea0a0;text-transform:uppercase;letter-spacing:.1em;font-weight:800;margin-bottom:7px}
+  .row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .chip{background:rgba(255,255,255,.06);border-radius:6px;padding:3px 8px;font-size:11px;color:#8ea0a0;font-weight:600}
+  .chip.rpe{background:rgba(109,242,164,.1);color:#6df2a4}
+  .tag{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;padding:3px 9px;border-radius:99px;background:rgba(109,242,164,.15);color:#6df2a4}
+  .range button{white-space:nowrap;background:#0e1718;color:#b8c9c6;border:1px solid #27383a;border-radius:999px;padding:8px 14px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer}
+  .range button.active{background:#6df2a4;color:#031009}
+</style></head><body>
+  <div class="group"><div class="lbl">Set chips</div><div class="row"><span class="chip">80 kg</span><span class="chip">10 reps</span><span class="chip rpe">RPE 8</span><span class="chip">RIR 2</span></div></div>
+  <div class="group"><div class="lbl">Tags</div><div class="row"><span class="tag">Push</span><span class="tag">PR</span><span class="tag">Superserie</span></div></div>
+  <div class="group"><div class="lbl">Range / segmented tabs (pill)</div><div class="row range"><button class="active">7d</button><button>30d</button><button>3m</button><button>Todo</button></div></div>
+</body></html>

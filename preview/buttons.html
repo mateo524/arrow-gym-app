@@ -1,0 +1,26 @@
+<!-- @dsCard group="Components" -->
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800;900&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;box-sizing:border-box}
+  body{font-family:Inter,system-ui,sans-serif;background:#050709;color:#f4fff8;padding:22px}
+  .wrap{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  button{border:0;border-radius:16px;padding:12px 16px;font-weight:800;font-size:14px;font-family:inherit;min-height:44px;cursor:pointer}
+  .primary{background:#6df2a4;color:#041009}
+  .secondary{background:#152022;color:#eafff2;border:1px solid #2a3d3f}
+  .ghost{background:transparent;color:#eafff2;border:1px solid #304548}
+  .danger{background:#2a1517;color:#ffb9b9;border:1px solid #643034;border-radius:12px;padding:8px 12px;min-height:auto}
+  .small{padding:6px 10px;min-height:auto;border-radius:10px;font-size:11px}
+  .finish{width:100%;background:linear-gradient(90deg,#6df2a4,#75d9ff);color:#03100a;font-weight:900;padding:14px;border-radius:14px;margin-top:12px}
+  .lbl{font-size:10px;color:#8ea0a0;width:100%;text-transform:uppercase;letter-spacing:.1em;font-weight:800;margin-top:4px}
+</style></head><body>
+  <div class="wrap">
+    <button class="primary">Empezar entrenamiento</button>
+    <button class="secondary">+ Agregar</button>
+    <button class="ghost">Cancelar</button>
+    <button class="danger small">Eliminar</button>
+    <button class="secondary small">+ Serie</button>
+  </div>
+  <button class="finish">Finalizar entrenamiento</button>
+  <div class="lbl">primary · secondary · ghost · danger · small · finish (gradient)</div>
+</body></html>

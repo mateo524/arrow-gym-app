@@ -1,0 +1,22 @@
+<!-- @dsCard group="Colors" -->
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;box-sizing:border-box}
+  body{font-family:Inter,system-ui,sans-serif;background:#050709;color:#f4fff8;padding:22px}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+  .blk{border-radius:16px;padding:12px 14px}
+  .lbl{font-size:10px;text-transform:uppercase;letter-spacing:.13em;font-weight:900;margin-bottom:4px}
+  .blk p{font-size:12px;line-height:1.4}
+  .ok{background:#0a1d13;border:1px solid #2d7650}.ok .lbl{color:#6df2a4}.ok p{color:#c7e8e0}
+  .warn{background:#1a1207;border:1px solid #6e4b17}.warn .lbl,.warn p{color:#ffd187}
+  .info{background:#081525;border:1px solid #25518a}.info .lbl,.info p{color:#9dc8ff}
+  .dng{background:#2a1517;border:1px solid #643034}.dng .lbl,.dng p{color:#ffb9b9}
+</style></head><body>
+<div class="grid">
+  <div class="blk ok"><div class="lbl">Estado / Success</div><p>#0a1d13 · border #2d7650</p></div>
+  <div class="blk warn"><div class="lbl">⚠ Warning</div><p>#1a1207 · border #6e4b17</p></div>
+  <div class="blk info"><div class="lbl">Recomendación / Info</div><p>#081525 · border #25518a</p></div>
+  <div class="blk dng"><div class="lbl">Danger</div><p>#2a1517 · border #643034</p></div>
+</div>
+</body></html>
