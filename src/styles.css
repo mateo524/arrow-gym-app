@@ -512,6 +512,22 @@ p { color: #c7d5d2; }
 
 .set-card-ghost { opacity: .55; }
 
+.rest-btn {
+  width: 100%;
+  margin-top: 8px;
+  border: 1px dashed var(--cyan);
+  border-radius: 12px;
+  padding: 10px;
+  background: rgba(117,217,255,.06);
+  color: var(--cyan);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background .15s ease;
+  min-height: 44px;
+}
+.rest-btn:active { background: rgba(117,217,255,.14); }
+
 .exercise-block-title {
   display: flex;
   align-items: center;

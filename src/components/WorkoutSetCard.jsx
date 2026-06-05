@@ -1,18 +1,9 @@
-export default function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onRemove, onComplete }) {
+export default function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onRemove, onStartRest }) {
   const currentWeight = Number(setItem.weight || 0);
   const currentReps = Number(setItem.reps || 0);
   const isPrefilled = Boolean(setItem.lastWeight || setItem.lastReps) && !setItem.weight && !setItem.reps;
   const isEmpty = !setItem.weight && !setItem.reps;
-
-  const handleWeightChange = (value) => {
-    onUpdate({ weight: value });
-    if (value && setItem.reps) onComplete?.();
-  };
-
-  const handleRepsChange = (value) => {
-    onUpdate({ reps: value });
-    if (value && setItem.weight) onComplete?.();
-  };
+  const hasData = setItem.weight && setItem.reps;
 
   const handleWarmup = () => {
     const warmWeight = Math.round(currentWeight * 0.5 / 2.5) * 2.5 || 10;
@@ -37,7 +28,7 @@ export default function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onR
             inputMode="decimal"
             value={setItem.weight}
             placeholder="kg"
-            onChange={(e) => handleWeightChange(e.target.value)}
+            onChange={(e) => onUpdate({ weight: e.target.value })}
           />
         </label>
         <label>
@@ -46,7 +37,7 @@ export default function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onR
             inputMode="numeric"
             value={setItem.reps}
             placeholder="reps"
-            onChange={(e) => handleRepsChange(e.target.value)}
+            onChange={(e) => onUpdate({ reps: e.target.value })}
           />
         </label>
       </div>
@@ -62,6 +53,12 @@ export default function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onR
           <button onClick={handleWarmup} aria-label="Add warm-up set">Calentar</button>
         )}
       </div>
+
+      {hasData && (
+        <button className="rest-btn" onClick={() => onStartRest?.()} aria-label="Start rest timer">
+          Descanso 90s
+        </button>
+      )}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Router, Route, useLocation } from "wouter";
+import { Router, useLocation } from "wouter";
 import { AnimatePresence, motion } from "framer-motion";
 import HomePage from "./pages/HomePage.jsx";
 import StartWorkoutPage from "./pages/StartWorkoutPage.jsx";
@@ -45,10 +45,15 @@ const PAGE_MAP = {
 function AppContent() {
   const [location, setLocation] = useLocation();
   const currentPage = useStore((state) => state.currentPage);
+  const activeWorkout = useStore((state) => state.activeWorkout);
   const setPage = useStore((state) => state.setPage);
 
   useEffect(() => {
     const path = location.replace("/", "") || "home";
+    if (path === "home" && activeWorkout) {
+      setLocation("/workout", { replace: true });
+      return;
+    }
     if (PAGE_MAP[path] && path !== currentPage) {
       setPage(path);
     }

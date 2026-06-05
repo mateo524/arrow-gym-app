@@ -82,7 +82,7 @@ function Figure({ title, side, shapes, intensity, onMuscleClick, activeMuscle })
               tabIndex={0}
               aria-label={`${muscle}: ${muscleCount(intensity, muscle)} series`}
             >
-              <title>{muscle}: {muscleCount(intensity, muscle)} series</title>
+              <title>{muscle}: {muscleCount(intensity, muscle)} series esta semana</title>
             </path>
             <text className="muscle-code" x={index % 2 === 0 ? 104 : 168} y={40 + index * 20 % 430}>{label}</text>
           </g>
@@ -104,12 +104,12 @@ const AdvancedMuscleDiagram = React.forwardRef(function ({ intensity, onMuscleCl
         <Figure title="Vista posterior" side="back" shapes={BACK} intensity={intensity} onMuscleClick={onMuscleClick} activeMuscle={activeMuscle} />
       </div>
       <div className="legend">
-        <span>Sin estímulo</span>
-        <i className="level-1" />
-        <i className="level-2" />
-        <i className="level-3" />
-        <i className="level-4" />
-        <span>Más estímulo</span>
+        <span>0 series</span>
+        <i className="level-1" title="1-3 series" />
+        <i className="level-2" title="3-6 series" />
+        <i className="level-3" title="6-10 series" />
+        <i className="level-4" title="10+ series" />
+        <span>Más series</span>
       </div>
     </div>
   );

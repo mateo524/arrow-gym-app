@@ -120,7 +120,7 @@ export default function WorkoutPage() {
                   onUpdate={(patch) => update(setItem.id, patch)}
                   onRepeat={() => repeat(setItem.id)}
                   onRemove={() => remove(setItem.id)}
-                  onComplete={() => handleSetComplete(exercise)}
+                  onStartRest={() => handleSetComplete(exercise)}
                 />
               ))}
             </div>

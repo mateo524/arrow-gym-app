@@ -110,8 +110,14 @@ export function getMuscleIntensity(workouts) {
     out[set.muscle] = (out[set.muscle] || 0) + 1;
     out[set.group] = (out[set.group] || 0) + 1;
   }));
-  const max = Math.max(1, ...Object.values(out));
-  return Object.fromEntries(Object.entries(out).map(([muscle, count]) => [muscle, { count, level: Math.min(4, Math.max(1, Math.ceil((count / max) * 4))) }]));
+  return Object.fromEntries(Object.entries(out).map(([muscle, count]) => {
+    let level = 0;
+    if (count >= 10) level = 4;
+    else if (count >= 6) level = 3;
+    else if (count >= 3) level = 2;
+    else if (count >= 1) level = 1;
+    return [muscle, { count, level }];
+  }));
 }
 
 function previousSetsForExercise(exercise, history) {
