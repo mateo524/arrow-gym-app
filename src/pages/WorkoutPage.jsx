@@ -1,10 +1,12 @@
 import { useMemo, useState, useCallback } from "react";
+import { AnimatePresence } from "framer-motion";
 import useStore from "../store/useStore.js";
 import { getWorkoutVolume } from "../lib/analytics.js";
 import ExercisePicker from "../components/ExercisePicker.jsx";
 import WorkoutSetCard from "../components/WorkoutSetCard.jsx";
 import RestTimer from "../components/RestTimer.jsx";
 import VolumeSparkline from "../components/VolumeSparkline.jsx";
+import PlateCalculator from "../components/PlateCalculator.jsx";
 
 function groupSetsByExercise(sets) {
   const map = new Map();
@@ -39,9 +41,12 @@ export default function WorkoutPage() {
   const finish = useStore((state) => state.finishWorkout);
   const cancel = useStore((state) => state.cancelWorkout);
   const setPage = useStore((state) => state.setPage);
+  const soundEnabled = useStore((state) => state.soundEnabled);
   const [showPicker, setShowPicker] = useState(false);
   const [restExercise, setRestExercise] = useState(null);
   const [restKey, setRestKey] = useState(0);
+  const [calcTarget, setCalcTarget] = useState(null);
+  const [calcSetId, setCalcSetId] = useState(null);
 
   const handleSetComplete = useCallback((exercise) => {
     setRestExercise(exercise);
@@ -93,6 +98,7 @@ export default function WorkoutPage() {
                   key={restKey}
                   active
                   duration={90}
+                  soundEnabled={soundEnabled}
                   onSkip={handleSkipRest}
                   onComplete={handleSkipRest}
                 />
@@ -121,6 +127,7 @@ export default function WorkoutPage() {
                   onRepeat={() => repeat(setItem.id)}
                   onRemove={() => remove(setItem.id)}
                   onStartRest={() => handleSetComplete(exercise)}
+                  onOpenCalc={(w) => { setCalcTarget(w); setCalcSetId(setItem.id); }}
                 />
               ))}
             </div>
@@ -139,6 +146,16 @@ export default function WorkoutPage() {
       )}
 
       <button className="finish-button" onClick={finish}>Finalizar entrenamiento</button>
+
+      <AnimatePresence>
+        {calcTarget !== null && (
+          <PlateCalculator
+            target={calcTarget}
+            onSelect={(w) => { if (calcSetId) update(calcSetId, { weight: String(w) }); }}
+            onClose={() => { setCalcTarget(null); setCalcSetId(null); }}
+          />
+        )}
+      </AnimatePresence>
     </section>
   );
 }

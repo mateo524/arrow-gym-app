@@ -77,6 +77,11 @@ const useStore = create(
       favoriteExercises: [],
 
       coachBadge: false,
+      amoled: false,
+      soundEnabled: true,
+
+      toggleAmoled: () => set((s) => ({ amoled: !s.amoled })),
+      toggleSound: () => set((s) => ({ soundEnabled: !s.soundEnabled })),
 
       clearCoachBadge: () => set({ coachBadge: false }),
 

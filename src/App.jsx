@@ -46,6 +46,7 @@ function AppContent() {
   const [location, setLocation] = useLocation();
   const currentPage = useStore((state) => state.currentPage);
   const activeWorkout = useStore((state) => state.activeWorkout);
+  const amoled = useStore((state) => state.amoled);
   const setPage = useStore((state) => state.setPage);
 
   useEffect(() => {
@@ -67,7 +68,7 @@ function AppContent() {
   const PageComponent = PAGE_MAP[currentPage] || HomePage;
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell${amoled ? " amoled" : ""}`}>
       <main className="app-main">
         <AnimatePresence mode="wait">
           <AnimatedPage key={currentPage}>

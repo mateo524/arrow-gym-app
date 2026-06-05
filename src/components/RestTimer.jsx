@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from "react";
+import { playDone } from "../lib/sound.js";
 
 const CIRCUMFERENCE = 2 * Math.PI * 28;
 
-export default function RestTimer({ duration = 90, onComplete, onSkip, active }) {
+export default function RestTimer({ duration = 90, onComplete, onSkip, active, soundEnabled = true }) {
   const [remaining, setRemaining] = useState(duration);
   const timerRef = useRef(null);
   const doneRef = useRef(false);
@@ -21,6 +22,7 @@ export default function RestTimer({ duration = 90, onComplete, onSkip, active })
           if (!doneRef.current) {
             doneRef.current = true;
             if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+            if (soundEnabled) playDone();
             onComplete?.();
           }
           return 0;
@@ -29,7 +31,7 @@ export default function RestTimer({ duration = 90, onComplete, onSkip, active })
       });
     }, 1000);
     return () => clearInterval(timerRef.current);
-  }, [active, duration, onComplete]);
+  }, [active, duration, onComplete, soundEnabled]);
 
   const progress = remaining / duration;
   const offset = CIRCUMFERENCE * (1 - progress);

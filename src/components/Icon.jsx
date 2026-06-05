@@ -1,8 +1,8 @@
-import { Home, Play, BrainCircuit, Map, Clock, Dumbbell, ArrowRight, AlertTriangle, Lightbulb, TrendingUp, Minus, Check, Star, Search, Download, HelpCircle } from "lucide-react";
+import { Home, Play, BrainCircuit, Map, Clock, Dumbbell, ArrowRight, ArrowLeft, AlertTriangle, Lightbulb, TrendingUp, Minus, Check, Star, Search, Download, HelpCircle } from "lucide-react";
 
 const MAP = {
   Home, Play, BrainCircuit, Map, Clock, Dumbbell,
-  ArrowRight, AlertTriangle, Lightbulb, TrendingUp, Minus, Check,
+  ArrowRight, ArrowLeft, AlertTriangle, Lightbulb, TrendingUp, Minus, Check,
   Star, Search, Download,
 };
 

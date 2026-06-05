@@ -1,4 +1,4 @@
-export default function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onRemove, onStartRest }) {
+export default function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onRemove, onStartRest, onOpenCalc }) {
   const currentWeight = Number(setItem.weight || 0);
   const currentReps = Number(setItem.reps || 0);
   const isPrefilled = Boolean(setItem.lastWeight || setItem.lastReps) && !setItem.weight && !setItem.reps;
@@ -59,6 +59,10 @@ export default function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onR
           Descanso 90s
         </button>
       )}
+
+      <button className="calc-btn" onClick={() => onOpenCalc?.(Number(setItem.weight) || currentWeight)} aria-label="Plate calculator">
+        Discos
+      </button>
     </div>
   );
 }

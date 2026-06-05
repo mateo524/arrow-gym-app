@@ -24,7 +24,9 @@ export default function CoachPage() {
           <p className="eyebrow">Análisis post-entreno</p>
           <h1>Coach</h1>
         </div>
-        <button className="ghost" onClick={() => setPage("home")}>Inicio</button>
+        <button className="back-btn" onClick={() => setPage("home")} aria-label="Back">
+          <Icon name="ArrowLeft" size={20} strokeWidth={2.5} />
+        </button>
       </div>
 
       {latest ? (
