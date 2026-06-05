@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import useStore from "../store/useStore.js";
 import Icon from "../components/Icon.jsx";
@@ -16,6 +17,34 @@ export default function CoachPage() {
   const computed = reports.length ? reports : workouts.slice(0, 12).map((workout) => buildCoachReport(workout, workouts));
   const latest = computed[0];
   const latestPrs = latest ? prs.filter((p) => p.date === latest.date) : [];
+
+  const progression = useMemo(() => {
+    const types = {};
+    (workouts || []).forEach((w) => {
+      if (!types[w.type]) types[w.type] = [];
+      types[w.type].push(w);
+    });
+    return Object.entries(types).map(([type, ws]) => {
+      const sorted = ws.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+      const last = sorted[0];
+      if (!last) return null;
+      const exercises = {};
+      (last.sets || []).forEach((set) => {
+        if (!exercises[set.exercise]) {
+          const prev = sorted.slice(1).find((w) => (w.sets || []).some((s) => s.exercise === set.exercise));
+          const prevSets = prev ? prev.sets.filter((s) => s.exercise === set.exercise) : [];
+          const prevBest = prevSets.length
+            ? prevSets.reduce((max, s) => (Number(s.weight) * Number(s.reps) > Number(max.weight) * Number(max.reps) ? s : max), { weight: 0, reps: 0 })
+            : null;
+          exercises[set.exercise] = {
+            current: { weight: set.weight || 0, reps: set.reps || 0 },
+            prev: prevBest ? { weight: prevBest.weight || 0, reps: prevBest.reps || 0 } : null,
+          };
+        }
+      });
+      return { type, date: last.date, exercises: Object.entries(exercises).slice(0, 6) };
+    }).filter(Boolean);
+  }, [workouts]);
 
   return (
     <section className="page coach-page">
@@ -37,6 +66,54 @@ export default function CoachPage() {
         <div className="notice">
           <b>Sin reportes</b>
           <p>Completá un entrenamiento para ver el análisis del coach.</p>
+        </div>
+      )}
+
+      {progression.length > 0 && (
+        <div style={{ marginTop: 16 }}>
+          <h2 style={{ fontSize: 16, marginBottom: 8 }}>Progresión por grupo</h2>
+          <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 10 }}>
+            Último entrenamiento de cada grupo vs. sesión anterior del mismo grupo
+          </p>
+          {progression.map(({ type, date, exercises }) => (
+            <div className="progression-card" key={type}>
+              <h3>
+                <Icon name="TrendingUp" size={16} strokeWidth={2.5} /> {type}
+                <small style={{ color: "var(--muted)", fontSize: 11, fontWeight: 400 }}>{date}</small>
+              </h3>
+              {exercises.map(([name, { current, prev }]) => {
+                const curVol = Number(current.weight) * Number(current.reps);
+                const prevVol = prev ? Number(prev.weight) * Number(prev.reps) : 0;
+                const diff = prev ? ((curVol - prevVol) / (prevVol || 1)) * 100 : null;
+                return (
+                  <div className="progression-exercise" key={name}>
+                    <span className="ex-name">{name}</span>
+                    <span className="entry"><b>{current.weight}kg</b> × {current.reps} reps</span>
+                    {prev && (
+                      <span className={`entry ${diff > 5 ? "up" : diff < -5 ? "down" : "same"}`}>
+                        {diff > 5 ? <Icon name="TrendingUp" size={10} /> : diff < -5 ? <Icon name="TrendingDown" size={10} /> : <Icon name="Minus" size={10} />}
+                        anterior: {prev.weight}kg × {prev.reps}
+                      </span>
+                    )}
+                    {!prev && <span className="entry same">Primera vez</span>}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {prs.length > 0 && (
+        <div className="progression-card" style={{ marginTop: 16 }}>
+          <h3><Icon name="Star" size={16} strokeWidth={2.5} /> Todos los récords</h3>
+          <div className="records-list">
+            {prs.map((pr, i) => (
+              <span key={i} className="record-badge">
+                <Icon name="TrendingUp" size={12} /> {pr.exercise}: {pr.weight}kg × {pr.reps} · {pr.date}
+              </span>
+            ))}
+          </div>
         </div>
       )}
 

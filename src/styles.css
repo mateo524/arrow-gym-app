@@ -931,6 +931,63 @@ p { color: #c7d5d2; }
 }
 .toggle.on::after { transform: translateX(20px); }
 
+.radar-svg { width: 100%; height: auto; max-height: 280px; }
+.radar-ring { fill: none; stroke: rgba(255,255,255,.07); stroke-width: 1; }
+.radar-axis { stroke: rgba(255,255,255,.06); stroke-width: 1; }
+.radar-fill { fill: rgba(109,242,164,.1); stroke: none; }
+.radar-line { fill: none; stroke: var(--green); stroke-width: 2; }
+.radar-dot { fill: var(--green); stroke: #041009; stroke-width: 2; }
+.radar-label { fill: var(--muted); font-size: 10px; font-weight: 700; }
+.radar-small { fill: rgba(255,255,255,.35); font-size: 9px; }
+
+.progression-card {
+  background: rgba(13,18,20,.92);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  padding: 14px;
+  margin-top: 14px;
+}
+.progression-card h3 {
+  font-size: 14px;
+  margin: 0 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.progression-exercise {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 3px 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255,255,255,.05);
+  font-size: 13px;
+}
+.progression-exercise:last-child { border: 0; }
+.progression-exercise .ex-name { flex: 1 0 100%; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+.progression-exercise .entry { display: flex; align-items: center; gap: 3px; color: var(--muted); font-size: 11px; }
+.progression-exercise .entry b { color: var(--text); }
+.progression-exercise .up { color: var(--green); }
+.progression-exercise .down { color: var(--danger); }
+.progression-exercise .same { color: var(--muted); }
+
+.records-list {
+  margin-top: 14px;
+}
+.record-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(232,247,119,.1);
+  border: 1px solid rgba(232,247,119,.2);
+  color: var(--yellow);
+  border-radius: 100px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  margin: 3px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     transition-duration: 0.01ms !important;
