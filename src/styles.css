@@ -502,10 +502,32 @@ p { color: #c7d5d2; }
 
 .muscle-code { fill: rgba(234,255,242,.38); font-size: 7px; font-weight: 900; pointer-events: none; }
 
-.legend .level-1 { background: #233d75; }
-.legend .level-2 { background: #5b3fba; }
-.legend .level-3 { background: #a857e8; }
-.legend .level-4 { background: #f0b5ff; box-shadow: 0 0 12px rgba(216,116,255,.5); }
+.legend {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+.legend-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.legend-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,.12);
+}
+.legend-dot.level-1 { background: #233d75; }
+.legend-dot.level-2 { background: #5b3fba; }
+.legend-dot.level-3 { background: #a857e8; }
+.legend-dot.level-4 { background: #f0b5ff; box-shadow: 0 0 12px rgba(216,116,255,.5); }
+.legend-label { font-size: 10px; color: var(--muted); font-weight: 700; white-space: nowrap; }
+.legend-label b { color: var(--text); }
 
 .exercise-block {
   background: rgba(255,255,255,0.045);

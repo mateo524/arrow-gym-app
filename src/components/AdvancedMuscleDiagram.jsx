@@ -104,12 +104,22 @@ const AdvancedMuscleDiagram = React.forwardRef(function ({ intensity, onMuscleCl
         <Figure title="Vista posterior" side="back" shapes={BACK} intensity={intensity} onMuscleClick={onMuscleClick} activeMuscle={activeMuscle} />
       </div>
       <div className="legend">
-        <span>0 series</span>
-        <i className="level-1" title="1-3 series" />
-        <i className="level-2" title="3-6 series" />
-        <i className="level-3" title="6-10 series" />
-        <i className="level-4" title="10+ series" />
-        <span>Más series</span>
+        <div className="legend-item">
+          <i className="legend-dot level-1" />
+          <span className="legend-label"><b>1-3</b> series</span>
+        </div>
+        <div className="legend-item">
+          <i className="legend-dot level-2" />
+          <span className="legend-label"><b>3-6</b> series</span>
+        </div>
+        <div className="legend-item">
+          <i className="legend-dot level-3" />
+          <span className="legend-label"><b>6-10</b> series</span>
+        </div>
+        <div className="legend-item">
+          <i className="legend-dot level-4" />
+          <span className="legend-label"><b>10+</b> series</span>
+        </div>
       </div>
     </div>
   );

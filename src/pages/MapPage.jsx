@@ -38,6 +38,10 @@ export default function MapPage() {
 
       {workouts.length > 0 && <RadarChart data={radar} />}
 
+      <div className="notice" style={{ marginBottom: 12 }}>
+        <p style={{ margin: 0, fontSize: 13 }}>Los colores en el mapa muestran el nivel de estímulo semanal: a más series, más intenso el color.</p>
+      </div>
+
       {workouts.length > 0 && (
         <AdvancedMuscleDiagram
           intensity={intensity}
@@ -68,9 +72,20 @@ export default function MapPage() {
 
       {activeMuscle && intensity[activeMuscle] && (
         <div className="mini-card" style={{ marginTop: 10 }}>
-          <b>{activeMuscle}</b>
-          <span>{intensity[activeMuscle].count} series esta semana</span>
-          <small>Nivel de estímulo: {intensity[activeMuscle].level}/4</small>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <i className={`legend-dot level-${intensity[activeMuscle].level}`} style={{ flexShrink: 0 }} />
+            <div>
+              <b>{activeMuscle}</b>
+              <span>{intensity[activeMuscle].count} series esta semana</span>
+            </div>
+          </div>
+          <small style={{ display: "block", marginTop: 6, color: "var(--muted)" }}>
+            {intensity[activeMuscle].level === 0 && "Sin estímulo — no se registraron series"}
+            {intensity[activeMuscle].level === 1 && "Estímulo ligero — 1 a 3 series"}
+            {intensity[activeMuscle].level === 2 && "Estímulo moderado — 3 a 6 series"}
+            {intensity[activeMuscle].level === 3 && "Estímulo alto — 6 a 10 series"}
+            {intensity[activeMuscle].level === 4 && "Estímulo máximo — más de 10 series"}
+          </small>
         </div>
       )}
 
