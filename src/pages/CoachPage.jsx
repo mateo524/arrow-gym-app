@@ -28,21 +28,24 @@ export default function CoachPage() {
       const sorted = ws.sort((a, b) => String(b.date).localeCompare(String(a.date)));
       const last = sorted[0];
       if (!last) return null;
+      const lastWithData = (last.sets || []).filter((s) => Number(s.weight) > 0 && Number(s.reps) > 0);
+      if (!lastWithData.length) return null;
       const exercises = {};
-      (last.sets || []).forEach((set) => {
-        if (!exercises[set.exercise]) {
-          const prev = sorted.slice(1).find((w) => (w.sets || []).some((s) => s.exercise === set.exercise));
-          const prevSets = prev ? prev.sets.filter((s) => s.exercise === set.exercise) : [];
-          const prevBest = prevSets.length
-            ? prevSets.reduce((max, s) => (Number(s.weight) * Number(s.reps) > Number(max.weight) * Number(max.reps) ? s : max), { weight: 0, reps: 0 })
-            : null;
-          exercises[set.exercise] = {
-            current: { weight: set.weight || 0, reps: set.reps || 0 },
-            prev: prevBest ? { weight: prevBest.weight || 0, reps: prevBest.reps || 0 } : null,
-          };
-        }
+      lastWithData.forEach((set) => {
+        if (exercises[set.exercise]) return;
+        const prev = sorted.slice(1).find((w) => (w.sets || []).some((s) => s.exercise === set.exercise && Number(s.weight) > 0 && Number(s.reps) > 0));
+        const prevSets = prev ? prev.sets.filter((s) => s.exercise === set.exercise && Number(s.weight) > 0 && Number(s.reps) > 0) : [];
+        const prevBest = prevSets.length
+          ? prevSets.reduce((max, s) => (Number(s.weight) * Number(s.reps) > Number(max.weight) * Number(max.reps) ? s : max))
+          : null;
+        exercises[set.exercise] = {
+          current: { weight: Number(set.weight), reps: Number(set.reps) },
+          prev: prevBest ? { weight: Number(prevBest.weight), reps: Number(prevBest.reps) } : null,
+        };
       });
-      return { type, date: last.date, exercises: Object.entries(exercises).slice(0, 6) };
+      const entries = Object.entries(exercises);
+      if (!entries.length) return null;
+      return { type, date: last.date, exercises: entries.slice(0, 6) };
     }).filter(Boolean);
   }, [workouts]);
 

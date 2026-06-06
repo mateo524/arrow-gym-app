@@ -1,7 +1,7 @@
 import { useMemo, useState, useCallback } from "react";
 import { AnimatePresence } from "framer-motion";
 import useStore from "../store/useStore.js";
-import { getWorkoutVolume } from "../lib/analytics.js";
+import { getWorkoutVolume, hasData } from "../lib/analytics.js";
 import ExercisePicker from "../components/ExercisePicker.jsx";
 import WorkoutSetCard from "../components/WorkoutSetCard.jsx";
 import RestTimer from "../components/RestTimer.jsx";
@@ -21,7 +21,7 @@ function groupSetsByExercise(sets) {
 function getVolumeHistory(workouts, exercise) {
   const volumes = [];
   for (const w of workouts || []) {
-    const exSets = (w.sets || []).filter((s) => s.exercise === exercise && s.weight && s.reps);
+    const exSets = (w.sets || []).filter((s) => s.exercise === exercise && hasData(s));
     if (exSets.length) {
       volumes.push(exSets.reduce((sum, s) => sum + Number(s.weight || 0) * Number(s.reps || 0), 0));
     }

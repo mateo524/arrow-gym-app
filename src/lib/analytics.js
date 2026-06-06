@@ -1,5 +1,9 @@
 import { BODY_GROUPS, MUSCLES_BY_GROUP, resolveExerciseGroup, resolveExerciseMuscle, findExerciseMeta } from "../data/exerciseDatabase.js";
 
+export function hasData(set) {
+  return set && Number(set.weight) > 0 && Number(set.reps) > 0;
+}
+
 export const RANGE_OPTIONS = [
   { id: "7d", label: "Semana", days: 7 },
   { id: "30d", label: "1 mes", days: 30 },
@@ -64,7 +68,7 @@ export function getSetVolume(set) {
 }
 
 export function getWorkoutVolume(workout) {
-  return (workout.sets || []).reduce((sum, set) => sum + getSetVolume(set), 0);
+  return (workout.sets || []).filter(hasData).reduce((sum, set) => sum + getSetVolume(set), 0);
 }
 
 export function hydrateSet(set) {
@@ -79,7 +83,7 @@ export function hydrateSet(set) {
 
 export function getGroupTotals(workouts) {
   const totals = BODY_GROUPS.reduce((acc, group) => ({ ...acc, [group]: { sets: 0, reps: 0, volume: 0, exercises: new Set(), muscles: {} } }), {});
-  workouts.forEach((workout) => (workout.sets || []).forEach((raw) => {
+  workouts.forEach((workout) => (workout.sets || []).filter(hasData).forEach((raw) => {
     const set = hydrateSet(raw);
     if (!totals[set.group]) return;
     totals[set.group].sets += 1;
@@ -105,7 +109,7 @@ export function getRadarData(workouts) {
 
 export function getMuscleIntensity(workouts) {
   const out = {};
-  workouts.forEach((workout) => (workout.sets || []).forEach((raw) => {
+  workouts.forEach((workout) => (workout.sets || []).filter(hasData).forEach((raw) => {
     const set = hydrateSet(raw);
     out[set.muscle] = (out[set.muscle] || 0) + 1;
     out[set.group] = (out[set.group] || 0) + 1;
