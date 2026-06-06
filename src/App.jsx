@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Router, useLocation } from "wouter";
 import { AnimatePresence, motion } from "framer-motion";
 import HomePage from "./pages/HomePage.jsx";
@@ -58,7 +58,7 @@ function AppContent() {
     if (PAGE_MAP[path] && path !== currentPage) {
       setPage(path);
     }
-  }, [location]);
+  }, [location, activeWorkout]);
 
   useEffect(() => {
     const path = "/" + currentPage;
