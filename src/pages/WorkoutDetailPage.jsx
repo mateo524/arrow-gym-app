@@ -1,5 +1,5 @@
 import useStore from "../store/useStore.js";
-import { getWorkoutVolume, hydrateSet } from "../lib/analytics.js";
+import { getWorkoutVolume, hydrateSet, formatDate } from "../lib/analytics.js";
 import Icon from "../components/Icon.jsx";
 
 export default function WorkoutDetailPage() {
@@ -19,7 +19,7 @@ export default function WorkoutDetailPage() {
           <h1>{workout.type}</h1>
         </div>
       </div>
-      <p className="muted">{workout.date} · {workout.sets.length} series · {Math.round(getWorkoutVolume(workout))} kg</p>
+      <p className="muted">{formatDate(workout.date)} · {workout.sets.length} series · {Math.round(getWorkoutVolume(workout))} kg</p>
       <div className="sets-list">
         {workout.sets.map((raw) => {
           const set = hydrateSet(raw);

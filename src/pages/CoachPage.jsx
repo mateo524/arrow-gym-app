@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { motion } from "framer-motion";
 import useStore from "../store/useStore.js";
 import Icon from "../components/Icon.jsx";
-import { buildCoachReport } from "../lib/analytics.js";
+import { buildCoachReport, formatDate } from "../lib/analytics.js";
 
 const CARD_VARIANTS = {
   hidden: { opacity: 0, y: 20 },
@@ -45,7 +45,7 @@ export default function CoachPage() {
       });
       const entries = Object.entries(exercises);
       if (!entries.length) return null;
-      return { type, date: last.date, exercises: entries.slice(0, 6) };
+      return { type, date: formatDate(last.date), exercises: entries.slice(0, 6) };
     }).filter(Boolean);
   }, [workouts]);
 
@@ -113,7 +113,7 @@ export default function CoachPage() {
           <div className="records-list">
             {prs.map((pr, i) => (
               <span key={i} className="record-badge">
-                <Icon name="TrendingUp" size={12} /> {pr.exercise}: {pr.weight}kg × {pr.reps} · {pr.date}
+                <Icon name="TrendingUp" size={12} /> {pr.exercise}: {pr.weight}kg × {pr.reps} · {formatDate(pr.date)}
               </span>
             ))}
           </div>
@@ -139,7 +139,7 @@ function FeaturedReport({ report, prs = [] }) {
       <div className="coach-feature-head">
         <div className="arrow-logo"><Icon name="ArrowRight" size={24} strokeWidth={3} /></div>
         <div>
-          <small>{report.sessionType || report.title} · {report.date}</small>
+          <small>{report.sessionType || report.title} · {formatDate(report.date)}</small>
           <h2>{report.title || "Último análisis"}</h2>
         </div>
       </div>
@@ -184,7 +184,7 @@ function FeaturedReport({ report, prs = [] }) {
       <div className="coach-mini-stats">
         <MiniStat label="Volumen" value={`${report.totalVolume || 0} kg`} />
         <MiniStat label="Tipo" value={report.sessionType || "Workout"} />
-        <MiniStat label="Fecha" value={String(report.date || "").slice(5)} />
+        <MiniStat label="Fecha" value={formatDate(report.date)} />
       </div>
 
       <div className="notice compact">
@@ -200,7 +200,7 @@ function CoachReportCard({ report }) {
   const recommendations = report.recommendations || (report.recommendation ? [{ msg: report.recommendation }] : []);
   return (
     <div className="coach-card">
-      <small>{report.date}</small>
+      <small>{formatDate(report.date)}</small>
       <h2>{report.title}</h2>
       <p>{report.status}</p>
       {alerts[0] && <p className="alert">{alerts[0].msg}</p>}

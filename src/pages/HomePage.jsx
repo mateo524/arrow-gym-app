@@ -1,5 +1,5 @@
 import useStore from "../store/useStore.js";
-import { getWorkoutVolume } from "../lib/analytics.js";
+import { getWorkoutVolume, formatDate } from "../lib/analytics.js";
 import Icon from "../components/Icon.jsx";
 
 export default function HomePage() {
@@ -32,7 +32,7 @@ export default function HomePage() {
       {last && (
         <button className="card as-button" onClick={() => useStore.getState().openWorkout(last.id)}>
           <h2>Último entrenamiento</h2>
-          <p>{last.type} · {last.date}</p>
+          <p>{last.type} · {formatDate(last.date)}</p>
           <strong>{last.sets.length} series · {Math.round(getWorkoutVolume(last))} kg</strong>
         </button>
       )}

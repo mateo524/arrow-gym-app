@@ -1,7 +1,7 @@
 import { useMemo, useState, useCallback } from "react";
 import { AnimatePresence } from "framer-motion";
 import useStore from "../store/useStore.js";
-import { getWorkoutVolume, hasData } from "../lib/analytics.js";
+import { getWorkoutVolume, hasData, formatDate } from "../lib/analytics.js";
 import ExercisePicker from "../components/ExercisePicker.jsx";
 import WorkoutSetCard from "../components/WorkoutSetCard.jsx";
 import RestTimer from "../components/RestTimer.jsx";
@@ -74,7 +74,7 @@ export default function WorkoutPage() {
         <div>
           <p className="eyebrow">Entrenando</p>
           <h1>{active.type}</h1>
-          <small>{active.date}</small>
+          <small>{formatDate(active.date)}</small>
         </div>
         <button className="ghost" onClick={cancel}>Cancelar</button>
       </div>

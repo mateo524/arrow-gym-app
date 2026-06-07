@@ -4,6 +4,13 @@ export function hasData(set) {
   return set && Number(set.weight) > 0 && Number(set.reps) > 0;
 }
 
+export function formatDate(dateStr) {
+  if (!dateStr) return "";
+  const parts = dateStr.split("-");
+  if (parts.length !== 3) return dateStr;
+  return `${parts[2]}/${parts[1]}`;
+}
+
 export const RANGE_OPTIONS = [
   { id: "7d", label: "Semana", days: 7 },
   { id: "30d", label: "1 mes", days: 30 },

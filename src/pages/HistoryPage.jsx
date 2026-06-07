@@ -1,5 +1,5 @@
 import useStore from "../store/useStore.js";
-import { getWorkoutVolume } from "../lib/analytics.js";
+import { getWorkoutVolume, formatDate } from "../lib/analytics.js";
 
 export default function HistoryPage() {
   const workouts = useStore((state) => state.workouts);
@@ -21,7 +21,7 @@ export default function HistoryPage() {
             <button key={workout.id} className="history-card" onClick={() => openWorkout(workout.id)}>
               <div>
                 <b>{workout.type}</b>
-                <small>{workout.date}</small>
+                <small>{formatDate(workout.date)}</small>
               </div>
               <span>{workout.sets.length} series</span>
               <strong>{Math.round(getWorkoutVolume(workout))} kg</strong>
