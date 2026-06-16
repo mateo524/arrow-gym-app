@@ -139,7 +139,8 @@ function previousSetsForExercise(exercise, history) {
   return [];
 }
 
-export function buildCoachReport(workout, allWorkouts = []) {
+// userProfile is optional – pass profile object to enable per-user alerts
+export function buildCoachReport(workout, allWorkouts = [], userProfile = null) {
   const hydratedWorkout = { ...workout, sets: (workout.sets || []).map(hydrateSet) };
   const history = (allWorkouts || []).filter((item) => item.id !== workout.id);
   const totals = getGroupTotals([hydratedWorkout]);
@@ -176,8 +177,9 @@ export function buildCoachReport(workout, allWorkouts = []) {
     if (prevMaxWeight !== null && maxWeight > prevMaxWeight && prevMaxReps !== null && maxReps < prevMaxReps - 2) {
       alerts.push({ exercise, type: "unstable", msg: `${exercise}: subiste peso pero bajaron bastante las reps. Estabilizá la carga.` });
     }
-    if (exercise === "Landmine Shoulder Press" && maxWeight >= 30) {
-      alerts.push({ exercise, type: "shoulder", msg: "Landmine Shoulder Press: no superar 30kg hasta julio 2026 por hombro post-op." });
+    // Shoulder post-op alert: only fires when explicitly enabled for this user in their profile
+    if (userProfile?.shoulder_alert && exercise === "Landmine Shoulder Press" && maxWeight >= 30) {
+      alerts.push({ exercise, type: "shoulder", msg: "Landmine Shoulder Press: no superar 30kg – límite por rehabilitación de hombro." });
     }
   });
 

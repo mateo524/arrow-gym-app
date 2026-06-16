@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { Router, useLocation } from "wouter";
 import { AnimatePresence, motion } from "framer-motion";
 import HomePage from "./pages/HomePage.jsx";
@@ -9,8 +9,12 @@ import MapPage from "./pages/MapPage.jsx";
 import HistoryPage from "./pages/HistoryPage.jsx";
 import WorkoutDetailPage from "./pages/WorkoutDetailPage.jsx";
 import CoachPage from "./pages/CoachPage.jsx";
+import LoginPage from "./pages/LoginPage.jsx";
+import AdminPage from "./pages/AdminPage.jsx";
+import TrainerPage from "./pages/TrainerPage.jsx";
 import Nav from "./components/Nav.jsx";
 import useStore from "./store/useStore.js";
+import useAuthStore from "./store/useAuthStore.js";
 
 const PAGE_VARIANTS = {
   initial: { opacity: 0, y: 20 },
@@ -20,12 +24,7 @@ const PAGE_VARIANTS = {
 
 function AnimatedPage({ children }) {
   return (
-    <motion.div
-      variants={PAGE_VARIANTS}
-      initial="initial"
-      animate="animate"
-      exit="exit"
-    >
+    <motion.div variants={PAGE_VARIANTS} initial="initial" animate="animate" exit="exit">
       {children}
     </motion.div>
   );
@@ -40,14 +39,43 @@ const PAGE_MAP = {
   history: HistoryPage,
   workoutDetail: WorkoutDetailPage,
   coach: CoachPage,
+  admin: AdminPage,
+  trainer: TrainerPage,
 };
 
 function AppContent() {
   const [location, setLocation] = useLocation();
-  const currentPage = useStore((state) => state.currentPage);
-  const activeWorkout = useStore((state) => state.activeWorkout);
-  const amoled = useStore((state) => state.amoled);
-  const setPage = useStore((state) => state.setPage);
+  const currentPage = useStore((s) => s.currentPage);
+  const activeWorkout = useStore((s) => s.activeWorkout);
+  const amoled = useStore((s) => s.amoled);
+  const setPage = useStore((s) => s.setPage);
+
+  const { user, profile, loading, init } = useAuthStore();
+
+  // Init auth in background — the cached session already set user synchronously
+  useEffect(() => { init(); }, []);
+
+  // Backup active workout to sessionStorage every time it changes.
+  // sessionStorage survives iOS PWA app switches (unlike in-memory state).
+  useEffect(() => {
+    if (activeWorkout) {
+      sessionStorage.setItem("arrow-gym-active-workout", JSON.stringify(activeWorkout));
+    } else {
+      sessionStorage.removeItem("arrow-gym-active-workout");
+    }
+  }, [activeWorkout]);
+
+  // On mount: if Zustand lost the active workout (iOS killed the process) but
+  // sessionStorage still has it, restore it immediately before any render.
+  useEffect(() => {
+    const stored = sessionStorage.getItem("arrow-gym-active-workout");
+    if (stored && !activeWorkout) {
+      try {
+        const recovered = JSON.parse(stored);
+        useStore.setState({ activeWorkout: recovered, currentPage: "workout" });
+      } catch {}
+    }
+  }, []);
 
   useEffect(() => {
     const path = location.replace("/", "") || "home";
@@ -55,9 +83,7 @@ function AppContent() {
       setLocation("/workout", { replace: true });
       return;
     }
-    if (PAGE_MAP[path] && path !== currentPage) {
-      setPage(path);
-    }
+    if (PAGE_MAP[path] && path !== currentPage) setPage(path);
   }, [location, activeWorkout]);
 
   useEffect(() => {
@@ -65,6 +91,26 @@ function AppContent() {
     if (path !== location) setLocation(path, { replace: true });
   }, [currentPage]);
 
+  // Show a minimal splash ONLY when there's no cached session at all
+  // (first load, logged out). If there's a cached user we skip the splash
+  // entirely so returning to the app feels instant.
+  if (loading && !user) {
+    return (
+      <div className="splash-screen">
+        <div className="splash-logo">
+          <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+            <path d="M8 24L24 8L40 24L24 40L8 24Z" stroke="var(--green)" strokeWidth="2.5" fill="none" />
+            <path d="M24 14L34 24L24 34L14 24L24 14Z" fill="var(--green)" opacity=".3" />
+          </svg>
+          <span>Arrow Gym</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) return <LoginPage />;
+
+  const role = profile?.role;
   const PageComponent = PAGE_MAP[currentPage] || HomePage;
 
   return (
@@ -76,7 +122,7 @@ function AppContent() {
           </AnimatedPage>
         </AnimatePresence>
       </main>
-      <Nav />
+      <Nav role={role} />
     </div>
   );
 }

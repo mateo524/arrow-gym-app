@@ -4,6 +4,8 @@ import { EXERCISE_DATABASE, findExerciseMeta, resolveExerciseGroup, resolveExerc
 import { ROUTINES } from "../data/seedData.js";
 import { buildCoachReport, hydrateSet } from "../lib/analytics.js";
 import { loadInitialWorkouts, normalizeSet } from "../lib/storageMigration.js";
+import { syncWorkoutUp, fetchWorkoutsFromDB, mergeWorkouts } from "../lib/workoutSync.js";
+import { getAuthUserId, getAuthProfile } from "../lib/authBridge.js";
 
 function uid(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -79,6 +81,16 @@ const useStore = create(
       coachBadge: false,
       amoled: false,
       soundEnabled: true,
+
+      // Pull workouts from Supabase and merge with local localStorage data.
+      // Called once after login. userId comes from useAuthStore.
+      syncWorkoutsFromDB: async (userId) => {
+        const remote = await fetchWorkoutsFromDB(userId);
+        if (!remote.length) return;
+        const local = get().workouts || [];
+        const merged = mergeWorkouts(local, remote);
+        set({ workouts: merged });
+      },
 
       toggleAmoled: () => set((s) => ({ amoled: !s.amoled })),
       toggleSound: () => set((s) => ({ soundEnabled: !s.soundEnabled })),
@@ -203,7 +215,7 @@ const useStore = create(
             .map(normalizeSet),
         };
         if (!clean.sets.length) return;
-        const report = buildCoachReport(clean, get().workouts);
+        const report = buildCoachReport(clean, get().workouts, getAuthProfile());
         const existingPrs = get().prs || [];
         const history = get().workouts || [];
         const prs = [];
@@ -230,6 +242,10 @@ const useStore = create(
           coachBadge: false,
           prs: newPrs,
         }));
+
+        // Background sync to Supabase
+        const userId = getAuthUserId();
+        if (userId) syncWorkoutUp(clean, userId);
       },
 
       cancelWorkout: () => set({ activeWorkout: null, currentPage: "home" }),

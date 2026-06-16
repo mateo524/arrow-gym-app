@@ -1,23 +1,39 @@
 import useStore from "../store/useStore.js";
+import useAuthStore from "../store/useAuthStore.js";
 import { getWorkoutVolume, formatDate } from "../lib/analytics.js";
 import Icon from "../components/Icon.jsx";
 
 export default function HomePage() {
-  const workouts = useStore((state) => state.workouts);
-  const setPage = useStore((state) => state.setPage);
-  const activeWorkout = useStore((state) => state.activeWorkout);
-  const amoled = useStore((state) => state.amoled);
-  const soundEnabled = useStore((state) => state.soundEnabled);
-  const toggleAmoled = useStore((state) => state.toggleAmoled);
-  const toggleSound = useStore((state) => state.toggleSound);
+  const workouts = useStore((s) => s.workouts);
+  const setPage = useStore((s) => s.setPage);
+  const activeWorkout = useStore((s) => s.activeWorkout);
+  const amoled = useStore((s) => s.amoled);
+  const soundEnabled = useStore((s) => s.soundEnabled);
+  const toggleAmoled = useStore((s) => s.toggleAmoled);
+  const toggleSound = useStore((s) => s.toggleSound);
+  const profile = useAuthStore((s) => s.profile);
+  const logout = useAuthStore((s) => s.logout);
+
   const last = workouts[0];
   const totalSets = workouts.reduce((sum, w) => sum + (w.sets?.length || 0), 0);
+
+  const role = profile?.role;
+  const isAdmin = role === "superadmin" || role === "admin";
+  const name = profile?.name || profile?.email?.split("@")[0] || "Atleta";
+  const initial = name[0].toUpperCase();
+
   return (
     <section className="page">
-      <div className="hero">
-        <p className="eyebrow">Arrow Gym V4</p>
-        <h1>Entrená rápido. Medí cada músculo.</h1>
-        <p>Mapa muscular avanzado, radar por grupos y registro sin fricción durante el gym.</p>
+      {/* Profile header */}
+      <div className="home-header">
+        <div>
+          <p className="eyebrow">Arrow Gym</p>
+          <h1 style={{ margin: 0 }}>Hola, {name.split(" ")[0]} 👋</h1>
+        </div>
+        <div className="profile-avatar">{initial}</div>
+      </div>
+
+      <div className="hero" style={{ marginTop: 16 }}>
         <button className="primary big" onClick={() => setPage(activeWorkout ? "workout" : "start")}>
           {activeWorkout ? "Continuar entrenamiento" : "Empezar entrenamiento"}
         </button>
@@ -39,7 +55,6 @@ export default function HomePage() {
 
       <div className="card" style={{ marginTop: 14 }}>
         <h2>Configuración</h2>
-
         <div className="settings-row">
           <div>
             <label>Modo AMOLED</label>
@@ -47,7 +62,6 @@ export default function HomePage() {
           </div>
           <button className={`toggle${amoled ? " on" : ""}`} onClick={toggleAmoled} aria-label="Toggle AMOLED mode" aria-pressed={amoled} />
         </div>
-
         <div className="settings-row">
           <div>
             <label>Sonido descanso</label>
@@ -55,12 +69,26 @@ export default function HomePage() {
           </div>
           <button className={`toggle${soundEnabled ? " on" : ""}`} onClick={toggleSound} aria-label="Toggle sound" aria-pressed={soundEnabled} />
         </div>
+
+        {/* Logout button — always visible */}
+        <div className="settings-row" style={{ borderTop: "1px solid var(--line)", marginTop: 8, paddingTop: 12 }}>
+          <div>
+            <label>Sesión</label>
+            <small>{profile?.email}</small>
+          </div>
+          <button className="ghost" style={{ padding: "8px 14px", fontSize: 13 }} onClick={logout}>
+            Salir
+          </button>
+        </div>
       </div>
 
-      <div className="notice" style={{ marginTop: 14 }}>
-        <b>Datos anteriores</b>
-        <p>La app intenta migrar entrenamientos viejos del mismo dominio/localStorage. Si cambiaste de URL, Safari no puede compartir esos datos automáticamente.</p>
-      </div>
+      {/* Only show for admins — regular users don't see this */}
+      {isAdmin && (
+        <div className="notice" style={{ marginTop: 14 }}>
+          <b>Panel Admin activo</b>
+          <p>Tenés acceso completo. Tus datos de entrenamiento se guardan en la nube y en este dispositivo.</p>
+        </div>
+      )}
     </section>
   );
 }
