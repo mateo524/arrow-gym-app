@@ -67,10 +67,11 @@ const useAuthStore = create((set, get) => ({
     if (profile) {
       set({ profile });
       setAuthProfile(profile);
-      // Pull workouts from DB and merge with local data (background, non-blocking)
+      // Pull workouts from DB and merge with local data, then push all local up (background, non-blocking)
       try {
         const { default: useStore } = await import("./useStore.js");
-        useStore.getState().syncWorkoutsFromDB(user.id);
+        await useStore.getState().syncWorkoutsFromDB(user.id);
+        useStore.getState().syncAllToSupabase(user.id);
       } catch {}
     }
   },

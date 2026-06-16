@@ -1553,3 +1553,82 @@ p { color: #c7d5d2; }
   padding: 10px 10px;
   font-size: 14px;
 }
+
+/* ───── CALENDAR HEATMAP ───── */
+.cal-heatmap {
+  margin: 14px 0;
+  padding: 14px;
+  background: rgba(13,18,20,.92);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+}
+
+.cal-week-labels {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+  margin-bottom: 4px;
+}
+
+.cal-week-labels span {
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+
+.cal-day {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 4px;
+  background: var(--line);
+}
+
+.cal-day-1 { background: rgba(109,242,164,.25); }
+.cal-day-2 { background: rgba(109,242,164,.55); }
+.cal-day-3 { background: var(--green); }
+
+.cal-month-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  min-width: 24px;
+  text-align: right;
+  padding-right: 4px;
+}
+
+/* ───── MUSCLE WEEK SUMMARY ───── */
+.muscle-week-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.muscle-week-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 100px;
+  padding: 4px 10px;
+  font-size: 11px;
+}
+
+.muscle-week-chip span { font-weight: 700; }
+.muscle-week-chip small { color: var(--muted); }
+
+.muscle-week-chip.level-1 { border-color: rgba(109,242,164,.3); color: rgba(109,242,164,.8); }
+.muscle-week-chip.level-2 { border-color: rgba(109,242,164,.6); color: var(--green); }
+.muscle-week-chip.level-3,
+.muscle-week-chip.level-4 { border-color: var(--green); color: #fff; background: rgba(109,242,164,.1); }

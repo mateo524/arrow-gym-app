@@ -4,7 +4,7 @@ import { EXERCISE_DATABASE, findExerciseMeta, resolveExerciseGroup, resolveExerc
 import { ROUTINES } from "../data/seedData.js";
 import { buildCoachReport, hydrateSet } from "../lib/analytics.js";
 import { loadInitialWorkouts, normalizeSet } from "../lib/storageMigration.js";
-import { syncWorkoutUp, fetchWorkoutsFromDB, mergeWorkouts } from "../lib/workoutSync.js";
+import { syncWorkoutUp, syncAllWorkoutsUp, fetchWorkoutsFromDB, mergeWorkouts } from "../lib/workoutSync.js";
 import { getAuthUserId, getAuthProfile } from "../lib/authBridge.js";
 
 function uid(prefix) {
@@ -87,10 +87,14 @@ const useStore = create(
       // Called once after login. userId comes from useAuthStore.
       syncWorkoutsFromDB: async (userId) => {
         const remote = await fetchWorkoutsFromDB(userId);
-        if (!remote.length) return;
         const local = get().workouts || [];
         const merged = mergeWorkouts(local, remote);
         set({ workouts: merged });
+      },
+
+      syncAllToSupabase: async (userId) => {
+        const workouts = get().workouts || [];
+        await syncAllWorkoutsUp(workouts, userId);
       },
 
       toggleAmoled: () => set((s) => ({ amoled: !s.amoled })),

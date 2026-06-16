@@ -1,6 +1,6 @@
 import useStore from "../store/useStore.js";
 import useAuthStore from "../store/useAuthStore.js";
-import { getWorkoutVolume, formatDate } from "../lib/analytics.js";
+import { getWorkoutVolume, formatDate, getMuscleIntensity, filterCurrentWeek } from "../lib/analytics.js";
 import Icon from "../components/Icon.jsx";
 
 export default function HomePage() {
@@ -11,6 +11,10 @@ export default function HomePage() {
 
   const last = workouts[0];
   const totalSets = workouts.reduce((sum, w) => sum + (w.sets?.length || 0), 0);
+  const topMuscles = Object.entries(getMuscleIntensity(filterCurrentWeek(workouts)))
+    .filter(([, d]) => d.level > 0)
+    .sort((a, b) => b[1].count - a[1].count)
+    .slice(0, 6);
   const name = profile?.name || profile?.email?.split("@")[0] || "Atleta";
   const initial = name[0].toUpperCase();
   const role = profile?.role;
@@ -48,6 +52,20 @@ export default function HomePage() {
         <div><b>{workouts.length}</b><span>entrenamientos</span></div>
         <div><b>{totalSets}</b><span>series</span></div>
         <div><b>{last ? Math.round(getWorkoutVolume(last)) : 0}</b><span>kg último</span></div>
+      </div>
+
+      {/* Esta semana - resumen muscular */}
+      <div style={{ marginTop: 14 }}>
+        <p className="section-label">Esta semana</p>
+        <div className="muscle-week-grid">
+          {topMuscles.map(([muscle, data]) => (
+            <div key={muscle} className={`muscle-week-chip level-${data.level}`}>
+              <span>{muscle}</span>
+              <small>{data.count} series</small>
+            </div>
+          ))}
+          {topMuscles.length === 0 && <p style={{ color: "var(--muted)", fontSize: 12 }}>Sin actividad esta semana</p>}
+        </div>
       </div>
 
       {/* Último entrenamiento */}
