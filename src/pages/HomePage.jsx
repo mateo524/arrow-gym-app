@@ -49,7 +49,7 @@ export default function HomePage() {
   return (
     <section className="page">
       <div className="home-header">
-        <div>
+        <div style={{ flex: 1 }}>
           <p className="eyebrow">Pulse</p>
           <h1 style={{ margin: 0 }}>Hola, {name.split(" ")[0]} 👋</h1>
         </div>
@@ -57,6 +57,9 @@ export default function HomePage() {
       </div>
 
       <div className="hero" style={{ marginTop: 16 }}>
+        <p className="eyebrow" style={{ color: "var(--green)" }}>Pulse</p>
+        <h1>Entrená rápido. Medí cada músculo.</h1>
+        <p>Mapa muscular avanzado, radar por grupos y registro sin fricción durante el gym.</p>
         <button className="primary big" onClick={() => setPage(activeWorkout ? "workout" : "start")}>
           {activeWorkout ? "Continuar entrenamiento" : "Empezar entrenamiento"}
         </button>

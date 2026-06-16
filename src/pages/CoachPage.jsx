@@ -14,7 +14,9 @@ export default function CoachPage() {
   const workouts = useStore((state) => state.workouts);
   const prs = useStore((state) => state.prs);
   const setPage = useStore((state) => state.setPage);
-  const computed = reports.length ? reports : workouts.slice(0, 12).map((workout) => buildCoachReport(workout, workouts));
+  const computed = reports.length ? reports : workouts.slice(0, 12).flatMap((workout) => {
+    try { return [buildCoachReport(workout, workouts)]; } catch { return []; }
+  });
   const latest = computed[0];
   const latestPrs = latest ? prs.filter((p) => p.date === latest.date) : [];
 
