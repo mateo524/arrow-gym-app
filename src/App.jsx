@@ -12,6 +12,7 @@ import CoachPage from "./pages/CoachPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import AdminPage from "./pages/AdminPage.jsx";
 import TrainerPage from "./pages/TrainerPage.jsx";
+import ProfilePage from "./pages/ProfilePage.jsx";
 import Nav from "./components/Nav.jsx";
 import useStore from "./store/useStore.js";
 import useAuthStore from "./store/useAuthStore.js";
@@ -41,6 +42,7 @@ const PAGE_MAP = {
   coach: CoachPage,
   admin: AdminPage,
   trainer: TrainerPage,
+  profile: ProfilePage,
 };
 
 function AppContent() {

@@ -10,9 +10,9 @@ const CARD_VARIANTS = {
 };
 
 export default function CoachPage() {
-  const reports = useStore((state) => state.coachReports);
-  const workouts = useStore((state) => state.workouts);
-  const prs = useStore((state) => state.prs);
+  const reports = useStore((state) => state.coachReports) ?? [];
+  const workouts = useStore((state) => state.workouts) ?? [];
+  const prs = useStore((state) => state.prs) ?? [];
   const setPage = useStore((state) => state.setPage);
   const computed = reports.length ? reports : workouts.slice(0, 12).flatMap((workout) => {
     try { return [buildCoachReport(workout, workouts)]; } catch { return []; }

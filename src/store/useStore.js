@@ -78,6 +78,7 @@ const useStore = create(
       recentExercises: [],
       favoriteExercises: [],
 
+      prs: [],
       coachBadge: false,
       amoled: false,
       soundEnabled: true,

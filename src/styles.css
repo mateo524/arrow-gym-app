@@ -68,10 +68,9 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   margin: 0 auto;
   background: linear-gradient(180deg, rgba(255,255,255,.02), transparent);
   position: relative;
-  overflow-x: hidden;
 }
 
-.app-main { padding: env(safe-area-inset-top, 18px) 14px 94px; padding-top: max(18px, env(safe-area-inset-top)); }
+.app-main { padding: 18px 14px 94px; }
 .page { animation: fade .18s ease; }
 
 .eyebrow {
@@ -1466,7 +1465,55 @@ p { color: #c7d5d2; }
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  cursor: pointer;
+  transition: transform .15s ease, border-color .15s ease;
 }
+.profile-avatar:active { transform: scale(.93); border-color: var(--green); }
+
+.profile-hero {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(13,18,20,.92);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.profile-avatar-lg {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(109,242,164,.25), rgba(117,217,255,.18));
+  border: 2px solid rgba(109,242,164,.4);
+  color: var(--green);
+  font-size: 26px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.profile-hero strong { display: block; font-size: 16px; font-weight: 700; }
+.profile-hero small { color: var(--muted); font-size: 12px; }
+.role-badge {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  background: rgba(109,242,164,.1);
+  color: var(--green);
+  border: 1px solid rgba(109,242,164,.2);
+  border-radius: 100px;
+  padding: 2px 8px;
+}
+
+.danger-btn { color: var(--danger) !important; border-color: rgba(255,107,107,.3) !important; }
+.danger-btn:hover { background: rgba(255,107,107,.08) !important; }
+
+.confirm-modal { text-align: center; padding: 24px 20px; }
 
 /* ───── ADMIN FORM EXTRAS ───── */
 .section-divider {
