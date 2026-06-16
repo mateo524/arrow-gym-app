@@ -102,7 +102,7 @@ function AppContent() {
             <path d="M8 24L24 8L40 24L24 40L8 24Z" stroke="var(--green)" strokeWidth="2.5" fill="none" />
             <path d="M24 14L34 24L24 34L14 24L24 14Z" fill="var(--green)" opacity=".3" />
           </svg>
-          <span>Arrow Gym</span>
+          <span>Pulse</span>
         </div>
       </div>
     );

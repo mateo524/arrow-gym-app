@@ -56,13 +56,13 @@ export default function MapPage() {
           const svg = mapRef.current?.querySelector("svg");
           if (!svg) return;
           const blob = new Blob([svg.outerHTML], { type: "image/svg+xml" });
-          const file = new File([blob], "arrow-gym-muscle-map.svg", { type: "image/svg+xml" });
+          const file = new File([blob], "pulse-muscle-map.svg", { type: "image/svg+xml" });
           if (navigator.share && navigator.canShare({ files: [file] })) {
-            navigator.share({ title: "Arrow Gym - Muscle Map", files: [file] });
+            navigator.share({ title: "Pulse - Muscle Map", files: [file] });
           } else {
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
-            a.href = url; a.download = "arrow-gym-muscle-map.svg"; a.click();
+            a.href = url; a.download = "pulse-muscle-map.svg"; a.click();
             URL.revokeObjectURL(url);
           }
         }} aria-label="Export muscle map">
