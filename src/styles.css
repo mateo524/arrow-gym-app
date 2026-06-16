@@ -68,9 +68,10 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   margin: 0 auto;
   background: linear-gradient(180deg, rgba(255,255,255,.02), transparent);
   position: relative;
+  overflow-x: hidden;
 }
 
-.app-main { padding: 18px 14px 94px; }
+.app-main { padding: env(safe-area-inset-top, 18px) 14px 94px; padding-top: max(18px, env(safe-area-inset-top)); }
 .page { animation: fade .18s ease; }
 
 .eyebrow {
@@ -478,15 +479,25 @@ p { color: #c7d5d2; }
     repeating-linear-gradient(0deg, rgba(255,255,255,.018) 0 1px, transparent 1px 14px) !important;
 }
 
+.map-title { text-align: center; margin: 0 0 10px; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .12em; font-weight: 600; }
+
+.figures {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
 .pro-figure {
   background: linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.01));
   border: 1px solid rgba(117,217,255,.12);
   border-radius: 18px;
-  padding: 8px 5px;
+  padding: 6px 4px;
+  flex: 1;
+  min-width: 0;
 }
 
 .figure-label { text-align: center; margin: 0 0 2px; color: #d8eeee; font-size: 10px; text-transform: uppercase; letter-spacing: .15em; font-weight: 900; }
-.pro-muscle-svg { filter: drop-shadow(0 22px 24px rgba(0,0,0,.35)); }
+.pro-muscle-svg { filter: drop-shadow(0 12px 14px rgba(0,0,0,.35)); width: 100%; height: auto; display: block; max-height: 280px; }
 .head { fill: #0d1417; }
 .torso { fill: #0a1012; }
 .center-line { stroke: rgba(117,217,255,.18); stroke-width: 1; stroke-dasharray: 3 6; }

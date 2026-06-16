@@ -18,8 +18,8 @@ export default function MapPage() {
 
   return (
     <section className="page">
-      <p className="eyebrow">Mapa muscular</p>
-      <h1>Radar + diagrama avanzado</h1>
+      <p className="eyebrow">Pulse</p>
+      <h1>Mapa muscular</h1>
 
       {workouts.length === 0 && (
         <div className="notice">
@@ -49,25 +49,6 @@ export default function MapPage() {
           activeMuscle={activeMuscle}
           ref={mapRef}
         />
-      )}
-
-      {workouts.length > 0 && (
-        <button className="secondary full" onClick={async () => {
-          const svg = mapRef.current?.querySelector("svg");
-          if (!svg) return;
-          const blob = new Blob([svg.outerHTML], { type: "image/svg+xml" });
-          const file = new File([blob], "pulse-muscle-map.svg", { type: "image/svg+xml" });
-          if (navigator.share && navigator.canShare({ files: [file] })) {
-            navigator.share({ title: "Pulse - Muscle Map", files: [file] });
-          } else {
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url; a.download = "pulse-muscle-map.svg"; a.click();
-            URL.revokeObjectURL(url);
-          }
-        }} aria-label="Export muscle map">
-          <Icon name="Download" size={16} /> Exportar mapa
-        </button>
       )}
 
       {activeMuscle && intensity[activeMuscle] && (

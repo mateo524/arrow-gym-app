@@ -250,7 +250,14 @@ const useStore = create(
 
       cancelWorkout: () => set({ activeWorkout: null, currentPage: "home" }),
     }),
-    { name: "arrow-gym-v4", version: 4 }
+    {
+      name: "arrow-gym-v4",
+      version: 4,
+      partialize: (state) => {
+        const { currentPage, selectedWorkoutId, ...rest } = state;
+        return rest;
+      },
+    }
   )
 );
 

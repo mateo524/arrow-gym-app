@@ -96,8 +96,7 @@ const AdvancedMuscleDiagram = React.forwardRef(function ({ intensity, onMuscleCl
   return (
     <div className="advanced-map premium-map" ref={ref}>
       <div className="map-title">
-        <span>ADVANCED MUSCLE DIAGRAM</span>
-        <small>ARROW GYM FEATURE · semana actual · reset lunes</small>
+        <span>Mapa muscular semanal</span>
       </div>
       <div className="figures">
         <Figure title="Vista frontal" side="front" shapes={FRONT} intensity={intensity} onMuscleClick={onMuscleClick} activeMuscle={activeMuscle} />
