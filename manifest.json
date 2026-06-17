@@ -1,1 +1,1 @@
-{"name":"Pulse","short_name":"Pulse","start_url":"/","display":"standalone","background_color":"#050709","theme_color":"#050709","icons":[{"src":"/icon.svg","sizes":"any","type":"image/svg+xml"}]}
+{"name":"Pulse","short_name":"Pulse","start_url":"/arrow-gym-app/","scope":"/arrow-gym-app/","display":"standalone","background_color":"#050709","theme_color":"#050709","icons":[{"src":"/arrow-gym-app/icon.svg","sizes":"any","type":"image/svg+xml"}]}
