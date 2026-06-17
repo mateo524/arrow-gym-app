@@ -20,73 +20,94 @@ export default function HomePage() {
   const role = profile?.role;
   const isAdmin = role === "superadmin" || role === "admin";
   const isTrainer = role === "trainer";
+  const isEmpty = workouts.length === 0;
 
   return (
     <section className="page">
-      {/* Header con avatar que lleva al perfil */}
+      {/* Header */}
       <div className="home-header">
         <div style={{ flex: 1 }}>
           <p className="eyebrow">Pulse</p>
           <h1 style={{ margin: 0 }}>Hola, {name.split(" ")[0]}</h1>
         </div>
-        <button
-          className="profile-avatar"
-          onClick={() => setPage("profile")}
-          aria-label="Mi perfil"
-        >
+        <button className="profile-avatar" onClick={() => setPage("profile")} aria-label="Mi perfil">
           {initial}
         </button>
       </div>
 
-      {/* Hero */}
-      <div className="hero" style={{ marginTop: 16 }}>
-        <h1>Entrená rápido. Medí cada músculo.</h1>
-        <p>Mapa muscular avanzado, radar por grupos y registro sin fricción durante el gym.</p>
-        <button className="primary big" onClick={() => setPage(activeWorkout ? "workout" : "start")}>
-          {activeWorkout ? "Continuar entrenamiento" : "Empezar entrenamiento"}
-        </button>
-      </div>
-
-      {/* Stats */}
-      <div className="stats-grid">
-        <div><b>{workouts.length}</b><span>entrenamientos</span></div>
-        <div><b>{totalSets}</b><span>series</span></div>
-        <div><b>{last ? Math.round(getWorkoutVolume(last)) : 0}</b><span>kg último</span></div>
-      </div>
-
-      {/* Mapa muscular semanal */}
-      <div style={{ marginTop: 14 }}>
-        <p className="section-label">Mapa muscular — esta semana</p>
-        <AdvancedMuscleDiagram
-          intensity={intensity}
-          onMuscleClick={(muscle) => setActiveMuscle(activeMuscle === muscle ? null : muscle)}
-          activeMuscle={activeMuscle}
-        />
-        {activeMuscle && intensity[activeMuscle] && (
-          <div className="mini-card" style={{ marginTop: 6 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <i className={`legend-dot level-${intensity[activeMuscle].level}`} style={{ flexShrink: 0 }} />
-              <div>
-                <b>{activeMuscle}</b>
-                <span style={{ display: "block", fontSize: 13, color: "var(--muted)" }}>
-                  {intensity[activeMuscle].count} series esta semana
-                </span>
+      {/* Onboarding vacío */}
+      {isEmpty ? (
+        <div className="hero" style={{ marginTop: 16 }}>
+          <p className="eyebrow" style={{ marginBottom: 4 }}>Bienvenido</p>
+          <h2 style={{ margin: "0 0 12px" }}>Empezá en 3 pasos</h2>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
+            {[
+              { n: 1, text: "Elegí una rutina o entrenamiento libre" },
+              { n: 2, text: "Cargá peso y repeticiones por serie" },
+              { n: 3, text: "Finalizá y mirá tu mapa muscular" },
+            ].map(({ n, text }) => (
+              <div key={n} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--green)", color: "#041009", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 13, flexShrink: 0 }}>{n}</div>
+                <span style={{ fontSize: 14, color: "var(--text)" }}>{text}</span>
               </div>
-            </div>
+            ))}
           </div>
-        )}
-      </div>
+          <button className="primary big" onClick={() => setPage("start")}>
+            Empezar primer entrenamiento
+          </button>
+        </div>
+      ) : (
+        <>
+          {/* Hero normal */}
+          <div className="hero" style={{ marginTop: 16 }}>
+            <h1>Entrená rápido. Medí cada músculo.</h1>
+            <button className="primary big" onClick={() => setPage(activeWorkout ? "workout" : "start")}>
+              {activeWorkout ? "Continuar entrenamiento" : "Empezar entrenamiento"}
+            </button>
+          </div>
 
-      {/* Último entrenamiento */}
-      {last && (
-        <button className="card as-button" onClick={() => useStore.getState().openWorkout(last.id)}>
-          <h2>Último entrenamiento</h2>
-          <p>{last.type} · {formatDate(last.date)}</p>
-          <strong>{last.sets.length} series · {Math.round(getWorkoutVolume(last))} kg</strong>
-        </button>
+          {/* Stats */}
+          <div className="stats-grid">
+            <div><b>{workouts.length}</b><span>entrenos</span></div>
+            <div><b>{totalSets}</b><span>series totales</span></div>
+            <div><b>{last ? Math.round(getWorkoutVolume(last)) : 0}</b><span>kg último</span></div>
+          </div>
+
+          {/* Mapa muscular semanal */}
+          <div style={{ marginTop: 14 }}>
+            <p className="section-label">Mapa muscular — esta semana</p>
+            <AdvancedMuscleDiagram
+              intensity={intensity}
+              onMuscleClick={(muscle) => setActiveMuscle(activeMuscle === muscle ? null : muscle)}
+              activeMuscle={activeMuscle}
+            />
+            {activeMuscle && intensity[activeMuscle] && (
+              <div className="mini-card" style={{ marginTop: 6 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <i className={`legend-dot level-${intensity[activeMuscle].level}`} style={{ flexShrink: 0 }} />
+                  <div>
+                    <b>{activeMuscle}</b>
+                    <span style={{ display: "block", fontSize: 13, color: "var(--muted)" }}>
+                      {intensity[activeMuscle].count} series esta semana
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Último entrenamiento */}
+          {last && (
+            <button className="card as-button" onClick={() => useStore.getState().openWorkout(last.id)}>
+              <h2>Último entrenamiento</h2>
+              <p>{last.type} · {formatDate(last.date)}</p>
+              <strong>{last.sets?.length ?? 0} series · {Math.round(getWorkoutVolume(last))} kg</strong>
+            </button>
+          )}
+        </>
       )}
 
-      {/* Acceso rápido a admin/trainer */}
+      {/* Acceso rápido admin/trainer */}
       {(isAdmin || isTrainer) && (
         <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
           {(isTrainer || isAdmin) && (

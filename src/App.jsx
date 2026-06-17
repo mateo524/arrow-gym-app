@@ -99,19 +99,24 @@ function AppContent() {
     }
   }, []);
 
+  // Sync URL → store (only when URL changes, never override an active workout nav)
   useEffect(() => {
     const path = location.replace("/", "") || "home";
-    if (path === "home" && activeWorkout) {
-      setLocation("/workout", { replace: true });
-      return;
-    }
     if (PAGE_MAP[path] && path !== currentPage) setPage(path);
-  }, [location, activeWorkout]);
+  }, [location]);
 
+  // Sync store → URL
   useEffect(() => {
     const path = "/" + currentPage;
     if (path !== location) setLocation(path, { replace: true });
   }, [currentPage]);
+
+  // Redirect to workout page whenever an active workout exists and we're elsewhere
+  useEffect(() => {
+    if (activeWorkout && currentPage !== "workout") {
+      setPage("workout");
+    }
+  }, [activeWorkout]);
 
   // Show a minimal splash ONLY when there's no cached session at all
   // (first load, logged out). If there's a cached user we skip the splash

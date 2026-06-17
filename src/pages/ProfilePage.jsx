@@ -19,6 +19,9 @@ export default function ProfilePage() {
   const [pwdMsg, setPwdMsg] = useState("");
   const [savingPwd, setSavingPwd] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [editName, setEditName] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [nameMsg, setNameMsg] = useState("");
   const [editMeasures, setEditMeasures] = useState(false);
   const [measWeight, setMeasWeight] = useState("");
   const [measHeight, setMeasHeight] = useState("");
@@ -28,6 +31,20 @@ export default function ProfilePage() {
   const name = profile?.name || profile?.email?.split("@")[0] || "Atleta";
   const initial = name[0].toUpperCase();
   const role = profile?.role;
+
+  async function saveName(e) {
+    e.preventDefault();
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+    const { error } = await supabase.from("profiles").update({ name: trimmed }).eq("id", profile.id);
+    if (error) {
+      setNameMsg("Error: " + error.message);
+    } else {
+      useAuthStore.setState({ profile: { ...profile, name: trimmed } });
+      setNameMsg("✓ Nombre actualizado");
+      setTimeout(() => { setEditName(false); setNameMsg(""); }, 1200);
+    }
+  }
 
   function openMeasures() {
     setMeasWeight(String(profile?.weight_kg || ""));
@@ -85,8 +102,30 @@ export default function ProfilePage() {
       {/* Avatar + info */}
       <div className="profile-hero">
         <div className="profile-avatar-lg">{initial}</div>
-        <div>
-          <strong>{name}</strong>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {editName ? (
+            <form onSubmit={saveName} style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              <input
+                autoFocus
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                style={{ flex: 1, background: "var(--panel2)", border: "1px solid var(--green)", borderRadius: 10, padding: "7px 10px", color: "var(--text)", fontSize: 14, minWidth: 0 }}
+                placeholder="Tu nombre"
+              />
+              <button type="submit" className="primary" style={{ padding: "8px 12px", fontSize: 13, borderRadius: 10 }}>✓</button>
+              <button type="button" className="ghost" style={{ padding: "8px 12px", fontSize: 13, borderRadius: 10 }} onClick={() => setEditName(false)}>✕</button>
+            </form>
+          ) : (
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <strong style={{ fontSize: 16 }}>{name}</strong>
+              <button
+                className="ghost"
+                style={{ padding: "4px 8px", fontSize: 11, borderRadius: 8, color: "var(--muted)" }}
+                onClick={() => { setNewName(name); setEditName(true); setNameMsg(""); }}
+              >Editar</button>
+            </div>
+          )}
+          {nameMsg && <small style={{ color: nameMsg.startsWith("✓") ? "var(--green)" : "var(--danger)" }}>{nameMsg}</small>}
           <small>{profile?.email}</small>
           <span className="role-badge">{role}</span>
         </div>

@@ -142,14 +142,28 @@ function previousSetsForExercise(exercise, history) {
 // userProfile is optional – pass profile object to enable per-user alerts
 export function buildCoachReport(workout, allWorkouts = [], userProfile = null) {
   const hydratedWorkout = { ...workout, sets: (workout.sets || []).map(hydrateSet) };
-  const history = (allWorkouts || []).filter((item) => item.id !== workout.id);
+  const history = (allWorkouts || []).filter((item) => item.id !== workout.id).sort((a, b) => String(b.date).localeCompare(String(a.date)));
   const totals = getGroupTotals([hydratedWorkout]);
   const totalVolume = Math.round(getWorkoutVolume(hydratedWorkout));
 
-  const pushCount = history.filter((w) => ["Push", "Full Body"].includes(w.type)).length;
-  const pullCount = history.filter((w) => ["Pull", "Full Body"].includes(w.type)).length;
+  // Weekly volume comparison (same type, last 4 weeks)
+  const sameTypePrev = history.filter((w) => w.type === workout.type).slice(0, 4);
+  const avgPrevVolume = sameTypePrev.length
+    ? Math.round(sameTypePrev.reduce((sum, w) => sum + getWorkoutVolume(w), 0) / sameTypePrev.length)
+    : null;
+  const volumeDelta = avgPrevVolume ? Math.round(((totalVolume - avgPrevVolume) / Math.max(1, avgPrevVolume)) * 100) : null;
+
+  // Push/pull balance
+  const pushCount = history.slice(0, 14).filter((w) => ["Push", "Full Body"].includes(w.type)).length;
+  const pullCount = history.slice(0, 14).filter((w) => ["Pull", "Full Body"].includes(w.type)).length;
   const pushSets = (totals.Pecho?.sets || 0) + (totals.Hombros?.sets || 0) + (totals.Brazos?.sets || 0);
   const pullSets = totals.Espalda?.sets || 0;
+
+  // Frequency: days since last same-type session
+  const lastSameType = sameTypePrev[0];
+  const daysSinceLast = lastSameType?.date
+    ? Math.round((new Date(workout.date) - new Date(lastSameType.date)) / 86400000)
+    : null;
 
   const byExercise = {};
   hydratedWorkout.sets.forEach((set) => {
@@ -159,45 +173,92 @@ export function buildCoachReport(workout, allWorkouts = [], userProfile = null) 
 
   const alerts = [];
   const recommendations = [];
+  const prs = [];
 
   Object.entries(byExercise).forEach(([exercise, sets]) => {
-    const reps = sets.map((s) => Number(s.reps) || 0);
-    const weights = sets.map((s) => Number(s.weight) || 0);
-    const avgReps = reps.reduce((a, b) => a + b, 0) / Math.max(1, reps.length);
+    const setsWithData = sets.filter((s) => Number(s.weight) > 0 && Number(s.reps) > 0);
+    if (!setsWithData.length) return;
+
+    const reps = setsWithData.map((s) => Number(s.reps));
+    const weights = setsWithData.map((s) => Number(s.weight));
+    const avgReps = reps.reduce((a, b) => a + b, 0) / reps.length;
     const maxWeight = Math.max(...weights);
     const maxReps = Math.max(...reps);
+    const best1RM = Math.round(maxWeight * (1 + maxReps / 30)); // Epley formula
+
     const prevSets = previousSetsForExercise(exercise, history);
     const prevMaxWeight = prevSets.length ? Math.max(...prevSets.map((s) => Number(s.weight) || 0)) : null;
     const prevMaxReps = prevSets.length ? Math.max(...prevSets.map((s) => Number(s.reps) || 0)) : null;
+    const prevBest1RM = prevMaxWeight && prevMaxReps ? Math.round(prevMaxWeight * (1 + prevMaxReps / 30)) : null;
 
-    if (avgReps >= 12) recommendations.push({ exercise, type: "increase", msg: `${exercise}: listo para probar +2.5kg si la técnica fue limpia.` });
-    else if (avgReps <= 8) recommendations.push({ exercise, type: "stabilize", msg: `${exercise}: mantené o bajá carga hasta llegar a 9-10 reps sólidas.` });
-    else recommendations.push({ exercise, type: "maintain", msg: `${exercise}: mantené carga y buscá sumar 1 rep.` });
-
-    if (prevMaxWeight !== null && maxWeight > prevMaxWeight && prevMaxReps !== null && maxReps < prevMaxReps - 2) {
-      alerts.push({ exercise, type: "unstable", msg: `${exercise}: subiste peso pero bajaron bastante las reps. Estabilizá la carga.` });
+    // PR detection
+    if (prevMaxWeight !== null && maxWeight > prevMaxWeight) {
+      prs.push({ exercise, type: "weight", value: `${maxWeight}kg`, prev: `${prevMaxWeight}kg` });
+    } else if (prevMaxReps !== null && maxReps > prevMaxReps && maxWeight >= (prevMaxWeight || 0)) {
+      prs.push({ exercise, type: "reps", value: `${maxReps} reps`, prev: `${prevMaxReps} reps` });
     }
-    // Shoulder post-op alert: only fires when explicitly enabled for this user in their profile
+
+    // 1RM progression
+    if (prevBest1RM && best1RM > prevBest1RM) {
+      recommendations.push({ exercise, type: "increase", msg: `${exercise}: 1RM estimado ${best1RM}kg (+${best1RM - prevBest1RM} vs anterior). Progresión confirmada.` });
+    } else if (avgReps >= 12) {
+      recommendations.push({ exercise, type: "increase", msg: `${exercise}: promedio ${Math.round(avgReps)} reps — probá +2.5kg en la próxima sesión.` });
+    } else if (avgReps <= 5) {
+      recommendations.push({ exercise, type: "stabilize", msg: `${exercise}: pocas reps (${Math.round(avgReps)} promedio) — verificá que la carga sea manejable para 6-8 reps.` });
+    } else if (setsWithData.length >= 3 && avgReps >= 8) {
+      recommendations.push({ exercise, type: "maintain", msg: `${exercise}: ${setsWithData.length} series × ~${Math.round(avgReps)} reps. Zona de hipertrofia óptima.` });
+    }
+
+    // Fatigue: weight dropping set-over-set
+    if (setsWithData.length >= 3) {
+      const firstHalf = weights.slice(0, Math.floor(weights.length / 2));
+      const secondHalf = weights.slice(Math.floor(weights.length / 2));
+      const avgFirst = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
+      const avgSecond = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
+      if (avgFirst > 0 && (avgFirst - avgSecond) / avgFirst > 0.08) {
+        alerts.push({ exercise, type: "fatigue", msg: `${exercise}: la carga cayó entre series (${Math.round(avgFirst)}→${Math.round(avgSecond)}kg). Considerá más descanso o bajar una serie.` });
+      }
+    }
+
+    // Unstable load increase
+    if (prevMaxWeight !== null && maxWeight > prevMaxWeight && prevMaxReps !== null && maxReps < prevMaxReps - 3) {
+      alerts.push({ exercise, type: "unstable", msg: `${exercise}: subiste a ${maxWeight}kg pero las reps bajaron de ${prevMaxReps} a ${maxReps}. Estabilizá la carga.` });
+    }
+
+    // Shoulder alert
     if (userProfile?.shoulder_alert && exercise === "Landmine Shoulder Press" && maxWeight >= 30) {
-      alerts.push({ exercise, type: "shoulder", msg: "Landmine Shoulder Press: no superar 30kg – límite por rehabilitación de hombro." });
+      alerts.push({ exercise, type: "shoulder", msg: "Landmine Shoulder Press: no superar 30kg — límite por rehabilitación de hombro." });
     }
   });
 
-  if (pushCount > pullCount + 1 || pushSets > pullSets + 4) {
-    alerts.push({ type: "balance", msg: "Hay más empuje que tirón. Priorizá espalda, Face Pull y control escapular." });
+  // Push/pull imbalance
+  if (pushCount > pullCount + 2 || pushSets > pullSets + 6) {
+    alerts.push({ type: "balance", msg: "Más empuje que tirón en las últimas semanas. Priorizá espalda, remo y jalones para proteger los hombros." });
   }
+
+  // High shoulder volume
   if ((totals.Hombros?.sets || 0) >= 8) {
-    alerts.push({ type: "shoulder-volume", msg: "Volumen alto de hombros esta sesión. Cuidá dolor y rango de movimiento." });
+    alerts.push({ type: "shoulder-volume", msg: `Volumen alto de hombros (${totals.Hombros.sets} series). Monitoreá tensión en manguito rotador.` });
+  }
+
+  // Frequency alert
+  if (daysSinceLast !== null && daysSinceLast <= 1) {
+    alerts.push({ type: "frequency", msg: `Entrenaste ${workout.type} hace ${daysSinceLast === 0 ? "hoy" : "ayer"}. Asegurate de tener 48h de recuperación muscular.` });
   }
 
   const sorted = Object.entries(totals).sort((a, b) => b[1].sets - a[1].sets);
   const main = sorted[0]?.[0] || "General";
-  const status = totalVolume > 0
-    ? `${hydratedWorkout.type}: ${hydratedWorkout.sets.length} series · ${totalVolume} kg. Foco principal: ${main}.`
-    : `${hydratedWorkout.type}: sesión completada.`;
+  const totalSets = (hydratedWorkout.sets || []).filter((s) => Number(s.weight) > 0 && Number(s.reps) > 0).length;
 
-  const firstAlert = alerts[0]?.msg || "Sin alertas fuertes.";
-  const firstRecommendation = recommendations[0]?.msg || "Registrá peso y reps para que el coach sugiera progresión.";
+  let volumeContext = "";
+  if (volumeDelta !== null) {
+    if (volumeDelta > 10) volumeContext = ` (+${volumeDelta}% vs promedio ${workout.type})`;
+    else if (volumeDelta < -10) volumeContext = ` (-${Math.abs(volumeDelta)}% vs promedio ${workout.type})`;
+  }
+
+  const status = totalVolume > 0
+    ? `${hydratedWorkout.type}: ${totalSets} series · ${totalVolume}kg${volumeContext}. Foco: ${main}.`
+    : `${hydratedWorkout.type}: sesión completada.`;
 
   return {
     id: `coach-${workout.id || Date.now()}`,
@@ -205,12 +266,48 @@ export function buildCoachReport(workout, allWorkouts = [], userProfile = null) 
     date: workout.date,
     title: `${workout.type} · ${workout.date}`,
     status,
-    alerts: alerts.slice(0, 3),
-    recommendations: recommendations.slice(0, 4),
-    alert: firstAlert,
-    recommendation: firstRecommendation,
+    alerts: alerts.slice(0, 4),
+    recommendations: recommendations.slice(0, 5),
+    prs,
+    alert: alerts[0]?.msg || "Sin alertas.",
+    recommendation: recommendations[0]?.msg || "Registrá peso y reps para análisis de progresión.",
     totalVolume,
+    totalSets,
     sessionType: workout.type,
+    volumeDelta,
+    daysSinceLast,
     createdAt: new Date().toISOString(),
   };
+}
+
+// Live coaching: real-time suggestions for the active workout in progress
+export function buildLiveCoachHints(activeWorkout, allWorkouts = []) {
+  if (!activeWorkout) return [];
+  const history = (allWorkouts || []).sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  const hints = [];
+
+  const byExercise = {};
+  (activeWorkout.sets || []).forEach((set) => {
+    if (!byExercise[set.exercise]) byExercise[set.exercise] = [];
+    byExercise[set.exercise].push(set);
+  });
+
+  Object.entries(byExercise).forEach(([exercise, sets]) => {
+    const setsWithData = sets.filter((s) => Number(s.weight) > 0 && Number(s.reps) > 0);
+    if (!setsWithData.length) return;
+
+    const maxWeight = Math.max(...setsWithData.map((s) => Number(s.weight)));
+    const avgReps = setsWithData.reduce((sum, s) => sum + Number(s.reps), 0) / setsWithData.length;
+    const prevSets = previousSetsForExercise(exercise, history);
+    const prevMaxWeight = prevSets.length ? Math.max(...prevSets.map((s) => Number(s.weight) || 0)) : null;
+    const prevAvgReps = prevSets.length ? prevSets.reduce((sum, s) => sum + (Number(s.reps) || 0), 0) / prevSets.length : null;
+
+    if (prevMaxWeight !== null && maxWeight > prevMaxWeight) {
+      hints.push({ exercise, type: "pr", msg: `🏆 ${exercise}: nuevo peso récord ${maxWeight}kg`, priority: 1 });
+    } else if (prevAvgReps !== null && avgReps >= 12 && maxWeight <= (prevMaxWeight || 0)) {
+      hints.push({ exercise, type: "ready", msg: `↑ ${exercise}: promedio ${Math.round(avgReps)} reps — probá subir 2.5kg`, priority: 2 });
+    }
+  });
+
+  return hints.sort((a, b) => a.priority - b.priority).slice(0, 3);
 }

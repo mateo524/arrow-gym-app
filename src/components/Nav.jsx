@@ -4,7 +4,7 @@ import Icon from "./Icon.jsx";
 const BASE_TABS = [
   { id: "home", label: "Inicio", icon: "Home" },
   { id: "start", label: "Start", icon: "Play", badgeKey: "activeWorkout" },
-  { id: "coach", label: "Coach", icon: "BrainCircuit", badgeKey: "coachBadge" },
+  { id: "coach", label: "Análisis", icon: "BrainCircuit", badgeKey: "coachBadge" },
   { id: "map", label: "Mapa", icon: "Map" },
   { id: "history", label: "Historial", icon: "Clock" },
 ];
@@ -16,18 +16,26 @@ export default function Nav({ role }) {
   const coachBadge = useStore((s) => s.coachBadge);
   const badges = { activeWorkout: !!activeWorkout, coachBadge };
 
+  const tabs = BASE_TABS.map((tab) => {
+    if (tab.id === "start" && activeWorkout) {
+      return { id: "workout", label: "Entrenando", icon: "Zap", pulse: true };
+    }
+    return tab;
+  });
+
   return (
     <nav className="bottom-nav" aria-label="Main navigation">
-      {BASE_TABS.map((tab) => {
+      {tabs.map((tab) => {
         const showBadge = tab.badgeKey ? badges[tab.badgeKey] : false;
+        const isActive = currentPage === tab.id || (tab.id === "workout" && currentPage === "workout");
         return (
           <button
             key={tab.id}
-            className={`nav-item${currentPage === tab.id ? " active" : ""}`}
+            className={`nav-item${isActive ? " active" : ""}${tab.pulse ? " nav-item-workout" : ""}`}
             onClick={() => setPage(tab.id)}
             type="button"
             aria-label={tab.label}
-            aria-current={currentPage === tab.id ? "page" : undefined}
+            aria-current={isActive ? "page" : undefined}
           >
             <span className="nav-icon-wrap">
               <Icon name={tab.icon} aria-hidden="true" />

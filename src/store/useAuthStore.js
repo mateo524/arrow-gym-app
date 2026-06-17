@@ -91,6 +91,13 @@ const useAuthStore = create((set, get) => ({
     setAuthUserId(null);
     setAuthProfile(null);
     set({ user: null, profile: null });
+    // Clear service worker cache so offline data doesn't persist after logout
+    try {
+      if ("caches" in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((k) => caches.delete(k)));
+      }
+    } catch {}
   },
 }));
 
