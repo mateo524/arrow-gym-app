@@ -14,10 +14,16 @@ export default function StartWorkoutPage() {
   const lastWorkout = workouts[0];
   const profile = useAuthStore((s) => s.profile);
 
+  const savedTemplates = useStore((s) => s.savedTemplates);
+  const saveTemplate = useStore((s) => s.saveTemplate);
+  const deleteTemplate = useStore((s) => s.deleteTemplate);
+  const useTemplate = useStore((s) => s.useTemplate);
+
   const [editRoutine, setEditRoutine] = useState(null);
   const [editExercises, setEditExercises] = useState([]);
   const [assignedRoutines, setAssignedRoutines] = useState([]);
   const [loadingRoutines, setLoadingRoutines] = useState(false);
+  const [savedMsg, setSavedMsg] = useState("");
 
   const isUser = profile?.role === "user";
 
@@ -108,6 +114,22 @@ export default function StartWorkoutPage() {
     startWorkout(name);
   }
 
+  function handleSaveTemplate(name) {
+    const finalExercises = editExercises.filter(Boolean);
+    if (finalExercises.length === 0) return;
+    const promptedName = window.prompt("Nombre de la plantilla:", name);
+    if (promptedName === null) return;
+    saveTemplate(promptedName, finalExercises);
+    setSavedMsg("✓ Guardado");
+    setTimeout(() => setSavedMsg(""), 1500);
+  }
+
+  function handleDeleteTemplate(id) {
+    if (window.confirm("¿Eliminar esta plantilla?")) {
+      deleteTemplate(id);
+    }
+  }
+
   const catalogNames = useMemo(() => EXERCISE_DATABASE.map((e) => e.name), []);
 
   return (
@@ -121,6 +143,45 @@ export default function StartWorkoutPage() {
           <h1>Elegí rutina</h1>
         </div>
       </div>
+
+      {/* Saved Templates */}
+      {savedTemplates && savedTemplates.length > 0 && (
+        <div style={{ marginBottom: 20 }}>
+          <p className="section-label">Mis plantillas</p>
+          {savedTemplates.map((tpl) => (
+            <div
+              key={tpl.id}
+              className="card"
+              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}
+            >
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <strong style={{ display: "block", marginBottom: 4 }}>{tpl.name}</strong>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                  {(tpl.exercises || []).slice(0, 3).map((ex, i) => (
+                    <span key={i} className="ex-chip">{ex}</span>
+                  ))}
+                  {(tpl.exercises || []).length > 3 && (
+                    <span className="ex-chip muted">+{tpl.exercises.length - 3} más</span>
+                  )}
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 6, marginLeft: 10, flexShrink: 0 }}>
+                <button className="primary" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => useTemplate(tpl.id)}>
+                  Iniciar
+                </button>
+                <button
+                  className="ghost"
+                  style={{ padding: "6px 10px", fontSize: 14 }}
+                  onClick={() => handleDeleteTemplate(tpl.id)}
+                  aria-label="Eliminar plantilla"
+                >
+                  🗑
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {lastWorkout && (
         <button
@@ -206,9 +267,16 @@ export default function StartWorkoutPage() {
                     <datalist id="ex-suggestions">
                       {catalogNames.map((n) => <option key={n} value={n} />)}
                     </datalist>
-                    <div style={{ display: "flex", gap: 6 }}>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                       <button className="ghost" style={{ flex: 1, padding: "8px", fontSize: 12 }} onClick={() => setEditExercises((p) => [...p, ""])}>+ Agregar</button>
                       <button className="primary" style={{ flex: 1, padding: "8px", fontSize: 12 }} onClick={() => handleStart(name)}>Iniciar</button>
+                      <button
+                        className="ghost"
+                        style={{ flex: 1, padding: "8px", fontSize: 12 }}
+                        onClick={() => handleSaveTemplate(name)}
+                      >
+                        {savedMsg || "Guardar plantilla"}
+                      </button>
                       <button className="ghost" style={{ padding: "8px", fontSize: 12 }} onClick={() => setEditRoutine(null)}>Cancelar</button>
                     </div>
                   </div>

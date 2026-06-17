@@ -280,6 +280,62 @@ export function buildCoachReport(workout, allWorkouts = [], userProfile = null) 
   };
 }
 
+export function getMuscleGroupFatigue(workouts) {
+  const now = new Date();
+  const result = {};
+  BODY_GROUPS.forEach((group) => {
+    const found = [...(workouts || [])]
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .find((w) => (w.sets || []).some((s) => hydrateSet(s).group === group));
+    const daysSince = found?.date ? Math.round((now - parseDate(found.date)) / 86400000) : 999;
+    let fatigue = 0;
+    if (daysSince === 0) fatigue = 3;
+    else if (daysSince === 1) fatigue = 2;
+    else if (daysSince <= 2) fatigue = 1;
+    result[group] = { daysSince, lastDate: found?.date || null, fatigue };
+  });
+  return result;
+}
+
+export function getNextWorkoutSuggestion(workouts) {
+  if (!workouts?.length) return "Push";
+  const fat = getMuscleGroupFatigue(workouts);
+  const score = {
+    Push: (fat["Pecho"]?.daysSince || 999) + (fat["Hombros"]?.daysSince || 999),
+    Pull: (fat["Espalda"]?.daysSince || 999) + (fat["Brazos"]?.daysSince || 999),
+    Legs: (fat["Piernas"]?.daysSince || 999) * 2,
+    "Full Body": Object.values(fat).reduce((s, v) => s + (v.daysSince || 0), 0),
+  };
+  return Object.entries(score).sort((a, b) => b[1] - a[1])[0]?.[0] || "Push";
+}
+
+export function getDeloadSuggestion(workouts) {
+  if (!workouts || workouts.length < 9) return false;
+  const types = [...new Set(workouts.slice(0, 12).map((w) => w.type))];
+  for (const type of types) {
+    const sessions = workouts.filter((w) => w.type === type).slice(0, 4);
+    if (sessions.length < 3) continue;
+    const vols = sessions.map(getWorkoutVolume);
+    let flat = 0;
+    for (let i = 0; i < vols.length - 1; i++) {
+      if (vols[i] <= vols[i + 1] * 1.05) flat++;
+    }
+    if (flat >= 2) return true;
+  }
+  return false;
+}
+
+export function getExerciseProgression(workouts, exercise) {
+  const pts = [];
+  [...(workouts || [])].sort((a, b) => a.date.localeCompare(b.date)).forEach((w) => {
+    const sets = (w.sets || []).filter((s) => s.exercise === exercise && Number(s.weight) > 0 && Number(s.reps) > 0);
+    if (!sets.length) return;
+    const best1RM = Math.max(...sets.map((s) => Math.round(Number(s.weight) * (1 + Number(s.reps) / 30))));
+    pts.push({ date: w.date, best1RM, maxWeight: Math.max(...sets.map((s) => Number(s.weight))) });
+  });
+  return pts;
+}
+
 // Live coaching: real-time suggestions for the active workout in progress
 export function buildLiveCoachHints(activeWorkout, allWorkouts = []) {
   if (!activeWorkout) return [];

@@ -1,4 +1,22 @@
 import { useState, useMemo } from "react";
+import useStore from "../store/useStore.js";
+import useAuthStore from "../store/useAuthStore.js";
+import { getWorkoutVolume, formatDate, getMuscleIntensity, filterCurrentWeek, getMuscleGroupFatigue, getNextWorkoutSuggestion, getDeloadSuggestion } from "../lib/analytics.js";
+import AdvancedMuscleDiagram from "../components/AdvancedMuscleDiagram.jsx";
+import Icon from "../components/Icon.jsx";
+import { BODY_GROUPS } from "../data/exerciseDatabase.js";
+
+const ACH_DEFS = {
+  first_workout: { label: "Primera vez", icon: "🏋️" },
+  workouts_10: { label: "10 entrenos", icon: "💪" },
+  workouts_25: { label: "25 entrenos", icon: "🔥" },
+  workouts_50: { label: "50 entrenos", icon: "⚡" },
+  workouts_100: { label: "100 entrenos", icon: "🏆" },
+  first_pr: { label: "Primer récord", icon: "🥇" },
+  prs_10: { label: "10 récords", icon: "🎯" },
+  streak_3: { label: "Racha 3 días", icon: "🔥" },
+  streak_7: { label: "Semana completa", icon: "🌟" },
+};
 
 function computeStreak(workouts) {
   if (!workouts?.length) return 0;
@@ -17,17 +35,13 @@ function computeStreak(workouts) {
   }
   return streak;
 }
-import useStore from "../store/useStore.js";
-import useAuthStore from "../store/useAuthStore.js";
-import { getWorkoutVolume, formatDate, getMuscleIntensity, filterCurrentWeek } from "../lib/analytics.js";
-import AdvancedMuscleDiagram from "../components/AdvancedMuscleDiagram.jsx";
-import Icon from "../components/Icon.jsx";
 
 export default function HomePage() {
   const workouts = useStore((s) => s.workouts);
   const setPage = useStore((s) => s.setPage);
   const activeWorkout = useStore((s) => s.activeWorkout);
   const profile = useAuthStore((s) => s.profile);
+  const achievements = useStore((s) => s.achievements);
   const [activeMuscle, setActiveMuscle] = useState(null);
 
   const last = workouts[0];
@@ -40,6 +54,21 @@ export default function HomePage() {
   const isTrainer = role === "trainer";
   const isEmpty = workouts.length === 0;
   const streak = computeStreak(workouts);
+
+  const fatigue = useMemo(() => getMuscleGroupFatigue(workouts), [workouts]);
+  const nextWorkout = useMemo(() => getNextWorkoutSuggestion(workouts), [workouts]);
+  const deload = useMemo(() => getDeloadSuggestion(workouts), [workouts]);
+
+  const monthDays = useMemo(() => {
+    const prefix = new Date().toISOString().slice(0,7);
+    return new Set(workouts.filter(w => w.date?.startsWith(prefix)).map(w => w.date?.slice(0,10))).size;
+  }, [workouts]);
+
+  const recentAch = useMemo(() => (achievements || []).filter(a => {
+    const d = new Date();
+    const u = new Date(a.unlockedAt + "T00:00:00");
+    return (d - u) / 86400000 <= 30;
+  }), [achievements]);
 
   return (
     <section className="page">
@@ -83,6 +112,16 @@ export default function HomePage() {
             {streak >= 2 && (
               <div className="streak-badge">🔥 {streak} días seguidos</div>
             )}
+            {nextWorkout && (
+              <div style={{ fontSize:12, color:"var(--muted)", marginBottom:8 }}>
+                Recomendado hoy: <b style={{ color:"var(--green)" }}>{nextWorkout}</b>
+              </div>
+            )}
+            {deload && (
+              <div style={{ background:"rgba(245,158,11,.1)", border:"1px solid rgba(245,158,11,.3)", borderRadius:12, padding:"10px 12px", fontSize:13, marginBottom:10 }}>
+                ⚠️ <b>Semana de descarga sugerida</b> — tu volumen lleva 3+ sesiones estancado. Bajá intensidad 40%.
+              </div>
+            )}
             <button className="primary big" onClick={() => setPage(activeWorkout ? "workout" : "start")}>
               {activeWorkout ? "Continuar entrenamiento" : "Empezar entrenamiento"}
             </button>
@@ -93,7 +132,46 @@ export default function HomePage() {
             <div><b>{workouts.length}</b><span>entrenos</span></div>
             <div><b>{totalSets}</b><span>series totales</span></div>
             <div><b>{last ? Math.round(getWorkoutVolume(last)) : 0}</b><span>kg último</span></div>
+            <div><b>{monthDays}</b><span>días este mes</span></div>
           </div>
+
+          {/* Logros recientes */}
+          {recentAch.length > 0 && (
+            <div style={{ marginBottom:14 }}>
+              <p className="section-label">Logros recientes</p>
+              <div style={{ display:"flex", gap:8, overflowX:"auto", scrollbarWidth:"none" }}>
+                {recentAch.map(a => {
+                  const def = ACH_DEFS[a.id];
+                  if (!def) return null;
+                  return (
+                    <div key={a.id} style={{ flexShrink:0, background:"var(--panel)", border:"1px solid rgba(34,211,120,.25)", borderRadius:14, padding:"10px 14px", textAlign:"center", minWidth:80 }}>
+                      <div style={{ fontSize:24 }}>{def.icon}</div>
+                      <div style={{ fontSize:11, color:"var(--text)", fontWeight:600, marginTop:4 }}>{def.label}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Fatiga por grupo muscular */}
+          {workouts.length > 0 && fatigue && (
+            <div style={{ display:"flex", gap:6, overflowX:"auto", paddingBottom:4, marginBottom:12, scrollbarWidth:"none" }}>
+              {BODY_GROUPS.map(group => {
+                const f = fatigue[group];
+                if (!f) return null;
+                const color = f.fatigue === 3 ? "#ef4444" : f.fatigue === 2 ? "#f59e0b" : f.fatigue === 1 ? "#22d37a" : "var(--muted)";
+                const label = f.daysSince >= 999 ? "sin datos" : f.daysSince === 0 ? "hoy" : `${f.daysSince}d`;
+                return (
+                  <div key={group} style={{ flexShrink:0, background:"var(--panel)", border:`1px solid ${color}33`, borderRadius:20, padding:"4px 10px", fontSize:11, display:"flex", gap:4, alignItems:"center" }}>
+                    <span style={{ width:6, height:6, borderRadius:"50%", background:color, display:"inline-block" }} />
+                    <span style={{ color:"var(--text)" }}>{group}</span>
+                    <span style={{ color:"var(--muted)" }}>{label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
           {/* Mapa muscular semanal */}
           <div style={{ marginTop: 14 }}>

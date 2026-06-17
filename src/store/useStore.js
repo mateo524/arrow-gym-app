@@ -51,6 +51,7 @@ function makeSet(exercise, weight = "", reps = "", workouts = []) {
     exercise,
     weight,
     reps,
+    rpe: "",
     group: meta.group || resolveExerciseGroup(exercise),
     muscle: meta.muscle || resolveExerciseMuscle(exercise),
     equipment: meta.equipment || "",
@@ -83,6 +84,8 @@ const useStore = create(
       amoled: false,
       soundEnabled: true,
       weightLog: [],
+      savedTemplates: [],
+      achievements: [],
 
       // Pull workouts from Supabase and merge with local localStorage data.
       // Called once after login. userId comes from useAuthStore.
@@ -230,7 +233,7 @@ const useStore = create(
           const w = Number(set.weight) || 0;
           const r = Number(set.reps) || 0;
           if (!w || !r) return;
-          const prev = history.flatMap((w) => w.sets || []).filter((s) => s.exercise === set.exercise);
+          const prev = history.flatMap((workout) => workout.sets || []).filter((s) => s.exercise === set.exercise);
           const maxWeight = Math.max(...prev.map((s) => Number(s.weight) || 0), 0);
           const maxReps = Math.max(...prev.map((s) => Number(s.reps) || 0), 0);
           const isWeightPr = w > maxWeight;
@@ -240,15 +243,30 @@ const useStore = create(
           }
         });
         const newPrs = [...prs, ...existingPrs].slice(0, 20);
-        set((state) => ({
-          workouts: [clean, ...state.workouts.filter((item) => item.id !== clean.id)],
-          coachReports: [report, ...state.coachReports.filter((item) => item.workoutId !== clean.id)],
-          selectedWorkoutId: clean.id,
-          activeWorkout: null,
-          currentPage: "coach",
-          coachBadge: false,
-          prs: newPrs,
-        }));
+        set((state) => {
+          const newWorkoutCount = [clean, ...state.workouts.filter((item) => item.id !== clean.id)].length;
+          const existingAch = state.achievements || [];
+          const unlock = (id) => !existingAch.some((a) => a.id === id);
+          const newAch = [
+            unlock("first_workout") && { id: "first_workout", unlockedAt: today() },
+            newWorkoutCount >= 10 && unlock("workouts_10") && { id: "workouts_10", unlockedAt: today() },
+            newWorkoutCount >= 25 && unlock("workouts_25") && { id: "workouts_25", unlockedAt: today() },
+            newWorkoutCount >= 50 && unlock("workouts_50") && { id: "workouts_50", unlockedAt: today() },
+            newWorkoutCount >= 100 && unlock("workouts_100") && { id: "workouts_100", unlockedAt: today() },
+            prs.length > 0 && unlock("first_pr") && { id: "first_pr", unlockedAt: today() },
+            newPrs.length >= 10 && unlock("prs_10") && { id: "prs_10", unlockedAt: today() },
+          ].filter(Boolean);
+          return {
+            workouts: [clean, ...state.workouts.filter((item) => item.id !== clean.id)],
+            coachReports: [report, ...state.coachReports.filter((item) => item.workoutId !== clean.id)],
+            selectedWorkoutId: clean.id,
+            activeWorkout: null,
+            currentPage: "coach",
+            coachBadge: false,
+            prs: newPrs,
+            achievements: [...existingAch, ...newAch],
+          };
+        });
 
         // Background sync to Supabase
         const userId = getAuthUserId();
@@ -256,6 +274,39 @@ const useStore = create(
       },
 
       cancelWorkout: () => set({ activeWorkout: null, currentPage: "home" }),
+
+      saveTemplate: (name, exercises) => {
+        const template = { id: uid("tpl"), name, exercises, createdAt: today() };
+        set((s) => ({ savedTemplates: [template, ...(s.savedTemplates || [])] }));
+      },
+
+      deleteTemplate: (id) => {
+        set((s) => ({ savedTemplates: (s.savedTemplates || []).filter((t) => t.id !== id) }));
+      },
+
+      useTemplate: (id) => {
+        const state = get();
+        const tpl = (state.savedTemplates || []).find((t) => t.id === id);
+        if (!tpl) return;
+        const workouts = state.workouts || [];
+        set({
+          activeWorkout: {
+            id: uid("workout"),
+            type: tpl.name,
+            date: today(),
+            sets: tpl.exercises.map((e) => makePrefilledSet(e, workouts)),
+            startedAt: Date.now(),
+          },
+          currentPage: "workout",
+        });
+      },
+
+      unlockAchievement: (id) => {
+        set((s) => {
+          if ((s.achievements || []).some((a) => a.id === id)) return {};
+          return { achievements: [...(s.achievements || []), { id, unlockedAt: today() }] };
+        });
+      },
 
       logWeight: (kg) => {
         const entry = { date: new Date().toISOString().slice(0, 10), kg: Number(kg) };

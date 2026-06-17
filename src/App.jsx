@@ -1,6 +1,5 @@
 import { useEffect, Component } from "react";
 import { Router, useLocation } from "wouter";
-import { AnimatePresence, motion } from "framer-motion";
 import HomePage from "./pages/HomePage.jsx";
 import StartWorkoutPage from "./pages/StartWorkoutPage.jsx";
 import WorkoutPage from "./pages/WorkoutPage.jsx";
@@ -25,9 +24,9 @@ class ErrorBoundary extends Component {
   render() {
     if (this.state.error) {
       return (
-        <div style={{ padding: 24 }}>
-          <h2 style={{ marginTop: 0 }}>Algo salió mal</h2>
-          <p style={{ color: "var(--muted)", fontSize: 13, fontFamily: "monospace", wordBreak: "break-word" }}>
+        <div style={{ padding: 24, background: "var(--bg, #0a1419)", minHeight: "60vh", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+          <h2 style={{ marginTop: 0, color: "var(--text, #fff)" }}>Algo salió mal</h2>
+          <p style={{ color: "var(--muted, #94a3b8)", fontSize: 13, fontFamily: "monospace", wordBreak: "break-word", background: "rgba(255,255,255,.05)", padding: "10px 12px", borderRadius: 10 }}>
             {this.state.error.message}
           </p>
           <button className="primary" onClick={() => this.setState({ error: null })}>Reintentar</button>
@@ -38,19 +37,6 @@ class ErrorBoundary extends Component {
   }
 }
 
-const PAGE_VARIANTS = {
-  initial: { opacity: 0, y: 20 },
-  animate: { opacity: 1, y: 0, transition: { duration: .25, ease: "easeOut" } },
-  exit: { opacity: 0, y: -10, transition: { duration: .18, ease: "easeIn" } },
-};
-
-function AnimatedPage({ children }) {
-  return (
-    <motion.div variants={PAGE_VARIANTS} initial="initial" animate="animate" exit="exit">
-      {children}
-    </motion.div>
-  );
-}
 
 const PAGE_MAP = {
   home: HomePage,
@@ -142,13 +128,9 @@ function AppContent() {
   return (
     <div className={`app-shell${amoled ? " amoled" : ""}`}>
       <main className="app-main">
-        <AnimatePresence mode="wait">
-          <AnimatedPage key={currentPage}>
-            <ErrorBoundary key={currentPage}>
-              <PageComponent />
-            </ErrorBoundary>
-          </AnimatedPage>
-        </AnimatePresence>
+        <ErrorBoundary key={currentPage}>
+          <PageComponent />
+        </ErrorBoundary>
       </main>
       <Nav role={role} />
     </div>

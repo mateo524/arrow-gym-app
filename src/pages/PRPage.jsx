@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import useStore from "../store/useStore.js";
-import { hasData } from "../lib/analytics.js";
+import { hasData, getExerciseProgression } from "../lib/analytics.js";
+import MicroLineChart from "../components/MicroLineChart.jsx";
 
 function getAllTimePRs(workouts) {
   const prMap = {};
@@ -27,10 +29,15 @@ function getAllTimePRs(workouts) {
 export default function PRPage() {
   const workouts = useStore((s) => s.workouts);
   const [search, setSearch] = useState("");
+  const [expandedExercise, setExpandedExercise] = useState(null);
   const prs = useMemo(() => getAllTimePRs(workouts), [workouts]);
   const filtered = search
     ? prs.filter((p) => p.exercise.toLowerCase().includes(search.toLowerCase()))
     : prs;
+
+  function toggleExpand(exercise) {
+    setExpandedExercise((prev) => (prev === exercise ? null : exercise));
+  }
 
   return (
     <section className="page">
@@ -56,19 +63,104 @@ export default function PRPage() {
             }}
           />
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {filtered.map((pr, i) => (
-              <div key={pr.exercise} className={`pr-row${i === 0 ? " pr-row-gold" : ""}`}>
-                <div className="pr-rank">{i === 0 ? "🥇" : `#${i + 1}`}</div>
-                <div className="pr-info">
-                  <b>{pr.exercise}</b>
-                  <small>{pr.group} · {pr.date}</small>
+            {filtered.map((pr, i) => {
+              const isExpanded = expandedExercise === pr.exercise;
+              const progression = getExerciseProgression(workouts, pr.exercise);
+
+              return (
+                <div
+                  key={pr.exercise}
+                  style={{
+                    borderRadius: 14,
+                    overflow: "hidden",
+                    background: "var(--panel)",
+                    border: i === 0 ? "1px solid var(--gold, #c9a84c)" : "1px solid var(--line)",
+                  }}
+                >
+                  {/* Clickable PR row */}
+                  <button
+                    onClick={() => toggleExpand(pr.exercise)}
+                    style={{
+                      width: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 0,
+                      padding: 0,
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      textAlign: "left",
+                    }}
+                  >
+                    <div
+                      className={`pr-row${i === 0 ? " pr-row-gold" : ""}`}
+                      style={{
+                        flex: 1,
+                        margin: 0,
+                        borderRadius: 0,
+                        border: "none",
+                        background: "none",
+                      }}
+                    >
+                      <div className="pr-rank">{i === 0 ? "🥇" : `#${i + 1}`}</div>
+                      <div className="pr-info">
+                        <b>{pr.exercise}</b>
+                        <small>{pr.group} · {pr.date}</small>
+                      </div>
+                      <div className="pr-stats">
+                        <span className="pr-main">{pr.weight}kg × {pr.reps}</span>
+                        <small>1RM ~{pr.oneRM}kg</small>
+                      </div>
+                    </div>
+                    {/* Expand indicator */}
+                    <span
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        width: 36,
+                        flexShrink: 0,
+                        color: "var(--muted)",
+                        fontSize: 18,
+                        transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
+                        transition: "transform 0.2s ease",
+                        paddingRight: 4,
+                      }}
+                    >
+                      ›
+                    </span>
+                  </button>
+
+                  {/* Animated expansion panel */}
+                  <AnimatePresence initial={false}>
+                    {isExpanded && progression.length >= 2 && (
+                      <motion.div
+                        key="chart"
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.22, ease: "easeInOut" }}
+                        style={{ overflow: "hidden" }}
+                      >
+                        <div style={{ padding: "12px 14px 14px", background: "var(--panel2)", borderTop: "1px solid var(--line)" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                            <small style={{ color: "var(--muted)", fontSize: 11 }}>1RM estimado · últimas {progression.length} sesiones</small>
+                            <small style={{ color: "var(--green)", fontWeight: 700, fontSize: 13 }}>
+                              {progression[progression.length - 1]?.best1RM}kg
+                            </small>
+                          </div>
+                          <MicroLineChart data={progression.map(p => ({ value: p.best1RM }))} width={280} height={52} color="var(--green)" />
+                          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+                            <small style={{ color: "var(--muted)", fontSize: 10 }}>{progression[0]?.date}</small>
+                            <small style={{ color: "var(--muted)", fontSize: 10 }}>{progression[progression.length - 1]?.date}</small>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
-                <div className="pr-stats">
-                  <span className="pr-main">{pr.weight}kg × {pr.reps}</span>
-                  <small>1RM ~{pr.oneRM}kg</small>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </>
       )}

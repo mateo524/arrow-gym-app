@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 
 const FRONT = [
   ["Deltoide anterior", "M57 92 C43 100 37 120 43 139 C50 154 67 149 74 131 C79 114 73 99 57 92Z", "DA"],
@@ -41,6 +41,32 @@ const BACK = [
   ["Sóleo", "M160 396 C152 420 149 450 164 486 C184 463 190 429 177 396Z", "S"],
 ];
 
+const LEVEL_FILL = [
+  "rgba(255,255,255,0.04)",
+  "rgba(34,211,120,0.25)",
+  "rgba(34,211,120,0.5)",
+  "rgba(34,211,120,0.75)",
+  "rgba(34,211,120,0.95)",
+];
+
+const LEVEL_STROKE = [
+  "rgba(255,255,255,0.08)",
+  "rgba(34,211,120,0.45)",
+  "rgba(34,211,120,0.7)",
+  "rgba(34,211,120,0.9)",
+  "rgba(34,211,120,1)",
+];
+
+const LEVEL_LABELS = ["Inactivo", "1–3 series", "3–6 series", "6–10 series", "10+ series"];
+const LEVEL_PILL_BG = [
+  "rgba(255,255,255,0.06)",
+  "rgba(34,211,120,0.18)",
+  "rgba(34,211,120,0.36)",
+  "rgba(34,211,120,0.58)",
+  "rgba(34,211,120,0.85)",
+];
+const LEVEL_PILL_COLOR = ["#888", "#22d378", "#22d378", "#fff", "#fff"];
+
 function muscleLevel(intensity, muscle) {
   if (["Deltoide anterior", "Deltoide lateral", "Deltoide posterior", "Trapecio superior"].includes(muscle)) {
     return intensity[muscle]?.level || intensity.Hombros?.level || 0;
@@ -52,73 +78,321 @@ function muscleCount(intensity, muscle) {
   return intensity[muscle]?.count || 0;
 }
 
-function Figure({ title, side, shapes, intensity, onMuscleClick, activeMuscle }) {
+function BodySilhouette({ side }) {
+  const bf = `url(#body-fill-${side})`;
   return (
-    <div className="figure pro-figure">
-      <div className="figure-label">{title}</div>
-      <svg viewBox="0 0 272 520" className="muscle-svg pro-muscle-svg" role="img" aria-label={`Mapa muscular ${side}`}>
+    <g className="body-silhouette">
+      {/* Head */}
+      <circle cx="136" cy="34" r="26"
+        fill={bf}
+        stroke="#2a3a3f"
+        strokeWidth="1.5"
+      />
+      {/* Neck */}
+      <rect x="126" y="56" width="20" height="14" rx="4"
+        fill={bf}
+        stroke="#2a3a3f"
+        strokeWidth="1"
+      />
+      {/* Torso */}
+      <path d="M94 68 C111 54 161 54 178 68 L205 246 C184 260 88 260 67 246Z"
+        fill={bf}
+        stroke="#2a3a3f"
+        strokeWidth="1.5"
+      />
+      {/* Left upper arm */}
+      <path d="M74 82 C52 92 32 165 40 228 C52 215 62 180 68 140 C72 115 74 98 74 82Z"
+        fill={bf}
+        stroke="#2a3a3f"
+        strokeWidth="1"
+      />
+      {/* Right upper arm */}
+      <path d="M198 82 C220 92 240 165 232 228 C220 215 210 180 204 140 C200 115 198 98 198 82Z"
+        fill={bf}
+        stroke="#2a3a3f"
+        strokeWidth="1"
+      />
+      {/* Left forearm */}
+      <path d="M38 228 C28 252 30 292 50 312 C60 288 58 258 42 228Z"
+        fill={bf}
+        stroke="#2a3a3f"
+        strokeWidth="1"
+      />
+      {/* Right forearm */}
+      <path d="M234 228 C244 252 242 292 222 312 C214 288 214 258 230 228Z"
+        fill={bf}
+        stroke="#2a3a3f"
+        strokeWidth="1"
+      />
+      {/* Left thigh */}
+      <path d="M88 248 C74 288 78 360 106 394 C126 350 122 285 115 252Z"
+        fill={bf}
+        stroke="#2a3a3f"
+        strokeWidth="1"
+      />
+      {/* Right thigh */}
+      <path d="M184 248 C198 285 194 350 166 394 C156 360 152 288 157 248Z"
+        fill={bf}
+        stroke="#2a3a3f"
+        strokeWidth="1"
+      />
+      {/* Left lower leg */}
+      <path d="M98 396 C82 432 86 468 108 492 C124 454 122 424 114 396Z"
+        fill={bf}
+        stroke="#2a3a3f"
+        strokeWidth="1"
+      />
+      {/* Right lower leg */}
+      <path d="M158 396 C150 424 148 454 164 492 C186 468 190 432 174 396Z"
+        fill={bf}
+        stroke="#2a3a3f"
+        strokeWidth="1"
+      />
+      {/* Joint circles */}
+      {/* Shoulder joints */}
+      <circle cx="74" cy="84" r="7" fill="#1e2e33" stroke="#2e4248" strokeWidth="1.5" />
+      <circle cx="198" cy="84" r="7" fill="#1e2e33" stroke="#2e4248" strokeWidth="1.5" />
+      {/* Elbow joints */}
+      <circle cx="42" cy="228" r="6" fill="#1e2e33" stroke="#2e4248" strokeWidth="1.5" />
+      <circle cx="230" cy="228" r="6" fill="#1e2e33" stroke="#2e4248" strokeWidth="1.5" />
+      {/* Hip joints */}
+      <circle cx="100" cy="252" r="7" fill="#1e2e33" stroke="#2e4248" strokeWidth="1.5" />
+      <circle cx="172" cy="252" r="7" fill="#1e2e33" stroke="#2e4248" strokeWidth="1.5" />
+      {/* Knee joints */}
+      <circle cx="106" cy="394" r="8" fill="#1e2e33" stroke="#2e4248" strokeWidth="1.5" />
+      <circle cx="166" cy="394" r="8" fill="#1e2e33" stroke="#2e4248" strokeWidth="1.5" />
+    </g>
+  );
+}
+
+function Figure({ title, side, shapes, intensity, onMuscleClick, activeMuscle, onHover }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }}>
+      <div style={{
+        fontSize: 11,
+        fontWeight: 700,
+        letterSpacing: "0.08em",
+        textTransform: "uppercase",
+        color: "var(--muted)",
+        marginBottom: 6,
+      }}>{title}</div>
+      <svg
+        viewBox="0 0 272 520"
+        style={{ width: "100%", maxWidth: 160, display: "block" }}
+        role="img"
+        aria-label={`Mapa muscular ${side}`}
+      >
         <defs>
-          <radialGradient id={`glow-${side}`} cx="50%" cy="40%" r="60%">
-            <stop offset="0%" stopColor="#233237" />
-            <stop offset="100%" stopColor="#090d10" />
+          <linearGradient id={`body-fill-${side}`} x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#1e3038" />
+            <stop offset="100%" stopColor="#111c22" />
+          </linearGradient>
+          <radialGradient id={`ambient-${side}`} cx="50%" cy="35%" r="65%">
+            <stop offset="0%" stopColor="#1e3a44" stopOpacity="0.5" />
+            <stop offset="100%" stopColor="#090d10" stopOpacity="0" />
           </radialGradient>
+          <filter id="muscle-glow" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+          <filter id="muscle-glow-strong" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+          {shapes.map(([muscle, , ], index) => {
+            const lv = muscleLevel(intensity, muscle);
+            if (lv === 0) return null;
+            return (
+              <linearGradient key={`hl-${side}-${index}`} id={`highlight-${side}-${index}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="rgba(255,255,255,0.18)" />
+                <stop offset="60%" stopColor="rgba(255,255,255,0.03)" />
+                <stop offset="100%" stopColor="rgba(0,0,0,0.1)" />
+              </linearGradient>
+            );
+          })}
         </defs>
-        <ellipse cx="136" cy="262" rx="105" ry="235" fill={`url(#glow-${side})`} opacity="0.22" />
-        <circle cx="136" cy="34" r="24" className="skeleton head" />
-        <path d="M94 68 C111 54 161 54 178 68 L205 246 C184 260 88 260 67 246Z" className="skeleton torso" />
-        <path d="M57 86 C30 111 24 246 47 310" className="skeleton limb" />
-        <path d="M215 86 C242 111 248 246 225 310" className="skeleton limb" />
-        <path d="M91 250 C76 315 78 430 107 492" className="skeleton limb" />
-        <path d="M181 250 C196 315 194 430 165 492" className="skeleton limb" />
-        <line x1="136" y1="64" x2="136" y2="490" className="center-line" />
-        {shapes.map(([muscle, d, label], index) => (
-          <g key={`${muscle}-${index}`} style={{ cursor: 'pointer' }}>
-            <path
-              d={d}
-              className={`muscle level-${muscleLevel(intensity, muscle)} ${activeMuscle === muscle ? "muscle-active" : ""}`}
+
+        {/* Ambient background glow */}
+        <ellipse cx="136" cy="262" rx="110" ry="240" fill={`url(#ambient-${side})`} />
+
+        {/* Body silhouette */}
+        <BodySilhouette side={side} />
+
+        {/* Muscle paths */}
+        {shapes.map(([muscle, d], index) => {
+          const lv = muscleLevel(intensity, muscle);
+          const count = muscleCount(intensity, muscle);
+          const isActive = activeMuscle === muscle;
+          const hasGlow = lv >= 1;
+          const useStrongGlow = lv >= 3;
+
+          return (
+            <g
+              key={`${muscle}-${index}`}
+              style={{ cursor: "pointer" }}
               onClick={() => onMuscleClick?.(muscle)}
+              onMouseEnter={() => onHover?.(muscle, count, lv)}
+              onMouseLeave={() => onHover?.(null)}
               onKeyDown={(e) => e.key === "Enter" && onMuscleClick?.(muscle)}
               role="button"
               tabIndex={0}
-              aria-label={`${muscle}: ${muscleCount(intensity, muscle)} series`}
+              aria-label={`${muscle}: ${count} series`}
             >
-              <title>{muscle}: {muscleCount(intensity, muscle)} series esta semana</title>
-            </path>
-            <text className="muscle-code" x={index % 2 === 0 ? 104 : 168} y={40 + index * 20 % 430}>{label}</text>
-          </g>
-        ))}
+              {/* Glow layer for active muscles */}
+              {hasGlow && (
+                <path
+                  d={d}
+                  fill={LEVEL_FILL[lv]}
+                  filter={useStrongGlow ? "url(#muscle-glow-strong)" : "url(#muscle-glow)"}
+                  style={{ pointerEvents: "none" }}
+                />
+              )}
+              {/* Main muscle fill */}
+              <path
+                d={d}
+                fill={LEVEL_FILL[lv]}
+                stroke={isActive ? "rgba(34,211,120,1)" : LEVEL_STROKE[lv]}
+                strokeWidth={isActive ? 1.5 : 0.8}
+              >
+                <title>{muscle}: {count} series esta semana</title>
+              </path>
+              {/* Highlight overlay for active muscles */}
+              {lv > 0 && (
+                <path
+                  d={d}
+                  fill={`url(#highlight-${side}-${index})`}
+                  style={{ pointerEvents: "none" }}
+                />
+              )}
+            </g>
+          );
+        })}
       </svg>
     </div>
   );
 }
 
 const AdvancedMuscleDiagram = React.forwardRef(function ({ intensity, onMuscleClick, activeMuscle }, ref) {
+  const [hovered, setHovered] = useState(null); // { muscle, count, level }
+
+  function handleHover(muscle, count, level) {
+    if (muscle) setHovered({ muscle, count, level });
+    else setHovered(null);
+  }
+
   return (
-    <div className="advanced-map premium-map" ref={ref}>
-      <div className="map-title">
-        <span>Mapa muscular semanal</span>
+    <div
+      ref={ref}
+      style={{
+        background: "var(--panel)",
+        borderRadius: 16,
+        padding: 16,
+        display: "flex",
+        flexDirection: "column",
+        gap: 12,
+      }}
+    >
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+      }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", letterSpacing: "0.02em" }}>
+          Mapa muscular semanal
+        </span>
       </div>
-      <div className="figures">
-        <Figure title="Vista frontal" side="front" shapes={FRONT} intensity={intensity} onMuscleClick={onMuscleClick} activeMuscle={activeMuscle} />
-        <Figure title="Vista posterior" side="back" shapes={BACK} intensity={intensity} onMuscleClick={onMuscleClick} activeMuscle={activeMuscle} />
+
+      <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+        <Figure
+          title="Vista frontal"
+          side="front"
+          shapes={FRONT}
+          intensity={intensity}
+          onMuscleClick={onMuscleClick}
+          activeMuscle={activeMuscle}
+          onHover={handleHover}
+        />
+        <Figure
+          title="Vista posterior"
+          side="back"
+          shapes={BACK}
+          intensity={intensity}
+          onMuscleClick={onMuscleClick}
+          activeMuscle={activeMuscle}
+          onHover={handleHover}
+        />
       </div>
-      <div className="legend">
-        <div className="legend-item">
-          <i className="legend-dot level-1" />
-          <span className="legend-label"><b>1-3</b> series</span>
-        </div>
-        <div className="legend-item">
-          <i className="legend-dot level-2" />
-          <span className="legend-label"><b>3-6</b> series</span>
-        </div>
-        <div className="legend-item">
-          <i className="legend-dot level-3" />
-          <span className="legend-label"><b>6-10</b> series</span>
-        </div>
-        <div className="legend-item">
-          <i className="legend-dot level-4" />
-          <span className="legend-label"><b>10+</b> series</span>
-        </div>
+
+      {/* Tooltip label */}
+      <div style={{
+        minHeight: 28,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}>
+        {hovered ? (
+          <div style={{
+            background: "rgba(34,211,120,0.12)",
+            border: "1px solid rgba(34,211,120,0.3)",
+            borderRadius: 8,
+            padding: "4px 12px",
+            fontSize: 12,
+            fontWeight: 600,
+            color: "var(--green)",
+            display: "flex",
+            gap: 8,
+            alignItems: "center",
+          }}>
+            <span>{hovered.muscle}</span>
+            <span style={{ opacity: 0.7, fontWeight: 400 }}>·</span>
+            <span style={{ opacity: 0.85 }}>{hovered.count} series</span>
+          </div>
+        ) : (
+          <span style={{ fontSize: 11, color: "var(--muted)", opacity: 0.6 }}>
+            Pasa el cursor sobre un músculo
+          </span>
+        )}
+      </div>
+
+      {/* Legend */}
+      <div style={{
+        display: "flex",
+        gap: 6,
+        flexWrap: "wrap",
+        justifyContent: "center",
+      }}>
+        {[1, 2, 3, 4].map((lv) => (
+          <div key={lv} style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 5,
+            background: LEVEL_PILL_BG[lv],
+            borderRadius: 20,
+            padding: "3px 10px",
+            border: `1px solid ${LEVEL_STROKE[lv]}`,
+          }}>
+            <span style={{
+              width: 8,
+              height: 8,
+              borderRadius: "50%",
+              background: LEVEL_FILL[lv],
+              border: `1px solid ${LEVEL_STROKE[lv]}`,
+              display: "inline-block",
+              flexShrink: 0,
+            }} />
+            <span style={{
+              fontSize: 11,
+              fontWeight: 600,
+              color: LEVEL_PILL_COLOR[lv],
+            }}>{LEVEL_LABELS[lv]}</span>
+          </div>
+        ))}
       </div>
     </div>
   );

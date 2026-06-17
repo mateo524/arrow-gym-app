@@ -71,7 +71,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 
 .app-main { padding: max(env(safe-area-inset-top), 18px) 14px 94px; }
-.page { animation: fade .18s ease; }
+.page { animation: page-in .2s ease; }
 
 .eyebrow {
   font-size: 12px;
@@ -377,6 +377,7 @@ p { color: #c7d5d2; }
 }
 .range-tabs button.active { background: var(--green); color: #041009; border-color: var(--green); }
 
+@keyframes page-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes fade { from { opacity: .3; } to { opacity: 1; } }
 
 /* V4 coach + premium muscle map */
@@ -1899,3 +1900,299 @@ p { color: #c7d5d2; }
 .pr-stats { text-align: right; flex-shrink: 0; }
 .pr-main { display: block; font-size: 14px; font-weight: 800; color: var(--cyan); }
 .pr-stats small { color: var(--muted); font-size: 11px; }
+
+/* ═══════════════════════════════════════════════
+   NEW FEATURES — June 2026
+═══════════════════════════════════════════════ */
+
+/* ── PROGRESSIVE OVERLOAD CHIP ── */
+.overload-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 3px;
+}
+.overload-up   { background: rgba(109,242,164,.1); color: #6df2a4; }
+.overload-same { background: rgba(142,160,160,.1); color: var(--muted); }
+.overload-down { background: rgba(255,107,107,.1); color: var(--danger); }
+
+/* ── RPE SELECTOR ── */
+.rpe-row {
+  display: flex;
+  gap: 4px;
+  padding: 6px 0 2px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.rpe-btn {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--panel2);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all .12s;
+}
+.rpe-btn.active {
+  background: var(--green);
+  color: #041009;
+  border-color: var(--green);
+}
+.rpe-toggle {
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--line);
+  margin-left: auto;
+}
+
+/* ── EXERCISE SKELETON ── */
+.skeleton-block {
+  background: var(--panel);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 8px;
+}
+.skeleton-line {
+  background: var(--line);
+  border-radius: 7px;
+  animation: skeletonPulse 1.4s ease-in-out infinite;
+}
+@keyframes skeletonPulse {
+  0%, 100% { opacity: .4; }
+  50%       { opacity: .8; }
+}
+
+/* ── MUSCLE FATIGUE ROW ── */
+.fatigue-scroll {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  margin-bottom: 12px;
+  scrollbar-width: none;
+}
+.fatigue-chip {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--panel);
+  border-radius: 20px;
+  padding: 4px 10px;
+  font-size: 11px;
+  border: 1px solid var(--line);
+}
+.fatigue-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── ACHIEVEMENTS SCROLL ── */
+.achievements-scroll {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 4px;
+}
+.achievement-card {
+  flex-shrink: 0;
+  background: var(--panel);
+  border: 1px solid rgba(109,242,164,.2);
+  border-radius: 14px;
+  padding: 10px 14px;
+  text-align: center;
+  min-width: 80px;
+}
+.achievement-icon { font-size: 24px; display: block; }
+.achievement-label { font-size: 11px; font-weight: 600; margin-top: 4px; color: var(--text); display: block; }
+
+/* ── TEMPLATES (StartWorkout) ── */
+.template-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+}
+.template-info { flex: 1; min-width: 0; }
+.template-exercises {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 5px;
+}
+.ex-chip-sm {
+  font-size: 10px;
+  padding: 2px 7px;
+  background: var(--panel2);
+  border-radius: 8px;
+  color: var(--muted);
+  border: 1px solid var(--line);
+}
+
+/* ── COMPARISON PANEL (History) ── */
+.compare-panel {
+  position: fixed;
+  bottom: 80px;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  padding: 0 12px;
+}
+.compare-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.5);
+}
+.compare-grid {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 8px;
+  align-items: start;
+}
+
+/* ── DELOAD BANNER ── */
+.deload-banner {
+  background: rgba(245,158,11,.1);
+  border: 1px solid rgba(245,158,11,.3);
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 13px;
+}
+
+/* ── MONTHLY RACHA CHIP ── */
+.month-racha-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(117,217,255,.08);
+  border: 1px solid rgba(117,217,255,.2);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 12px;
+  color: var(--cyan);
+  font-weight: 600;
+}
+
+/* ── PR PROGRESSION CHART ── */
+.pr-expand-panel {
+  padding: 12px 14px 14px;
+  background: var(--panel2);
+  border-top: 1px solid var(--line);
+  border-radius: 0 0 16px 16px;
+}
+.pr-row-expandable {
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  margin-bottom: 8px;
+  transition: border-color .15s;
+}
+.pr-row-expandable:hover { border-color: rgba(109,242,164,.3); }
+
+/* ── PROFILE ISAK TABS ── */
+.meas-tab-bar {
+  display: flex;
+  width: 100%;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 16px;
+  gap: 0;
+}
+.meas-tab {
+  flex: 1;
+  padding: 9px 4px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+}
+.meas-tab.active {
+  color: var(--green);
+  border-bottom-color: var(--green);
+}
+
+/* ── INDEX CARD (Indices calculados) ── */
+.index-card {
+  background: var(--panel2);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+}
+.index-value { font-size: 22px; font-weight: 800; }
+.index-unit  { font-size: 13px; color: var(--muted); margin-left: 4px; }
+.index-category {
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-weight: 600;
+}
+.index-label { margin: 6px 0 0; font-size: 12px; color: var(--muted); }
+
+/* ── COACH SESSION SUMMARY GRID ── */
+.session-summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+.session-stat-card {
+  background: var(--panel);
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+.session-stat-value { font-size: 18px; font-weight: 800; }
+.session-stat-label { font-size: 11px; color: var(--muted); }
+
+/* ── WORKOUT WARMUP HINT ── */
+.warmup-hint {
+  font-size: 11px;
+  color: #f59e0b;
+  margin-top: 4px;
+  display: block;
+}
+
+/* ── OFFLINE BANNER ── */
+.offline-banner {
+  background: rgba(245,158,11,.12);
+  border: 1px solid rgba(245,158,11,.3);
+  border-radius: 12px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 13px;
+  color: var(--muted);
+}

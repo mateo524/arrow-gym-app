@@ -18,9 +18,11 @@ function useDebounce(value, delay = 300) {
   return debounced;
 }
 
-export default function ExercisePicker({ onPick, compact = false }) {
-  const queryState = useState("");
-  const [query, setQuery] = queryState;
+export default function ExercisePicker({ onPick, compact = false, query: queryProp, onQueryChange }) {
+  const [queryInternal, setQueryInternal] = useState("");
+  const isControlled = queryProp !== undefined;
+  const query = isControlled ? queryProp : queryInternal;
+  const setQuery = isControlled ? (onQueryChange || (() => {})) : setQueryInternal;
   const debouncedQuery = useDebounce(query, 300);
   const [group, setGroup] = useState(ALL);
   const [muscle, setMuscle] = useState(ALL);
