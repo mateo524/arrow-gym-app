@@ -13,7 +13,7 @@ function computeStreak(workouts) {
   for (const d of dates) {
     if (!prev) { streak=1; prev=d; continue; }
     const diff = Math.round((new Date(prev)-new Date(d))/86400000);
-    if (diff <= 2) { streak++; prev=d; } else break;
+    if (diff === 1) { streak++; prev=d; } else break;
   }
   return streak;
 }

@@ -109,7 +109,7 @@ function AppContent() {
       return;
     }
     if (PAGE_MAP[path] && path !== currentPage) setPage(path);
-  }, [location, activeWorkout]);
+  }, [location, activeWorkout, currentPage]);
 
   // Sync store → URL
   useEffect(() => {
