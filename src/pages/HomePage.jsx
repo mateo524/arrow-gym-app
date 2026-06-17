@@ -1,6 +1,8 @@
+import { useState, useMemo } from "react";
 import useStore from "../store/useStore.js";
 import useAuthStore from "../store/useAuthStore.js";
 import { getWorkoutVolume, formatDate, getMuscleIntensity, filterCurrentWeek } from "../lib/analytics.js";
+import AdvancedMuscleDiagram from "../components/AdvancedMuscleDiagram.jsx";
 import Icon from "../components/Icon.jsx";
 
 export default function HomePage() {
@@ -8,13 +10,11 @@ export default function HomePage() {
   const setPage = useStore((s) => s.setPage);
   const activeWorkout = useStore((s) => s.activeWorkout);
   const profile = useAuthStore((s) => s.profile);
+  const [activeMuscle, setActiveMuscle] = useState(null);
 
   const last = workouts[0];
   const totalSets = workouts.reduce((sum, w) => sum + (w.sets?.length || 0), 0);
-  const topMuscles = Object.entries(getMuscleIntensity(filterCurrentWeek(workouts)))
-    .filter(([, d]) => d.level > 0)
-    .sort((a, b) => b[1].count - a[1].count)
-    .slice(0, 6);
+  const intensity = useMemo(() => getMuscleIntensity(filterCurrentWeek(workouts)), [workouts]);
   const name = profile?.name || profile?.email?.split("@")[0] || "Atleta";
   const initial = name[0].toUpperCase();
   const role = profile?.role;
@@ -54,18 +54,27 @@ export default function HomePage() {
         <div><b>{last ? Math.round(getWorkoutVolume(last)) : 0}</b><span>kg último</span></div>
       </div>
 
-      {/* Esta semana - resumen muscular */}
+      {/* Mapa muscular semanal */}
       <div style={{ marginTop: 14 }}>
-        <p className="section-label">Esta semana</p>
-        <div className="muscle-week-grid">
-          {topMuscles.map(([muscle, data]) => (
-            <div key={muscle} className={`muscle-week-chip level-${data.level}`}>
-              <span>{muscle}</span>
-              <small>{data.count} series</small>
+        <p className="section-label">Mapa muscular — esta semana</p>
+        <AdvancedMuscleDiagram
+          intensity={intensity}
+          onMuscleClick={(muscle) => setActiveMuscle(activeMuscle === muscle ? null : muscle)}
+          activeMuscle={activeMuscle}
+        />
+        {activeMuscle && intensity[activeMuscle] && (
+          <div className="mini-card" style={{ marginTop: 6 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <i className={`legend-dot level-${intensity[activeMuscle].level}`} style={{ flexShrink: 0 }} />
+              <div>
+                <b>{activeMuscle}</b>
+                <span style={{ display: "block", fontSize: 13, color: "var(--muted)" }}>
+                  {intensity[activeMuscle].count} series esta semana
+                </span>
+              </div>
             </div>
-          ))}
-          {topMuscles.length === 0 && <p style={{ color: "var(--muted)", fontSize: 12 }}>Sin actividad esta semana</p>}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Último entrenamiento */}
@@ -80,7 +89,7 @@ export default function HomePage() {
       {/* Acceso rápido a admin/trainer */}
       {(isAdmin || isTrainer) && (
         <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
-          {isTrainer || isAdmin ? (
+          {(isTrainer || isAdmin) && (
             <button className="card as-button" style={{ flex: 1, margin: 0 }} onClick={() => setPage("trainer")}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <Icon name="Users" size={18} style={{ color: "var(--cyan)" }} />
@@ -91,7 +100,7 @@ export default function HomePage() {
                 <Icon name="ChevronRight" size={14} style={{ color: "var(--muted)" }} />
               </div>
             </button>
-          ) : null}
+          )}
           {isAdmin && (
             <button className="card as-button" style={{ flex: 1, margin: 0 }} onClick={() => setPage("admin")}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>

@@ -19,10 +19,39 @@ export default function ProfilePage() {
   const [pwdMsg, setPwdMsg] = useState("");
   const [savingPwd, setSavingPwd] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [editMeasures, setEditMeasures] = useState(false);
+  const [measWeight, setMeasWeight] = useState("");
+  const [measHeight, setMeasHeight] = useState("");
+  const [measAge, setMeasAge] = useState("");
+  const [measMsg, setMeasMsg] = useState("");
 
   const name = profile?.name || profile?.email?.split("@")[0] || "Atleta";
   const initial = name[0].toUpperCase();
   const role = profile?.role;
+
+  function openMeasures() {
+    setMeasWeight(String(profile?.weight_kg || ""));
+    setMeasHeight(String(profile?.height_cm || ""));
+    setMeasAge(String(profile?.age || ""));
+    setMeasMsg("");
+    setEditMeasures(true);
+  }
+
+  async function saveMeasures(e) {
+    e.preventDefault();
+    const payload = {};
+    if (measWeight) payload.weight_kg = Number(measWeight);
+    if (measHeight) payload.height_cm = Number(measHeight);
+    if (measAge) payload.age = Number(measAge);
+    const { error } = await supabase.from("profiles").update(payload).eq("id", profile.id);
+    if (error) {
+      setMeasMsg("Error al guardar: " + error.message);
+    } else {
+      useAuthStore.setState({ profile: { ...profile, ...payload } });
+      setMeasMsg("✓ Medidas guardadas");
+      setTimeout(() => { setEditMeasures(false); setMeasMsg(""); }, 1200);
+    }
+  }
 
   async function handleChangePwd(e) {
     e.preventDefault();
@@ -63,17 +92,57 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Body stats if user role */}
-      {profile?.weight_kg && (
-        <div className="card" style={{ marginBottom: 14 }}>
-          <h2>Datos corporales</h2>
-          <div className="stats-grid" style={{ marginTop: 8 }}>
-            {profile.weight_kg && <div><b>{profile.weight_kg}</b><span>kg</span></div>}
-            {profile.height_cm && <div><b>{profile.height_cm}</b><span>cm</span></div>}
-            {profile.age && <div><b>{profile.age}</b><span>años</span></div>}
-          </div>
+      {/* Body measurements */}
+      <div className="card" style={{ marginBottom: 14 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <h2 style={{ margin: 0 }}>Medidas corporales</h2>
+          {!editMeasures && (
+            <button className="ghost" style={{ padding: "8px 14px", fontSize: 13 }} onClick={openMeasures}>
+              {profile?.weight_kg ? "Editar" : "Agregar"}
+            </button>
+          )}
         </div>
-      )}
+        {!editMeasures ? (
+          profile?.weight_kg || profile?.height_cm || profile?.age ? (
+            <div className="stats-grid" style={{ marginTop: 8 }}>
+              {profile.weight_kg && <div><b>{profile.weight_kg}</b><span>kg</span></div>}
+              {profile.height_cm && <div><b>{profile.height_cm}</b><span>cm</span></div>}
+              {profile.age && <div><b>{profile.age}</b><span>años</span></div>}
+            </div>
+          ) : (
+            <p style={{ color: "var(--muted)", fontSize: 13, margin: 0 }}>
+              Aún no cargaste tus medidas. Usá el botón "Agregar" para registrarlas.
+            </p>
+          )
+        ) : (
+          <form onSubmit={saveMeasures} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div className="quick-grid">
+              <label className="field-group">
+                Peso (kg)
+                <input inputMode="decimal" value={measWeight} onChange={(e) => setMeasWeight(e.target.value)} placeholder="ej: 75" />
+              </label>
+              <label className="field-group">
+                Altura (cm)
+                <input inputMode="decimal" value={measHeight} onChange={(e) => setMeasHeight(e.target.value)} placeholder="ej: 175" />
+              </label>
+            </div>
+            <label className="field-group">
+              Edad
+              <input inputMode="numeric" value={measAge} onChange={(e) => setMeasAge(e.target.value)} placeholder="ej: 25" />
+            </label>
+            {measMsg && (
+              <div className={measMsg.startsWith("✓") ? "success-msg" : "login-error"}>
+                <Icon name={measMsg.startsWith("✓") ? "CheckCircle" : "AlertCircle"} size={14} />
+                <span>{measMsg}</span>
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 8 }}>
+              <button type="button" className="ghost" style={{ flex: 1 }} onClick={() => setEditMeasures(false)}>Cancelar</button>
+              <button type="submit" className="primary" style={{ flex: 1 }}>Guardar</button>
+            </div>
+          </form>
+        )}
+      </div>
 
       {/* Settings */}
       <div className="card">

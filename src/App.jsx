@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, Component } from "react";
 import { Router, useLocation } from "wouter";
 import { AnimatePresence, motion } from "framer-motion";
 import HomePage from "./pages/HomePage.jsx";
@@ -16,6 +16,26 @@ import ProfilePage from "./pages/ProfilePage.jsx";
 import Nav from "./components/Nav.jsx";
 import useStore from "./store/useStore.js";
 import useAuthStore from "./store/useAuthStore.js";
+
+class ErrorBoundary extends Component {
+  state = { error: null };
+  static getDerivedStateFromError(error) { return { error }; }
+  componentDidCatch(error, info) { console.error("[ErrorBoundary]", error, info); }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ padding: 24 }}>
+          <h2 style={{ marginTop: 0 }}>Algo salió mal</h2>
+          <p style={{ color: "var(--muted)", fontSize: 13, fontFamily: "monospace", wordBreak: "break-word" }}>
+            {this.state.error.message}
+          </p>
+          <button className="primary" onClick={() => this.setState({ error: null })}>Reintentar</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 const PAGE_VARIANTS = {
   initial: { opacity: 0, y: 20 },
@@ -120,7 +140,9 @@ function AppContent() {
       <main className="app-main">
         <AnimatePresence mode="wait">
           <AnimatedPage key={currentPage}>
-            <PageComponent />
+            <ErrorBoundary key={currentPage}>
+              <PageComponent />
+            </ErrorBoundary>
           </AnimatedPage>
         </AnimatePresence>
       </main>
