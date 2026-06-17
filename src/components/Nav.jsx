@@ -4,9 +4,9 @@ import Icon from "./Icon.jsx";
 const BASE_TABS = [
   { id: "home", label: "Inicio", icon: "Home" },
   { id: "start", label: "Start", icon: "Play", badgeKey: "activeWorkout" },
-  { id: "coach", label: "Análisis", icon: "BrainCircuit", badgeKey: "coachBadge" },
-  { id: "map", label: "Mapa", icon: "Map" },
   { id: "history", label: "Historial", icon: "Clock" },
+  { id: "prs", label: "PRs", icon: "Trophy" },
+  { id: "coach", label: "Análisis", icon: "BrainCircuit", badgeKey: "coachBadge" },
 ];
 
 export default function Nav({ role }) {

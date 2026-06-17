@@ -13,6 +13,7 @@ import LoginPage from "./pages/LoginPage.jsx";
 import AdminPage from "./pages/AdminPage.jsx";
 import TrainerPage from "./pages/TrainerPage.jsx";
 import ProfilePage from "./pages/ProfilePage.jsx";
+import PRPage from "./pages/PRPage.jsx";
 import Nav from "./components/Nav.jsx";
 import useStore from "./store/useStore.js";
 import useAuthStore from "./store/useAuthStore.js";
@@ -63,6 +64,7 @@ const PAGE_MAP = {
   admin: AdminPage,
   trainer: TrainerPage,
   profile: ProfilePage,
+  prs: PRPage,
 };
 
 function AppContent() {
@@ -99,24 +101,21 @@ function AppContent() {
     }
   }, []);
 
-  // Sync URL → store (only when URL changes, never override an active workout nav)
+  // Sync URL → store. When an active workout exists it always wins over URL.
   useEffect(() => {
     const path = location.replace("/", "") || "home";
+    if (activeWorkout) {
+      if (currentPage !== "workout") setPage("workout");
+      return;
+    }
     if (PAGE_MAP[path] && path !== currentPage) setPage(path);
-  }, [location]);
+  }, [location, activeWorkout]);
 
   // Sync store → URL
   useEffect(() => {
     const path = "/" + currentPage;
     if (path !== location) setLocation(path, { replace: true });
   }, [currentPage]);
-
-  // Redirect to workout page whenever an active workout exists and we're elsewhere
-  useEffect(() => {
-    if (activeWorkout && currentPage !== "workout") {
-      setPage("workout");
-    }
-  }, [activeWorkout]);
 
   // Show a minimal splash ONLY when there's no cached session at all
   // (first load, logged out). If there's a cached user we skip the splash

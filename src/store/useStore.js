@@ -82,6 +82,7 @@ const useStore = create(
       coachBadge: false,
       amoled: false,
       soundEnabled: true,
+      weightLog: [],
 
       // Pull workouts from Supabase and merge with local localStorage data.
       // Called once after login. userId comes from useAuthStore.
@@ -210,11 +211,12 @@ const useStore = create(
           : state.activeWorkout,
       })),
 
-      finishWorkout: () => {
+      finishWorkout: (notes) => {
         const active = get().activeWorkout;
         if (!active) return;
         const clean = {
           ...active,
+          notes: notes || "",
           sets: active.sets
             .filter((setItem) => setItem.exercise && (setItem.weight !== "" || setItem.reps !== ""))
             .map(normalizeSet),
@@ -254,6 +256,35 @@ const useStore = create(
       },
 
       cancelWorkout: () => set({ activeWorkout: null, currentPage: "home" }),
+
+      logWeight: (kg) => {
+        const entry = { date: new Date().toISOString().slice(0, 10), kg: Number(kg) };
+        set((s) => ({
+          weightLog: [entry, ...(s.weightLog || []).filter((e) => e.date !== entry.date)].slice(0, 90),
+        }));
+      },
+
+      repeatLastWorkout: () => {
+        const state = get();
+        const last = (state.workouts || [])[0];
+        if (!last) return;
+        const exercises = [...new Set((last.sets || []).map((s) => s.exercise))];
+        const workouts = state.workouts || [];
+        const newSets = exercises.flatMap((exercise) => {
+          const prevSets = (last.sets || []).filter((s) => s.exercise === exercise);
+          return prevSets.map((s) => makeSet(exercise, "", "", workouts));
+        });
+        set({
+          activeWorkout: {
+            id: uid("workout"),
+            type: last.type,
+            date: today(),
+            sets: newSets,
+            startedAt: Date.now(),
+          },
+          currentPage: "workout",
+        });
+      },
     }),
     {
       name: "arrow-gym-v4",

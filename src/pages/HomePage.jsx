@@ -1,4 +1,22 @@
 import { useState, useMemo } from "react";
+
+function computeStreak(workouts) {
+  if (!workouts?.length) return 0;
+  const dates = [...new Set(
+    [...workouts].sort((a,b) => b.date.localeCompare(a.date))
+      .map(w => w.date?.slice(0,10)).filter(Boolean)
+  )];
+  const today = new Date().toISOString().slice(0,10);
+  const yesterday = new Date(Date.now()-86400000).toISOString().slice(0,10);
+  if (dates[0] !== today && dates[0] !== yesterday) return 0;
+  let streak = 0, prev = null;
+  for (const d of dates) {
+    if (!prev) { streak=1; prev=d; continue; }
+    const diff = Math.round((new Date(prev)-new Date(d))/86400000);
+    if (diff <= 2) { streak++; prev=d; } else break;
+  }
+  return streak;
+}
 import useStore from "../store/useStore.js";
 import useAuthStore from "../store/useAuthStore.js";
 import { getWorkoutVolume, formatDate, getMuscleIntensity, filterCurrentWeek } from "../lib/analytics.js";
@@ -21,6 +39,7 @@ export default function HomePage() {
   const isAdmin = role === "superadmin" || role === "admin";
   const isTrainer = role === "trainer";
   const isEmpty = workouts.length === 0;
+  const streak = computeStreak(workouts);
 
   return (
     <section className="page">
@@ -61,6 +80,9 @@ export default function HomePage() {
           {/* Hero normal */}
           <div className="hero" style={{ marginTop: 16 }}>
             <h1>Entrená rápido. Medí cada músculo.</h1>
+            {streak >= 2 && (
+              <div className="streak-badge">🔥 {streak} días seguidos</div>
+            )}
             <button className="primary big" onClick={() => setPage(activeWorkout ? "workout" : "start")}>
               {activeWorkout ? "Continuar entrenamiento" : "Empezar entrenamiento"}
             </button>

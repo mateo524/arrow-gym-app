@@ -10,6 +10,8 @@ export default function StartWorkoutPage() {
   const startEmptyWorkout = useStore((s) => s.startEmptyWorkout);
   const setPage = useStore((s) => s.setPage);
   const workouts = useStore((s) => s.workouts);
+  const repeatLastWorkout = useStore((s) => s.repeatLastWorkout);
+  const lastWorkout = workouts[0];
   const profile = useAuthStore((s) => s.profile);
 
   const [editRoutine, setEditRoutine] = useState(null);
@@ -119,6 +121,20 @@ export default function StartWorkoutPage() {
           <h1>Elegí rutina</h1>
         </div>
       </div>
+
+      {lastWorkout && (
+        <button
+          className="as-button"
+          style={{ marginBottom: 14, background: "rgba(109,242,164,.06)", borderColor: "rgba(109,242,164,.22)" }}
+          onClick={repeatLastWorkout}
+        >
+          <p className="eyebrow" style={{ marginBottom: 4 }}>Repetir</p>
+          <h2 style={{ margin: 0 }}>{lastWorkout.type}</h2>
+          <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--muted)" }}>
+            {lastWorkout.date} · {lastWorkout.sets?.length ?? 0} series
+          </p>
+        </button>
+      )}
 
       {/* Assigned routines (for regular clients) */}
       {isUser && (

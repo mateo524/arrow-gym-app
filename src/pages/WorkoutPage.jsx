@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import useStore from "../store/useStore.js";
 import { getWorkoutVolume, hasData, formatDate, buildLiveCoachHints } from "../lib/analytics.js";
@@ -49,6 +49,15 @@ export default function WorkoutPage() {
   const [calcTarget, setCalcTarget] = useState(null);
   const [calcSetId, setCalcSetId] = useState(null);
   const [showFinishConfirm, setShowFinishConfirm] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
+  const [sessionNotes, setSessionNotes] = useState("");
+
+  useEffect(() => {
+    if (!active) return;
+    const start = Date.now() - (active.elapsedMs || 0);
+    const id = setInterval(() => setElapsed(Math.floor((Date.now() - start) / 1000)), 1000);
+    return () => clearInterval(id);
+  }, [active?.id]);
 
   const handleSetComplete = useCallback((exercise) => {
     setRestExercise(exercise);
@@ -73,7 +82,7 @@ export default function WorkoutPage() {
     if (emptySetsCount > 0) {
       setShowFinishConfirm(true);
     } else {
-      finish();
+      finish(sessionNotes);
     }
   }
 
@@ -101,6 +110,9 @@ export default function WorkoutPage() {
           <p className="eyebrow">Entrenando</p>
           <h1>{active.type}</h1>
           <small>{formatDate(active.date)}</small>
+          <span className="workout-timer">
+            {String(Math.floor(elapsed/60)).padStart(2,"0")}:{String(elapsed%60).padStart(2,"0")}
+          </span>
         </div>
         <button className="ghost" onClick={cancel}>Cancelar</button>
       </div>
@@ -159,6 +171,13 @@ export default function WorkoutPage() {
         })}
       </div>
 
+      <textarea
+        className="session-notes"
+        placeholder="Notas de sesión… (opcional)"
+        value={sessionNotes}
+        onChange={(e) => setSessionNotes(e.target.value)}
+        rows={2}
+      />
       <button className="secondary full" onClick={() => setShowPicker(!showPicker)}>
         {showPicker ? "Cerrar banco" : "+ Agregar ejercicio"}
       </button>
@@ -224,7 +243,7 @@ export default function WorkoutPage() {
                 <button className="ghost" style={{ flex: 1 }} onClick={() => setShowFinishConfirm(false)}>
                   Seguir
                 </button>
-                <button className="primary" style={{ flex: 1 }} onClick={() => { setShowFinishConfirm(false); finish(); }}>
+                <button className="primary" style={{ flex: 1 }} onClick={() => { setShowFinishConfirm(false); finish(sessionNotes); }}>
                   Finalizar igual
                 </button>
               </div>

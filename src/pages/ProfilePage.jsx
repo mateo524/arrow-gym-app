@@ -4,6 +4,28 @@ import useAuthStore from "../store/useAuthStore.js";
 import { supabase } from "../lib/supabase.js";
 import Icon from "../components/Icon.jsx";
 
+function WeightSparkline({ data }) {
+  if (!data || data.length < 2) return null;
+  const pts = data.slice(-8);
+  const vals = pts.map((p) => p.kg);
+  const min = Math.min(...vals);
+  const max = Math.max(...vals);
+  const range = max - min || 1;
+  const W = 100, H = 28;
+  const points = pts
+    .map((p, i) => {
+      const x = (i / (pts.length - 1)) * W;
+      const y = H - ((p.kg - min) / range) * (H - 6) - 3;
+      return `${x},${y}`;
+    })
+    .join(" ");
+  return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ overflow: "visible" }}>
+      <polyline points={points} fill="none" stroke="var(--green)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export default function ProfilePage() {
   const setPage = useStore((s) => s.setPage);
   const amoled = useStore((s) => s.amoled);
@@ -12,6 +34,9 @@ export default function ProfilePage() {
   const toggleSound = useStore((s) => s.toggleSound);
   const profile = useAuthStore((s) => s.profile);
   const logout = useAuthStore((s) => s.logout);
+  const logWeight = useStore((s) => s.logWeight);
+  const weightLog = useStore((s) => s.weightLog) || [];
+  const [todayKg, setTodayKg] = useState("");
 
   const [showChangePwd, setShowChangePwd] = useState(false);
   const [newPwd, setNewPwd] = useState("");
@@ -181,6 +206,40 @@ export default function ProfilePage() {
             </div>
           </form>
         )}
+      </div>
+
+      {/* Body weight log */}
+      <div className="card" style={{ marginBottom: 14 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <h2 style={{ margin: 0 }}>Peso corporal</h2>
+          <WeightSparkline data={weightLog} />
+        </div>
+        {weightLog.length > 0 && (
+          <p style={{ margin: "0 0 10px", fontSize: 13, color: "var(--muted)" }}>
+            Último: <b style={{ color: "var(--text)" }}>{weightLog[0]?.kg} kg</b>
+            <span style={{ marginLeft: 8 }}>{weightLog[0]?.date}</span>
+          </p>
+        )}
+        <div style={{ display: "flex", gap: 8 }}>
+          <input
+            inputMode="decimal"
+            placeholder="kg de hoy"
+            value={todayKg}
+            onChange={(e) => setTodayKg(e.target.value)}
+            style={{
+              flex: 1, background: "var(--panel2)", border: "1px solid var(--line)",
+              borderRadius: 12, padding: "10px 12px", color: "var(--text)", fontSize: 15,
+            }}
+          />
+          <button
+            className="primary"
+            style={{ padding: "10px 18px" }}
+            disabled={!todayKg}
+            onClick={() => { if (todayKg) { logWeight(todayKg); setTodayKg(""); } }}
+          >
+            +
+          </button>
+        </div>
       </div>
 
       {/* Settings */}
