@@ -1,4 +1,4 @@
-const CACHE = "arrow-gym-v26";
+const CACHE = "arrow-gym-v27";
 const BASE = "/arrow-gym-app";
 
 // On install: cache the shell. JS/CSS assets get cached on first fetch.
