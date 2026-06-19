@@ -1,22 +1,76 @@
-const CACHE = "arrow-gym-v17";
+const CACHE = "arrow-gym-v18";
 const BASE = "/arrow-gym-app";
-self.addEventListener("install", event => { event.waitUntil(caches.open(CACHE).then(cache => cache.addAll([BASE + "/", BASE + "/index.html"]))); self.skipWaiting(); });
-self.addEventListener("activate", event => { event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))); self.clients.claim(); });
-const fetchWithTimeout = (req) => Promise.race([
-  fetch(req),
-  new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 4000))
-]);
 
+// On install: cache the shell. JS/CSS assets get cached on first fetch.
+self.addEventListener("install", event => {
+  event.waitUntil(
+    caches.open(CACHE).then(cache => cache.addAll([BASE + "/", BASE + "/index.html"]))
+  );
+  self.skipWaiting();
+});
+
+// On activate: delete old caches, claim all clients.
+self.addEventListener("activate", event => {
+  event.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+    )
+  );
+  self.clients.claim();
+});
+
+// Fetch strategy:
+// - HTML (navigation): network-first, 5s timeout, fallback to cached index.html
+// - JS/CSS/images (assets with hash in name): cache-first (immutable files)
+// - Everything else: network-first with cache fallback
 self.addEventListener("fetch", event => {
   if (event.request.method !== "GET") return;
-  // Don't cache cross-origin requests (Supabase auth, CDN, etc.)
   if (!event.request.url.startsWith(self.location.origin)) return;
+
+  const url = new URL(event.request.url);
+  const isAsset = /\/assets\//.test(url.pathname);
+  const isNavigation = event.request.mode === "navigate";
+
+  if (isAsset) {
+    // Cache-first for hashed assets (immutable)
+    event.respondWith(
+      caches.match(event.request).then(cached => {
+        if (cached) return cached;
+        return fetch(event.request).then(res => {
+          if (res.ok) {
+            caches.open(CACHE).then(c => c.put(event.request, res.clone()));
+          }
+          return res;
+        });
+      })
+    );
+    return;
+  }
+
+  if (isNavigation) {
+    // Network-first for navigation, fallback to cached index.html
+    event.respondWith(
+      fetch(event.request, { signal: AbortSignal.timeout ? AbortSignal.timeout(5000) : undefined })
+        .then(res => {
+          if (res.ok) caches.open(CACHE).then(c => c.put(event.request, res.clone()));
+          return res;
+        })
+        .catch(() =>
+          caches.match(event.request).then(c => c || caches.match(BASE + "/index.html"))
+        )
+    );
+    return;
+  }
+
+  // Default: network-first with cache fallback
   event.respondWith(
-    fetchWithTimeout(event.request).then(res => {
-      if (res.ok && res.type === 'basic') {
-        caches.open(CACHE).then(cache => cache.put(event.request, res.clone()));
-      }
-      return res;
-    }).catch(() => caches.match(event.request).then(cached => cached || caches.match(BASE + "/index.html")))
+    fetch(event.request)
+      .then(res => {
+        if (res.ok && res.type === "basic") {
+          caches.open(CACHE).then(c => c.put(event.request, res.clone()));
+        }
+        return res;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
