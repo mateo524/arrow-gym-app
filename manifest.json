@@ -1,1 +1,36 @@
-{"name":"Pulse","short_name":"Pulse","start_url":"/arrow-gym-app/","scope":"/arrow-gym-app/","display":"standalone","background_color":"#050709","theme_color":"#050709","icons":[{"src":"/arrow-gym-app/icon.svg","sizes":"any","type":"image/svg+xml"}]}
+{
+  "name": "Pulse",
+  "short_name": "Pulse",
+  "description": "Tu app de entrenamiento y nutrición",
+  "start_url": "/arrow-gym-app/",
+  "scope": "/arrow-gym-app/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#050709",
+  "theme_color": "#050709",
+  "icons": [
+    {
+      "src": "/arrow-gym-app/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/arrow-gym-app/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/arrow-gym-app/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/arrow-gym-app/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
