@@ -1,41 +1,44 @@
-const CACHE = "arrow-gym-v38";
+const CACHE_PREFIX = "arrow-gym-v";
+const CACHE_VERSION = 39;
+const CACHE = CACHE_PREFIX + CACHE_VERSION;
 const BASE = "/arrow-gym-app";
 
-// On install: cache the HTML shell, then WAIT — do NOT skip waiting.
-// The new SW stays in "waiting" state until the user explicitly approves the update.
+// Install: cache HTML shell, then activate immediately (skipWaiting).
 self.addEventListener("install", event => {
   event.waitUntil(
     caches.open(CACHE).then(cache => cache.addAll([BASE + "/", BASE + "/index.html"]))
   );
-  // No skipWaiting() here — this is intentional.
+  self.skipWaiting();
 });
 
-// Listen for a message from the app: when the user taps "Actualizar",
-// the app sends SKIP_WAITING and then reloads.
-self.addEventListener("message", event => {
-  if (event.data === "SKIP_WAITING") {
-    self.skipWaiting();
-  }
-});
-
-// On activate: delete old caches, claim clients.
-// This only runs after skipWaiting() is called (user-triggered).
+// Activate: delete caches older than the PREVIOUS version, but keep N-1.
+// This lets currently-open pages still load their old JS chunks from the old cache.
+// NO clients.claim() — open pages stay under their current SW so their old chunks
+// remain accessible. The new SW takes over silently on the next open.
 self.addEventListener("activate", event => {
   event.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-    ).then(() => self.clients.claim())
+      Promise.all(
+        keys
+          .filter(k => {
+            if (!k.startsWith(CACHE_PREFIX)) return true;
+            const v = parseInt(k.slice(CACHE_PREFIX.length), 10);
+            return v < CACHE_VERSION - 1; // keep current (v39) + previous (v38)
+          })
+          .map(k => caches.delete(k))
+      )
+    )
   );
 });
 
-// Fetch strategy: network-first for everything, cache as fallback offline.
+// Fetch: network-first, cache as offline fallback.
 self.addEventListener("fetch", event => {
   if (event.request.method !== "GET") return;
   if (!event.request.url.startsWith(self.location.origin)) return;
 
   const url = new URL(event.request.url);
-  const isAsset = /\/assets\//.test(url.pathname);
   const isNavigation = event.request.mode === "navigate";
+  const isAsset = /\/assets\//.test(url.pathname);
 
   if (isNavigation) {
     event.respondWith(
