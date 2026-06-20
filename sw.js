@@ -1,7 +1,7 @@
-const CACHE = "arrow-gym-v32";
+const CACHE = "arrow-gym-v33";
 const BASE = "/arrow-gym-app";
 
-// On install: cache the shell. JS/CSS assets get cached on first fetch.
+// On install: cache only the HTML shell.
 self.addEventListener("install", event => {
   event.waitUntil(
     caches.open(CACHE).then(cache => cache.addAll([BASE + "/", BASE + "/index.html"]))
@@ -9,7 +9,7 @@ self.addEventListener("install", event => {
   self.skipWaiting();
 });
 
-// On activate: delete old caches, claim all clients.
+// On activate: delete ALL old caches, claim all clients immediately.
 self.addEventListener("activate", event => {
   event.waitUntil(
     caches.keys().then(keys =>
@@ -20,8 +20,8 @@ self.addEventListener("activate", event => {
 });
 
 // Fetch strategy:
-// - HTML (navigation): network-first, 5s timeout, fallback to cached index.html
-// - JS/CSS/images (assets with hash in name): cache-first (immutable files)
+// - HTML (navigation): network-first, fallback to cached index.html
+// - JS/CSS assets: network-first, cache as fallback (avoids stale chunk problem)
 // - Everything else: network-first with cache fallback
 self.addEventListener("fetch", event => {
   if (event.request.method !== "GET") return;
@@ -31,26 +31,9 @@ self.addEventListener("fetch", event => {
   const isAsset = /\/assets\//.test(url.pathname);
   const isNavigation = event.request.mode === "navigate";
 
-  if (isAsset) {
-    // Cache-first for hashed assets (immutable)
-    event.respondWith(
-      caches.match(event.request).then(cached => {
-        if (cached) return cached;
-        return fetch(event.request).then(res => {
-          if (res.ok) {
-            caches.open(CACHE).then(c => c.put(event.request, res.clone()));
-          }
-          return res;
-        });
-      })
-    );
-    return;
-  }
-
   if (isNavigation) {
-    // Network-first for navigation, fallback to cached index.html
     event.respondWith(
-      fetch(event.request, { signal: AbortSignal.timeout ? AbortSignal.timeout(5000) : undefined })
+      fetch(event.request)
         .then(res => {
           if (res.ok) caches.open(CACHE).then(c => c.put(event.request, res.clone()));
           return res;
@@ -58,6 +41,21 @@ self.addEventListener("fetch", event => {
         .catch(() =>
           caches.match(event.request).then(c => c || caches.match(BASE + "/index.html"))
         )
+    );
+    return;
+  }
+
+  if (isAsset) {
+    // Network-first for JS/CSS assets — always get fresh code, fall back to cache offline
+    event.respondWith(
+      fetch(event.request)
+        .then(res => {
+          if (res.ok) {
+            caches.open(CACHE).then(c => c.put(event.request, res.clone()));
+          }
+          return res;
+        })
+        .catch(() => caches.match(event.request))
     );
     return;
   }
