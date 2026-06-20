@@ -1,4 +1,4 @@
-const CACHE = "arrow-gym-v33";
+const CACHE = "arrow-gym-v34";
 const BASE = "/arrow-gym-app";
 
 // On install: cache only the HTML shell.
