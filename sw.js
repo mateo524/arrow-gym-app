@@ -1,28 +1,34 @@
-const CACHE = "arrow-gym-v37";
+const CACHE = "arrow-gym-v38";
 const BASE = "/arrow-gym-app";
 
-// On install: cache only the HTML shell.
+// On install: cache the HTML shell, then WAIT — do NOT skip waiting.
+// The new SW stays in "waiting" state until the user explicitly approves the update.
 self.addEventListener("install", event => {
   event.waitUntil(
     caches.open(CACHE).then(cache => cache.addAll([BASE + "/", BASE + "/index.html"]))
   );
-  self.skipWaiting();
+  // No skipWaiting() here — this is intentional.
 });
 
-// On activate: delete ALL old caches, claim all clients immediately.
+// Listen for a message from the app: when the user taps "Actualizar",
+// the app sends SKIP_WAITING and then reloads.
+self.addEventListener("message", event => {
+  if (event.data === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
+});
+
+// On activate: delete old caches, claim clients.
+// This only runs after skipWaiting() is called (user-triggered).
 self.addEventListener("activate", event => {
   event.waitUntil(
     caches.keys().then(keys =>
       Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-    )
+    ).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
-// Fetch strategy:
-// - HTML (navigation): network-first, fallback to cached index.html
-// - JS/CSS assets: network-first, cache as fallback (avoids stale chunk problem)
-// - Everything else: network-first with cache fallback
+// Fetch strategy: network-first for everything, cache as fallback offline.
 self.addEventListener("fetch", event => {
   if (event.request.method !== "GET") return;
   if (!event.request.url.startsWith(self.location.origin)) return;
@@ -46,13 +52,10 @@ self.addEventListener("fetch", event => {
   }
 
   if (isAsset) {
-    // Network-first for JS/CSS assets — always get fresh code, fall back to cache offline
     event.respondWith(
       fetch(event.request)
         .then(res => {
-          if (res.ok) {
-            caches.open(CACHE).then(c => c.put(event.request, res.clone()));
-          }
+          if (res.ok) caches.open(CACHE).then(c => c.put(event.request, res.clone()));
           return res;
         })
         .catch(() => caches.match(event.request))
@@ -60,7 +63,6 @@ self.addEventListener("fetch", event => {
     return;
   }
 
-  // Default: network-first with cache fallback
   event.respondWith(
     fetch(event.request)
       .then(res => {
