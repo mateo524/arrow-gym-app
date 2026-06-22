@@ -3,9 +3,20 @@ import { createRoot } from "react-dom/client";
 import App from "./App.jsx";
 import "./styles.css";
 
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
-}
+// Si un chunk lazy falla al cargar (SW desactualizado, cache rota), recarga una vez.
+// Evita el "pantalla negra" en esos casos usando sessionStorage para no entrar en loop.
+window.addEventListener('unhandledrejection', (e) => {
+  const msg = String(e.reason?.message || '');
+  const isChunkFail =
+    msg.includes('Failed to fetch dynamically imported module') ||
+    msg.includes('Importing a module script failed') ||
+    msg.includes('Unable to preload CSS') ||
+    e.reason?.name === 'ChunkLoadError';
+  if (isChunkFail && !sessionStorage.getItem('_chunk_reload')) {
+    sessionStorage.setItem('_chunk_reload', '1');
+    window.location.reload();
+  }
+});
 
 function hasActiveWorkout() {
   try {

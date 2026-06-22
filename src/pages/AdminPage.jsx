@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase.js";
 import Icon from "../components/Icon.jsx";
+import useAuthStore from "../store/useAuthStore.js";
 
 const EMPTY_FORM = { name: "", email: "", password: "", trainer_id: "", weight_kg: "", height_cm: "", age: "", shoulder_alert: false };
 
 export default function AdminPage() {
+  const { profile } = useAuthStore();
   const [tab, setTab] = useState("clients");
   const [trainers, setTrainers] = useState([]);
   const [clients, setClients] = useState([]);
@@ -16,6 +18,9 @@ export default function AdminPage() {
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState("");
   const [createSuccess, setCreateSuccess] = useState("");
+
+  const [deleteUserTarget, setDeleteUserTarget] = useState(null); // { id, email }
+  const [deleteError, setDeleteError] = useState("");
 
   useEffect(() => { loadData(); }, []);
 
@@ -32,48 +37,37 @@ export default function AdminPage() {
 
   async function handleCreateUser(e) {
     e.preventDefault();
-    // Body stats are mandatory for regular users
-    if (createRole === "user") {
-      if (!form.weight_kg || !form.height_cm || !form.age) {
-        setCreateError("El peso, altura y edad son obligatorios para crear un cliente.");
-        return;
-      }
-    }
     setCreating(true);
     setCreateError("");
     setCreateSuccess("");
 
-    const { data: authData, error: signupError } = await supabase.auth.signUp({
-      email: form.email,
-      password: form.password,
-      options: { data: { name: form.name, role: createRole } },
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData?.session?.access_token;
+
+    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        email: form.email,
+        password: form.password,
+        name: form.name,
+        role: createRole,
+        trainer_id: form.trainer_id || null,
+        weight_kg: form.weight_kg || null,
+        height_cm: form.height_cm || null,
+        age: form.age || null,
+        shoulder_alert: form.shoulder_alert,
+      }),
     });
 
-    if (signupError) {
-      setCreateError(signupError.message);
+    const result = await res.json();
+    if (!res.ok || result.error) {
+      setCreateError(result.error || "Error al crear el usuario.");
       setCreating(false);
       return;
-    }
-
-    const userId = authData.user?.id;
-    if (userId) {
-      const profileData = {
-        id: userId,
-        name: form.name,
-        email: form.email,
-        role: createRole,
-        trainer_id: createRole === "user" && form.trainer_id ? form.trainer_id : null,
-        weight_kg: createRole === "user" ? (Number(form.weight_kg) || null) : null,
-        height_cm: createRole === "user" ? (Number(form.height_cm) || null) : null,
-        age: createRole === "user" ? (Number(form.age) || null) : null,
-        shoulder_alert: createRole === "user" ? !!form.shoulder_alert : false,
-      };
-      const { error: profileError } = await supabase.from("profiles").upsert(profileData);
-      if (profileError) {
-        setCreateError(profileError.message);
-        setCreating(false);
-        return;
-      }
     }
 
     setCreateSuccess(`✓ ${createRole === "trainer" ? "Entrenador" : "Cliente"} creado: ${form.email}`);
@@ -82,13 +76,47 @@ export default function AdminPage() {
     await loadData();
   }
 
-  async function handleDeleteUser(userId, userName) {
-    if (!confirm(`¿Eliminar a ${userName}? Esta acción no se puede deshacer.`)) return;
-    await supabase.from("profiles").delete().eq("id", userId);
+  async function handleDeleteUser(id) {
+    setDeleteError("");
+
+    // 1. Delete profile from profiles table
+    const { error: profileError } = await supabase.from("profiles").delete().eq("id", id);
+    if (profileError) {
+      setDeleteError(profileError.message || "Error al eliminar el perfil.");
+      return;
+    }
+
+    // 2. Delete the Supabase Auth user via Edge Function
+    // NOTE: The Edge Function at create-user must support DELETE + { userId } in the body.
+    // If it does not yet support DELETE, the profile is still removed above; the auth user
+    // will remain active until the Edge Function is updated to handle deletion.
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const accessToken = session?.access_token;
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ userId: id }),
+      });
+      if (!res.ok) {
+        const result = await res.json().catch(() => ({}));
+        // Non-fatal: profile is already deleted; surface a warning but continue
+        setDeleteError(result.error || "Perfil eliminado, pero no se pudo borrar el usuario de Auth.");
+      }
+    } catch {
+      setDeleteError("Perfil eliminado, pero ocurrió un error al contactar el servidor de Auth.");
+    }
+
+    setDeleteUserTarget(null);
     await loadData();
   }
 
   const displayList = tab === "trainers" ? trainers : clients;
+
+  if (!["admin", "superadmin"].includes(profile?.role)) return null;
 
   return (
     <section className="page">
@@ -134,11 +162,11 @@ export default function AdminPage() {
               </div>
               <div className="field-group">
                 <label>Email</label>
-                <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="juan@email.com" required />
+                <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="juan@email.com" required maxLength={254} />
               </div>
               <div className="field-group">
                 <label>Contraseña temporal</label>
-                <input type="text" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Mínimo 6 caracteres" required minLength={6} />
+                <input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Mínimo 6 caracteres" required minLength={6} />
               </div>
 
               {/* Trainer assignment (only for users) */}
@@ -156,20 +184,20 @@ export default function AdminPage() {
               {createRole === "user" && (
                 <>
                   <div className="section-divider">
-                    <span>Datos corporales <span className="required-badge">Obligatorio para el Coach</span></span>
+                    <span>Datos corporales <span className="required-badge">Opcional — el usuario los completa al entrar</span></span>
                   </div>
                   <div className="field-row-3">
                     <div className="field-group">
                       <label>Peso (kg)</label>
-                      <input type="number" min={30} max={200} step={0.5} value={form.weight_kg} onChange={(e) => setForm({ ...form, weight_kg: e.target.value })} placeholder="75" required={createRole === "user"} inputMode="decimal" />
+                      <input type="number" min={30} max={200} step={0.5} value={form.weight_kg} onChange={(e) => setForm({ ...form, weight_kg: e.target.value })} placeholder="75" required={false} inputMode="decimal" />
                     </div>
                     <div className="field-group">
                       <label>Altura (cm)</label>
-                      <input type="number" min={100} max={220} value={form.height_cm} onChange={(e) => setForm({ ...form, height_cm: e.target.value })} placeholder="175" required={createRole === "user"} inputMode="numeric" />
+                      <input type="number" min={100} max={220} value={form.height_cm} onChange={(e) => setForm({ ...form, height_cm: e.target.value })} placeholder="175" required={false} inputMode="numeric" />
                     </div>
                     <div className="field-group">
                       <label>Edad</label>
-                      <input type="number" min={10} max={100} value={form.age} onChange={(e) => setForm({ ...form, age: e.target.value })} placeholder="28" required={createRole === "user"} inputMode="numeric" />
+                      <input type="number" min={10} max={100} value={form.age} onChange={(e) => setForm({ ...form, age: e.target.value })} placeholder="28" required={false} inputMode="numeric" />
                     </div>
                   </div>
 
@@ -223,11 +251,38 @@ export default function AdminPage() {
                   </div>
                 )}
               </div>
-              <button className="ghost icon-btn danger-hover" onClick={() => handleDeleteUser(u.id, u.name || u.email)}>
+              <button className="ghost icon-btn danger-hover" onClick={() => { setDeleteError(""); setDeleteUserTarget({ id: u.id, email: u.name || u.email }); }}>
                 <Icon name="Trash2" size={16} />
               </button>
             </div>
           ))}
+        </div>
+      )}
+
+      {deleteUserTarget && (
+        <div className="modal-overlay" onClick={() => setDeleteUserTarget(null)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Eliminar usuario</h2>
+              <button className="ghost icon-btn" onClick={() => setDeleteUserTarget(null)}>
+                <Icon name="X" size={20} />
+              </button>
+            </div>
+            <p style={{ marginBottom: 16 }}>
+              ¿Eliminar a <strong>{deleteUserTarget.email}</strong>? Esta acción no se puede deshacer.
+            </p>
+            {deleteError && (
+              <div className="login-error" style={{ marginBottom: 12 }}>
+                <Icon name="AlertCircle" size={14} /><span>{deleteError}</span>
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              <button className="ghost" onClick={() => setDeleteUserTarget(null)}>Cancelar</button>
+              <button className="danger" onClick={() => handleDeleteUser(deleteUserTarget.id)}>
+                <Icon name="Trash2" size={14} /> Eliminar
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </section>

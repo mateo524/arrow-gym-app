@@ -1,19 +1,33 @@
 import { supabase } from "./supabase.js";
+import { enqueue, flush } from "./offlineQueue.js";
 
 // Upload a completed workout to Supabase.
-// Called right after finishWorkout() – fire-and-forget, never throws.
+// If offline, queues it for later and flushes pending queue on next success.
 export async function syncWorkoutUp(workout, userId) {
   if (!userId || !workout?.id) return;
+  const row = {
+    id: workout.id,
+    user_id: userId,
+    type: workout.type,
+    date: workout.date,
+    sets: workout.sets,
+    created_at: new Date().toISOString(),
+  };
+  if (!navigator.onLine) {
+    enqueue({ type: "upsert_workout", row });
+    return;
+  }
   try {
-    await supabase.from("user_workouts").upsert({
-      id: workout.id,
-      user_id: userId,
-      type: workout.type,
-      date: workout.date,
-      sets: workout.sets,
-      created_at: new Date().toISOString(),
+    await supabase.from("user_workouts").upsert(row);
+    // Flush any previously queued saves now that we're online
+    await flush(async (item) => {
+      if (item.type === "upsert_workout") {
+        await supabase.from("user_workouts").upsert(item.row);
+      }
     });
-  } catch {}
+  } catch {
+    enqueue({ type: "upsert_workout", row });
+  }
 }
 
 // Pull all workouts for a user from Supabase.

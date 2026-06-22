@@ -1,71 +1,193 @@
-function haptic() {
-  if (navigator.vibrate) navigator.vibrate(20);
+﻿import { useState } from "react";
+import Icon from "./Icon.jsx";
+import useStore from "../store/useStore.js";
+
+function haptic(type = "tap") {
+  if (!navigator.vibrate) return;
+  if (type === "tap") navigator.vibrate(18);
+  else if (type === "done") navigator.vibrate([30, 40, 60]);
+  else if (type === "delete") navigator.vibrate([15, 20, 15]);
 }
 
-export default function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onRemove, onStartRest, onOpenCalc }) {
-  const currentWeight = Number(setItem.weight || 0);
-  const currentReps = Number(setItem.reps || 0);
-  const isPrefilled = Boolean(setItem.lastWeight || setItem.lastReps) && !setItem.weight && !setItem.reps;
-  const hasData = setItem.weight && setItem.reps;
+export default function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onRemove, onStartRest, prData, coachSuggestion }) {
+  const [flipped, setFlipped] = useState(false);
+  const [done, setDone] = useState(false);
+  const hasData = (setItem.weight !== '' && setItem.weight !== null && setItem.weight !== undefined) &&
+                  (setItem.reps !== '' && setItem.reps !== null && setItem.reps !== undefined && Number(setItem.reps) > 0);
+  const isPrefilled = Boolean((setItem.lastWeight || setItem.lastReps) && !hasData);
 
-  function bumpWeight(delta) {
-    haptic();
-    onUpdate({ weight: String(Math.max(0, Math.round((currentWeight + delta) * 10) / 10)) });
+  function sanitizeWeight(v) {
+    return v.replace(/,/g, ".").replace(/[^0-9.]/g, "").replace(/^(\d{0,4})(\.\d{0,2})?.*/, "$1$2");
   }
+  function sanitizeReps(v) {
+    return v.replace(/[^0-9]/g, "").slice(0, 3);
+  }
+  const exerciseNotes = useStore(s => s.exerciseNotes) || {};
+  const setExerciseNote = useStore(s => s.setExerciseNote);
+  const note = exerciseNotes[setItem.exercise] || "";
+  const [editingNote, setEditingNote] = useState(false);
+  const [noteText, setNoteText] = useState(note);
 
-  function bumpReps(delta) {
-    haptic();
-    onUpdate({ reps: String(Math.max(0, currentReps + delta)) });
+  if (flipped) {
+    return (
+      <div className="set-card set-card-flipped">
+        <div className="set-head">
+          <b style={{ color: "var(--green)" }}>Serie {index || 1} · Récords</b>
+          <button className="set-delete-btn" onClick={() => setFlipped(false)} aria-label="Volver">↩</button>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginTop: 8 }}>
+          {[
+            { label: "Mejor peso",  value: prData?.bestWeight ? `${prData.bestWeight}kg` : "—" },
+            { label: "Mejor vol.",  value: prData?.bestVolume ? `${prData.bestVolume}kg` : "—" },
+            { label: "Más reps",   value: prData?.bestReps ? `${prData.bestReps}×${prData.bestRepsWeight}kg` : "—" },
+          ].map(({ label, value }) => (
+            <div key={label} style={{ background: "var(--panel2)", borderRadius: 10, padding: "8px 6px", textAlign: "center" }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: "var(--green)" }}>{value}</div>
+              <div style={{ fontSize: 9, color: "var(--muted)", marginTop: 2 }}>{label}</div>
+            </div>
+          ))}
+        </div>
+        {prData?.lastDate && (
+          <p style={{ fontSize: 11, color: "var(--muted)", margin: "8px 0 0", textAlign: "center" }}>
+            Última sesión: {prData.lastDate}
+          </p>
+        )}
+      </div>
+    );
   }
 
   return (
-    <div className={`set-card compact-set-card${isPrefilled ? " set-card-ghost" : ""}`} aria-label={`Serie ${index || 1}`}>
+    <div
+      className={`set-card compact-set-card${isPrefilled ? " set-card-ghost" : ""}${done ? " set-card-done" : ""}`}
+      aria-label={`Serie ${index || 1}`}
+    >
       <div className="set-head">
-        <b>Serie {index || 1}</b>
-        {setItem.lastWeight ? (
-          <small>ant. {setItem.lastWeight}kg × {setItem.lastReps || "—"}</small>
-        ) : null}
-        <button className="set-delete-btn" onClick={onRemove} aria-label="Borrar">✕</button>
+        {/* Set number badge — display only */}
+        <span className={`set-done-btn${done ? " done" : ""}`} style={{ cursor: "default", pointerEvents: "none" }}>
+          {done ? "✓" : index || 1}
+        </span>
+        <div style={{ flex:1, minWidth:0 }}>
+          {Number(setItem.weight) > 0 && prData?.bestWeight && Number(setItem.weight) > prData.bestWeight && (
+            <span style={{ background:"var(--green)", color:"#fff", fontSize:9, fontWeight:900, padding:"2px 6px", borderRadius:6, marginRight:4 }}>PR 🔥</span>
+          )}
+          {setItem.lastWeight ? (
+            <small style={{ color: "var(--muted)", fontSize:11 }}>ant. {setItem.lastWeight}kg × {setItem.lastReps || "—"}</small>
+          ) : null}
+        </div>
+        <div style={{ display: "flex", gap: 4 }}>
+          <button className="set-delete-btn" style={{ color: note ? "var(--green)" : "var(--muted)" }}
+            onClick={() => { setNoteText(note); setEditingNote(!editingNote); }} aria-label="Nota">
+            <Icon name="FileText" size={13} />
+          </button>
+          <button className="set-delete-btn" style={{ color: "var(--muted)" }} onClick={() => setFlipped(true)} aria-label="Ver récords">
+            <Icon name="BarChart2" size={13} />
+          </button>
+          <button className="set-delete-btn" onClick={onRemove} aria-label="Borrar">✕</button>
+        </div>
       </div>
 
-      <div className="set-row">
-        <button className="set-inc" onClick={() => bumpWeight(-2.5)}>−2.5</button>
-        <button className="set-inc" onClick={() => bumpWeight(-5)}>−5</button>
-        <input
-          className="set-val"
-          inputMode="decimal"
-          value={setItem.weight}
-          placeholder="kg"
-          onChange={(e) => onUpdate({ weight: e.target.value })}
-        />
-        <button className="set-inc" onClick={() => bumpWeight(2.5)}>+2.5</button>
-        <button className="set-inc" onClick={() => bumpWeight(5)}>+5</button>
+      {editingNote && (
+        <div style={{ marginBottom:8 }}>
+          <textarea
+            value={noteText}
+            onChange={e => setNoteText(e.target.value)}
+            onBlur={() => { setExerciseNote(setItem.exercise, noteText); setEditingNote(false); }}
+            placeholder="Nota del ejercicio (ej: bajar más en sentadilla)..."
+            rows={2}
+            style={{ width:"100%", background:"var(--panel2)", border:"1px solid var(--green)", borderRadius:10, padding:"8px 10px", color:"var(--text)", fontSize:12, resize:"none", boxSizing:"border-box" }}
+            autoFocus
+          />
+        </div>
+      )}
+      {!editingNote && note && (
+        <p style={{ margin:"2px 0 6px", fontSize:11, color:"var(--green)", background:"rgba(168,85,247,.07)", borderRadius:8, padding:"4px 8px" }}>
+          📝 {note}
+        </p>
+      )}
+
+      {/* Live coach weight suggestion */}
+      {coachSuggestion && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(168,85,247,.08)", border: "1px solid rgba(168,85,247,.25)", borderRadius: 10, padding: "6px 10px", marginBottom: 6 }}>
+          <span style={{ fontSize: 12, color: "var(--green)", fontWeight: 700 }}>
+            {coachSuggestion.dir === "up" ? "⬆ Subí a" : coachSuggestion.dir === "down" ? "⬇ Bajá a" : "✓"} {coachSuggestion.weight}kg
+          </span>
+          <span style={{ fontSize: 11, color: "var(--muted)" }}>{coachSuggestion.reason}</span>
+          <button className="ghost" style={{ fontSize: 11, padding: "2px 8px", marginLeft: 6 }}
+            onClick={() => onUpdate({ weight: String(coachSuggestion.weight) })}>
+            Aplicar
+          </button>
+        </div>
+      )}
+
+      {/* kg + reps side by side */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, margin: "10px 0 8px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.6px" }}>kg</span>
+            {setItem.lastWeight && !setItem.weight && (
+              <span style={{ fontSize: 9, color: "rgba(168,85,247,.6)", fontWeight: 700 }}>ult. {setItem.lastWeight}</span>
+            )}
+          </div>
+          <input
+            className="set-val"
+            inputMode="decimal"
+            value={setItem.weight}
+            placeholder={setItem.lastWeight || "—"}
+            onChange={(e) => { haptic(); onUpdate({ weight: sanitizeWeight(e.target.value) }); }}
+            style={{ width: "100%", textAlign: "center", fontSize: 22, fontWeight: 800, borderColor: setItem.weight ? "rgba(168,85,247,.5)" : undefined, transition: "border-color .2s" }}
+          />
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.6px" }}>reps</span>
+            {setItem.lastReps && !setItem.reps && (
+              <span style={{ fontSize: 9, color: "rgba(168,85,247,.6)", fontWeight: 700 }}>ult. {setItem.lastReps}</span>
+            )}
+          </div>
+          <input
+            className="set-val"
+            inputMode="numeric"
+            value={setItem.reps}
+            placeholder={setItem.lastReps || "—"}
+            onChange={(e) => { haptic(); onUpdate({ reps: sanitizeReps(e.target.value) }); }}
+            style={{ width: "100%", textAlign: "center", fontSize: 22, fontWeight: 800, borderColor: setItem.reps ? "rgba(168,85,247,.5)" : undefined, transition: "border-color .2s" }}
+          />
+        </div>
       </div>
 
-      <div className="set-row">
-        <button className="set-inc" onClick={() => bumpReps(-2)}>−2</button>
-        <button className="set-inc" onClick={() => bumpReps(-1)}>−1</button>
-        <input
-          className="set-val"
-          inputMode="numeric"
-          value={setItem.reps}
-          placeholder="reps"
-          onChange={(e) => onUpdate({ reps: e.target.value })}
-        />
-        <button className="set-inc" onClick={() => bumpReps(1)}>+1</button>
-        <button className="set-inc" onClick={() => bumpReps(2)}>+2</button>
-      </div>
+      {/* RPE selector — show only when reps filled */}
+      {setItem.reps && (
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px", flexShrink: 0 }}>RPE</span>
+          <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
+            {[6,7,8,9,10].map(r => (
+              <button key={r}
+                onClick={() => onUpdate({ rpe: setItem.rpe === r ? null : r })}
+                style={{
+                  width: 28, height: 24, borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: "pointer", border: "none",
+                  background: setItem.rpe === r ? (r >= 9 ? "var(--danger)" : r >= 7 ? "#f59e0b" : "var(--green)") : "var(--panel2)",
+                  color: setItem.rpe === r ? "#fff" : "var(--muted)",
+                }}>
+                {r}
+              </button>
+            ))}
+          </div>
+          {setItem.rpe && <span style={{ fontSize: 10, color: "var(--muted)" }}>{setItem.rpe >= 9 ? "Máximo esfuerzo" : setItem.rpe >= 7 ? "Muy difícil" : "Moderado"}</span>}
+        </div>
+      )}
 
       <div className="set-actions">
-        <button className="ghost set-action-sm" onClick={onRepeat}>Duplicar</button>
-        <button className="calc-btn set-action-sm" onClick={() => onOpenCalc?.(currentWeight)}>Discos</button>
-      </div>
-
-      {hasData && (
-        <button className="rest-btn" onClick={() => { haptic(); onStartRest?.(); }}>
-          ⏱ Descanso
+        <button
+          className="ghost set-action-sm"
+          onClick={() => { haptic(); onRepeat(); }}
+          title="Repetir serie"
+          style={{ display:"flex", alignItems:"center", gap:5 }}
+        >
+          <Icon name="RefreshCw" size={13} />
+          Repetir
         </button>
-      )}
+      </div>
     </div>
   );
 }
+

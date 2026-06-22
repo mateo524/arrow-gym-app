@@ -1,6 +1,9 @@
-import { useState, useMemo } from "react";
+﻿import { useState, useMemo } from "react";
 import useStore from "../store/useStore.js";
 import { getWorkoutVolume, formatDate } from "../lib/analytics.js";
+import ExerciseProgressChart from "../components/ExerciseProgressChart.jsx";
+import Icon from "../components/Icon.jsx";
+import AdvancedMuscleDiagram from "../components/AdvancedMuscleDiagram.jsx";
 
 const MONTH_NAMES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 const DAY_LABELS = ["L","M","X","J","V","S","D"];
@@ -86,9 +89,125 @@ function getBestSet(workout) {
   return sets.reduce((best, s) => (Number(s.weight) * Number(s.reps) > Number(best.weight) * Number(best.reps) ? s : best));
 }
 
+function getUniqueExercises(workout) {
+  const seen = new Set();
+  const exercises = [];
+  for (const s of (workout.sets || [])) {
+    if (s.exercise && !seen.has(s.exercise)) {
+      seen.add(s.exercise);
+      exercises.push(s.exercise);
+    }
+  }
+  return exercises;
+}
+
+function AnnualHeatmap({ workouts }) {
+  const today = new Date();
+  const todayStr = today.toISOString().slice(0,10);
+
+  // Build map of date -> set count
+  const dateMap = {};
+  (workouts || []).forEach(w => {
+    const key = (w.date||'').slice(0,10);
+    if (key) dateMap[key] = (dateMap[key]||0) + (w.sets?.length||0);
+  });
+
+  // Build 52 weeks x 7 days grid ending today
+  const CELL = 11, GAP = 2;
+  const totalDays = 364; // 52 weeks
+  const days = [];
+  for (let i = totalDays - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const iso = d.toISOString().slice(0,10);
+    const count = dateMap[iso] || 0;
+    let level = 0;
+    if (count > 0 && count <= 4) level = 1;
+    else if (count > 4 && count <= 10) level = 2;
+    else if (count > 10 && count <= 18) level = 3;
+    else if (count > 18) level = 4;
+    days.push({ iso, count, level, month: d.getMonth(), day: d.getDate(), dow: d.getDay() });
+  }
+
+  // Group into columns of 7 (each column = one week, Mon-Sun)
+  // Align first column by day of week
+  const startDow = days[0].dow === 0 ? 6 : days[0].dow - 1;
+  const paddedDays = [...Array(startDow).fill(null), ...days];
+  const weeks = [];
+  for (let i = 0; i < paddedDays.length; i += 7) weeks.push(paddedDays.slice(i, i+7));
+
+  // Month label positions
+  const monthLabels = [];
+  let lastMonth = -1;
+  weeks.forEach((week, wi) => {
+    const firstReal = week.find(Boolean);
+    if (firstReal && firstReal.month !== lastMonth) {
+      lastMonth = firstReal.month;
+      monthLabels.push({ wi, label: ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"][firstReal.month] });
+    }
+  });
+
+  const COLORS = {
+    0: "rgba(255,255,255,.07)",
+    1: "rgba(168,85,247,.25)",
+    2: "rgba(168,85,247,.5)",
+    3: "rgba(168,85,247,.75)",
+    4: "rgba(168,85,247,1)",
+  };
+
+  const W = weeks.length * (CELL + GAP);
+  const H = 7 * (CELL + GAP) + 16;
+
+  return (
+    <div style={{ marginBottom:20 }}>
+      <p className="section-label" style={{ marginBottom:8 }}>Actividad anual</p>
+      <div style={{ background:"var(--panel)", borderRadius:16, padding:"14px 12px", border:"1px solid var(--line)", overflowX:"auto" }}>
+        <svg width={W} height={H} style={{ display:"block", minWidth:W }}>
+          {/* Month labels */}
+          {monthLabels.map(({ wi, label }) => (
+            <text key={wi} x={wi*(CELL+GAP)} y={10} fontSize={9} fill="rgba(255,255,255,.4)" fontWeight="600">{label}</text>
+          ))}
+          {/* Cells */}
+          {weeks.map((week, wi) =>
+            week.map((day, di) => {
+              if (!day) return null;
+              const x = wi * (CELL + GAP);
+              const y = 14 + di * (CELL + GAP);
+              const isToday = day.iso === todayStr;
+              return (
+                <g key={day.iso}>
+                  <rect
+                    x={x} y={y} width={CELL} height={CELL}
+                    rx={2} ry={2}
+                    fill={COLORS[day.level]}
+                    stroke={isToday ? "var(--green)" : "none"}
+                    strokeWidth={isToday ? 1.5 : 0}
+                  >
+                    <title>{day.iso}: {day.count} series</title>
+                  </rect>
+                </g>
+              );
+            })
+          )}
+        </svg>
+        {/* Legend */}
+        <div style={{ display:"flex", alignItems:"center", gap:4, marginTop:10, justifyContent:"flex-end" }}>
+          <span style={{ fontSize:9, color:"rgba(255,255,255,.3)", marginRight:4 }}>Menos</span>
+          {[0,1,2,3,4].map(l => (
+            <div key={l} style={{ width:10, height:10, borderRadius:2, background:COLORS[l] }} />
+          ))}
+          <span style={{ fontSize:9, color:"rgba(255,255,255,.3)", marginLeft:4 }}>Más</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function HistoryPage() {
   const workouts = useStore((state) => state.workouts);
+  const restDays = useStore(s => s.restDays) || [];
   const prs = useStore((state) => state.prs) ?? [];
+  const setPage = useStore((state) => state.setPage);
   const openWorkout = useStore((state) => state.openWorkout);
 
   const today = new Date();
@@ -98,6 +217,9 @@ export default function HistoryPage() {
   const [selectedWorkouts, setSelectedWorkouts] = useState([]);
   const [compareMode, setCompareMode] = useState(false);
   const [compareIds, setCompareIds] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [expandedWorkoutId, setExpandedWorkoutId] = useState(null);
+  const [historyPage, setHistoryPage] = useState(30);
 
   function prevMonth() {
     if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); }
@@ -123,54 +245,118 @@ export default function HistoryPage() {
     }
   }
 
+  function handleWorkoutItemClick(workoutId) {
+    setExpandedWorkoutId(prev => prev === workoutId ? null : workoutId);
+  }
+
   const isCurrentMonth = viewYear === today.getFullYear() && viewMonth === today.getMonth();
   const prDates = new Set(prs.map(p => p.date));
 
+  const allEntries = useMemo(() => {
+    const entries = [
+      ...(workouts || []).map(w => ({ ...w, _type: 'workout' })),
+      ...(restDays || []).map(r => ({ id: 'rest-' + r.date, date: r.date, _type: 'rest' })),
+    ];
+    return entries.sort((a,b) => String(b.date).localeCompare(String(a.date)));
+  }, [workouts, restDays]);
+
+  const filteredEntries = useMemo(() => {
+    if (!searchQuery.trim()) return allEntries;
+    const q = searchQuery.trim().toLowerCase();
+    return allEntries.filter(entry => {
+      if (entry._type === 'rest') return false;
+      return (entry.sets || []).some(s => s.exercise && s.exercise.toLowerCase().includes(q));
+    });
+  }, [allEntries, searchQuery]);
+
+  const isSearching = searchQuery.trim().length > 0;
+
   return (
     <section className="page">
-      <p className="eyebrow">Historial</p>
-      <h1>Entrenamientos</h1>
-
-      {/* Month nav */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-        <button className="ghost" style={{ padding: "8px 14px", fontSize: 18 }} onClick={prevMonth}>‹</button>
-        <span style={{ fontSize: 14, color: "var(--muted)" }}>{MONTH_NAMES[viewMonth]} {viewYear}</span>
-        <button className="ghost" style={{ padding: "8px 14px", fontSize: 18, opacity: isCurrentMonth ? 0.3 : 1 }} onClick={nextMonth} disabled={isCurrentMonth}>›</button>
-        <button
-          className="ghost"
-          style={{ padding:"6px 12px", fontSize:12, color: compareMode ? "var(--green)" : "var(--muted)", border: compareMode ? "1px solid var(--green)" : "1px solid var(--line)", borderRadius:10 }}
-          onClick={() => { setCompareMode(m => !m); setCompareIds([]); }}
-        >
-          {compareMode ? "Cancelar" : "Comparar"}
+      <div className="page-head">
+        <button className="back-btn" onClick={() => setPage("home")} aria-label="Volver">
+          <Icon name="ArrowLeft" size={20} strokeWidth={2.5} />
         </button>
+        <div className="page-head-titles">
+          <p className="eyebrow">Historial</p>
+          <h1>Entrenamientos</h1>
+        </div>
       </div>
 
-      <CalendarMonth
-        workouts={workouts}
-        year={viewYear}
-        month={viewMonth}
-        onDayClick={handleDayClick}
-        selectedDate={selectedDate}
-      />
+      <AnnualHeatmap workouts={workouts} />
 
-      {/* Day detail popup */}
-      {selectedDate && selectedWorkouts.length > 0 && (
-        <div className="card" style={{ marginBottom: 14 }}>
-          <p className="eyebrow" style={{ marginBottom: 6 }}>{selectedDate}</p>
-          {selectedWorkouts.map(w => {
-            const best = getBestSet(w);
-            return (
-              <button key={w.id} className="history-card" onClick={() => openWorkout(w.id)}>
-                <div>
-                  <b>{w.type}</b>
-                  <small>{w.sets?.length ?? 0} series</small>
-                </div>
-                {best && <span style={{ fontSize: 12 }}>{best.exercise} {best.weight}kg×{best.reps}</span>}
-                <strong>{Math.round(getWorkoutVolume(w))} kg</strong>
-              </button>
-            );
-          })}
-        </div>
+      {/* Muscle diagram */}
+      <div className="card" style={{ padding:"16px", marginBottom:14 }}>
+        <div style={{ fontSize:13, fontWeight:700, marginBottom:12, color:"var(--muted)", letterSpacing:.5, textTransform:"uppercase" }}>Grupos musculares</div>
+        <AdvancedMuscleDiagram workouts={workouts} />
+      </div>
+
+      {/* Search bar */}
+      <div style={{ marginBottom: 14 }}>
+        <input
+          type="text"
+          placeholder="Buscar por ejercicio..."
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          style={{
+            width: "100%",
+            padding: "10px 14px",
+            borderRadius: 12,
+            border: "1px solid var(--line)",
+            background: "var(--panel)",
+            color: "var(--text)",
+            fontSize: 14,
+            outline: "none",
+            boxSizing: "border-box",
+          }}
+        />
+      </div>
+
+      {/* Calendar and month nav — hidden when searching */}
+      {!isSearching && (
+        <>
+          {/* Month nav */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+            <button className="ghost" style={{ padding: "8px 14px", fontSize: 18 }} onClick={prevMonth}>‹</button>
+            <span style={{ fontSize: 14, color: "var(--muted)" }}>{MONTH_NAMES[viewMonth]} {viewYear}</span>
+            <button className="ghost" style={{ padding: "8px 14px", fontSize: 18, opacity: isCurrentMonth ? 0.3 : 1 }} onClick={nextMonth} disabled={isCurrentMonth}>›</button>
+            <button
+              className="ghost"
+              style={{ padding:"6px 12px", fontSize:12, color: compareMode ? "var(--green)" : "var(--muted)", border: compareMode ? "1px solid var(--green)" : "1px solid var(--line)", borderRadius:10 }}
+              onClick={() => { setCompareMode(m => !m); setCompareIds([]); }}
+            >
+              {compareMode ? "Cancelar" : "Comparar"}
+            </button>
+          </div>
+
+          <CalendarMonth
+            workouts={workouts}
+            year={viewYear}
+            month={viewMonth}
+            onDayClick={handleDayClick}
+            selectedDate={selectedDate}
+          />
+
+          {/* Day detail popup */}
+          {selectedDate && selectedWorkouts.length > 0 && (
+            <div className="card" style={{ marginBottom: 14 }}>
+              <p className="eyebrow" style={{ marginBottom: 6 }}>{selectedDate}</p>
+              {selectedWorkouts.map(w => {
+                const best = getBestSet(w);
+                return (
+                  <button key={w.id} className="history-card" onClick={() => openWorkout(w.id)}>
+                    <div>
+                      <b>{w.type}</b>
+                      <small>{w.sets?.length ?? 0} series</small>
+                    </div>
+                    {best && <span style={{ fontSize: 12 }}>{best.exercise} {best.weight}kg×{best.reps}</span>}
+                    <strong>{Math.round(getWorkoutVolume(w))} kg</strong>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </>
       )}
 
       {workouts.length === 0 ? (
@@ -184,36 +370,140 @@ export default function HistoryPage() {
         </div>
       ) : (
         <div className="history-list">
-          {!selectedDate && workouts.map((workout) => {
-            const best = getBestSet(workout);
-            const hasPr = prDates.has(workout.date);
-            return (
-              <div key={workout.id} style={{ display:"flex", alignItems:"center", gap:8 }}>
-                {compareMode && (
-                  <div
-                    style={{ width:20, height:20, borderRadius:6, border:`2px solid ${compareIds.includes(workout.id) ? "var(--green)" : "var(--line)"}`, background: compareIds.includes(workout.id) ? "var(--green)" : "transparent", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center" }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setCompareIds(prev => prev.includes(workout.id) ? prev.filter(id => id !== workout.id) : prev.length < 2 ? [...prev, workout.id] : prev);
-                    }}
+          {/* Search results */}
+          {isSearching && (() => {
+            if (filteredEntries.length === 0) {
+              return (
+                <div style={{ textAlign: "center", padding: "24px 0", color: "var(--muted)", fontSize: 14 }}>
+                  No se encontraron entrenamientos con ese ejercicio.
+                </div>
+              );
+            }
+            return filteredEntries.map(entry => {
+              if (entry._type !== 'workout') return null;
+              const workout = entry;
+              const best = getBestSet(workout);
+              const hasPr = prDates.has(workout.date);
+              const isExpanded = expandedWorkoutId === workout.id;
+              const uniqueExercises = getUniqueExercises(workout);
+              return (
+                <div key={workout.id} style={{ marginBottom: 8 }}>
+                  <button
+                    className="history-card"
+                    style={{ flex: 1, width: "100%" }}
+                    onClick={() => handleWorkoutItemClick(workout.id)}
                   >
-                    {compareIds.includes(workout.id) && <span style={{ color:"#041009", fontSize:12, fontWeight:900 }}>✓</span>}
+                    <div>
+                      <b>{workout.type}</b>
+                      <small>{formatDate(workout.date)}</small>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      {best && <small style={{ display: "block", color: "var(--muted)", fontSize: 11 }}>{best.exercise} {best.weight}kg</small>}
+                      {hasPr && <span style={{ color: "var(--yellow)", fontSize: 10, fontWeight: 700 }}>⭐ PR</span>}
+                    </div>
+                    <strong>{workout.sets?.length ?? 0} series</strong>
+                  </button>
+                  {isExpanded && uniqueExercises.length > 0 && (
+                    <div style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 12, padding: 12, marginTop: 4 }}>
+                      {uniqueExercises.map(exercise => (
+                        <ExerciseProgressChart key={exercise} exercise={exercise} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            });
+          })()}
+
+          {/* Full history list (no search active) */}
+          {!isSearching && !selectedDate && (() => {
+            let lastMonth = null;
+            const items = [];
+            const visibleEntries = allEntries.slice(0, historyPage);
+            for (const entry of visibleEntries) {
+              const entryMonth = entry.date ? String(entry.date).slice(0, 7) : null;
+              if (entryMonth && entryMonth !== lastMonth) {
+                lastMonth = entryMonth;
+                const [y, m] = entryMonth.split("-");
+                const monthLabel = `${MONTH_NAMES[parseInt(m, 10) - 1]} ${y}`;
+                const workoutsInMonth = (workouts || []).filter(w => w.date?.startsWith(entryMonth));
+                const monthVolume = workoutsInMonth.reduce((sum, w) => sum + (w.sets||[]).reduce((s2, s) => s2 + (Number(s.weight)||0)*(Number(s.reps)||0), 0), 0);
+                const monthWorkoutCount = workoutsInMonth.length;
+                items.push(
+                  <div key={`month-${entryMonth}`} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 2px 4px", marginTop:12 }}>
+                    <span style={{ fontSize:13, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.5px" }}>{monthLabel}</span>
+                    <span style={{ fontSize:12, color:"var(--muted)" }}>{(monthVolume/1000).toFixed(1)}t · {monthWorkoutCount} entrenos</span>
                   </div>
-                )}
-                <button key={workout.id} className="history-card" style={{ flex:1 }} onClick={() => openWorkout(workout.id)}>
-                  <div>
-                    <b>{workout.type}</b>
-                    <small>{formatDate(workout.date)}</small>
+                );
+              }
+
+              if (entry._type === 'rest') {
+                items.push(
+                  <div key={entry.id} style={{ display:"flex", alignItems:"center", gap:10, background:"var(--panel)", border:"1px solid var(--line)", borderRadius:12, padding:"10px 14px", marginBottom:6, opacity:0.7 }}>
+                    <span style={{ fontSize:18 }}>🌙</span>
+                    <div>
+                      <p style={{ margin:0, fontSize:13, fontWeight:600, color:"var(--text)" }}>Día de descanso</p>
+                      <small style={{ color:"var(--muted)" }}>{formatDate(entry.date)}</small>
+                    </div>
                   </div>
-                  <div style={{ textAlign: "right" }}>
-                    {best && <small style={{ display: "block", color: "var(--muted)", fontSize: 11 }}>{best.exercise} {best.weight}kg</small>}
-                    {hasPr && <span style={{ color: "var(--yellow)", fontSize: 10, fontWeight: 700 }}>⭐ PR</span>}
+                );
+              } else {
+                const workout = entry;
+                const best = getBestSet(workout);
+                const hasPr = prDates.has(workout.date);
+                const isExpanded = expandedWorkoutId === workout.id;
+                const uniqueExercises = getUniqueExercises(workout);
+                items.push(
+                  <div key={workout.id} style={{ marginBottom: 6 }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                      {compareMode && (
+                        <div
+                          style={{ width:20, height:20, borderRadius:6, border:`2px solid ${compareIds.includes(workout.id) ? "var(--green)" : "var(--line)"}`, background: compareIds.includes(workout.id) ? "var(--green)" : "transparent", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center" }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCompareIds(prev => prev.includes(workout.id) ? prev.filter(id => id !== workout.id) : prev.length < 2 ? [...prev, workout.id] : prev);
+                          }}
+                        >
+                          {compareIds.includes(workout.id) && <span style={{ color:"#fff", fontSize:12, fontWeight:900 }}>✓</span>}
+                        </div>
+                      )}
+                      <button
+                        className="history-card"
+                        style={{ flex:1 }}
+                        onClick={() => compareMode ? openWorkout(workout.id) : handleWorkoutItemClick(workout.id)}
+                      >
+                        <div>
+                          <b>{workout.type}</b>
+                          <small>{formatDate(workout.date)}</small>
+                        </div>
+                        <div style={{ textAlign: "right" }}>
+                          {best && <small style={{ display: "block", color: "var(--muted)", fontSize: 11 }}>{best.exercise} {best.weight}kg</small>}
+                          {hasPr && <span style={{ color: "var(--yellow)", fontSize: 10, fontWeight: 700 }}>⭐ PR</span>}
+                        </div>
+                        <strong>{workout.sets?.length ?? 0} series</strong>
+                      </button>
+                    </div>
+                    {isExpanded && !compareMode && uniqueExercises.length > 0 && (
+                      <div style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 12, padding: 12, marginTop: 4 }}>
+                        {uniqueExercises.map(exercise => (
+                          <ExerciseProgressChart key={exercise} exercise={exercise} />
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <strong>{workout.sets?.length ?? 0} series</strong>
+                );
+              }
+            }
+            if (allEntries.length > historyPage) {
+              items.push(
+                <button key="load-more" className="ghost" style={{ width:"100%", marginTop:8, fontSize:13 }}
+                  onClick={() => setHistoryPage(p => p + 30)}>
+                  Cargar más ({allEntries.length - historyPage} restantes)
                 </button>
-              </div>
-            );
-          })}
+              );
+            }
+            return items;
+          })()}
         </div>
       )}
 
@@ -254,3 +544,4 @@ export default function HistoryPage() {
     </section>
   );
 }
+

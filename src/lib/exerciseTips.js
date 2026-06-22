@@ -1,0 +1,67 @@
+export const EXERCISE_TIPS = {
+  "Press de banca plano": "Bajá la barra al pecho haciendo un pequeño arco. Empujá los codos hacia afuera al 45°.",
+  "Press de banca inclinado": "El agarre más ancho activa más el pectoral superior. Controlá la bajada 2-3 segundos.",
+  "Press de banca declinado": "El banco a 15-30° activa la parte inferior del pecho. No bloqueés los codos al subir para mantener tensión.",
+  "Aperturas con mancuernas": "Bajá con codos ligeramente flexionados hasta sentir estiramiento, no más. La amplitud importa más que el peso.",
+  "Aperturas en polea": "Mantenés los codos semiflexionados durante todo el recorrido. El punto de máxima contracción es cuando las manos se cruzan al frente.",
+  "Fondos en paralelas": "Inclinarte hacia adelante activa más el pecho; erguido activa más el tríceps. Bajá hasta los 90° de codo como mínimo.",
+  "Push up": "Activá el core y los glúteos durante todo el movimiento. Si las caderas caen o suben, es señal de que el core se desconecta.",
+  "Flexiones diamante": "La posición del triángulo con las manos activa el tríceps y el pectoral interno. Mantené los codos pegados al cuerpo.",
+  "Dominadas": "Iniciá el movimiento con los omóplatos hacia abajo y atrás antes de doblar los codos. Evitá balancearte para no restar eficacia.",
+  "Pull-up agarre neutro": "El agarre neutro (palmas enfrentadas) es más amigable con el manguito rotador. Pensá en llevar los codos hacia las caderas.",
+  "Chin-up": "Las palmas mirando hacia vos reclutan más el bíceps. Llegá al mentón por encima de la barra para el rango completo.",
+  "Remo con barra": "Mantené la espalda paralela al suelo o con leve inclinación. Llevá la barra hacia el ombligo, no hacia el pecho.",
+  "Remo con mancuerna": "Apoyá la rodilla y la mano en el banco para estabilizarte. Llevá el codo hacia el techo, no hacia afuera.",
+  "Jalón al pecho": "Llevá la barra hasta la clavícula y mantenela 1 segundo. Evitá inclinarte excesivamente hacia atrás; el torso va a 30° máximo.",
+  "Jalón tras nuca": "Este movimiento puede ser agresivo para el cuello y el manguito rotador. Preferí el jalón al pecho si tenés molestias.",
+  "Remo en polea baja": "Sentate erguido y pegá los omóplatos al final del recorrido. No usés el impulso del cuerpo para mover el peso.",
+  "Face pull": "Llevá la cuerda hacia la cara separando las manos al final del recorrido. Este ejercicio es clave para la salud del hombro.",
+  "Press militar con barra": "Activá el core y apretá los glúteos para proteger la zona lumbar. Mirá levemente hacia arriba al subir la barra.",
+  "Press Arnold": "La rotación del agarre durante el movimiento activa todas las cabezas del deltoides. Hacelo lento y controlado.",
+  "Press con mancuernas hombro": "No bloqueés los codos arriba para mantener tensión constante. Bajá hasta que los brazos queden paralelos al suelo.",
+  "Elevaciones laterales": "El error más común es usar el impulso del cuerpo. Hacélo lento, con el codo ligeramente flexionado, subiendo hasta la altura del hombro.",
+  "Elevaciones frontales": "Subí hasta la altura del hombro o levemente más arriba. Evitá balancear el torso para agregar peso.",
+  "Elevaciones posteriores": "Inclinado a 45° o acostado boca abajo. Pensá en llevar los codos hacia el techo, no las manos hacia atrás.",
+  "Pájaros con mancuernas": "Con el torso inclinado paralelo al suelo, abrí los brazos hacia los lados con codos semiflexionados. Apretá los omóplatos al final.",
+  "Sentadilla libre": "Las rodillas siguen la dirección de los pies y no colapsan hacia adentro. Bajá hasta paralelo o más profundo si la movilidad lo permite.",
+  "Sentadilla frontal": "El torso va más erguido que en la sentadilla trasera, lo que activa más el cuádriceps. La movilidad de muñecas y tobillos es clave.",
+  "Sentadilla goblet": "Sostené la pesa frente al pecho para mantener el torso erguido. Es ideal para aprender la mecánica de la sentadilla.",
+  "Peso muerto convencional": "La barra arranca sobre los empeines. Empujá el suelo hacia abajo, no tirés la barra hacia arriba, para mantener una postura correcta.",
+  "Peso muerto rumano": "El movimiento parte de las caderas empujando hacia atrás, no de doblar las rodillas. Sentí el estiramiento en los isquiotibiales.",
+  "Peso muerto sumo": "El agarre ancho de piernas reduce el recorrido de la barra. Empujá las rodillas hacia afuera alineadas con los pies.",
+  "Hip thrust": "En la posición superior, los muslos deben quedar paralelos al suelo. Apretá los glúteos en ese punto y mantenelos 1 segundo.",
+  "Prensa de piernas": "No bajés el peso hasta que la espalda baja se despegue del respaldo. El rango seguro termina antes de que eso ocurra.",
+  "Extensión de cuádriceps": "Hacela lenta y controlada para proteger las rodillas. Extendé completamente y mantenés 1 segundo en la parte alta.",
+  "Curl femoral acostado": "Activá los glúteos durante el movimiento para aislar mejor los isquiotibiales. No dejés que las caderas se eleven de la máquina.",
+  "Estocada búlgara": "El pie trasero en el banco requiere equilibrio y movilidad de cadera. Bajá verticalmente en lugar de empujar hacia adelante.",
+  "Estocada caminando": "El paso largo activa más los glúteos; el paso corto activa más el cuádriceps. Mantené el torso erguido durante el recorrido.",
+  "Gemelos de pie": "El rango completo incluye bajar el talón por debajo del nivel de apoyo. Hacé la subida lenta y mantenela 1 segundo arriba.",
+  "Gemelos sentado": "Esta variante activa preferentemente el sóleo, el músculo más profundo. Usá más peso que en los gemelos de pie.",
+  "Curl de bíceps con barra": "Evitá balancear el torso al subir el peso. Los codos fijos a los costados garantizan el trabajo del bíceps.",
+  "Curl de bíceps con mancuernas": "Podés hacer una ligera supinación (rotación de muñeca) al subir para mayor activación. Alternás o simultáneo, ambos funcionan.",
+  "Curl martillo": "El agarre neutro activa el braquial y braquiorradial además del bíceps. Sube más peso que en el curl convencional.",
+  "Curl concentrado": "Apoyá el codo en el muslo para eliminar cualquier impulso. Este es uno de los mejores ejercicios para el pico del bíceps.",
+  "Curl predicador": "El banco predicador fija el codo y elimina el movimiento del hombro. No bloqueés el codo en la bajada para proteger el tendón.",
+  "Skullcrusher": "Bajá la barra hacia la frente con los codos apuntando hacia el techo. El movimiento solo ocurre en el codo, no en el hombro.",
+  "Press francés": "Similar al skullcrusher pero bajando detrás de la cabeza. Mantené los codos pegados sin abrirlos hacia los costados.",
+  "Extensión de tríceps en polea": "Clavá los codos a los costados del torso durante todo el movimiento. Extendé completamente para máxima activación del tríceps.",
+  "Patada de tríceps": "Inclinado con el torso paralelo al suelo, extendé el brazo completamente hacia atrás. No muevas el codo del lugar durante la extensión.",
+  "Plancha": "El cuerpo forma una línea recta de cabeza a talones. Empujá el suelo con los antebrazos para activar más los serratos.",
+  "Crunch": "No levantés la zona lumbar del suelo, el movimiento es solo de la zona torácica. Exhalá en la subida para contraer mejor el core.",
+  "Rueda abdominal": "Empezá de rodillas hasta dominar el movimiento antes de hacerlo de pie. Controlá la bajada con el core para no caer.",
+  "Dragon flag": "Es uno de los ejercicios más exigentes para el core. Descendé lentamente manteniendo el cuerpo rígido como una tabla.",
+  "Dead bug": "La zona lumbar debe permanecer pegada al suelo durante todo el ejercicio. Extendé el brazo y la pierna opuesta de forma simultánea.",
+  "Pallof press": "La resistencia lateral de la polea genera una rotación que el core debe contrarrestar. Mantenés los brazos extendidos 2-3 segundos.",
+  "Russian twist": "Girá desde el torso, no solo los brazos. Para aumentar la dificultad, elevás los pies del suelo.",
+  "Encogimientos de hombros": "El movimiento es vertical puro, no circular. Mantené la posición alta 1-2 segundos para máxima activación del trapecio.",
+};
+
+export function getTipForExercise(name) {
+  if (!name) return null;
+  const n = name.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  for (const [key, tip] of Object.entries(EXERCISE_TIPS)) {
+    const k = key.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+    if (n.includes(k) || k.includes(n)) return tip;
+  }
+  return null;
+}

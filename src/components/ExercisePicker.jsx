@@ -1,11 +1,78 @@
 import { useMemo, useState, useRef, useCallback, useEffect } from "react";
-import { List } from "react-window";
 import { BODY_GROUPS, MUSCLES_BY_GROUP, EQUIPMENT_OPTIONS, getFilteredExercises } from "../data/exerciseDatabase.js";
 import useStore from "../store/useStore.js";
 import Icon from "./Icon.jsx";
+import { useVirtualList } from "../lib/useVirtualList.js";
 
 const ALL = "Todos";
 const CHIPS = [ALL, ...BODY_GROUPS];
+const ITEM_H = 58;
+const LIST_H = 460;
+
+function VirtualExerciseList({ items, favoriteExercises, toggleFavorite, onExerciseTap, handlePick, totalCount }) {
+  const { visibleItems, totalHeight, offsetY, onScroll } = useVirtualList({
+    items,
+    itemHeight: ITEM_H,
+    containerHeight: LIST_H,
+  });
+
+  if (items.length === 0) {
+    return (
+      <div className="notice" style={{ marginTop: 8 }}>
+        <p>No se encontraron ejercicios con esos filtros.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="exercise-results-list"
+      style={{ height: LIST_H, overflowY: "auto", position: "relative" }}
+      onScroll={onScroll}
+    >
+      {/* Total height spacer */}
+      <div style={{ height: totalHeight, position: "relative" }}>
+        {/* Offset container for visible items */}
+        <div style={{ position: "absolute", top: offsetY, left: 0, right: 0 }}>
+          {visibleItems.map(({ item: ex, index }) => {
+            const isFav = favoriteExercises.includes(ex.name);
+            return (
+              <div key={ex.id || ex.name} className="exercise-row" style={{ display: "flex", alignItems: "center", cursor: "default", height: ITEM_H }}>
+                <div
+                  className="exercise-row-info"
+                  style={{ flex: 1, cursor: "pointer" }}
+                  onClick={() => onExerciseTap ? onExerciseTap(ex.name) : handlePick(ex)}
+                >
+                  <b>{ex.name}</b>
+                  <small>{ex.group} · {ex.muscle} · {ex.equipment}</small>
+                </div>
+                {onExerciseTap && (
+                  <button
+                    onClick={() => handlePick(ex)}
+                    aria-label="Agregar ejercicio"
+                    style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, padding: "4px 6px", color: "var(--muted)", flexShrink: 0 }}
+                  >+</button>
+                )}
+                <button
+                  className="fav-btn"
+                  onClick={(e) => { e.stopPropagation(); toggleFavorite(ex.name); }}
+                  aria-label={isFav ? "Remove from favorites" : "Add to favorites"}
+                >
+                  <Icon name="Star" size={14} fill={isFav ? "var(--yellow)" : "none"} color={isFav ? "var(--yellow)" : "var(--muted)"} />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      {totalCount > 500 && (
+        <p style={{ textAlign: "center", fontSize: 12, color: "var(--muted)", padding: "8px 0" }}>
+          {totalCount} ejercicios — usá los filtros para acotar
+        </p>
+      )}
+    </div>
+  );
+}
 
 function useDebounce(value, delay = 300) {
   const [debounced, setDebounced] = useState("");
@@ -18,7 +85,7 @@ function useDebounce(value, delay = 300) {
   return debounced;
 }
 
-export default function ExercisePicker({ onPick, compact = false, query: queryProp, onQueryChange }) {
+export default function ExercisePicker({ onPick, compact = false, query: queryProp, onQueryChange, onExerciseTap }) {
   const [queryInternal, setQueryInternal] = useState("");
   const isControlled = queryProp !== undefined;
   const query = isControlled ? queryProp : queryInternal;
@@ -27,7 +94,7 @@ export default function ExercisePicker({ onPick, compact = false, query: queryPr
   const [group, setGroup] = useState(ALL);
   const [muscle, setMuscle] = useState(ALL);
   const [equipment, setEquipment] = useState(ALL);
-  const listRef = useRef(null);
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 
   const recentExercises = useStore((state) => state.recentExercises);
   const favoriteExercises = useStore((state) => state.favoriteExercises);
@@ -35,9 +102,14 @@ export default function ExercisePicker({ onPick, compact = false, query: queryPr
   const toggleFavorite = useStore((state) => state.toggleFavorite);
   const getCatalog = useStore((state) => state.getCatalog);
 
-  const results = useMemo(
+  const allResults = useMemo(
     () => getFilteredExercises({ query: debouncedQuery, group, muscle, equipment }),
     [debouncedQuery, group, muscle, equipment]
+  );
+
+  const results = useMemo(
+    () => showFavoritesOnly ? allResults.filter(e => favoriteExercises.includes(e.name)) : allResults,
+    [allResults, showFavoritesOnly, favoriteExercises]
   );
 
   const displayed = compact ? results.slice(0, 50) : results;
@@ -53,29 +125,6 @@ export default function ExercisePicker({ onPick, compact = false, query: queryPr
     trackExercisePick(exercise.name);
     onPick(exercise);
   }, [trackExercisePick, onPick]);
-
-  const Row = useCallback(({ index, style }) => {
-    const ex = displayed[index];
-    if (!ex) return null;
-    const isFav = favoriteExercises.includes(ex.name);
-    return (
-      <div style={style}>
-        <button className="exercise-row" onClick={() => handlePick(ex)}>
-          <div className="exercise-row-info">
-            <b>{ex.name}</b>
-            <small>{ex.group} · {ex.muscle} · {ex.equipment}</small>
-          </div>
-          <button
-            className="fav-btn"
-            onClick={(e) => { e.stopPropagation(); toggleFavorite(ex.name); }}
-            aria-label={isFav ? "Remove from favorites" : "Add to favorites"}
-          >
-            <Icon name="Star" size={14} fill={isFav ? "var(--yellow)" : "none"} color={isFav ? "var(--yellow)" : "var(--muted)"} />
-          </button>
-        </button>
-      </div>
-    );
-  }, [displayed, favoriteExercises, handlePick, toggleFavorite]);
 
   return (
     <div className="picker">
@@ -103,6 +152,20 @@ export default function ExercisePicker({ onPick, compact = false, query: queryPr
         ))}
       </div>
 
+      <div style={{ display: "flex", gap: 6, paddingBottom: 6, overflowX: "auto" }}>
+        <button
+          onClick={() => setShowFavoritesOnly(prev => !prev)}
+          style={{
+            padding: "6px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", flexShrink: 0,
+            border: showFavoritesOnly ? "2px solid #f59e0b" : "2px solid var(--line)",
+            background: showFavoritesOnly ? "rgba(245,158,11,.12)" : "var(--panel2)",
+            color: showFavoritesOnly ? "#f59e0b" : "var(--muted)"
+          }}
+        >
+          ⭐ Favoritos {favoriteExercises.length > 0 && `(${favoriteExercises.length})`}
+        </button>
+      </div>
+
       <div className="filters">
         <select value={muscle} onChange={(e) => setMuscle(e.target.value)} aria-label="Filter by muscle">
           <option value={ALL}>Músculo</option>
@@ -119,7 +182,7 @@ export default function ExercisePicker({ onPick, compact = false, query: queryPr
           <small className="section-label">Recientes</small>
           <div className="recent-list">
             {recentItems.map((ex) => (
-              <button key={ex.id} className="exercise-row compact" onClick={() => handlePick(ex)}>
+              <button key={ex.id || ex.name} className="exercise-row compact" onClick={() => handlePick(ex)}>
                 <b>{ex.name}</b>
                 <small>{ex.group}</small>
               </button>
@@ -128,24 +191,14 @@ export default function ExercisePicker({ onPick, compact = false, query: queryPr
         </div>
       )}
 
-      <div className="exercise-results-virtual">
-        {displayed.length === 0 ? (
-          <div className="notice" style={{ marginTop: 8 }}>
-            <p>No se encontraron ejercicios con esos filtros.</p>
-          </div>
-        ) : (
-          <List
-            ref={listRef}
-            height={Math.min(displayed.length * 52, 400)}
-            itemCount={displayed.length}
-            itemSize={52}
-            width="100%"
-            overscanCount={5}
-          >
-            {Row}
-          </List>
-        )}
-      </div>
+      <VirtualExerciseList
+        items={displayed}
+        favoriteExercises={favoriteExercises}
+        toggleFavorite={toggleFavorite}
+        onExerciseTap={onExerciseTap}
+        handlePick={handlePick}
+        totalCount={results.length}
+      />
     </div>
   );
 }

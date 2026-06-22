@@ -1,7 +1,18 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import useAuthStore from "../store/useAuthStore.js";
 import { supabase } from "../lib/supabase.js";
 import Icon from "../components/Icon.jsx";
+
+const MAX_ATTEMPTS = 3;
+const COOLDOWN_MS = 30_000;
+const LS_KEY = "pulse-login-attempts";
+
+function getRateLimit() {
+  try { return JSON.parse(localStorage.getItem(LS_KEY) || "{}"); } catch { return {}; }
+}
+function setRateLimit(data) {
+  localStorage.setItem(LS_KEY, JSON.stringify(data));
+}
 
 export default function LoginPage() {
   const [mode, setMode] = useState("login"); // "login" | "forgot"
@@ -9,13 +20,46 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [msg, setMsg] = useState("");
+  const [cooldownSecs, setCooldownSecs] = useState(0);
   const login = useAuthStore((s) => s.login);
   const authError = useAuthStore((s) => s.authError);
 
+  // Tick down cooldown display
+  useEffect(() => {
+    const rl = getRateLimit();
+    if (rl.lockedUntil && rl.lockedUntil > Date.now()) {
+      const tick = () => {
+        const left = Math.ceil((rl.lockedUntil - Date.now()) / 1000);
+        if (left <= 0) { setCooldownSecs(0); } else { setCooldownSecs(left); setTimeout(tick, 1000); }
+      };
+      tick();
+    }
+  }, []);
+
   async function handleLogin(e) {
     e.preventDefault();
+    const rl = getRateLimit();
+    if (rl.lockedUntil && rl.lockedUntil > Date.now()) {
+      const left = Math.ceil((rl.lockedUntil - Date.now()) / 1000);
+      setCooldownSecs(left);
+      return;
+    }
     setSubmitting(true);
     await login(email.trim(), password);
+    const error = useAuthStore.getState().authError;
+    if (error) {
+      const attempts = (rl.attempts || 0) + 1;
+      if (attempts >= MAX_ATTEMPTS) {
+        const lockedUntil = Date.now() + COOLDOWN_MS;
+        setRateLimit({ attempts, lockedUntil });
+        setCooldownSecs(Math.ceil(COOLDOWN_MS / 1000));
+        setTimeout(() => { setRateLimit({}); setCooldownSecs(0); }, COOLDOWN_MS);
+      } else {
+        setRateLimit({ ...rl, attempts });
+      }
+    } else {
+      setRateLimit({});
+    }
     setSubmitting(false);
   }
 
@@ -38,9 +82,10 @@ export default function LoginPage() {
     <div className="login-screen">
       <div className="login-card">
         <div className="login-logo">
-          <Icon name="Zap" size={36} />
+          <Icon name="Zap" size={36} style={{ color:"var(--green)" }} />
         </div>
-        <h1 className="login-title">Pulse</h1>
+        <h1 className="login-title" style={{ background:"linear-gradient(135deg, var(--green), var(--cyan))", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text" }}>Loop</h1>
+        <p style={{ textAlign:"center", fontSize:12, color:"var(--muted)", margin:"-8px 0 16px", letterSpacing:"0.12em", textTransform:"uppercase" }}>Track · Improve · Dominate</p>
 
         {mode === "login" ? (
           <>
@@ -65,8 +110,14 @@ export default function LoginPage() {
                 </div>
               )}
 
-              <button type="submit" className="primary big login-btn" disabled={submitting || !email || !password}>
-                {submitting ? "Ingresando…" : "Ingresar"}
+              {cooldownSecs > 0 && (
+                <div className="login-error">
+                  <Icon name="Clock" size={14} />
+                  <span>Demasiados intentos. Esperá {cooldownSecs}s.</span>
+                </div>
+              )}
+              <button type="submit" className="primary big login-btn" disabled={submitting || !email || !password || cooldownSecs > 0}>
+                {submitting ? "Ingresando…" : cooldownSecs > 0 ? `Bloqueado (${cooldownSecs}s)` : "Ingresar"}
               </button>
 
               <button type="button" className="ghost" style={{ width: "100%", fontSize: 13 }}

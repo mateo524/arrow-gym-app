@@ -184,7 +184,7 @@ export const ROUTINES = {
   Legs: [
     "Extensión de cuádriceps",
     "Curl de isquios acostado",
-    "Zancada búlgara",
+    "Estocada búlgara",
     "Peso muerto rumano",
     "Sentadilla en Smith",
     "Elevación de pantorrillas de pie",

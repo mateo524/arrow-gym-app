@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import useStore from "../store/useStore.js";
+import { useDebounce } from "../lib/useDebounce.js";
 import { BODY_GROUPS, MUSCLES_BY_GROUP } from "../data/exerciseDatabase.js";
 import ExercisePicker from "../components/ExercisePicker.jsx";
+import ExerciseHistoryPage from "./ExerciseHistoryPage.jsx";
 
 
 function ExerciseSkeleton() {
@@ -32,13 +34,9 @@ export default function ExercisesPage() {
   }, []);
 
   const [query, setQuery] = useState("");
-  const [isSearching, setIsSearching] = useState(false);
-  useEffect(() => {
-    if (!query) return;
-    setIsSearching(true);
-    const t = setTimeout(() => setIsSearching(false), 150);
-    return () => clearTimeout(t);
-  }, [query]);
+  const debouncedQuery = useDebounce(query, 200);
+  const isSearching = query !== debouncedQuery;
+  const [historyExercise, setHistoryExercise] = useState(null);
 
   return (
     <section className="page">
@@ -56,9 +54,13 @@ export default function ExercisesPage() {
       ) : (
         <ExercisePicker
           onPick={() => {}}
-          query={query}
+          query={debouncedQuery}
           onQueryChange={setQuery}
+          onExerciseTap={setHistoryExercise}
         />
+      )}
+      {historyExercise && (
+        <ExerciseHistoryPage exerciseName={historyExercise} onClose={() => setHistoryExercise(null)} />
       )}
       <div className="card" style={{ marginTop: 14 }}>
         <h2>Crear ejercicio propio</h2>

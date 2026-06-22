@@ -1,14 +1,49 @@
-import { useState, useEffect, useRef } from "react";
+﻿import { useState, useEffect, useRef } from "react";
 import { playDone } from "../lib/sound.js";
 
 const CIRCUMFERENCE = 2 * Math.PI * 28;
-const PRESETS = [60, 90, 120];
+const PRESETS = [30, 60, 90, 120, 180];
+
+// Create a Web Worker from inline code so the timer runs even when the app
+// is backgrounded on mobile (avoids throttled setInterval).
+function createWorker() {
+  try {
+    const url = new URL("../lib/timerWorker.js", import.meta.url);
+    return new Worker(url, { type: "module" });
+  } catch {
+    return null;
+  }
+}
 
 export default function RestTimer({ duration = 90, onComplete, onSkip, active, soundEnabled = true, nextLabel }) {
   const [selectedDuration, setSelectedDuration] = useState(duration);
   const [remaining, setRemaining] = useState(duration);
-  const timerRef = useRef(null);
+  const [customInput, setCustomInput] = useState("");
+  const workerRef = useRef(null);
   const doneRef = useRef(false);
+  const onCompleteRef = useRef(onComplete);
+  useEffect(() => { onCompleteRef.current = onComplete; }, [onComplete]);
+
+  // Init worker once
+  useEffect(() => {
+    workerRef.current = createWorker();
+    if (workerRef.current) {
+      workerRef.current.onmessage = (e) => {
+        const { type, remaining: r } = e.data;
+        if (type === "tick") setRemaining(r);
+        if (type === "done" && !doneRef.current) {
+          doneRef.current = true;
+          if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+          if (Notification?.permission === "granted") {
+            try { new Notification("⏱ Loop — Descanso terminado", { body: "¡Listo para la próxima serie!", tag: "rest-timer", silent: true }); } catch {}
+          }
+          try { if (soundEnabled) import("../lib/sound.js").then(({ playDone: pd }) => pd()); } catch {}
+          onCompleteRef.current?.();
+        }
+      };
+    }
+    return () => { workerRef.current?.terminate(); workerRef.current = null; };
+  }, []);
 
   useEffect(() => {
     setSelectedDuration(duration);
@@ -17,34 +52,40 @@ export default function RestTimer({ duration = 90, onComplete, onSkip, active, s
 
   useEffect(() => {
     if (!active) {
+      workerRef.current?.postMessage({ type: "stop" });
       setRemaining(selectedDuration);
       doneRef.current = false;
       return;
     }
-    timerRef.current = setInterval(() => {
-      setRemaining((prev) => {
-        const next = prev - 1;
-        if (next <= 0) {
-          clearInterval(timerRef.current);
-          if (!doneRef.current) {
-            doneRef.current = true;
-            if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-            if (soundEnabled) playDone();
-            onComplete?.();
-          }
-          return 0;
-        }
-        return next;
-      });
-    }, 1000);
-    return () => clearInterval(timerRef.current);
-  }, [active, selectedDuration, onComplete, soundEnabled]);
+    doneRef.current = false;
+    if (workerRef.current) {
+      workerRef.current.postMessage({ type: "start", seconds: selectedDuration });
+    } else {
+      // Fallback to setInterval if Worker unavailable
+      const t = setInterval(() => {
+        setRemaining(prev => {
+          if (prev <= 1) { clearInterval(t); onCompleteRef.current?.(); return 0; }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(t);
+    }
+  }, [active, selectedDuration]);
 
   function handlePreset(secs) {
-    clearInterval(timerRef.current);
+    if (secs === selectedDuration) return;
+    workerRef.current?.postMessage({ type: "stop" });
     doneRef.current = false;
     setSelectedDuration(secs);
     setRemaining(secs);
+  }
+
+  function handleCustom(e) {
+    e.preventDefault();
+    const secs = parseInt(customInput, 10);
+    if (!secs || secs < 5 || secs > 600) return;
+    setCustomInput("");
+    handlePreset(secs);
   }
 
   const progress = remaining / selectedDuration;
@@ -61,10 +102,21 @@ export default function RestTimer({ duration = 90, onComplete, onSkip, active, s
             className={`rest-preset${selectedDuration === s ? " active" : ""}`}
             onClick={() => handlePreset(s)}
           >
-            {s}s
+            {s >= 60 ? `${s/60}m` : `${s}s`}
           </button>
         ))}
       </div>
+      <form onSubmit={handleCustom} style={{ display:"flex", gap:4, alignItems:"center", marginBottom:6 }}>
+        <input
+          type="number"
+          value={customInput}
+          onChange={e => setCustomInput(e.target.value)}
+          placeholder="seg"
+          min="5" max="600"
+          style={{ width:60, background:"var(--panel2)", border:"1px solid var(--line)", borderRadius:8, padding:"5px 8px", color:"var(--text)", fontSize:13, textAlign:"center" }}
+        />
+        <button type="submit" style={{ background:"rgba(168,85,247,.15)", border:"1px solid rgba(168,85,247,.35)", borderRadius:8, padding:"5px 10px", fontSize:12, color:"var(--green)", cursor:"pointer", fontWeight:700 }}>OK</button>
+      </form>
 
       <div className="rest-ring-wrap">
         <svg width={72} height={72} viewBox="0 0 72 72" className="rest-timer-ring">
@@ -95,3 +147,4 @@ export default function RestTimer({ duration = 90, onComplete, onSkip, active, s
     </div>
   );
 }
+
