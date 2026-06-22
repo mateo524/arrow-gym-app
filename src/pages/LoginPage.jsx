@@ -3,7 +3,7 @@ import useAuthStore from "../store/useAuthStore.js";
 import { supabase } from "../lib/supabase.js";
 import Icon from "../components/Icon.jsx";
 
-const MAX_ATTEMPTS = 3;
+const MAX_ATTEMPTS = 5;
 const COOLDOWN_MS = 30_000;
 const LS_KEY = "pulse-login-attempts";
 
@@ -106,7 +106,10 @@ export default function LoginPage() {
                 <div className="login-error">
                   <Icon name="AlertCircle" size={14} />
                   <span>{authError.includes("Invalid login") || authError.includes("invalid_credentials")
-                    ? "Email o contraseña incorrectos" : authError}</span>
+                    ? "Email o contraseña incorrectos"
+                    : authError.includes("Failed to fetch") || authError.includes("NetworkError")
+                    ? "Error de conexión — revisá tu internet o intentá más tarde"
+                    : authError}</span>
                 </div>
               )}
 
