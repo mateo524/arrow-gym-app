@@ -3,7 +3,7 @@ import useStore from "../store/useStore.js";
 import { getWorkoutVolume, formatDate } from "../lib/analytics.js";
 import ExerciseProgressChart from "../components/ExerciseProgressChart.jsx";
 import Icon from "../components/Icon.jsx";
-import AdvancedMuscleDiagram from "../components/AdvancedMuscleDiagram.jsx";
+
 
 const MONTH_NAMES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 const DAY_LABELS = ["L","M","X","J","V","S","D"];
@@ -101,108 +101,6 @@ function getUniqueExercises(workout) {
   return exercises;
 }
 
-function AnnualHeatmap({ workouts }) {
-  const today = new Date();
-  const todayStr = today.toISOString().slice(0,10);
-
-  // Build map of date -> set count
-  const dateMap = {};
-  (workouts || []).forEach(w => {
-    const key = (w.date||'').slice(0,10);
-    if (key) dateMap[key] = (dateMap[key]||0) + (w.sets?.length||0);
-  });
-
-  // Build 52 weeks x 7 days grid ending today
-  const CELL = 11, GAP = 2;
-  const totalDays = 364; // 52 weeks
-  const days = [];
-  for (let i = totalDays - 1; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(today.getDate() - i);
-    const iso = d.toISOString().slice(0,10);
-    const count = dateMap[iso] || 0;
-    let level = 0;
-    if (count > 0 && count <= 4) level = 1;
-    else if (count > 4 && count <= 10) level = 2;
-    else if (count > 10 && count <= 18) level = 3;
-    else if (count > 18) level = 4;
-    days.push({ iso, count, level, month: d.getMonth(), day: d.getDate(), dow: d.getDay() });
-  }
-
-  // Group into columns of 7 (each column = one week, Mon-Sun)
-  // Align first column by day of week
-  const startDow = days[0].dow === 0 ? 6 : days[0].dow - 1;
-  const paddedDays = [...Array(startDow).fill(null), ...days];
-  const weeks = [];
-  for (let i = 0; i < paddedDays.length; i += 7) weeks.push(paddedDays.slice(i, i+7));
-
-  // Month label positions
-  const monthLabels = [];
-  let lastMonth = -1;
-  weeks.forEach((week, wi) => {
-    const firstReal = week.find(Boolean);
-    if (firstReal && firstReal.month !== lastMonth) {
-      lastMonth = firstReal.month;
-      monthLabels.push({ wi, label: ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"][firstReal.month] });
-    }
-  });
-
-  const COLORS = {
-    0: "rgba(255,255,255,.07)",
-    1: "rgba(168,85,247,.25)",
-    2: "rgba(168,85,247,.5)",
-    3: "rgba(168,85,247,.75)",
-    4: "rgba(168,85,247,1)",
-  };
-
-  const W = weeks.length * (CELL + GAP);
-  const H = 7 * (CELL + GAP) + 16;
-
-  return (
-    <div style={{ marginBottom:20 }}>
-      <p className="section-label" style={{ marginBottom:8 }}>Actividad anual</p>
-      <div style={{ background:"var(--panel)", borderRadius:16, padding:"14px 12px", border:"1px solid var(--line)", overflowX:"auto" }}>
-        <svg width={W} height={H} style={{ display:"block", minWidth:W }}>
-          {/* Month labels */}
-          {monthLabels.map(({ wi, label }) => (
-            <text key={wi} x={wi*(CELL+GAP)} y={10} fontSize={9} fill="rgba(255,255,255,.4)" fontWeight="600">{label}</text>
-          ))}
-          {/* Cells */}
-          {weeks.map((week, wi) =>
-            week.map((day, di) => {
-              if (!day) return null;
-              const x = wi * (CELL + GAP);
-              const y = 14 + di * (CELL + GAP);
-              const isToday = day.iso === todayStr;
-              return (
-                <g key={day.iso}>
-                  <rect
-                    x={x} y={y} width={CELL} height={CELL}
-                    rx={2} ry={2}
-                    fill={COLORS[day.level]}
-                    stroke={isToday ? "var(--green)" : "none"}
-                    strokeWidth={isToday ? 1.5 : 0}
-                  >
-                    <title>{day.iso}: {day.count} series</title>
-                  </rect>
-                </g>
-              );
-            })
-          )}
-        </svg>
-        {/* Legend */}
-        <div style={{ display:"flex", alignItems:"center", gap:4, marginTop:10, justifyContent:"flex-end" }}>
-          <span style={{ fontSize:9, color:"rgba(255,255,255,.3)", marginRight:4 }}>Menos</span>
-          {[0,1,2,3,4].map(l => (
-            <div key={l} style={{ width:10, height:10, borderRadius:2, background:COLORS[l] }} />
-          ))}
-          <span style={{ fontSize:9, color:"rgba(255,255,255,.3)", marginLeft:4 }}>Más</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function HistoryPage() {
   const workouts = useStore((state) => state.workouts);
   const restDays = useStore(s => s.restDays) || [];
@@ -281,14 +179,6 @@ export default function HistoryPage() {
           <p className="eyebrow">Historial</p>
           <h1>Entrenamientos</h1>
         </div>
-      </div>
-
-      <AnnualHeatmap workouts={workouts} />
-
-      {/* Muscle diagram */}
-      <div className="card" style={{ padding:"16px", marginBottom:14 }}>
-        <div style={{ fontSize:13, fontWeight:700, marginBottom:12, color:"var(--muted)", letterSpacing:.5, textTransform:"uppercase" }}>Grupos musculares</div>
-        <AdvancedMuscleDiagram workouts={workouts} />
       </div>
 
       {/* Search bar */}

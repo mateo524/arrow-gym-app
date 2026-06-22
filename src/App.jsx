@@ -28,11 +28,11 @@ import useStore from "./store/useStore.js";
 import useAuthStore from "./store/useAuthStore.js";
 import { supabase } from "./lib/supabase.js";
 
-const APP_VERSION = "43";
+const APP_VERSION = "44";
 const NOVEDADES = [
-  { icon: "🔄", text: "La app ahora se llama Loop — mismo entreno, nueva identidad." },
-  { icon: "🔔", text: "Las actualizaciones se aplican solas: cuando haya una versión nueva, la app se recarga automáticamente." },
-  { icon: "📊", text: "El gráfico de volumen por grupo muscular en Coach ya no tapa el contenido de arriba." },
+  { icon: "⏱", text: "El timer de descanso ahora funciona aunque cambies de pestaña." },
+  { icon: "🏆", text: "Resumen de récords al terminar un entrenamiento — no se tapa más con la barra de abajo." },
+  { icon: "✏️", text: "Podés iniciar el descanso desde cada serie con el botón 'Descanso'." },
 ];
 
 function InstallBanner({ onInstall, onDismiss, isIOS }) {
