@@ -318,7 +318,7 @@ export default function WorkoutPage() {
         } else {
           _commitFinish(notes, rpe, summary);
         }
-      });
+      }).catch(() => _commitFinish(notes, rpe, summary));
     });
   }
 
@@ -893,70 +893,6 @@ export default function WorkoutPage() {
         </div>
       )}
 
-      {/* ── REST TIMER OVERLAY ────────────────────────────────────────────── */}
-      {restExercise && (
-        <div className="rest-overlay">
-          <div className="rest-overlay-label">
-            <small>Descansando — {restExercise}</small>
-          </div>
-          <RestTimer
-            key={restKey}
-            active
-            duration={exerciseRestTimes[restExercise] || 90}
-            soundEnabled={soundEnabled}
-            onSkip={handleSkipRest}
-            onComplete={handleRestComplete}
-            nextLabel={nextExercise}
-          />
-        </div>
-      )}
-
-      {/* ── REST DONE TOAST ───────────────────────────────────────────────── */}
-      {restDone && (
-        <div style={{
-          position: "fixed", top: 80, left: "50%", transform: "translateX(-50%)",
-          background: "var(--green)", color: "#fff",
-          borderRadius: 50, padding: "12px 24px",
-          display: "flex", alignItems: "center", gap: 10,
-          zIndex: 1100, boxShadow: "0 4px 24px rgba(168,85,247,.4)",
-          fontSize: 14, fontWeight: 800, whiteSpace: "nowrap",
-        }}>
-          <span style={{ fontSize: 20 }}>✅</span>
-          ¡Descanso terminado! Continuá
-          <button onClick={handleSkipRest}
-            style={{ background: "rgba(0,0,0,.2)", border: "none", borderRadius: 20, padding: "4px 10px", fontSize: 12, fontWeight: 700, cursor: "pointer", color: "#fff" }}>
-            OK
-          </button>
-        </div>
-      )}
-
-      {/* ── UNDO DELETE TOAST ─────────────────────────────────────────────── */}
-      {deletedSet && (
-        <div style={{ position: "fixed", bottom: 100, left: "50%", transform: "translateX(-50%)", background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 14, padding: "10px 16px", display: "flex", gap: 12, alignItems: "center", zIndex: 1000, whiteSpace: "nowrap", boxShadow: "0 4px 20px rgba(0,0,0,.4)" }}>
-          <span style={{ fontSize: 13 }}>Serie eliminada</span>
-          <button style={{ background: "var(--green)", color: "#fff", border: "none", borderRadius: 8, padding: "5px 10px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}
-            onClick={() => {
-              if (deletedSet) {
-                useStore.setState((state) => {
-                  if (!state.activeWorkout) return state;
-                  const sets = [...state.activeWorkout.sets];
-                  const exerciseSets = sets.map((s, i) => ({ s, i })).filter(({ s }) => s.exercise === deletedSet.set.exercise);
-                  const insertAt = exerciseSets.length > 0
-                    ? (exerciseSets[Math.min(deletedSet.index, exerciseSets.length - 1)]?.i ?? sets.length)
-                    : sets.length;
-                  sets.splice(insertAt, 0, deletedSet.set);
-                  return { activeWorkout: { ...state.activeWorkout, sets } };
-                });
-              }
-              setDeletedSet(null);
-              clearTimeout(undoTimerRef.current);
-            }}>
-            Deshacer
-          </button>
-        </div>
-      )}
-
-
 
       {/* ── FINISH CONFIRM ────────────────────────────────────────────────── */}
       {showFinishConfirm && (
@@ -1121,6 +1057,69 @@ export default function WorkoutPage() {
         </>
       )}
     </section>
+
+    {/* ── REST TIMER OVERLAY ────────────────────────────────────────────── */}
+    {restExercise && (
+      <div className="rest-overlay">
+        <div className="rest-overlay-label">
+          <small>Descansando — {restExercise}</small>
+        </div>
+        <RestTimer
+          key={restKey}
+          active
+          duration={exerciseRestTimes[restExercise] || 90}
+          soundEnabled={soundEnabled}
+          onSkip={handleSkipRest}
+          onComplete={handleRestComplete}
+          nextLabel={nextExercise}
+        />
+      </div>
+    )}
+
+    {/* ── REST DONE TOAST ───────────────────────────────────────────────── */}
+    {restDone && (
+      <div style={{
+        position: "fixed", top: 80, left: "50%", transform: "translateX(-50%)",
+        background: "var(--green)", color: "#fff",
+        borderRadius: 50, padding: "12px 24px",
+        display: "flex", alignItems: "center", gap: 10,
+        zIndex: 1100, boxShadow: "0 4px 24px rgba(168,85,247,.4)",
+        fontSize: 14, fontWeight: 800, whiteSpace: "nowrap",
+      }}>
+        <span style={{ fontSize: 20 }}>✅</span>
+        ¡Descanso terminado! Continuá
+        <button onClick={handleSkipRest}
+          style={{ background: "rgba(0,0,0,.2)", border: "none", borderRadius: 20, padding: "4px 10px", fontSize: 12, fontWeight: 700, cursor: "pointer", color: "#fff" }}>
+          OK
+        </button>
+      </div>
+    )}
+
+    {/* ── UNDO DELETE TOAST ─────────────────────────────────────────────── */}
+    {deletedSet && (
+      <div style={{ position: "fixed", bottom: 100, left: "50%", transform: "translateX(-50%)", background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 14, padding: "10px 16px", display: "flex", gap: 12, alignItems: "center", zIndex: 1000, whiteSpace: "nowrap", boxShadow: "0 4px 20px rgba(0,0,0,.4)" }}>
+        <span style={{ fontSize: 13 }}>Serie eliminada</span>
+        <button style={{ background: "var(--green)", color: "#fff", border: "none", borderRadius: 8, padding: "5px 10px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+          onClick={() => {
+            if (deletedSet) {
+              useStore.setState((state) => {
+                if (!state.activeWorkout) return state;
+                const sets = [...state.activeWorkout.sets];
+                const exerciseSets = sets.map((s, i) => ({ s, i })).filter(({ s }) => s.exercise === deletedSet.set.exercise);
+                const insertAt = exerciseSets.length > 0
+                  ? (exerciseSets[Math.min(deletedSet.index, exerciseSets.length - 1)]?.i ?? sets.length)
+                  : sets.length;
+                sets.splice(insertAt, 0, deletedSet.set);
+                return { activeWorkout: { ...state.activeWorkout, sets } };
+              });
+            }
+            setDeletedSet(null);
+            clearTimeout(undoTimerRef.current);
+          }}>
+          Deshacer
+        </button>
+      </div>
+    )}
 
     {/* ── FIXED BOTTOM ACTION BAR ─────────────────────────────────────────── */}
     <div style={{

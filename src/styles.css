@@ -1814,10 +1814,10 @@ p { color: #c4b8d8; }
 /* ───── REST OVERLAY ───── */
 .rest-overlay {
   position: fixed;
-  bottom: 82px;
+  bottom: calc(82px + env(safe-area-inset-bottom, 0px));
   left: 0;
   right: 0;
-  z-index: 150;
+  z-index: 300;
   padding: 0 12px;
   max-width: 520px;
   margin: 0 auto;
