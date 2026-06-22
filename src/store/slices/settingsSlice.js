@@ -7,7 +7,6 @@ export const createSettingsSlice = (set, get) => ({
   userGoal: "mantenimiento",
   fontScale: 1,
   autoDarkMode: false,
-  voiceCoach: false,
   reminderEnabled: false,
   reminderTime: "18:00",
   weekSummaryDismissed: null,
@@ -20,12 +19,10 @@ export const createSettingsSlice = (set, get) => ({
   weeklyGoal: 4,
 
   setPage: (page) => {
-    const state = get();
     if (page === "coach") {
       set({ currentPage: page, coachBadge: false });
     } else {
-      const hasReports = (state.coachReports?.length || 0) > 0;
-      set({ currentPage: page, coachBadge: hasReports });
+      set({ currentPage: page });
     }
   },
 
@@ -33,7 +30,6 @@ export const createSettingsSlice = (set, get) => ({
   clearCoachBadge: () => set({ coachBadge: false }),
   toggleAmoled: () => set((s) => ({ amoled: !s.amoled })),
   toggleSound: () => set((s) => ({ soundEnabled: !s.soundEnabled })),
-  toggleVoiceCoach: () => set((s) => ({ voiceCoach: !s.voiceCoach })),
   setUserGoal: (goal) => set({ userGoal: goal }),
   setActivityLevel: (level) => set({ activityLevel: level }),
   setWeeklyGoal: (n) => set({ weeklyGoal: Math.max(1, Math.min(7, Number(n))) }),

@@ -12,8 +12,7 @@ export default function ProfilePage() {
   const userGoal = useStore((s) => s.userGoal);
   const toggleAmoled = useStore((s) => s.toggleAmoled);
   const toggleSound = useStore((s) => s.toggleSound);
-  const voiceCoach = useStore((s) => s.voiceCoach);
-  const toggleVoiceCoach = useStore((s) => s.toggleVoiceCoach);
+
   const reminderEnabled = useStore(s => s.reminderEnabled);
   const reminderTime = useStore(s => s.reminderTime);
   const setUserGoal = useStore((s) => s.setUserGoal);
@@ -164,11 +163,6 @@ export default function ProfilePage() {
         <div className="settings-row">
           <div><label>Sonido descanso</label><small>Beep al terminar el temporizador</small></div>
           <button className={`toggle${soundEnabled ? " on" : ""}`} onClick={toggleSound} aria-pressed={soundEnabled} />
-        </div>
-
-        <div className="settings-row">
-          <div><label>🎙 Coach por voz</label><small>Lee en voz alta los consejos importantes mientras entrenás</small></div>
-          <button className={`toggle${voiceCoach ? " on" : ""}`} onClick={toggleVoiceCoach} aria-pressed={voiceCoach} />
         </div>
 
         <div className="settings-row" style={{ flexDirection: "column", alignItems: "flex-start", gap: 8 }}>

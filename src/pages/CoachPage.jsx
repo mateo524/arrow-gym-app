@@ -1793,30 +1793,30 @@ const DAY_NAMES_PLAN = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábad
 
 const SLOT_DEFS = {
   3: [
-    { id:"desayuno", label:"☀️ Desayuno", factor:0.30, cats:["desayuno","lacteo","fruta"] },
-    { id:"almuerzo", label:"🍽️ Almuerzo", factor:0.40, cats:["principal","proteina","carbohidrato","legumbre"] },
-    { id:"cena",     label:"🌙 Cena",     factor:0.30, cats:["principal","proteina","verdura","legumbre"] },
+    { id:"desayuno", label:"Desayuno", factor:0.30, cats:["desayuno","lacteo","fruta"] },
+    { id:"almuerzo", label:"Almuerzo", factor:0.40, cats:["principal","proteina","carbohidrato","legumbre"] },
+    { id:"cena",     label:"Cena",     factor:0.30, cats:["principal","proteina","verdura","legumbre"] },
   ],
   4: [
-    { id:"desayuno", label:"☀️ Desayuno", factor:0.25, cats:["desayuno","lacteo","fruta"] },
-    { id:"almuerzo", label:"🍽️ Almuerzo", factor:0.35, cats:["principal","proteina","carbohidrato","legumbre"] },
-    { id:"merienda", label:"☕ Merienda",  factor:0.15, cats:["merienda","colacion","fruta","lacteo"] },
-    { id:"cena",     label:"🌙 Cena",     factor:0.25, cats:["principal","proteina","verdura","legumbre"] },
+    { id:"desayuno", label:"Desayuno", factor:0.25, cats:["desayuno","lacteo","fruta"] },
+    { id:"almuerzo", label:"Almuerzo", factor:0.35, cats:["principal","proteina","carbohidrato","legumbre"] },
+    { id:"merienda", label:"Merienda",  factor:0.15, cats:["merienda","colacion","fruta","lacteo"] },
+    { id:"cena",     label:"Cena",     factor:0.25, cats:["principal","proteina","verdura","legumbre"] },
   ],
   5: [
-    { id:"desayuno", label:"☀️ Desayuno",  factor:0.20, cats:["desayuno","lacteo","fruta"] },
-    { id:"almuerzo", label:"🍽️ Almuerzo",  factor:0.30, cats:["principal","proteina","carbohidrato","legumbre"] },
-    { id:"colacion", label:"🥜 Colación",  factor:0.12, cats:["colacion","fruta","lacteo"] },
-    { id:"merienda", label:"☕ Merienda",  factor:0.13, cats:["merienda","colacion","fruta"] },
-    { id:"cena",     label:"🌙 Cena",      factor:0.25, cats:["principal","proteina","verdura","legumbre"] },
+    { id:"desayuno", label:"Desayuno",  factor:0.20, cats:["desayuno","lacteo","fruta"] },
+    { id:"almuerzo", label:"Almuerzo",  factor:0.30, cats:["principal","proteina","carbohidrato","legumbre"] },
+    { id:"colacion", label:"Colación",  factor:0.12, cats:["colacion","fruta","lacteo"] },
+    { id:"merienda", label:"Merienda",  factor:0.13, cats:["merienda","colacion","fruta"] },
+    { id:"cena",     label:"Cena",      factor:0.25, cats:["principal","proteina","verdura","legumbre"] },
   ],
   6: [
-    { id:"desayuno", label:"☀️ Desayuno",    factor:0.18, cats:["desayuno","lacteo","fruta"] },
-    { id:"colacion1",label:"🥜 Colación AM", factor:0.10, cats:["colacion","fruta"] },
-    { id:"almuerzo", label:"🍽️ Almuerzo",    factor:0.28, cats:["principal","proteina","carbohidrato"] },
-    { id:"merienda", label:"☕ Merienda",     factor:0.12, cats:["merienda","colacion","fruta","lacteo"] },
-    { id:"colacion2",label:"🥜 Colación PM", factor:0.10, cats:["colacion","proteina"] },
-    { id:"cena",     label:"🌙 Cena",        factor:0.22, cats:["principal","proteina","verdura","legumbre"] },
+    { id:"desayuno", label:"Desayuno",    factor:0.18, cats:["desayuno","lacteo","fruta"] },
+    { id:"colacion1",label:"Colación AM", factor:0.10, cats:["colacion","fruta"] },
+    { id:"almuerzo", label:"Almuerzo",    factor:0.28, cats:["principal","proteina","carbohidrato"] },
+    { id:"merienda", label:"Merienda",     factor:0.12, cats:["merienda","colacion","fruta","lacteo"] },
+    { id:"colacion2",label:"Colación PM", factor:0.10, cats:["colacion","proteina"] },
+    { id:"cena",     label:"Cena",        factor:0.22, cats:["principal","proteina","verdura","legumbre"] },
   ],
 };
 
@@ -2170,10 +2170,44 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
       { days: wizDays, mealsPerDay: wizMeals, goal: wizGoal, restrictions: wizRestrictions, likedCats: wizLikedCats },
       tdee, targetCal, proteinG, carbG, fatG
     );
+    plan.planStartDate = new Date().toISOString().slice(0, 10);
     saveNutritionPlan(plan);
     setSubPage("plan");
     setWizStep(0);
   }
+
+  /* ── current day index for plan ────────────────────────── */
+  const currentPlanDayIdx = useMemo(() => {
+    if (!nutritionPlan?.planStartDate || !nutritionPlan?.days?.length) return null;
+    const start = new Date(nutritionPlan.planStartDate + "T12:00:00");
+    const today = new Date(); today.setHours(12,0,0,0);
+    const diffDays = Math.floor((today - start) / 86400000);
+    return Math.min(diffDays, nutritionPlan.days.length - 1);
+  }, [nutritionPlan?.planStartDate, nutritionPlan?.days?.length]);
+
+  // Auto-expand current plan day when plan changes
+  useEffect(() => {
+    if (currentPlanDayIdx != null) {
+      setExpandedPlanDay(currentPlanDayIdx);
+    }
+  }, [currentPlanDayIdx]);
+
+  // Midnight listener to update current day index
+  useEffect(() => {
+    const now = new Date();
+    const msToMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0).getTime() - now.getTime();
+    const timeout = setTimeout(() => {
+      // Trigger re-render — useStore re-sub will pick up new date
+      setExpandedPlanDay(null);
+      if (nutritionPlan?.planStartDate) {
+        const start = new Date(nutritionPlan.planStartDate + "T12:00:00");
+        const today2 = new Date(); today2.setHours(12,0,0,0);
+        const diff = Math.floor((today2 - start) / 86400000);
+        setExpandedPlanDay(Math.min(diff, (nutritionPlan.days?.length || 1) - 1));
+      }
+    }, msToMidnight + 1000);
+    return () => clearTimeout(timeout);
+  }, [nutritionPlan?.planStartDate, nutritionPlan?.days?.length]);
 
   const MACRO_TABS = [
     { id: null,     label: "Resumen"  },
@@ -2262,6 +2296,46 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
         );
       })()}
 
+      {/* ── Hoy en el plan ──────────────────────────────────── */}
+      {nutritionPlan && currentPlanDayIdx != null && nutritionPlan.days?.[currentPlanDayIdx] && (
+        <div style={{ background:"rgba(34,197,94,.07)", border:"1px solid rgba(34,197,94,.3)", borderRadius:16, padding:"14px 16px", marginBottom:14 }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+            <span style={{ fontSize:12, fontWeight:700, color:"var(--green)", textTransform:"uppercase", letterSpacing:"0.06em" }}>
+              Hoy — {nutritionPlan.days[currentPlanDayIdx].dayName}
+            </span>
+            <span style={{ fontSize:13, fontWeight:900, color:"var(--text)" }}>
+              {Math.round(nutritionPlan.days[currentPlanDayIdx].kcal)} kcal
+            </span>
+          </div>
+          <div style={{ display:"flex", gap:4, marginBottom:10 }}>
+            {[
+              { label:"P", val:nutritionPlan.days[currentPlanDayIdx].protein, target:nutritionPlan.dailyProtein, color:"#a855f7" },
+              { label:"C", val:nutritionPlan.days[currentPlanDayIdx].carbs,   target:nutritionPlan.dailyCarbs,    color:"#60a5fa" },
+              { label:"G", val:nutritionPlan.days[currentPlanDayIdx].fat,     target:nutritionPlan.dailyFat,      color:"#f59e0b" },
+            ].map(m => {
+              const pct = Math.min(1, m.val / (m.target || 1));
+              return (
+                <div key={m.label} style={{ flex:1, background:"rgba(0,0,0,.2)", borderRadius:8, padding:"6px 8px", textAlign:"center" }}>
+                  <div style={{ fontSize:9, color:"var(--muted)", fontWeight:700, marginBottom:1 }}>{m.label}</div>
+                  <div style={{ fontSize:14, fontWeight:900, color:m.color }}>{Math.round(m.val)}g</div>
+                  <div style={{ height:3, background:"var(--panel2)", borderRadius:2, marginTop:4, overflow:"hidden" }}>
+                    <div style={{ height:"100%", width:`${pct*100}%`, background:m.color, borderRadius:2 }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{ display:"flex", flexWrap:"wrap", gap:4 }}>
+            {nutritionPlan.days[currentPlanDayIdx].meals?.map(meal => (
+              <button key={meal.slot} onClick={() => logMeal({ name: meal.items.map(i=>i.name).join(" + "), kcal: Math.round(meal.kcal), protein: Math.round(meal.protein), carbs: Math.round(meal.carbs), fat: Math.round(meal.fat) })}
+                style={{ background:"rgba(34,197,94,.1)", border:"1px solid rgba(34,197,94,.25)", borderRadius:8, padding:"4px 10px", cursor:"pointer", fontSize:11, color:"var(--text)" }}>
+                + {meal.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ── Adaptive TDEE suggestion ─────────────────────────── */}
       {adaptiveTDEE && (
         <div style={{ background:"rgba(96,165,250,.07)", border:"1px solid rgba(96,165,250,.25)", borderRadius:14, padding:"12px 14px", marginBottom:14 }}>
@@ -2303,7 +2377,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
 
       {/* Training day / rest day toggle */}
       <div style={{ display:"flex", gap:4, background:"var(--panel)", borderRadius:14, padding:4, marginBottom:14 }}>
-        {[{id:"entreno", label:"🏋️ Día de entreno"}, {id:"descanso", label:"😴 Día de descanso"}].map(({id, label}) => (
+        {[{id:"entreno", label:"Día de entreno"}, {id:"descanso", label:"Día de descanso"}].map(({id, label}) => (
           <button key={id} onClick={() => setMacroDay(id)} style={{
             flex:1, padding:"9px 6px", fontSize:12, fontWeight:700, borderRadius:10, border:"none", cursor:"pointer",
             background: macroDay === id ? "var(--green)" : "transparent",
@@ -2982,7 +3056,6 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
         <div>
           {!nutritionPlan ? (
             <div style={{ textAlign:"center", padding:"32px 0" }}>
-              <div style={{ fontSize:40, marginBottom:12 }}>📋</div>
               <p style={{ color:"var(--muted)", fontSize:14, marginBottom:20 }}>No tenés un plan todavía.</p>
               <button className="primary" onClick={() => setSubPage("wizard")}>Crear mi plan</button>
             </div>
@@ -3002,11 +3075,13 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                   Regenerar
                 </button>
               </div>
-              {nutritionPlan.days?.map(day => (
+              {nutritionPlan.days?.map(day => {
+                const isToday = currentPlanDayIdx != null && day.dayIdx === currentPlanDayIdx;
+                return (
                 <div key={day.dayIdx} style={{ marginBottom:8 }}>
                   <button onClick={() => setExpandedPlanDay(expandedPlanDay === day.dayIdx ? null : day.dayIdx)}
-                    style={{ width:"100%", background:"var(--panel)", border:"1px solid var(--border)", borderRadius:14, padding:"12px 14px", cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                    <span style={{ fontSize:14, fontWeight:800, color:"var(--text)" }}>{day.dayName}</span>
+                    style={{ width:"100%", background: isToday ? "rgba(34,197,94,.08)" : "var(--panel)", border: isToday ? "1px solid rgba(34,197,94,.4)" : "1px solid var(--border)", borderRadius:14, padding:"12px 14px", cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                    <span style={{ fontSize:14, fontWeight:800, color: isToday ? "var(--green)" : "var(--text)" }}>{isToday ? "Hoy — " : ""}{day.dayName}</span>
                     <div style={{ display:"flex", alignItems:"center", gap:8 }}>
                       <span style={{ fontSize:12, color:"var(--muted)" }}>{Math.round(day.kcal)} kcal</span>
                       <span style={{ color:"var(--muted)" }}>{expandedPlanDay === day.dayIdx ? "▲" : "▼"}</span>
@@ -3016,7 +3091,13 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                     <div style={{ background:"var(--panel)", borderRadius:"0 0 14px 14px", padding:"0 14px 14px", borderTop:"none", border:"1px solid var(--border)", borderTopWidth:0, marginTop:-4 }}>
                       {day.meals?.map(meal => (
                         <div key={meal.slot} style={{ paddingTop:12, borderTop:"1px solid rgba(255,255,255,.06)" }}>
-                          <div style={{ fontSize:12, fontWeight:700, color:"var(--muted)", marginBottom:6 }}>{meal.label}</div>
+                          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
+                            <span style={{ fontSize:12, fontWeight:700, color:"var(--muted)" }}>{meal.label}</span>
+                            <button onClick={() => logMeal({ name: meal.items.map(i=>i.name).join(" + "), kcal: Math.round(meal.kcal), protein: Math.round(meal.protein), carbs: Math.round(meal.carbs), fat: Math.round(meal.fat) })}
+                              style={{ background:"rgba(34,197,94,.1)", border:"1px solid rgba(34,197,94,.25)", borderRadius:6, padding:"2px 8px", cursor:"pointer", fontSize:10, color:"var(--green)", fontWeight:700 }}>
+                              + Log
+                            </button>
+                          </div>
                           {meal.items?.map((item, i) => (
                             <div key={i} style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
                               <span style={{ fontSize:13, color:"var(--text)" }}>{item.name}</span>
@@ -3026,14 +3107,15 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                             </div>
                           ))}
                           <div style={{ fontSize:11, color:"#f59e0b", marginTop:4 }}>
-                            {Math.round(meal.kcal)} kcal · P{Math.round(meal.protein)}g
+                            {Math.round(meal.kcal)} kcal · P{Math.round(meal.protein)}g · C{Math.round(meal.carbs)}g · G{Math.round(meal.fat)}g
                           </div>
                         </div>
                       ))}
                     </div>
                   )}
                 </div>
-              ))}
+              );
+              })}
             </div>
           )}
         </div>

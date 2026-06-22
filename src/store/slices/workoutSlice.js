@@ -256,7 +256,7 @@ export const createWorkoutSlice = (set, get) => ({
       selectedWorkoutId: clean.id,
       activeWorkout: null,
       currentPage: "coach",
-      coachBadge: false,
+      coachBadge: true,
       prs: [...newPrsList, ...existingPrs].slice(0, 20),
     }));
     // Achievement check

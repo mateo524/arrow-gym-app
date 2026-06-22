@@ -131,7 +131,6 @@ export default function WorkoutPage() {
   const prs = useStore(s => s.prs) || [];
   const saveWorkoutDraft = useStore(s => s.saveWorkoutDraft);
   const clearWorkoutDraft = useStore(s => s.clearWorkoutDraft);
-  const voiceCoach = useStore(s => s.voiceCoach);
   const cardioHistory = useStore(s => s.cardioHistory) || [];
   const activePlanAdjustment = useStore(s => s.activePlanAdjustment);
 
@@ -233,20 +232,6 @@ export default function WorkoutPage() {
       }
     }
   }, [active?.sets, prs]);
-
-  // Voice coach
-  const prevHintMsgsRef = useRef(new Set());
-  useEffect(() => {
-    if (!voiceCoach || !window.speechSynthesis) return;
-    liveHints.filter(h => h.priority <= 2).forEach(h => {
-      if (!prevHintMsgsRef.current.has(h.msg)) {
-        prevHintMsgsRef.current.add(h.msg);
-        const utt = new SpeechSynthesisUtterance(h.msg.replace(/[🏆↑⚠⚡🔴🟡⚖💤😴]/g, ""));
-        utt.lang = "es-AR"; utt.rate = 0.95;
-        window.speechSynthesis.speak(utt);
-      }
-    });
-  }, [liveHints, voiceCoach]);
 
   // Scroll to new exercise when added
   const prevExCountRef = useRef(0);

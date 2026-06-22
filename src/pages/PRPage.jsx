@@ -1,9 +1,8 @@
 ﻿import { useMemo, useState } from "react";
 import useStore from "../store/useStore.js";
-import { hasData, getExerciseProgression, getRadarData, filterByRange, RANGE_OPTIONS } from "../lib/analytics.js";
+import { hasData, getExerciseProgression, getRadarData } from "../lib/analytics.js";
 import RadarChart from "../components/RadarChart.jsx";
 import MicroLineChart from "../components/MicroLineChart.jsx";
-import MuscleMap from "../components/MuscleMap.jsx";
 import Icon from "../components/Icon.jsx";
 
 function getAllTimePRs(workouts) {
@@ -37,7 +36,6 @@ function fmtVol(kg) {
 export default function PRPage() {
   const workouts        = useStore((s) => s.workouts);
   const setPage         = useStore((s) => s.setPage);
-  const [tab, setTab]   = useState("prs");
   const [search, setSearch] = useState("");
   const [expandedExercise, setExpandedExercise] = useState(null);
   const [radarRange, setRadarRange] = useState("4w");
@@ -72,22 +70,6 @@ export default function PRPage() {
       }
     }
     return { volume, sets, reps, workouts: workouts?.length || 0 };
-  }, [workouts]);
-
-  /* ── weekly muscle coverage ──────────────────────────── */
-  const weeklyMuscles = useMemo(() => {
-    const today = new Date();
-    const weekAgo = new Date(today); weekAgo.setDate(today.getDate() - 7);
-    const wkStr = weekAgo.toISOString().slice(0, 10);
-    const muscles = new Set(), groups = new Set();
-    for (const w of workouts || []) {
-      if (w.date < wkStr) continue;
-      for (const s of (w.sets || [])) {
-        if (s.muscle) muscles.add(s.muscle);
-        if (s.group)  groups.add(s.group);
-      }
-    }
-    return { muscles: [...muscles], groups: [...groups] };
   }, [workouts]);
 
   return (
