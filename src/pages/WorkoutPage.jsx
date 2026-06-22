@@ -198,9 +198,15 @@ export default function WorkoutPage() {
   useEffect(() => {
     if (!active) return;
     const start = active.startedAt || (Date.now() - (active.elapsedMs || 0));
-    setElapsed(Math.floor((Date.now() - start) / 1000));
-    const id = setInterval(() => setElapsed(Math.floor((Date.now() - start) / 1000)), 1000);
-    return () => clearInterval(id);
+    const tick = () => setElapsed(Math.floor((Date.now() - start) / 1000));
+    tick();
+    const id = setInterval(tick, 1000);
+    const onVisible = () => { if (!document.hidden) tick(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [active?.id]);
 
   // Auto-save draft
@@ -681,12 +687,7 @@ export default function WorkoutPage() {
                     style={{ background: "var(--panel2)", border: "none", borderRadius: 10, width: 38, height: 38, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)" }}>
                     <Icon name="HelpCircle" size={17} strokeWidth={1.8} />
                   </button>
-                  {/* Rest timer */}
-                  <button onClick={() => setEditRestExercise(editRestExercise === exercise ? null : exercise)}
-                    style={{ background: "var(--panel2)", border: "none", borderRadius: 10, height: 38, padding: "0 10px", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, color: "var(--muted)" }}>
-                    <Icon name="Timer" size={16} strokeWidth={1.8} />
-                    <span style={{ fontSize: 11, fontWeight: 700 }}>{exerciseRestTimes[exercise] || 90}s</span>
-                  </button>
+            
                   {/* Swap exercise */}
                   <button onClick={() => setSwapTarget(exercise)}
                     style={{ background: "var(--panel2)", border: "none", borderRadius: 10, width: 38, height: 38, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)" }}
@@ -955,55 +956,7 @@ export default function WorkoutPage() {
         </div>
       )}
 
-      {/* ── WORKOUT SUMMARY MODAL ─────────────────────────────────────────── */}
-      {showSummary && summaryData && (
-        <div className="modal-overlay" onClick={() => setShowSummary(false)}>
-          <div className="modal-card" onClick={e => e.stopPropagation()} style={{ maxWidth: 340 }}>
-            <div style={{ textAlign: "center", marginBottom: 20 }}>
-              <div style={{ fontSize: 44, marginBottom: 8 }}>{summaryData.newPRs > 0 ? "🏆" : "💪"}</div>
-              <h2 style={{ margin: "0 0 4px", fontSize: 20 }}>
-                {summaryData.newPRs > 0 ? `¡${summaryData.newPRs} récord${summaryData.newPRs > 1 ? "s" : ""}!` : "¡Entreno completado!"}
-              </h2>
-              <p style={{ margin: 0, fontSize: 13, color: "var(--muted)" }}>
-                {String(Math.floor(elapsed/60)).padStart(2,"0")}:{String(elapsed%60).padStart(2,"0")} · {summaryData.exercises} ejercicio{summaryData.exercises !== 1 ? "s" : ""}
-              </p>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
-              {[
-                { label: "Series",     value: summaryData.totalSets,   color: "var(--green)" },
-                { label: "Volumen",    value: `${summaryData.totalVolume}kg`, color: "var(--green)" },
-                { label: "Ejercicios", value: summaryData.exercises,   color: "var(--green)" },
-                { label: "PRs",        value: summaryData.newPRs,      color: summaryData.newPRs > 0 ? "#f59e0b" : "var(--muted)" },
-              ].map(({ label, value, color }) => (
-                <div key={label} style={{ background: "var(--panel2)", borderRadius: 14, padding: "14px 10px", textAlign: "center" }}>
-                  <div style={{ fontSize: 26, fontWeight: 900, color, lineHeight: 1 }}>{value}</div>
-                  <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</div>
-                </div>
-              ))}
-            </div>
-            {/* Share */}
-            <button className="ghost" style={{ width: "100%", marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
-              onClick={() => {
-                const mins = String(Math.floor(elapsed/60)).padStart(2,"0");
-                const secs = String(elapsed%60).padStart(2,"0");
-                const vol  = summaryData.totalVolume;
-                const text = `💪 Entreno completado en Loop\n⏱ ${mins}:${secs} · 📦 ${vol}kg · 🔁 ${summaryData.totalSets} series${summaryData.newPRs > 0 ? ` · 🏆 ${summaryData.newPRs} PRs!` : ""}\n\nhttps://arrow-gym-project.vercel.app`;
-                if (navigator.share) navigator.share({ title: "Mi entrenamiento", text });
-                else { navigator.clipboard?.writeText(text); setShareMsg("¡Copiado!"); setTimeout(() => setShareMsg(""), 2000); }
-              }}>
-              📤 Compartir resumen
-            </button>
-            {shareMsg && <div style={{ textAlign: "center", fontSize: 12, color: "var(--green)", marginBottom: 6, fontWeight: 700 }}>{shareMsg}</div>}
-            <button className="primary" style={{ width: "100%" }} onClick={() => {
-              setShowSummary(false);
-              if (emptySetsCount > 0) setShowFinishConfirm(true);
-              else doFinish(sessionNotes, workoutRPE);
-            }}>
-              Guardar y terminar
-            </button>
-          </div>
-        </div>
-      )}
+
 
       {/* ── FINISH CONFIRM ────────────────────────────────────────────────── */}
       {showFinishConfirm && (
@@ -1206,6 +1159,55 @@ export default function WorkoutPage() {
               Cancelar
             </button>
           </div>
+        </div>
+      </div>
+    )}
+
+    {/* ── WORKOUT SUMMARY MODAL ─────────────────────────────────────────── */}
+    {showSummary && summaryData && (
+      <div className="modal-overlay" onClick={() => setShowSummary(false)}>
+        <div className="modal-card" onClick={e => e.stopPropagation()} style={{ maxWidth: 340 }}>
+          <div style={{ textAlign: "center", marginBottom: 20 }}>
+            <div style={{ fontSize: 44, marginBottom: 8 }}>{summaryData.newPRs > 0 ? "🏆" : "💪"}</div>
+            <h2 style={{ margin: "0 0 4px", fontSize: 20 }}>
+              {summaryData.newPRs > 0 ? `¡${summaryData.newPRs} récord${summaryData.newPRs > 1 ? "s" : ""}!` : "¡Entreno completado!"}
+            </h2>
+            <p style={{ margin: 0, fontSize: 13, color: "var(--muted)" }}>
+              {String(Math.floor(elapsed/60)).padStart(2,"0")}:{String(elapsed%60).padStart(2,"0")} · {summaryData.exercises} ejercicio{summaryData.exercises !== 1 ? "s" : ""}
+            </p>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
+            {[
+              { label: "Series",     value: summaryData.totalSets,   color: "var(--green)" },
+              { label: "Volumen",    value: `${summaryData.totalVolume}kg`, color: "var(--green)" },
+              { label: "Ejercicios", value: summaryData.exercises,   color: "var(--green)" },
+              { label: "PRs",        value: summaryData.newPRs,      color: summaryData.newPRs > 0 ? "#f59e0b" : "var(--muted)" },
+            ].map(({ label, value, color }) => (
+              <div key={label} style={{ background: "var(--panel2)", borderRadius: 14, padding: "14px 10px", textAlign: "center" }}>
+                <div style={{ fontSize: 26, fontWeight: 900, color, lineHeight: 1 }}>{value}</div>
+                <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</div>
+              </div>
+            ))}
+          </div>
+          <button className="ghost" style={{ width: "100%", marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+            onClick={() => {
+              const mins = String(Math.floor(elapsed/60)).padStart(2,"0");
+              const secs = String(elapsed%60).padStart(2,"0");
+              const vol  = summaryData.totalVolume;
+              const text = `💪 Entreno completado en Loop\n⏱ ${mins}:${secs} · 📦 ${vol}kg · 🔁 ${summaryData.totalSets} series${summaryData.newPRs > 0 ? ` · 🏆 ${summaryData.newPRs} PRs!` : ""}\n\nhttps://arrow-gym-project.vercel.app`;
+              if (navigator.share) navigator.share({ title: "Mi entrenamiento", text });
+              else { navigator.clipboard?.writeText(text); setShareMsg("¡Copiado!"); setTimeout(() => setShareMsg(""), 2000); }
+            }}>
+            📤 Compartir resumen
+          </button>
+          {shareMsg && <div style={{ textAlign: "center", fontSize: 12, color: "var(--green)", marginBottom: 6, fontWeight: 700 }}>{shareMsg}</div>}
+          <button className="primary" style={{ width: "100%" }} onClick={() => {
+            setShowSummary(false);
+            if (emptySetsCount > 0) setShowFinishConfirm(true);
+            else doFinish(sessionNotes, workoutRPE);
+          }}>
+            Guardar y terminar
+          </button>
         </div>
       </div>
     )}

@@ -179,6 +179,15 @@ export default function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onR
       <div className="set-actions">
         <button
           className="ghost set-action-sm"
+          onClick={() => { haptic(); onStartRest(); }}
+          title="Descanso"
+          style={{ display:"flex", alignItems:"center", gap:5 }}
+        >
+          <Icon name="Timer" size={13} />
+          Descanso
+        </button>
+        <button
+          className="ghost set-action-sm"
           onClick={() => { haptic(); onRepeat(); }}
           title="Repetir serie"
           style={{ display:"flex", alignItems:"center", gap:5 }}
