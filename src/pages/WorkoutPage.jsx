@@ -947,45 +947,6 @@ export default function WorkoutPage() {
         </div>
       )}
 
-      {/* ── POST WORKOUT SUMMARY ──────────────────────────────────────────── */}
-      {postSummary && (
-        <div className="modal-overlay">
-          <div className="modal-card" style={{ maxWidth: 360, width: "100%", maxHeight: "85vh", overflowY: "auto" }}>
-            <div style={{ textAlign: "center", marginBottom: 14 }}>
-              <div style={{ fontSize: 36, marginBottom: 6 }}>🎯</div>
-              <h2 style={{ margin: "0 0 4px" }}>Resumen del coach</h2>
-              <p style={{ color: "var(--muted)", fontSize: 13, margin: 0 }}>
-                {postSummary.overallPct !== null
-                  ? `${postSummary.thisVol}kg (${postSummary.overallPct > 0 ? "+" : ""}${postSummary.overallPct}% vs promedio)`
-                  : `Volumen total: ${postSummary.thisVol}kg`}
-              </p>
-            </div>
-            {postSummary.volumeChanges.length > 0 && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
-                {postSummary.volumeChanges.map(({ group, pct }) => (
-                  <div key={group} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "var(--panel2)", borderRadius: 10, padding: "8px 12px" }}>
-                    <span style={{ fontSize: 13, fontWeight: 600 }}>{group}</span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: pct > 5 ? "var(--green)" : pct < -5 ? "var(--danger)" : "var(--muted)" }}>
-                      {pct !== null ? `${pct > 0 ? "+" : ""}${pct}%` : "nuevo"}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-            <p style={{ fontSize: 12, color: "var(--muted)", textAlign: "center", margin: "0 0 14px", lineHeight: 1.5 }}>
-              {postSummary.rpe >= 9 ? "RPE muy alto — tomá un día extra de descanso." :
-               postSummary.rpe <= 3 ? "Sesión liviana — la próxima subí el peso o agregá series." :
-               postSummary.overallPct > 10 ? "¡Gran sesión! Superaste tu promedio." :
-               postSummary.overallPct < -10 ? "Volumen debajo del promedio — si fue intencional, perfecto." :
-               "Sesión dentro de tu promedio. Constancia es la clave."}
-            </p>
-            <button className="primary" style={{ width: "100%" }} onClick={() => { setPostSummary(null); setPage("home"); }}>
-              Listo
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* ── SAVE ROUTINE PROMPT ───────────────────────────────────────────── */}
       {showSaveRoutine && (
         <div className="modal-overlay">
@@ -1057,6 +1018,116 @@ export default function WorkoutPage() {
         </>
       )}
     </section>
+
+    {/* ── POST WORKOUT SUMMARY ──────────────────────────────────────────── */}
+    {postSummary && (
+      <div className="modal-overlay">
+        <div className="modal-card" style={{ maxWidth: 360, width: "100%", maxHeight: "85vh", overflowY: "auto" }}>
+          <div style={{ textAlign: "center", marginBottom: 14 }}>
+            <div style={{ fontSize: 36, marginBottom: 6 }}>🎯</div>
+            <h2 style={{ margin: "0 0 4px" }}>Resumen del coach</h2>
+            <p style={{ color: "var(--muted)", fontSize: 13, margin: 0 }}>
+              {postSummary.overallPct !== null
+                ? `${postSummary.thisVol}kg (${postSummary.overallPct > 0 ? "+" : ""}${postSummary.overallPct}% vs promedio)`
+                : `Volumen total: ${postSummary.thisVol}kg`}
+            </p>
+          </div>
+          {postSummary.volumeChanges.length > 0 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
+              {postSummary.volumeChanges.map(({ group, pct }) => (
+                <div key={group} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "var(--panel2)", borderRadius: 10, padding: "8px 12px" }}>
+                  <span style={{ fontSize: 13, fontWeight: 600 }}>{group}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: pct > 5 ? "var(--green)" : pct < -5 ? "var(--danger)" : "var(--muted)" }}>
+                    {pct !== null ? `${pct > 0 ? "+" : ""}${pct}%` : "nuevo"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+          <p style={{ fontSize: 12, color: "var(--muted)", textAlign: "center", margin: "0 0 14px", lineHeight: 1.5 }}>
+            {postSummary.rpe >= 9 ? "RPE muy alto — tomá un día extra de descanso." :
+             postSummary.rpe <= 3 ? "Sesión liviana — la próxima subí el peso o agregá series." :
+             postSummary.overallPct > 10 ? "¡Gran sesión! Superaste tu promedio." :
+             postSummary.overallPct < -10 ? "Volumen debajo del promedio — si fue intencional, perfecto." :
+             "Sesión dentro de tu promedio. Constancia es la clave."}
+          </p>
+          <button className="primary" style={{ width: "100%" }} onClick={() => { setPostSummary(null); setPage("home"); }}>
+            Listo
+          </button>
+        </div>
+      </div>
+    )}
+
+    {/* ── SAVE ROUTINE PROMPT ───────────────────────────────────────────── */}
+    {showSaveRoutine && (
+      <div className="modal-overlay">
+        <div className="modal-card" style={{ textAlign: "center" }}>
+          <div style={{ fontSize: 40, marginBottom: 8 }}>💾</div>
+          <h2 style={{ margin: "0 0 6px" }}>¿Guardás esta rutina?</h2>
+          <p style={{ color: "var(--muted)", fontSize: 13, margin: "0 0 18px" }}>
+            Este entrenamiento no coincide con ninguna rutina guardada.
+          </p>
+          <div className="field-group" style={{ marginBottom: 14, textAlign: "left" }}>
+            <label>Nombre de la rutina</label>
+            <input type="text" value={saveRoutineName} onChange={e => setSaveRoutineName(e.target.value)}
+              placeholder="ej: Push A — Pecho/Hombros" autoFocus />
+          </div>
+          {saveRoutineError && (
+            <p style={{ color: "var(--danger)", fontSize: 12, margin: "0 0 10px", textAlign: "center" }}>{saveRoutineError}</p>
+          )}
+          <div style={{ display: "flex", gap: 10 }}>
+            <button className="ghost" style={{ flex: 1 }} onClick={() => { setShowSaveRoutine(false); const { notes, rpe, summary } = pendingFinishRef.current || {}; _commitFinish(notes, rpe, summary); }}>
+              No guardar
+            </button>
+            <button className="primary" style={{ flex: 2 }} disabled={savingRoutine || !saveRoutineName.trim()} onClick={handleSaveRoutineAndFinish}>
+              {savingRoutine ? "Guardando…" : "Guardar y terminar"}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* ── TECHNIQUE TIP MODAL ───────────────────────────────────────────── */}
+    {tipExercise && (
+      <div className="modal-overlay" onClick={() => setTipExercise(null)}>
+        <div className="modal-card" style={{ maxWidth: 360 }} onClick={e => e.stopPropagation()}>
+          <div className="modal-header">
+            <h2 style={{ fontSize: 16 }}>Técnica: {tipExercise}</h2>
+            <button className="ghost icon-btn" onClick={() => setTipExercise(null)}><Icon name="X" size={18} /></button>
+          </div>
+          <p style={{ fontSize: 14, lineHeight: 1.6, color: "var(--text)", margin: "8px 0 16px" }}>
+            {getTip(tipExercise)}
+          </p>
+          <button className="primary" style={{ width: "100%" }} onClick={() => setTipExercise(null)}>Entendido</button>
+        </div>
+      </div>
+    )}
+
+    {/* ── PR TOAST + CONFETTI ───────────────────────────────────────────── */}
+    {prToast && (
+      <>
+        <style>{`
+          @keyframes pr-pop { 0%{transform:translateX(-50%) scale(.7);opacity:0} 60%{transform:translateX(-50%) scale(1.08)} 100%{transform:translateX(-50%) scale(1);opacity:1} }
+          @keyframes confetti-fall { 0%{transform:translateY(-10px) rotate(0deg);opacity:1} 100%{transform:translateY(90vh) rotate(720deg);opacity:0} }
+          .pr-confetti-piece { position:fixed; top:60px; width:8px; height:8px; border-radius:2px; z-index:9998; pointer-events:none; animation:confetti-fall 1.8s ease-in forwards; }
+        `}</style>
+        {/* 32 confetti particles */}
+        {Array.from({length:32}).map((_,i) => (
+          <div key={i} className="pr-confetti-piece" style={{
+            left: `${5 + (i * 2.9) % 90}%`,
+            background: ["#a855f7","#c084fc","#f0abfc","#fff","#e879f9","#f59e0b","#34d399","#60a5fa"][i%8],
+            animationDelay: `${i * 0.04}s`,
+            animationDuration: `${1.2 + (i % 5) * 0.2}s`,
+            width: i%4===0 ? 12 : i%3===0 ? 8 : 6,
+            height: i%4===0 ? 7 : i%3===0 ? 5 : 9,
+            borderRadius: i%5===0 ? "50%" : 2,
+          }} />
+        ))}
+        <div style={{ position:"fixed", top:70, left:"50%", transform:"translateX(-50%)", zIndex:9999, background:"linear-gradient(135deg,#a855f7,#c084fc)", color:"#fff", borderRadius:16, padding:"12px 22px", fontSize:15, fontWeight:900, boxShadow:"0 4px 24px rgba(168,85,247,.5)", whiteSpace:"nowrap", animation:"pr-pop .4s cubic-bezier(.34,1.56,.64,1) both"}}>
+          🏆 ¡Nuevo PR en {prToast}!
+        </div>
+      </>
+    )}
 
     {/* ── REST TIMER OVERLAY ────────────────────────────────────────────── */}
     {restExercise && (
