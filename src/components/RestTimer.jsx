@@ -18,9 +18,11 @@ function createWorker() {
 export default function RestTimer({ duration = 90, onComplete, onSkip, active, soundEnabled = true, nextLabel }) {
   const [selectedDuration, setSelectedDuration] = useState(duration);
   const [remaining, setRemaining] = useState(duration);
+  const [running, setRunning] = useState(false);
   const [customInput, setCustomInput] = useState("");
   const workerRef = useRef(null);
   const doneRef = useRef(false);
+  const timerRef = useRef(null);
   const onCompleteRef = useRef(onComplete);
   useEffect(() => { onCompleteRef.current = onComplete; }, [onComplete]);
 
@@ -33,6 +35,7 @@ export default function RestTimer({ duration = 90, onComplete, onSkip, active, s
         if (type === "tick") setRemaining(r);
         if (type === "done" && !doneRef.current) {
           doneRef.current = true;
+          setRunning(false);
           if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
           if (Notification?.permission === "granted") {
             try { new Notification("⏱ Loop — Descanso terminado", { body: "¡Listo para la próxima serie!", tag: "rest-timer", silent: true }); } catch {}
@@ -42,35 +45,35 @@ export default function RestTimer({ duration = 90, onComplete, onSkip, active, s
         }
       };
     }
-    return () => { workerRef.current?.terminate(); workerRef.current = null; };
+    return () => { stopTimer(); workerRef.current?.terminate(); workerRef.current = null; };
   }, []);
 
   useEffect(() => {
     setSelectedDuration(duration);
     setRemaining(duration);
+    setRunning(false);
   }, [duration]);
 
-  useEffect(() => {
-    if (!active) {
-      workerRef.current?.postMessage({ type: "stop" });
-      setRemaining(selectedDuration);
-      doneRef.current = false;
-      return;
-    }
+  function stopTimer() {
+    workerRef.current?.postMessage({ type: "stop" });
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+  }
+
+  function startTimer() {
     doneRef.current = false;
+    setRemaining(selectedDuration);
+    setRunning(true);
     if (workerRef.current) {
       workerRef.current.postMessage({ type: "start", seconds: selectedDuration });
     } else {
-      // Fallback to setInterval if Worker unavailable
-      const t = setInterval(() => {
+      timerRef.current = setInterval(() => {
         setRemaining(prev => {
-          if (prev <= 1) { clearInterval(t); onCompleteRef.current?.(); return 0; }
+          if (prev <= 1) { clearInterval(timerRef.current); timerRef.current = null; setRunning(false); onCompleteRef.current?.(); return 0; }
           return prev - 1;
         });
       }, 1000);
-      return () => clearInterval(t);
     }
-  }, [active, selectedDuration]);
+  }
 
   function handlePreset(secs) {
     if (secs === selectedDuration) return;
@@ -100,22 +103,24 @@ export default function RestTimer({ duration = 90, onComplete, onSkip, active, s
           <button
             key={s}
             className={`rest-preset${selectedDuration === s ? " active" : ""}`}
-            onClick={() => handlePreset(s)}
+            onClick={() => { if (!running) handlePreset(s); }}
+            disabled={running}
           >
             {s >= 60 ? `${s/60}m` : `${s}s`}
           </button>
         ))}
       </div>
-      <form onSubmit={handleCustom} style={{ display:"flex", gap:4, alignItems:"center", marginBottom:6 }}>
+      <form onSubmit={(e) => { e.preventDefault(); if (!running) handleCustom(e); }} style={{ display:"flex", gap:4, alignItems:"center", marginBottom:6 }}>
         <input
           type="number"
           value={customInput}
           onChange={e => setCustomInput(e.target.value)}
           placeholder="seg"
           min="5" max="600"
+          disabled={running}
           style={{ width:60, background:"var(--panel2)", border:"1px solid var(--line)", borderRadius:8, padding:"5px 8px", color:"var(--text)", fontSize:13, textAlign:"center" }}
         />
-        <button type="submit" style={{ background:"rgba(168,85,247,.15)", border:"1px solid rgba(168,85,247,.35)", borderRadius:8, padding:"5px 10px", fontSize:12, color:"var(--green)", cursor:"pointer", fontWeight:700 }}>OK</button>
+        <button type="submit" disabled={running} style={{ background:"rgba(168,85,247,.15)", border:"1px solid rgba(168,85,247,.35)", borderRadius:8, padding:"5px 10px", fontSize:12, color:"var(--green)", cursor:"pointer", fontWeight:700 }}>OK</button>
       </form>
 
       <div className="rest-ring-wrap">
@@ -141,9 +146,18 @@ export default function RestTimer({ duration = 90, onComplete, onSkip, active, s
         )}
       </div>
 
-      <button className="ghost rest-skip-btn" onClick={onSkip} aria-label="Saltear descanso">
-        Saltear →
-      </button>
+      {running ? (
+        <button className="ghost rest-skip-btn" onClick={onSkip} aria-label="Saltear descanso">
+          Saltear →
+        </button>
+      ) : (
+        <button
+          onClick={startTimer}
+          style={{ width:"100%", padding:"12px", borderRadius:14, border:"1.5px solid var(--cyan)", background:"rgba(117,217,255,.1)", color:"var(--cyan)", fontSize:15, fontWeight:800, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}
+        >
+          ▶ Iniciar descanso
+        </button>
+      )}
     </div>
   );
 }

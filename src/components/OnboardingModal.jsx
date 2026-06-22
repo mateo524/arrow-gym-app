@@ -48,7 +48,7 @@ export default function OnboardingModal() {
     if (sex)    payload.sex           = sex;
 
     if (profile?.id) {
-      await supabase.from("profiles").update(payload).eq("id", profile.id);
+      try { await supabase.from("profiles").update(payload).eq("id", profile.id); } catch {}
       refreshProfile?.();
     }
     setUserGoal(goal);

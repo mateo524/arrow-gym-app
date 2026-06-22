@@ -37,10 +37,11 @@ function fmtVol(kg) {
 export default function PRPage() {
   const workouts        = useStore((s) => s.workouts);
   const setPage         = useStore((s) => s.setPage);
-  const [tab, setTab]   = useState("stats");
+  const [tab, setTab]   = useState("prs");
   const [search, setSearch] = useState("");
   const [expandedExercise, setExpandedExercise] = useState(null);
   const [radarRange, setRadarRange] = useState("4w");
+  const [showStats, setShowStats] = useState(false);
 
   const prs      = useMemo(() => getAllTimePRs(workouts), [workouts]);
   const filtered = search ? prs.filter((p) => p.exercise.toLowerCase().includes(search.toLowerCase())) : prs;
@@ -89,8 +90,6 @@ export default function PRPage() {
     return { muscles: [...muscles], groups: [...groups] };
   }, [workouts]);
 
-  const TABS = [{ id: "stats", label: "Estadísticas" }, { id: "prs", label: "Récords" }];
-
   return (
     <section className="page">
       <div className="page-head">
@@ -101,31 +100,27 @@ export default function PRPage() {
           <p className="eyebrow">Coach</p>
           <h1>Progreso</h1>
         </div>
+        <button onClick={() => setShowStats(s => !s)} style={{
+          background: showStats ? "rgba(168,85,247,.15)" : "var(--panel2)",
+          border: showStats ? "1px solid rgba(168,85,247,.4)" : "1px solid var(--line)",
+          borderRadius:10, padding:"6px 10px", cursor:"pointer", display:"flex", alignItems:"center", gap:5,
+          color: showStats ? "var(--green)" : "var(--muted)", fontSize:12, fontWeight:700,
+        }}>
+          <Icon name="BarChart2" size={15} strokeWidth={2} />
+          Stats
+        </button>
       </div>
 
-      {/* Tab bar */}
-      <div style={{ display:"flex", borderBottom:"1px solid var(--line)", marginBottom:16, gap:0 }}>
-        {TABS.map(({ id, label }) => (
-          <button key={id} onClick={() => setTab(id)} style={{
-            flex:1, padding:"10px 4px", background:"none", border:"none",
-            borderBottom: tab === id ? "2px solid var(--green)" : "2px solid transparent",
-            color: tab === id ? "var(--green)" : "var(--muted)",
-            fontSize:13, fontWeight:700, cursor:"pointer",
-          }}>{label}</button>
-        ))}
-      </div>
-
-      {/* ── STATS TAB ─────────────────────────────────────── */}
-      {tab === "stats" && (
-        <>
-          {/* Radar chart — MAIN FEATURE */}
-          <div className="card" style={{ marginBottom:16 }}>
+      {/* ── STATS SECTION (collapsible) ─────────────────────── */}
+      {showStats && (
+        <div style={{ marginBottom:16 }}>
+          <div className="card" style={{ marginBottom:12 }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
-              <h2 style={{ margin:0, fontSize:15, fontWeight:800 }}>Cobertura muscular</h2>
+              <h2 style={{ margin:0, fontSize:14, fontWeight:800 }}>Cobertura muscular</h2>
               <div style={{ display:"flex", gap:4 }}>
                 {RADAR_RANGES.map(r => (
                   <button key={r.id} onClick={() => setRadarRange(r.id)} style={{
-                    padding:"4px 10px", borderRadius:20, border:"none", cursor:"pointer", fontSize:11, fontWeight:700,
+                    padding:"3px 8px", borderRadius:20, border:"none", cursor:"pointer", fontSize:10, fontWeight:700,
                     background: radarRange === r.id ? "var(--green)" : "var(--panel2)",
                     color: radarRange === r.id ? "#000" : "var(--muted)",
                   }}>{r.label}</button>
@@ -133,77 +128,34 @@ export default function PRPage() {
               </div>
             </div>
             {radarWorkouts.length === 0 ? (
-              <p style={{ fontSize:12, color:"var(--muted)", textAlign:"center", padding:"20px 0" }}>
-                Sin datos para este período.
-              </p>
+              <p style={{ fontSize:12, color:"var(--muted)", textAlign:"center", padding:"12px 0" }}>Sin datos para este período.</p>
             ) : (
-              <div style={{ height:220 }}>
-                <RadarChart data={radarData} />
-              </div>
+              <div style={{ height:180 }}><RadarChart data={radarData} /></div>
             )}
           </div>
 
-          {/* Big lifetime stats */}
-          <div className="progress-stats-grid">
-            <div className="progress-stat-card" style={{ gridColumn:"span 2" }}>
-              <div style={{ fontSize:11, color:"var(--muted)", fontWeight:700, textTransform:"uppercase", letterSpacing:".08em", marginBottom:4 }}>
-                Volumen total levantado
-              </div>
-              <div style={{ fontSize:40, fontWeight:900, color:"var(--green)", lineHeight:1 }}>
-                {fmtVol(Math.round(totals.volume))}<span style={{ fontSize:20, fontWeight:600 }}> kg</span>
-              </div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:12 }}>
+            <div style={{ background:"var(--panel)", borderRadius:14, padding:"12px", textAlign:"center" }}>
+              <div style={{ fontSize:10, color:"var(--muted)", fontWeight:700, textTransform:"uppercase", marginBottom:2 }}>Volumen</div>
+              <div style={{ fontSize:28, fontWeight:900, color:"var(--green)" }}>{fmtVol(Math.round(totals.volume))}<span style={{ fontSize:14 }}> kg</span></div>
             </div>
-            {[
-              { label:"Entrenamientos", value: totals.workouts, icon:"Dumbbell" },
-              { label:"Series totales",  value: fmtVol(totals.sets),  icon:"List" },
-              { label:"Repeticiones",   value: fmtVol(totals.reps),  icon:"RotateCcw" },
-              { label:"Récords (1RM)",  value: prs.length,           icon:"Trophy" },
-            ].map(({ label, value, icon }) => (
-              <div key={label} className="progress-stat-card">
-                <Icon name={icon} size={18} strokeWidth={1.8} style={{ color:"var(--muted)", marginBottom:6 }} />
-                <div style={{ fontSize:24, fontWeight:900, color:"var(--green)" }}>{value}</div>
-                <div style={{ fontSize:11, color:"var(--muted)", fontWeight:600 }}>{label}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Weekly muscle map */}
-          <div className="card" style={{ marginBottom:14 }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:4 }}>
-              <h2 style={{ margin:0, fontSize:14 }}>Músculos trabajados esta semana</h2>
-              <span style={{ fontSize:20, fontWeight:900, color:"var(--cyan)" }}>
-                {weeklyMuscles.groups.length > 0 ? Math.min(100, Math.round(weeklyMuscles.groups.length * 100 / 7)) + "%" : "0%"}
-              </span>
+            <div style={{ background:"var(--panel)", borderRadius:14, padding:"12px", textAlign:"center" }}>
+              <div style={{ fontSize:10, color:"var(--muted)", fontWeight:700, textTransform:"uppercase", marginBottom:2 }}>Entrenos</div>
+              <div style={{ fontSize:28, fontWeight:900, color:"var(--green)" }}>{totals.workouts}</div>
             </div>
-            {weeklyMuscles.muscles.length === 0 ? (
-              <p style={{ fontSize:12, color:"var(--muted)", margin:"8px 0 0" }}>
-                No registraste entrenamientos esta semana.
-              </p>
-            ) : (
-              <MuscleMap muscles={weeklyMuscles.muscles} groups={weeklyMuscles.groups} height={180} color="var(--cyan)" />
-            )}
+            <div style={{ background:"var(--panel)", borderRadius:14, padding:"12px", textAlign:"center" }}>
+              <div style={{ fontSize:10, color:"var(--muted)", fontWeight:700, textTransform:"uppercase", marginBottom:2 }}>Series</div>
+              <div style={{ fontSize:28, fontWeight:900, color:"var(--green)" }}>{fmtVol(totals.sets)}</div>
+            </div>
+            <div style={{ background:"var(--panel)", borderRadius:14, padding:"12px", textAlign:"center" }}>
+              <div style={{ fontSize:10, color:"var(--muted)", fontWeight:700, textTransform:"uppercase", marginBottom:2 }}>PRs</div>
+              <div style={{ fontSize:28, fontWeight:900, color:"var(--green)" }}>{prs.length}</div>
+            </div>
           </div>
-
-          {/* Navigation cards */}
-          {[
-            { label:"Historial de entrenamientos", icon:"Clock",      page:"history" },
-            { label:"Distribución muscular",        icon:"Activity",   page:null,     action:() => setTab("prs") },
-            { label:"Mediciones corporales",        icon:"Ruler",      page:"profile" },
-            { label:"Coach & Análisis",             icon:"BrainCircuit", page:"coach" },
-          ].map(({ label, icon, page, action }) => (
-            <button key={label} className="progress-nav-item" onClick={() => action ? action() : page && setPage(page)}>
-              <span style={{ width:36, height:36, borderRadius:10, background:"rgba(168,85,247,.1)", display:"grid", placeItems:"center", flexShrink:0 }}>
-                <Icon name={icon} size={18} strokeWidth={2} style={{ color:"var(--green)" }} />
-              </span>
-              <span style={{ flex:1, fontSize:14, fontWeight:600 }}>{label}</span>
-              <Icon name="ChevronRight" size={18} strokeWidth={2} style={{ color:"var(--muted)" }} />
-            </button>
-          ))}
-        </>
+        </div>
       )}
 
-      {/* ── PRS TAB ───────────────────────────────────────── */}
-      {tab === "prs" && (
+      {/* ── PRS (always visible) ──────────────────────────── */}
         <>
           {prs.length === 0 ? (
             <div className="notice" style={{ textAlign:"center", padding:"32px 20px" }}>
@@ -263,8 +215,7 @@ export default function PRPage() {
               </div>
             </>
           )}
-        </>
-      )}
+          </>
     </section>
   );
 }

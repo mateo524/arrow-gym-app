@@ -33,6 +33,7 @@ export default function StartWorkoutPage() {
   const [deleteRoutineTarget, setDeleteRoutineTarget] = useState(null); // { id, name }
   const [previewRoutine, setPreviewRoutine] = useState(null); // { name, recent: [] }
   const [createRoutineModal, setCreateRoutineModal] = useState(false);
+  const [creationMode, setCreationMode] = useState("choose"); // 'choose' | 'manual' | 'coach'
   const [newRoutineName, setNewRoutineName] = useState("");
   const [newRoutineExercises, setNewRoutineExercises] = useState([]);
   const [showCreatePicker, setShowCreatePicker] = useState(false);
@@ -42,6 +43,8 @@ export default function StartWorkoutPage() {
   const [editRoutineExercises, setEditRoutineExercises] = useState([]);
   const [showEditPicker, setShowEditPicker] = useState(false);
   const [savingEditRoutine, setSavingEditRoutine] = useState(false);
+  const [coachSplit, setCoachSplit] = useState("");
+  const [coachGoal, setCoachGoal] = useState("");
 
   function fetchRoutines() {
     if (!profile?.id) return;
@@ -54,7 +57,8 @@ export default function StartWorkoutPage() {
       .then(({ data }) => {
         setAssignedRoutines(data || []);
         setLoadingRoutines(false);
-      });
+      })
+      .catch(() => { setLoadingRoutines(false); });
   }
 
   useEffect(() => {
@@ -165,8 +169,10 @@ export default function StartWorkoutPage() {
 
   async function confirmDeleteRoutine() {
     if (!deleteRoutineTarget) return;
-    await supabase.from("routines").delete().eq("id", deleteRoutineTarget.id);
-    setAssignedRoutines(rs => rs.filter(r => r.id !== deleteRoutineTarget.id));
+    try {
+      await supabase.from("routines").delete().eq("id", deleteRoutineTarget.id);
+      setAssignedRoutines(rs => rs.filter(r => r.id !== deleteRoutineTarget.id));
+    } catch {}
     setDeleteRoutineTarget(null);
   }
 
@@ -175,17 +181,20 @@ export default function StartWorkoutPage() {
     const exercises = newRoutineExercises.filter(Boolean);
     if (!name || exercises.length === 0 || !profile?.id) return;
     setSavingRoutine(true);
-    const { data, error } = await supabase.from("routines").insert({
-      user_id: profile.id,
-      name,
-      exercises: exercises.map(e => ({ name: e })),
-      day_index: assignedRoutines.length,
-    }).select().single();
-    if (!error && data) {
-      setAssignedRoutines(rs => [...rs, data]);
-    }
+    try {
+      const { data, error } = await supabase.from("routines").insert({
+        user_id: profile.id,
+        name,
+        exercises: exercises.map(e => ({ name: e })),
+        day_index: assignedRoutines.length,
+      }).select().single();
+      if (!error && data) {
+        setAssignedRoutines(rs => [...rs, data]);
+      }
+    } catch {}
     setSavingRoutine(false);
     setCreateRoutineModal(false);
+    setCreationMode("choose");
     setShowCreatePicker(false);
     setNewRoutineName("");
     setNewRoutineExercises([]);
@@ -196,18 +205,42 @@ export default function StartWorkoutPage() {
     const exercises = editRoutineExercises.map(e => e.trim()).filter(Boolean);
     if (!name || exercises.length === 0 || !editRoutineTarget?.id) return;
     setSavingEditRoutine(true);
-    const { data, error } = await supabase.from("routines").update({
-      name,
-      exercises: exercises.map(e => ({ name: e })),
-    }).eq("id", editRoutineTarget.id).select().single();
-    if (!error && data) {
-      setAssignedRoutines(rs => rs.map(r => r.id === data.id ? data : r));
-    }
+    try {
+      const { data, error } = await supabase.from("routines").update({
+        name,
+        exercises: exercises.map(e => ({ name: e })),
+      }).eq("id", editRoutineTarget.id).select().single();
+      if (!error && data) {
+        setAssignedRoutines(rs => rs.map(r => r.id === data.id ? data : r));
+      }
+    } catch {}
     setSavingEditRoutine(false);
     setEditRoutineTarget(null);
   }
 
   const catalogNames = useMemo(() => EXERCISE_DATABASE.map((e) => e.name), []);
+
+  const COACH_SPLITS = [
+    { id:"push",     label:"Push",     desc:"Pecho, hombros y tríceps" },
+    { id:"pull",     label:"Pull",     desc:"Espalda y bíceps" },
+    { id:"legs",     label:"Piernas",  desc:"Cuádriceps, isquios y glúteos" },
+    { id:"upper",    label:"Upper",    desc:"Todo el torso" },
+    { id:"lower",    label:"Lower",    desc:"Piernas completo" },
+    { id:"fullbody", label:"Full Body",desc:"Cuerpo completo en cada sesión" },
+  ];
+  const COACH_GOALS = [
+    { id:"fuerza",        label:"💪 Fuerza",        desc:"Pocas reps, pesos altos" },
+    { id:"hipertrofia",   label:"💪🏽 Hipertrofia",  desc:"Reps moderadas, volumen alto" },
+    { id:"resistencia",   label:"🏃 Resistencia",   desc:"Muchas reps, peso moderado" },
+  ];
+  const EXERCISES_BY_SPLIT = useMemo(() => ({
+    push:     ["Press de banca plano","Incline Chest Press Machine","Landmine Shoulder Press","Cable Lateral Raise","Triceps Pushdown","Chest Press Machine"],
+    pull:     ["Cable Lat Pulldown","Close Grip Lat Pulldown","Dumbbell Row","High Row Machine","Cable Face Pull","Cable Biceps Curl","Hammer Curl"],
+    legs:     ["Leg Extension","Leg Curl","Bulgarian Split Squat","Sentadilla","Peso muerto"],
+    upper:    ["Press de banca plano","Cable Lat Pulldown","Landmine Shoulder Press","Dumbbell Row","Cable Biceps Curl","Triceps Pushdown"],
+    lower:    ["Sentadilla","Peso muerto","Leg Extension","Leg Curl","Bulgarian Split Squat"],
+    fullbody: ["Press de banca plano","Cable Lat Pulldown","Sentadilla","Dumbbell Row","Leg Extension","Cable Biceps Curl","Triceps Pushdown"],
+  }), []);
 
   const weeklyMuscleVolume = useMemo(() => {
     const GROUPS = ["Piernas","Espalda","Pecho","Hombros","Brazos","Core"];
@@ -568,50 +601,156 @@ export default function StartWorkoutPage() {
 
       {/* Create routine modal */}
       {createRoutineModal && (
-        <div className="modal-overlay" onClick={() => { setCreateRoutineModal(false); setShowCreatePicker(false); }}>
+        <div className="modal-overlay" onClick={() => { setCreateRoutineModal(false); setCreationMode("choose"); setShowCreatePicker(false); }}>
           <div className="modal-card" onClick={e => e.stopPropagation()} style={{ maxHeight:"90vh", overflowY:"auto", display:"flex", flexDirection:"column" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
-              <h2 style={{ margin:0, fontSize:18 }}>Nueva rutina</h2>
-              <button onClick={() => { setCreateRoutineModal(false); setShowCreatePicker(false); }} style={{ background:"none", border:"none", color:"var(--muted)", fontSize:20, cursor:"pointer" }}>✕</button>
+              <h2 style={{ margin:0, fontSize:18 }}>
+                {creationMode === "choose" ? "Nueva rutina" : creationMode === "coach" ? "Rutina con coach" : "Nueva rutina"}
+              </h2>
+              <button onClick={() => { setCreateRoutineModal(false); setCreationMode("choose"); setShowCreatePicker(false); }} style={{ background:"none", border:"none", color:"var(--muted)", fontSize:20, cursor:"pointer" }}>✕</button>
             </div>
-            <input
-              autoFocus
-              value={newRoutineName}
-              onChange={e => setNewRoutineName(e.target.value)}
-              placeholder="Nombre de la rutina (ej: Push A)"
-              style={{ width:"100%", background:"var(--panel2)", border:"1.5px solid var(--border)", borderRadius:10, padding:"11px 14px", color:"var(--text)", fontSize:15, boxSizing:"border-box", marginBottom:14 }}
-            />
-            {/* Exercise list */}
-            {newRoutineExercises.length > 0 && (
-              <div style={{ marginBottom:10 }}>
-                <p style={{ fontSize:11, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em", margin:"0 0 6px" }}>Ejercicios ({newRoutineExercises.length})</p>
-                {newRoutineExercises.map((ex, i) => (
-                  <div key={i} style={{ display:"flex", alignItems:"center", gap:8, padding:"7px 10px", background:"var(--panel2)", borderRadius:10, marginBottom:5 }}>
-                    <span style={{ flex:1, fontSize:13 }}>{ex}</span>
-                    <button onClick={() => setNewRoutineExercises(p => p.filter((_, idx) => idx !== i))}
-                      style={{ background:"none", border:"none", color:"var(--danger)", cursor:"pointer", fontSize:15, padding:"2px 4px" }}>✕</button>
+
+            {/* ── MODE PICKER ── */}
+            {creationMode === "choose" && (
+              <div style={{ display:"flex", flexDirection:"column", gap:12, padding:"8px 0" }}>
+                <p style={{ fontSize:13, color:"var(--muted)", margin:"0 0 4px", textAlign:"center" }}>¿Cómo querés crear la rutina?</p>
+                <button onClick={() => setCreationMode("manual")} style={{ background:"var(--panel)", border:"1.5px solid var(--line)", borderRadius:16, padding:"18px", cursor:"pointer", display:"flex", alignItems:"center", gap:12, textAlign:"left" }}>
+                  <span style={{ width:40, height:40, borderRadius:12, background:"rgba(168,85,247,.12)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, flexShrink:0 }}>✏️</span>
+                  <div>
+                    <div style={{ fontSize:15, fontWeight:700, marginBottom:2 }}>Hacerla vos</div>
+                    <div style={{ fontSize:12, color:"var(--muted)" }}>Elegí el nombre y cada ejercicio manualmente</div>
                   </div>
-                ))}
+                </button>
+                <button onClick={() => setCreationMode("coach")} style={{ background:"var(--panel)", border:"1.5px solid var(--cyan)", borderRadius:16, padding:"18px", cursor:"pointer", display:"flex", alignItems:"center", gap:12, textAlign:"left" }}>
+                  <span style={{ width:40, height:40, borderRadius:12, background:"rgba(117,217,255,.12)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, flexShrink:0 }}>🤖</span>
+                  <div>
+                    <div style={{ fontSize:15, fontWeight:700, marginBottom:2 }}>Que el coach te ayude</div>
+                    <div style={{ fontSize:12, color:"var(--muted)" }}>Seleccioná el tipo de rutina y el coach sugiere ejercicios</div>
+                  </div>
+                </button>
               </div>
             )}
-            {/* Exercise picker */}
-            <button onClick={() => setShowCreatePicker(p => !p)}
-              style={{ width:"100%", background:"rgba(168,85,247,.08)", border:"1px dashed rgba(168,85,247,.4)", borderRadius:10, padding:"10px", cursor:"pointer", fontSize:13, color:"var(--green)", fontWeight:700, marginBottom:10 }}>
-              {showCreatePicker ? "✕ Cerrar buscador" : "+ Agregar ejercicio"}
-            </button>
-            {showCreatePicker && (
-              <div style={{ border:"1px solid var(--line)", borderRadius:12, overflow:"hidden", marginBottom:12, maxHeight:300, overflowY:"auto" }}>
-                <ExercisePicker compact onPick={ex => { setNewRoutineExercises(p => [...p, ex.name]); }} />
-              </div>
+
+            {/* ── MANUAL MODE ── */}
+            {creationMode === "manual" && (
+              <>
+                <input
+                  autoFocus
+                  value={newRoutineName}
+                  onChange={e => setNewRoutineName(e.target.value)}
+                  placeholder="Nombre de la rutina (ej: Push A)"
+                  style={{ width:"100%", background:"var(--panel2)", border:"1.5px solid var(--border)", borderRadius:10, padding:"11px 14px", color:"var(--text)", fontSize:15, boxSizing:"border-box", marginBottom:14 }}
+                />
+                {newRoutineExercises.length > 0 && (
+                  <div style={{ marginBottom:10 }}>
+                    <p style={{ fontSize:11, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em", margin:"0 0 6px" }}>Ejercicios ({newRoutineExercises.length})</p>
+                    {newRoutineExercises.map((ex, i) => (
+                      <div key={i} style={{ display:"flex", alignItems:"center", gap:8, padding:"7px 10px", background:"var(--panel2)", borderRadius:10, marginBottom:5 }}>
+                        <span style={{ flex:1, fontSize:13 }}>{ex}</span>
+                        <button onClick={() => setNewRoutineExercises(p => p.filter((_, idx) => idx !== i))}
+                          style={{ background:"none", border:"none", color:"var(--danger)", cursor:"pointer", fontSize:15, padding:"2px 4px" }}>✕</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <button onClick={() => setShowCreatePicker(p => !p)}
+                  style={{ width:"100%", background:"rgba(168,85,247,.08)", border:"1px dashed rgba(168,85,247,.4)", borderRadius:10, padding:"10px", cursor:"pointer", fontSize:13, color:"var(--green)", fontWeight:700, marginBottom:10 }}>
+                  {showCreatePicker ? "✕ Cerrar buscador" : "+ Agregar ejercicio"}
+                </button>
+                {showCreatePicker && (
+                  <div style={{ border:"1px solid var(--line)", borderRadius:12, overflowY:"auto", marginBottom:12, maxHeight:300 }}>
+                    <ExercisePicker compact onPick={ex => { setNewRoutineExercises(p => [...p, ex.name]); }} />
+                  </div>
+                )}
+                <div style={{ display:"flex", gap:10, marginTop:"auto", paddingTop:4 }}>
+                  <button className="ghost" style={{ flex:1 }} onClick={() => setCreationMode("choose")}>Atrás</button>
+                  <button className="primary" style={{ flex:2 }}
+                    disabled={!newRoutineName.trim() || newRoutineExercises.length === 0 || savingRoutine}
+                    onClick={saveNewRoutine}>
+                    {savingRoutine ? "Guardando…" : "Guardar rutina"}
+                  </button>
+                </div>
+              </>
             )}
-            <div style={{ display:"flex", gap:10, marginTop:"auto", paddingTop:4 }}>
-              <button className="ghost" style={{ flex:1 }} onClick={() => { setCreateRoutineModal(false); setShowCreatePicker(false); }}>Cancelar</button>
-              <button className="primary" style={{ flex:2 }}
-                disabled={!newRoutineName.trim() || newRoutineExercises.length === 0 || savingRoutine}
-                onClick={saveNewRoutine}>
-                {savingRoutine ? "Guardando…" : "Guardar rutina"}
-              </button>
-            </div>
+
+            {/* ── COACH MODE ── */}
+            {creationMode === "coach" && (
+              <>
+                <input
+                  autoFocus
+                  value={newRoutineName}
+                  onChange={e => setNewRoutineName(e.target.value)}
+                  placeholder="Nombre de la rutina (ej: Push A)"
+                  style={{ width:"100%", background:"var(--panel2)", border:"1.5px solid var(--border)", borderRadius:10, padding:"11px 14px", color:"var(--text)", fontSize:15, boxSizing:"border-box", marginBottom:14 }}
+                />
+                {/* Split picker */}
+                {!coachSplit && (
+                  <div style={{ marginBottom:12 }}>
+                    <p style={{ fontSize:11, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em", margin:"0 0 8px" }}>Elegí el tipo de rutina</p>
+                    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
+                      {COACH_SPLITS.map(s => (
+                        <button key={s.id} onClick={() => { setCoachSplit(s.id); setNewRoutineName(s.label); setNewRoutineExercises(EXERCISES_BY_SPLIT[s.id] || []); }}
+                          style={{ background:"var(--panel2)", border:"1px solid var(--line)", borderRadius:14, padding:"14px 12px", cursor:"pointer", textAlign:"center" }}>
+                          <div style={{ fontSize:13, fontWeight:700, marginBottom:2 }}>{s.label}</div>
+                          <div style={{ fontSize:11, color:"var(--muted)" }}>{s.desc}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* Goal picker (after split) */}
+                {coachSplit && !coachGoal && (
+                  <div style={{ marginBottom:12 }}>
+                    <p style={{ fontSize:11, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em", margin:"0 0 8px" }}>¿Cuál es tu objetivo?</p>
+                    <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                      {COACH_GOALS.map(g => (
+                        <button key={g.id} onClick={() => setCoachGoal(g.id)}
+                          style={{ background:"var(--panel2)", border:"1px solid var(--line)", borderRadius:14, padding:"14px 14px", cursor:"pointer", textAlign:"left", display:"flex", alignItems:"center", gap:10 }}>
+                          <span style={{ fontSize:18 }}>{g.label.split(" ")[0]}</span>
+                          <div>
+                            <div style={{ fontSize:14, fontWeight:700 }}>{g.label}</div>
+                            <div style={{ fontSize:12, color:"var(--muted)" }}>{g.desc}</div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* Suggested exercises (after goal) */}
+                {coachSplit && coachGoal && (
+                  <div style={{ marginBottom:10 }}>
+                    <p style={{ fontSize:11, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em", margin:"0 0 6px" }}>Ejercicios sugeridos ({newRoutineExercises.length})</p>
+                    {newRoutineExercises.map((ex, i) => (
+                      <div key={i} style={{ display:"flex", alignItems:"center", gap:8, padding:"7px 10px", background:"var(--panel2)", borderRadius:10, marginBottom:5 }}>
+                        <span style={{ flex:1, fontSize:13 }}>{ex}</span>
+                        <button onClick={() => setNewRoutineExercises(p => p.filter((_, idx) => idx !== i))}
+                          style={{ background:"none", border:"none", color:"var(--danger)", cursor:"pointer", fontSize:15, padding:"2px 4px" }}>✕</button>
+                      </div>
+                    ))}
+                    <button onClick={() => setShowCreatePicker(p => !p)}
+                      style={{ width:"100%", background:"rgba(168,85,247,.08)", border:"1px dashed rgba(168,85,247,.4)", borderRadius:10, padding:"8px", cursor:"pointer", fontSize:12, color:"var(--green)", fontWeight:700, marginTop:6 }}>
+                      {showCreatePicker ? "✕ Cerrar buscador" : "+ Agregar/quitar ejercicio"}
+                    </button>
+                    {showCreatePicker && (
+                      <div style={{ border:"1px solid var(--line)", borderRadius:12, overflow:"hidden", marginBottom:8, marginTop:6, maxHeight:200, overflowY:"auto" }}>
+                        <ExercisePicker compact onPick={ex => { if (!newRoutineExercises.includes(ex.name)) setNewRoutineExercises(p => [...p, ex.name]); }} />
+                      </div>
+                    )}
+                  </div>
+                )}
+                <div style={{ display:"flex", gap:10, marginTop:"auto", paddingTop:4 }}>
+                  <button className="ghost" style={{ flex:1 }}
+                    onClick={() => { if (coachGoal) setCoachGoal(""); else if (coachSplit) { setCoachSplit(""); setCoachGoal(""); setNewRoutineName(""); setNewRoutineExercises([]); } else setCreationMode("choose"); }}>
+                    Atrás
+                  </button>
+                  <button className="primary" style={{ flex:2 }}
+                    disabled={!newRoutineName.trim() || newRoutineExercises.length === 0 || savingRoutine}
+                    onClick={saveNewRoutine}>
+                    {savingRoutine ? "Guardando…" : "Guardar rutina"}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -647,7 +786,7 @@ export default function StartWorkoutPage() {
               {showEditPicker ? "✕ Cerrar buscador" : "+ Agregar ejercicio"}
             </button>
             {showEditPicker && (
-              <div style={{ border:"1px solid var(--line)", borderRadius:12, overflow:"hidden", marginBottom:12, maxHeight:300, overflowY:"auto" }}>
+              <div style={{ border:"1px solid var(--line)", borderRadius:12, overflowY:"auto", marginBottom:12, maxHeight:300 }}>
                 <ExercisePicker compact onPick={ex => { setEditRoutineExercises(p => [...p, ex.name]); }} />
               </div>
             )}

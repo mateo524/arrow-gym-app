@@ -181,7 +181,7 @@ export default function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onR
           className="ghost set-action-sm"
           onClick={() => { haptic(); onStartRest(); }}
           title="Descanso"
-          style={{ display:"flex", alignItems:"center", gap:5 }}
+          style={{ display:"flex", alignItems:"center", gap:5, border:"1.5px dashed var(--cyan)", color:"var(--cyan)", background:"rgba(117,217,255,.06)" }}
         >
           <Icon name="Timer" size={13} />
           Descanso

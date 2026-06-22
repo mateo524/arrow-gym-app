@@ -53,13 +53,18 @@ const useAuthStore = create((set, get) => ({
   authError: null,
 
   init: async () => {
-    const { data: { session } } = await supabase.auth.getSession();
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
 
-    if (session?.user) {
-      setAuthUserId(session.user.id);
-      set({ user: session.user, loading: false });
-      get().fetchProfile(session.user);
-    } else {
+      if (session?.user) {
+        setAuthUserId(session.user.id);
+        set({ user: session.user, loading: false });
+        get().fetchProfile(session.user);
+      } else {
+        setAuthUserId(null);
+        set({ user: null, profile: null, loading: false });
+      }
+    } catch {
       setAuthUserId(null);
       set({ user: null, profile: null, loading: false });
     }
@@ -140,7 +145,7 @@ const useAuthStore = create((set, get) => ({
 
   logout: async () => {
     clearCachedProfile();
-    await supabase.auth.signOut();
+    try { await supabase.auth.signOut(); } catch {}
     setAuthUserId(null);
     setAuthProfile(null);
     set({ user: null, profile: null });

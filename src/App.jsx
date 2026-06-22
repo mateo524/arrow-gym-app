@@ -28,11 +28,16 @@ import useStore from "./store/useStore.js";
 import useAuthStore from "./store/useAuthStore.js";
 import { supabase } from "./lib/supabase.js";
 
-const APP_VERSION = "44";
+const APP_VERSION = "45";
 const NOVEDADES = [
   { icon: "⏱", text: "El timer de descanso ahora funciona aunque cambies de pestaña." },
   { icon: "🏆", text: "Resumen de récords al terminar un entrenamiento — no se tapa más con la barra de abajo." },
   { icon: "✏️", text: "Podés iniciar el descanso desde cada serie con el botón 'Descanso'." },
+  { icon: "▶️", text: "Timer de descanso manual — apretás 'Iniciar descanso' cuando estés listo." },
+  { icon: "🎯", text: "Al crear rutina, elegí entre hacerla vos o que el coach te ayude con ejercicios sugeridos." },
+  { icon: "📊", text: "Progresión rediseñada — récords primero, stats opcionales. Menos scroll." },
+  { icon: "🔌", text: "Health Sync reemplazada por 'Próximamente' — la integración nativa está en desarrollo." },
+  { icon: "🛡️", text: "Manejo de errores mejorado en toda la app — los cortes de internet ya no pierden tu progreso." },
 ];
 
 function InstallBanner({ onInstall, onDismiss, isIOS }) {
@@ -225,8 +230,8 @@ function AppContent() {
               await syncWorkoutUp(item.row, item.row.user_id);
             }
           });
-        });
-      });
+        }).catch(() => {});
+      }).catch(() => {});
     };
     window.addEventListener("online", handleOnline);
     return () => window.removeEventListener("online", handleOnline);
@@ -284,7 +289,7 @@ function AppContent() {
     if (Notification.permission === "granted") {
       notify();
     } else if (Notification.permission === "default") {
-      Notification.requestPermission().then(p => { if (p === "granted") notify(); });
+      Notification.requestPermission().then(p => { if (p === "granted") notify(); }).catch(() => {});
     }
   }, []);
 
@@ -350,7 +355,7 @@ function AppContent() {
           tag: "training-reminder",
         });
       }
-    });
+    }).catch(() => {});
   }, [user]);
 
   // Show a minimal splash ONLY when there's no cached session at all
@@ -474,9 +479,10 @@ function AppContent() {
                 const { error } = await supabase.auth.updateUser({ password: newPassword });
                 if (error) { setPasswordError(error.message); setPasswordLoading(false); return; }
                 // Mark password as changed in profile
-                const uid = useAuthStore.getState().user?.id;
-                if (uid) await supabase.from("profiles").update({ has_changed_password: true }).eq("id", uid);
-                // Update local profile
+                try {
+                  const uid = useAuthStore.getState().user?.id;
+                  if (uid) await supabase.from("profiles").update({ has_changed_password: true }).eq("id", uid);
+                } catch {}
                 useAuthStore.setState(s => ({ profile: s.profile ? { ...s.profile, has_changed_password: true } : s.profile }));
                 setShowPasswordModal(false);
                 setNewPassword("");

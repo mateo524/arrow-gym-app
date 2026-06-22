@@ -27,7 +27,8 @@ export default function Nav({ role }) {
     if (!profile?.id) return;
     supabase.from("notifications").select("id", { count: "exact" })
       .eq("user_id", profile.id).eq("read", false)
-      .then(({ count }) => setNotifCount(count || 0));
+      .then(({ count }) => setNotifCount(count || 0))
+      .catch(() => {});
   }, [profile?.id, currentPage]);
 
   const badges = { activeWorkout: !!activeWorkout, coachBadge, notifBadge: notifCount > 0 };
