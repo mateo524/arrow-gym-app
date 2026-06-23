@@ -264,9 +264,11 @@ function AppContent() {
     return () => clearTimeout(t);
   }, []);
 
-  // Push notification: ask permission once, then fire if user hasn't trained in 3+ days
+  // Push notification: ask permission once, fire at most once per day if inactive 3+ days
   useEffect(() => {
-    if (!("Notification" in window)) return;
+    if (!user || !("Notification" in window)) return;
+    const lastNotif = localStorage.getItem("loop-last-notif");
+    if (lastNotif && Date.now() - Number(lastNotif) < 86400000) return;
     const workouts = useStore.getState().workouts || [];
     const restDays = useStore.getState().restDays || [];
     const allDays = [
@@ -279,9 +281,9 @@ function AppContent() {
     if (daysSince < 3) return;
     const notify = () => {
       const msgs = [
-        `Llevas ${daysSince} días sin entrenar. ¡El gym te extraña! 💪`,
-        `${daysSince} días de descanso... ¿será que ya descansaste suficiente? 🔥`,
-        `Tu racha está en pausa hace ${daysSince} días. ¡Volvé hoy! ⚡`,
+        `Llevas ${daysSince} días sin entrenar. ¡El gym te extraña!`,
+        `${daysSince} días de descanso... ¿será que ya descansaste suficiente?`,
+        `Tu racha está en pausa hace ${daysSince} días. ¡Volvé hoy!`,
       ];
       new Notification("Loop Gym", {
         body: msgs[daysSince % msgs.length],
@@ -289,13 +291,14 @@ function AppContent() {
         badge: "/icon-192.png",
         tag: "inactivity",
       });
+      localStorage.setItem("loop-last-notif", String(Date.now()));
     };
     if (Notification.permission === "granted") {
       notify();
     } else if (Notification.permission === "default") {
       Notification.requestPermission().then(p => { if (p === "granted") notify(); }).catch(() => {});
     }
-  }, []);
+  }, [user]);
 
   // Backup active workout to sessionStorage every time it changes.
   // sessionStorage survives iOS PWA app switches (unlike in-memory state).
@@ -341,23 +344,6 @@ function AppContent() {
 
   // These effects reference user/profile so they must also be before any early return
   useEffect(() => { if (isReturningUser && !hasSeenOnboarding) markOnboardingSeen(); }, [isReturningUser, hasSeenOnboarding]);
-  useEffect(() => {
-    if (!user || !("Notification" in window)) return;
-    if (Notification.permission !== "default") return;
-    Notification.requestPermission().then(perm => {
-      if (perm !== "granted") return;
-      const last = workouts[0];
-      if (!last) return;
-      const daysSince = Math.floor((Date.now() - new Date(last.date + "T12:00:00").getTime()) / 86400000);
-      if (daysSince >= 2) {
-        new Notification("💪 Loop — Hora de entrenar", {
-          body: `Llevas ${daysSince} días sin entrenar. ¿Hoy va?`,
-          icon: "/icon.svg",
-          tag: "training-reminder",
-        });
-      }
-    }).catch(() => {});
-  }, [user]);
 
   // Show a minimal splash ONLY when there's no cached session at all
   // (first load, logged out). If there's a cached user we skip the splash
