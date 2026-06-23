@@ -162,6 +162,7 @@ function AppContent() {
   const [showInstallBanner, setShowInstallBanner] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [swUpdateReady, setSwUpdateReady] = useState(false);
+  const [draftRecovered, setDraftRecovered] = useState(false);
 
   const { user, profile, loading, init } = useAuthStore();
   // These three hooks MUST live before any early return to satisfy React Rules of Hooks
