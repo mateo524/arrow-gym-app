@@ -13,4 +13,8 @@ dist-native/
 android/
 ios/
 
-.vercel
+.claude/
+.github/
+capacitor.config.ts
+generate-icons.mjs
+package-lock.json
