@@ -10,7 +10,7 @@ export const supabase = createClient(
     auth: {
       persistSession: true,       // Session survives page reloads, phone off, etc.
       autoRefreshToken: true,     // Silently refreshes the JWT before it expires
-      storageKey: "arrow-gym-auth", // localStorage key for the session
+      storageKey: "loop-gym-auth", // localStorage key for the session
       storage: window.localStorage,
     },
   }

@@ -20,7 +20,7 @@ window.addEventListener('unhandledrejection', (e) => {
 
 function hasActiveWorkout() {
   try {
-    const raw = localStorage.getItem("arrow-gym-v4");
+    const raw = localStorage.getItem("loop-gym-v4");
     if (!raw) return false;
     const state = JSON.parse(raw);
     return !!state?.state?.activeWorkout;

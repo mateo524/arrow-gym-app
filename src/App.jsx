@@ -30,16 +30,16 @@ import { supabase } from "./lib/supabase.js";
 
 const APP_VERSION = "46";
 const NOVEDADES = [
-  { icon: "⏱", text: "Timer de descanso funciona aunque cambies de pestaña." },
-  { icon: "🏆", text: "Resumen de records al terminar un entrenamiento." },
-  { icon: "▶️", text: "Timer de descanso manual — apretas 'Iniciar descanso' cuando estes listo." },
-  { icon: "🎯", text: "Al crear rutina, elegi entre hacerla vos o que el coach te ayude." },
-  { icon: "📊", text: "Progresion redisenada — records primero, stats opcionales." },
-  { icon: "🔌", text: "Health Sync reemplazada por 'Proximamente'." },
-  { icon: "🛡️", text: "Manejo de errores mejorado en toda la app." },
-  { icon: "🥗", text: "Plan de comidas: hoy destacado, auto-expansion, log rapido por comida." },
-  { icon: "🔴", text: "Punto rojo en Coach solo cuando terminas un entreno con reportes." },
-  { icon: "🗣️", text: "Coach por voz removido — limpieza general de emojis." },
+  { version: 46, icon: "⏱", text: "Timer de descanso funciona aunque cambies de pestaña." },
+  { version: 46, icon: "🏆", text: "Resumen de records al terminar un entrenamiento." },
+  { version: 46, icon: "▶️", text: "Timer de descanso manual — apretas 'Iniciar descanso' cuando estes listo." },
+  { version: 46, icon: "🎯", text: "Al crear rutina, elegi entre hacerla vos o que el coach te ayude." },
+  { version: 46, icon: "📊", text: "Progresion redisenada — records primero, stats opcionales." },
+  { version: 46, icon: "🔌", text: "Health Sync reemplazada por 'Proximamente'." },
+  { version: 46, icon: "🛡️", text: "Manejo de errores mejorado en toda la app." },
+  { version: 46, icon: "🥗", text: "Plan de comidas: hoy destacado, auto-expansion, log rapido por comida." },
+  { version: 46, icon: "🔴", text: "Punto rojo en Coach solo cuando terminas un entreno con reportes." },
+  { version: 46, icon: "🗣️", text: "Coach por voz removido — limpieza general de emojis." },
 ];
 
 function InstallBanner({ onInstall, onDismiss, isIOS }) {
@@ -75,7 +75,8 @@ function InstallBanner({ onInstall, onDismiss, isIOS }) {
   );
 }
 
-function NovedadesModal({ onClose }) {
+function NovedadesModal({ onClose, lastSeenVersion }) {
+  const newItems = NOVEDADES.filter(n => n.version > (lastSeenVersion || 0));
   return (
     <div style={{ position:"fixed", inset:0, zIndex:10000, background:"rgba(0,0,0,.65)", display:"flex", alignItems:"flex-end", justifyContent:"center" }}
       onClick={onClose}>
@@ -86,7 +87,7 @@ function NovedadesModal({ onClose }) {
           <button style={{ background:"none", border:"none", color:"var(--muted)", fontSize:22, lineHeight:1, cursor:"pointer", padding:"0 4px" }} onClick={onClose}>✕</button>
         </div>
         <div style={{ display:"flex", flexDirection:"column", gap:12, marginBottom:20 }}>
-          {NOVEDADES.map((n, i) => (
+          {newItems.map((n, i) => (
             <div key={i} style={{ display:"flex", gap:12, alignItems:"flex-start" }}>
               <span style={{ fontSize:22, lineHeight:"1.4" }}>{n.icon}</span>
               <span style={{ fontSize:14, color:"var(--text)", lineHeight:"1.5" }}>{n.text}</span>
@@ -281,7 +282,7 @@ function AppContent() {
         `${daysSince} días de descanso... ¿será que ya descansaste suficiente? 🔥`,
         `Tu racha está en pausa hace ${daysSince} días. ¡Volvé hoy! ⚡`,
       ];
-      new Notification("Arrow Gym", {
+      new Notification("Loop Gym", {
         body: msgs[daysSince % msgs.length],
         icon: "/icon-192.png",
         badge: "/icon-192.png",
@@ -299,18 +300,15 @@ function AppContent() {
   // sessionStorage survives iOS PWA app switches (unlike in-memory state).
   useEffect(() => {
     if (activeWorkout) {
-      sessionStorage.setItem("arrow-gym-active-workout", JSON.stringify(activeWorkout));
+      sessionStorage.setItem("loop-gym-active-workout", JSON.stringify(activeWorkout));
     } else {
-      sessionStorage.removeItem("arrow-gym-active-workout");
+      sessionStorage.removeItem("loop-gym-active-workout");
     }
   }, [activeWorkout]);
 
-  const [draftRecovered, setDraftRecovered] = useState(false);
-
-  // On mount: if Zustand lost the active workout (iOS killed the process) but
-  // sessionStorage still has it, restore it immediately before any render.
+  // On mount: recover active workout from sessionStorage
   useEffect(() => {
-    const stored = sessionStorage.getItem("arrow-gym-active-workout");
+    const stored = sessionStorage.getItem("loop-gym-active-workout");
     if (stored && !activeWorkout) {
       try {
         const recovered = JSON.parse(stored);
@@ -503,7 +501,7 @@ function AppContent() {
       )}
 
       {showNovedades && (
-        <NovedadesModal onClose={() => { setShowNovedades(false); markVersionSeen(APP_VERSION); }} />
+        <NovedadesModal onClose={() => { setShowNovedades(false); markVersionSeen(APP_VERSION); }} lastSeenVersion={lastSeenVersion} />
       )}
       {swUpdateReady && (
         <div style={{ position:"fixed", top:0, left:0, right:0, zIndex:9999,

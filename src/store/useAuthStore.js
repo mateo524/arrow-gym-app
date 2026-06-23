@@ -2,11 +2,11 @@ import { create } from "zustand";
 import { supabase } from "../lib/supabase.js";
 import { setAuthUserId, setAuthProfile } from "../lib/authBridge.js";
 
-const PROFILE_CACHE_KEY = "arrow-gym-profile-v1";
+const PROFILE_CACHE_KEY = "loop-gym-profile-v1";
 
 function getCachedSession() {
   try {
-    const raw = localStorage.getItem("arrow-gym-auth");
+    const raw = localStorage.getItem("loop-gym-auth");
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     const session = parsed?.currentSession ?? parsed?.session ?? parsed;

@@ -1,9 +1,10 @@
 ﻿import { useMemo, useState } from "react";
 import useStore from "../store/useStore.js";
-import { hasData, getExerciseProgression, getRadarData } from "../lib/analytics.js";
-import RadarChart from "../components/RadarChart.jsx";
+import { hasData, getExerciseProgression } from "../lib/analytics.js";
 import MicroLineChart from "../components/MicroLineChart.jsx";
 import Icon from "../components/Icon.jsx";
+
+const PR_PAGE_SIZE = 8;
 
 function getAllTimePRs(workouts) {
   const prMap = {};
@@ -27,39 +28,60 @@ function getAllTimePRs(workouts) {
   return Object.values(prMap).sort((a,b) => b.oneRM - a.oneRM);
 }
 
+function getPrevBest(workouts, exercise) {
+  let bestWeight = 0, bestReps = 0;
+  for (const w of workouts || []) {
+    for (const s of (w.sets || []).filter(hasData)) {
+      if (s.exercise !== exercise) continue;
+      const wgt = Number(s.weight) || 0;
+      const rps = Number(s.reps) || 0;
+      if (wgt > bestWeight || (wgt === bestWeight && rps > bestReps)) {
+        bestWeight = wgt;
+        bestReps = rps;
+      }
+    }
+  }
+  return bestWeight > 0 ? { weight: bestWeight, reps: bestReps } : null;
+}
+
 function fmtVol(kg) {
   if (kg >= 1_000_000) return (kg / 1_000_000).toFixed(1) + "M";
   if (kg >= 1_000) return Math.round(kg / 1000) + "k";
   return String(kg);
 }
 
+function fmtDelta(current, prev) {
+  if (!prev || prev.oneRM >= current.oneRM) return null;
+  const pct = Math.round(((current.oneRM - prev.oneRM) / prev.oneRM) * 100);
+  return { kg: current.weight - prev.weight, pct };
+}
+
 export default function PRPage() {
-  const workouts        = useStore((s) => s.workouts);
-  const setPage         = useStore((s) => s.setPage);
+  const workouts = useStore((s) => s.workouts);
+  const setPage = useStore((s) => s.setPage);
+
+  const [showSearch, setShowSearch] = useState(false);
   const [search, setSearch] = useState("");
+  const [groupFilter, setGroupFilter] = useState("");
   const [expandedExercise, setExpandedExercise] = useState(null);
-  const [radarRange, setRadarRange] = useState("4w");
-  const [showStats, setShowStats] = useState(false);
+  const [showAll, setShowAll] = useState(false);
 
-  const prs      = useMemo(() => getAllTimePRs(workouts), [workouts]);
-  const filtered = search ? prs.filter((p) => p.exercise.toLowerCase().includes(search.toLowerCase())) : prs;
+  const prs = useMemo(() => getAllTimePRs(workouts), [workouts]);
+  const groups = useMemo(() => {
+    const gs = [...new Set(prs.map(p => p.group).filter(Boolean))];
+    gs.sort();
+    return gs;
+  }, [prs]);
 
-  /* ── radar data ──────────────────────────────────────── */
-  const RADAR_RANGES = [
-    { id: "7d",  label: "7d",   days: 7   },
-    { id: "4w",  label: "1m",   days: 30  },
-    { id: "3m",  label: "3m",   days: 90  },
-    { id: "all", label: "Todo", days: null },
-  ];
-  const radarWorkouts = useMemo(() => {
-    const opt = RADAR_RANGES.find(r => r.id === radarRange);
-    if (!opt || !opt.days) return workouts || [];
-    const min = Date.now() - opt.days * 86400000;
-    return (workouts || []).filter(w => new Date(w.date + "T12:00:00").getTime() >= min);
-  }, [workouts, radarRange]);
-  const radarData = useMemo(() => getRadarData(radarWorkouts), [radarWorkouts]);
+  const filtered = useMemo(() => {
+    let list = prs;
+    if (groupFilter) list = list.filter(p => p.group === groupFilter);
+    if (search) list = list.filter(p => p.exercise.toLowerCase().includes(search.toLowerCase()));
+    return list;
+  }, [prs, groupFilter, search]);
 
-  /* ── lifetime totals ─────────────────────────────────── */
+  const visible = showAll ? filtered : filtered.slice(0, PR_PAGE_SIZE);
+
   const totals = useMemo(() => {
     let volume = 0, sets = 0, reps = 0;
     for (const w of workouts || []) {
@@ -72,6 +94,20 @@ export default function PRPage() {
     return { volume, sets, reps, workouts: workouts?.length || 0 };
   }, [workouts]);
 
+  const METRICS = [
+    { label: "PRs", val: prs.length, color: "#fbbf24", icon: "Award" },
+    { label: "Vol", val: fmtVol(Math.round(totals.volume)) + "kg", color: "#a855f7", icon: "Package" },
+    { label: "Sets", val: fmtVol(totals.sets), color: "#60a5fa", icon: "List" },
+    { label: "Ent", val: totals.workouts, color: "#22c55e", icon: "Calendar" },
+  ];
+
+  const prevBests = useMemo(() => {
+    if (!workouts) return {};
+    const map = {};
+    prs.forEach(p => { map[p.exercise] = getPrevBest(workouts, p.exercise); });
+    return map;
+  }, [workouts, prs]);
+
   return (
     <section className="page">
       <div className="page-head">
@@ -82,123 +118,110 @@ export default function PRPage() {
           <p className="eyebrow">Coach</p>
           <h1>Progreso</h1>
         </div>
-        <button onClick={() => setShowStats(s => !s)} style={{
-          background: showStats ? "rgba(168,85,247,.15)" : "var(--panel2)",
-          border: showStats ? "1px solid rgba(168,85,247,.4)" : "1px solid var(--line)",
-          borderRadius:10, padding:"6px 10px", cursor:"pointer", display:"flex", alignItems:"center", gap:5,
-          color: showStats ? "var(--green)" : "var(--muted)", fontSize:12, fontWeight:700,
-        }}>
-          <Icon name="BarChart2" size={15} strokeWidth={2} />
-          Stats
+        <button onClick={() => setShowSearch(s => !s)}
+          style={{ background: showSearch ? "rgba(168,85,247,.15)" : "var(--panel2)", border:"1px solid var(--line)", borderRadius:10, padding:"6px 10px", cursor:"pointer", display:"flex", alignItems:"center", gap:5, color: "var(--muted)", fontSize:12, fontWeight:700 }}>
+          <Icon name="Search" size={15} strokeWidth={2} />
         </button>
       </div>
 
-      {/* ── STATS SECTION (collapsible) ─────────────────────── */}
-      {showStats && (
-        <div style={{ marginBottom:16 }}>
-          <div className="card" style={{ marginBottom:12 }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
-              <h2 style={{ margin:0, fontSize:14, fontWeight:800 }}>Cobertura muscular</h2>
-              <div style={{ display:"flex", gap:4 }}>
-                {RADAR_RANGES.map(r => (
-                  <button key={r.id} onClick={() => setRadarRange(r.id)} style={{
-                    padding:"3px 8px", borderRadius:20, border:"none", cursor:"pointer", fontSize:10, fontWeight:700,
-                    background: radarRange === r.id ? "var(--green)" : "var(--panel2)",
-                    color: radarRange === r.id ? "#000" : "var(--muted)",
-                  }}>{r.label}</button>
-                ))}
-              </div>
-            </div>
-            {radarWorkouts.length === 0 ? (
-              <p style={{ fontSize:12, color:"var(--muted)", textAlign:"center", padding:"12px 0" }}>Sin datos para este período.</p>
-            ) : (
-              <div style={{ height:180 }}><RadarChart data={radarData} /></div>
-            )}
+      {/* ── Metric strip ─────────────────────────────────── */}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:6, marginBottom:14 }}>
+        {METRICS.map(m => (
+          <div key={m.label} style={{ background:"var(--panel)", borderRadius:12, padding:"10px 6px", textAlign:"center" }}>
+            <div style={{ fontSize:10, color:"var(--muted)", fontWeight:700, textTransform:"uppercase", marginBottom:2 }}>{m.label}</div>
+            <div style={{ fontSize:22, fontWeight:900, color:m.color, lineHeight:1.2 }}>{m.val}</div>
           </div>
+        ))}
+      </div>
 
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:12 }}>
-            <div style={{ background:"var(--panel)", borderRadius:14, padding:"12px", textAlign:"center" }}>
-              <div style={{ fontSize:10, color:"var(--muted)", fontWeight:700, textTransform:"uppercase", marginBottom:2 }}>Volumen</div>
-              <div style={{ fontSize:28, fontWeight:900, color:"var(--green)" }}>{fmtVol(Math.round(totals.volume))}<span style={{ fontSize:14 }}> kg</span></div>
-            </div>
-            <div style={{ background:"var(--panel)", borderRadius:14, padding:"12px", textAlign:"center" }}>
-              <div style={{ fontSize:10, color:"var(--muted)", fontWeight:700, textTransform:"uppercase", marginBottom:2 }}>Entrenos</div>
-              <div style={{ fontSize:28, fontWeight:900, color:"var(--green)" }}>{totals.workouts}</div>
-            </div>
-            <div style={{ background:"var(--panel)", borderRadius:14, padding:"12px", textAlign:"center" }}>
-              <div style={{ fontSize:10, color:"var(--muted)", fontWeight:700, textTransform:"uppercase", marginBottom:2 }}>Series</div>
-              <div style={{ fontSize:28, fontWeight:900, color:"var(--green)" }}>{fmtVol(totals.sets)}</div>
-            </div>
-            <div style={{ background:"var(--panel)", borderRadius:14, padding:"12px", textAlign:"center" }}>
-              <div style={{ fontSize:10, color:"var(--muted)", fontWeight:700, textTransform:"uppercase", marginBottom:2 }}>PRs</div>
-              <div style={{ fontSize:28, fontWeight:900, color:"var(--green)" }}>{prs.length}</div>
-            </div>
+      {prs.length === 0 ? (
+        <div className="notice" style={{ textAlign:"center", padding:"40px 20px", marginTop:20 }}>
+          <div style={{ width:56, height:56, borderRadius:"50%", background:"rgba(251,191,36,.1)", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 14px" }}>
+            <Icon name="Award" size={28} style={{ color:"#fbbf24" }} />
           </div>
+          <b style={{ fontSize:15 }}>Sin records todavia</b>
+          <p style={{ fontSize:13, color:"var(--muted)", marginTop:4 }}>Completa entrenamientos con peso y reps para ver tus PRs aca.</p>
         </div>
-      )}
-
-      {/* ── PRS (always visible) ──────────────────────────── */}
+      ) : (
         <>
-          {prs.length === 0 ? (
-            <div className="notice" style={{ textAlign:"center", padding:"32px 20px" }}>
-              <div style={{ fontSize:48, marginBottom:12 }}>🏆</div>
-              <b>Sin récords todavía</b>
-              <p>Completá entrenamientos con peso y reps para ver tus PRs acá.</p>
+          {/* ── Group filter chips ──────────────────────────── */}
+          {groups.length > 1 && (
+            <div style={{ display:"flex", gap:5, overflowX:"auto", marginBottom:14, paddingBottom:4, scrollbarWidth:"none" }}>
+              {["", ...groups].map(g => (
+                <button key={g || "all"} onClick={() => { setGroupFilter(g); setShowAll(false); }}
+                  style={{ flexShrink:0, padding:"5px 12px", borderRadius:20, border:"none", cursor:"pointer", fontSize:11, fontWeight:700, whiteSpace:"nowrap",
+                    background: groupFilter === g ? "var(--green)" : "var(--panel2)",
+                    color: groupFilter === g ? "#000" : "var(--muted)",
+                  }}>
+                  {g || "Todos"}
+                </button>
+              ))}
             </div>
-          ) : (
-            <>
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar ejercicio…"
-                style={{ width:"100%", background:"#0b1518", border:"1px solid #1b2d31", borderRadius:14, padding:"12px 14px", color:"var(--text)", fontSize:15, marginBottom:14 }}
-              />
-              <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-                {filtered.map((pr, i) => {
-                  const isExpanded = expandedExercise === pr.exercise;
-                  const progression = isExpanded ? getExerciseProgression(workouts, pr.exercise) : [];
-                  return (
-                    <div key={pr.exercise} style={{ borderRadius:14, overflow:"hidden", background:"var(--panel)", border: i === 0 ? "1px solid rgba(201,168,76,.5)" : "1px solid var(--line)" }}>
-                      <button
-                        onClick={() => setExpandedExercise((prev) => (prev === pr.exercise ? null : pr.exercise))}
-                        style={{ width:"100%", display:"flex", alignItems:"center", padding:0, background:"none", border:"none", cursor:"pointer", textAlign:"left" }}
-                      >
-                        <div className={`pr-row${i === 0 ? " pr-row-gold" : ""}`} style={{ flex:1, margin:0, borderRadius:0, border:"none", background:"none" }}>
-                          <div className="pr-rank">{i === 0 ? "🥇" : `#${i + 1}`}</div>
-                          <div className="pr-info">
-                            <b>{pr.exercise}</b>
-                            <small>{pr.group} · {pr.date}</small>
-                          </div>
-                          <div className="pr-stats">
-                            <span className="pr-main">{pr.weight}kg × {pr.reps}</span>
-                            <small>1RM ~{pr.oneRM}kg</small>
-                          </div>
-                        </div>
-                        <span style={{ display:"flex", alignItems:"center", justifyContent:"center", width:36, flexShrink:0, color:"var(--muted)", fontSize:18, transform: isExpanded ? "rotate(90deg)" : "none", transition:"transform 0.2s", paddingRight:4 }}>›</span>
-                      </button>
-                      <div style={{ overflow:"hidden", maxHeight: isExpanded && progression.length >= 2 ? "200px" : "0px", transition:"max-height 0.22s ease-in-out" }}>
-                        {isExpanded && progression.length >= 2 && (
-                          <div style={{ padding:"12px 14px 14px", background:"var(--panel2)", borderTop:"1px solid var(--line)" }}>
-                            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
-                              <small style={{ color:"var(--muted)", fontSize:11 }}>1RM estimado · {progression.length} sesiones</small>
-                              <small style={{ color:"var(--green)", fontWeight:700, fontSize:13 }}>{progression[progression.length - 1]?.best1RM}kg</small>
-                            </div>
-                            <MicroLineChart data={progression.map(p => ({ value: p.best1RM }))} width={280} height={52} color="var(--green)" />
-                            <div style={{ display:"flex", justifyContent:"space-between", marginTop:6 }}>
-                              <small style={{ color:"var(--muted)", fontSize:10 }}>{progression[0]?.date}</small>
-                              <small style={{ color:"var(--muted)", fontSize:10 }}>{progression[progression.length - 1]?.date}</small>
-                            </div>
-                          </div>
+          )}
+
+          {/* ── Search (toggle) ─────────────────────────────── */}
+          {showSearch && (
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar ejercicio..."
+              autoFocus style={{ width:"100%", background:"var(--panel2)", border:"1px solid var(--line)", borderRadius:12, padding:"10px 12px", color:"var(--text)", fontSize:14, marginBottom:12, boxSizing:"border-box" }} />
+          )}
+
+          {/* ── PR list ──────────────────────────────────────── */}
+          <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+            {visible.map((pr, i) => {
+              const isExpanded = expandedExercise === pr.exercise;
+              const progression = isExpanded ? getExerciseProgression(workouts, pr.exercise) : [];
+              const prevBest = prevBests[pr.exercise];
+              const delta = prevBest ? fmtDelta(pr, prevBest) : null;
+              return (
+                <div key={pr.exercise} style={{ borderRadius:14, overflow:"hidden", background:"var(--panel)", border: i === 0 ? "1px solid rgba(251,191,36,.4)" : "1px solid var(--line)" }}>
+                  <button onClick={() => setExpandedExercise(prev => (prev === pr.exercise ? null : pr.exercise))}
+                    style={{ width:"100%", display:"flex", alignItems:"center", padding:0, background:"none", border:"none", cursor:"pointer", textAlign:"left" }}>
+                    <div className="pr-row" style={{ flex:1, margin:0, borderRadius:0, border:"none", background:"none" }}>
+                      <div className="pr-rank" style={{ fontSize:11, fontWeight:800, color: i === 0 ? "#fbbf24" : i === 1 ? "#94a3b8" : i === 2 ? "#d97706" : "var(--muted)", minWidth:28, textAlign:"center" }}>
+                        {i === 0 ? <Icon name="Trophy" size={16} style={{ color:"#fbbf24" }} /> : i === 1 ? <Icon name="Award" size={14} style={{ color:"#94a3b8" }} /> : `#${i + 1}`}
+                      </div>
+                      <div className="pr-info">
+                        <b style={{ fontSize:14 }}>{pr.exercise}</b>
+                        <small style={{ fontSize:10, color:"var(--muted)", display:"block", marginTop:1 }}>{pr.group}</small>
+                      </div>
+                      <div className="pr-stats" style={{ textAlign:"right" }}>
+                        <span className="pr-main" style={{ fontSize:15 }}>{pr.weight}kg × {pr.reps}</span>
+                        <small style={{ fontSize:10, display:"block", color:"var(--muted)" }}>1RM ~{pr.oneRM}kg</small>
+                        {delta && (
+                          <small style={{ fontSize:10, fontWeight:700, color:"#22c55e", display:"block" }}>
+                            ↑ {delta.kg > 0 ? `+${delta.kg}kg` : ""} ({delta.pct}%)
+                          </small>
                         )}
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            </>
+                    <span style={{ display:"flex", alignItems:"center", justifyContent:"center", width:28, flexShrink:0, color:"var(--muted)", fontSize:16, transform: isExpanded ? "rotate(90deg)" : "none", transition:"transform 0.2s" }}>›</span>
+                  </button>
+                  <div style={{ overflow:"hidden", maxHeight: isExpanded && progression.length >= 2 ? "180px" : "0px", transition:"max-height 0.22s ease-in-out" }}>
+                    {isExpanded && progression.length >= 2 && (
+                      <div style={{ padding:"10px 14px 12px", background:"var(--panel2)", borderTop:"1px solid var(--line)" }}>
+                        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:4 }}>
+                          <small style={{ color:"var(--muted)", fontSize:10 }}>1RM · {progression.length} sesiones</small>
+                          <small style={{ color:"var(--green)", fontWeight:700, fontSize:12 }}>{progression[progression.length - 1]?.best1RM}kg</small>
+                        </div>
+                        <MicroLineChart data={progression.map(p => ({ value: p.best1RM }))} width={280} height={44} color="var(--green)" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* ── Show more / less ────────────────────────────── */}
+          {filtered.length > PR_PAGE_SIZE && (
+            <button onClick={() => setShowAll(s => !s)}
+              style={{ width:"100%", marginTop:10, background:"var(--panel)", border:"1px solid var(--line)", borderRadius:12, padding:"10px", cursor:"pointer", color:"var(--green)", fontSize:12, fontWeight:700, display:"flex", alignItems:"center", justifyContent:"center", gap:6 }}>
+              <Icon name={showAll ? "ChevronUp" : "ChevronDown"} size={14} />
+              {showAll ? "Mostrar menos" : `Ver los ${filtered.length} PRs`}
+            </button>
           )}
-          </>
+        </>
+      )}
     </section>
   );
 }
-

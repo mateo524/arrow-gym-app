@@ -14,7 +14,7 @@ const useStore = create(
       ...createExerciseSlice(...a),
     }),
     {
-      name: "arrow-gym-v4",
+      name: "loop-gym-v4",
       version: 4,
       partialize: (state) => {
         const { currentPage, selectedWorkoutId, ...rest } = state;

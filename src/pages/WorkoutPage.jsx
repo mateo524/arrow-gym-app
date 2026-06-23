@@ -1179,7 +1179,7 @@ export default function WorkoutPage() {
               const mins = String(Math.floor(elapsed/60)).padStart(2,"0");
               const secs = String(elapsed%60).padStart(2,"0");
               const vol  = summaryData.totalVolume;
-              const text = `💪 Entreno completado en Loop\n⏱ ${mins}:${secs} · 📦 ${vol}kg · 🔁 ${summaryData.totalSets} series${summaryData.newPRs > 0 ? ` · 🏆 ${summaryData.newPRs} PRs!` : ""}\n\nhttps://arrow-gym-project.vercel.app`;
+              const text = `💪 Entreno completado en Loop\n⏱ ${mins}:${secs} · 📦 ${vol}kg · 🔁 ${summaryData.totalSets} series${summaryData.newPRs > 0 ? ` · 🏆 ${summaryData.newPRs} PRs!` : ""}\n\nhttps://loop-gym.vercel.app`;
               if (navigator.share) navigator.share({ title: "Mi entrenamiento", text });
               else { navigator.clipboard?.writeText(text); setShareMsg("¡Copiado!"); setTimeout(() => setShareMsg(""), 2000); }
             }}>
