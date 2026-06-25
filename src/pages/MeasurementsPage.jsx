@@ -314,6 +314,23 @@ export default function MeasurementsPage() {
       const updated = { ...(useAuthStore.getState().profile || { id: uid }), ...payload };
       useAuthStore.setState({ profile: updated });
       try { localStorage.setItem("loop-gym-profile-v1", JSON.stringify(updated)); } catch {}
+      // Calcular % grasa y guardar historial en measurements_log
+      const tri = toNum(payload.triceps_mm ?? updated.triceps_mm);
+      const sub = toNum(payload.subscapular_mm ?? updated.subscapular_mm);
+      const bic = toNum(payload.biceps_mm ?? updated.biceps_mm);
+      const ili = toNum(payload.iliac_crest_mm ?? updated.iliac_crest_mm);
+      const age = updated.age || 25;
+      let bf = null;
+      if (tri && sub && bic && ili) {
+        const sum4 = tri + sub + bic + ili;
+        const logSum = Math.log10(sum4);
+        const density = age >= 30 ? 1.1581 - 0.0720 * logSum : 1.1620 - 0.0630 * logSum;
+        bf = Math.round(((4.95 / density) - 4.5) * 100 * 10) / 10;
+      }
+      const logEntry = { user_id: uid, date: todayLocal(), ...payload };
+      if (bf !== null) logEntry.body_fat_pct = bf;
+      if (updated.weight_kg) logEntry.weight_kg = Number(updated.weight_kg);
+      supabase.from("measurements_log").upsert(logEntry, { onConflict: "user_id,date" }).catch(() => {});
       setPlieguesMsg("✓ Pliegues guardados");
       setTimeout(() => { setEditPliegues(false); setPlieguesMsg(""); }, 1400);
     }
@@ -351,6 +368,8 @@ export default function MeasurementsPage() {
       const updated = { ...(useAuthStore.getState().profile || { id: uid }), ...payload };
       useAuthStore.setState({ profile: updated });
       try { localStorage.setItem("loop-gym-profile-v1", JSON.stringify(updated)); } catch {}
+      // Guardar en measurements_log (historial en Supabase)
+      supabase.from("measurements_log").upsert({ user_id: uid, date: todayLocal(), ...payload }, { onConflict: "user_id,date" }).catch(() => {});
       // Guardar en historial local de circunferencias
       const today = todayLocal();
       setMeasHistory(prev => {

@@ -427,29 +427,35 @@ export default function WorkoutPage() {
             </span>
           );
         })()}
-        {/* 3-dot menu */}
-        <button onClick={() => setShowMenu(true)} style={{
-          background: "rgba(255,255,255,.07)", border: "1px solid rgba(255,255,255,.1)",
-          borderRadius: 10, cursor: "pointer",
-          color: "var(--text)", padding: "6px 8px", display: "flex", alignItems: "center",
-        }}>
-          <Icon name="MoreVertical" size={22} strokeWidth={2.2} />
-        </button>
       </div>
 
-      {/* ── DELOAD / PLAN ADJUSTMENT BANNER ────────────────────────────────── */}
-      {activePlanAdjustment && new Date(activePlanAdjustment.expiresAt) >= new Date() && (() => {
-        const typeMap = {
-          deload:       { icon: "🔄", msg: `Semana de deload — pesos al ${Math.round(activePlanAdjustment.factor * 100)}% del habitual` },
-          volume_up:    { icon: "📈", msg: "Semana de volumen — series aumentadas según el plan" },
-          intensity_up: { icon: "⚡", msg: "Semana de intensidad — pesos incrementados según el plan" },
-        };
-        const { icon, msg } = typeMap[activePlanAdjustment.type] || { icon: "🏋️", msg: "Ajuste del coach activo" };
-        const expires = new Date(activePlanAdjustment.expiresAt).toLocaleDateString("es-AR", { day: "numeric", month: "short" });
+      {/* ── COACH EN VIVO ───────────────────────────────────────────────────── */}
+      {(() => {
+        const hasAdj = activePlanAdjustment && new Date(activePlanAdjustment.expiresAt) >= new Date();
+        const firstHint = liveHints?.[0];
+        if (!hasAdj && !firstHint) return null;
+
+        let icon, msg, color, border;
+        if (hasAdj) {
+          const typeMap = {
+            deload:       { icon: "🔄", msg: `Semana de deload — pesos al ${Math.round(activePlanAdjustment.factor * 100)}% del habitual`, color: "rgba(117,217,255,.12)", border: "rgba(117,217,255,.3)" },
+            volume_up:    { icon: "📈", msg: "Semana de volumen — series aumentadas según el plan", color: "rgba(168,85,247,.12)", border: "rgba(168,85,247,.3)" },
+            intensity_up: { icon: "⚡", msg: "Semana de intensidad — pesos incrementados según el plan", color: "rgba(245,158,11,.12)", border: "rgba(245,158,11,.3)" },
+          };
+          const t = typeMap[activePlanAdjustment.type] || { icon: "🏋️", msg: "Ajuste del coach activo", color: "rgba(168,85,247,.12)", border: "rgba(168,85,247,.3)" };
+          icon = t.icon; msg = t.msg; color = t.color; border = t.border;
+          const expires = new Date(activePlanAdjustment.expiresAt).toLocaleDateString("es-AR", { day: "numeric", month: "short" });
+          msg = `${msg} · hasta el ${expires}`;
+        } else {
+          icon = "⚡"; msg = firstHint.msg; color = "rgba(245,158,11,.08)"; border = "rgba(245,158,11,.2)";
+        }
         return (
-          <div style={{ background: "rgba(168,85,247,.12)", borderBottom: "1px solid rgba(168,85,247,.3)", padding: "8px 16px", display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--text)" }}>
-            <span style={{ fontSize: 16 }}>{icon}</span>
-            <span style={{ flex: 1 }}><strong>{msg}</strong> · hasta el {expires}</span>
+          <div style={{ background: color, borderBottom: `1px solid ${border}`, padding: "8px 16px", display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
+            <span style={{ fontSize: 16, flexShrink: 0 }}>🤖</span>
+            <div style={{ flex: 1 }}>
+              <span style={{ fontSize: 10, fontWeight: 800, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".06em", display: "block", marginBottom: 1 }}>Coach en vivo</span>
+              <span style={{ lineHeight: 1.3 }}><span style={{ marginRight: 4 }}>{icon}</span><strong>{msg}</strong></span>
+            </div>
           </div>
         );
       })()}
@@ -598,7 +604,7 @@ export default function WorkoutPage() {
                             </span>
                           )}
                           {setItem.isDropset && (
-                            <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 12px 2px", color: "#f87171", fontSize: 11, fontWeight: 700 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 12px 2px", color: "#f59e0b", fontSize: 11, fontWeight: 700 }}>
                               <span>💧</span> DROP SET — bajá el peso
                             </div>
                           )}
@@ -638,7 +644,7 @@ export default function WorkoutPage() {
 
                     {/* Dropset / Superset */}
                     <div style={{ display: "flex", gap: 8, padding: "6px 0 4px" }}>
-                      <button className="ghost" style={{ flex: 1, fontSize: 12, padding: "7px 0", color: "#f87171", border: "1px solid rgba(248,113,113,.3)", borderRadius: 10 }}
+                      <button className="ghost" style={{ flex: 1, fontSize: 12, padding: "7px 0", color: "#f59e0b", border: "1px solid rgba(245,158,11,.3)", borderRadius: 10 }}
                         onClick={() => addDropset(exercise)}>Drop Set</button>
                       <button className="ghost" style={{ flex: 1, fontSize: 12, padding: "7px 0", color: "#a78bfa", border: "1px solid rgba(167,139,250,.3)", borderRadius: 10 }}
                         onClick={() => setSupersetTarget(exercise)}>⇄ Super Serie</button>
@@ -692,6 +698,13 @@ export default function WorkoutPage() {
                     style={{ background: "var(--panel2)", border: "none", borderRadius: 10, width: 38, height: 38, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)" }}
                     title="Cambiar ejercicio">
                     <Icon name="RefreshCw" size={16} strokeWidth={1.8} />
+                  </button>
+
+                  {/* 3-dot menu — moved per exercise */}
+                  <button onClick={() => setShowMenu(true)}
+                    style={{ background: "var(--panel2)", border: "none", borderRadius: 10, width: 38, height: 38, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)" }}
+                    title="Menú">
+                    <Icon name="MoreVertical" size={17} strokeWidth={1.8} />
                   </button>
                 </div>
                 {/* Right: flip (2-cards = stats) */}

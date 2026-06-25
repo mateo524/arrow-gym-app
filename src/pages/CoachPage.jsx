@@ -220,8 +220,17 @@ export default function CoachPage() {
       }
     }
 
+    // 7. Body composition alerts (updates reactively when skinfolds saved)
+    if (bodyFatPct !== null) {
+      if (bodyFatPct > 28) {
+        alerts.push({ type: "bodyfat_high", msg: `% grasa corporal elevado (${bodyFatPct.toFixed(1)}%). Según Gallagher et al. (2000), valores >25% en hombres se asocian a mayor riesgo metabólico. Priorizar déficit moderado de 300-500 kcal/día y cardio 2-3x/semana.` });
+      } else if (bodyFatPct < 8) {
+        alerts.push({ type: "bodyfat_low", msg: `% grasa muy bajo (${bodyFatPct.toFixed(1)}%). Valores <8% en hombres pueden comprometer la función hormonal y el rendimiento (Friedl et al., 1994). Asegurate de consumir suficiente proteína y calorías.` });
+      }
+    }
+
     return alerts;
-  }, [workouts]);
+  }, [workouts, bodyFatPct]);
 
   const periodization = useMemo(() => getPeriodizationPhase(workouts), [workouts]);
   const fatigueScore  = useMemo(() => getWeeklyFatigueScore(workouts), [workouts]);
@@ -1415,16 +1424,16 @@ export default function CoachPage() {
           {smartAlerts.map((alert, i) => (
             <div key={i} style={{
               display:"flex", gap:10, alignItems:"flex-start",
-              background: alert.type === "imbalance" ? "rgba(239,68,68,.07)" : alert.type === "stall" ? "rgba(96,165,250,.08)" : (alert.type === "rest" || alert.type === "neglect" || alert.type === "frequency") ? "rgba(245,158,11,.08)" : "rgba(245,158,11,.08)",
-              border:`1px solid ${alert.type === "imbalance" ? "rgba(239,68,68,.25)" : alert.type === "stall" ? "rgba(96,165,250,.3)" : (alert.type === "rest" || alert.type === "neglect" || alert.type === "frequency") ? "rgba(245,158,11,.3)" : "rgba(245,158,11,.25)"}`,
+              background: alert.type === "imbalance" || alert.type === "bodyfat_high" ? "rgba(239,68,68,.07)" : alert.type === "bodyfat_low" ? "rgba(96,165,250,.08)" : alert.type === "stall" ? "rgba(96,165,250,.08)" : "rgba(245,158,11,.08)",
+              border:`1px solid ${alert.type === "imbalance" || alert.type === "bodyfat_high" ? "rgba(239,68,68,.25)" : alert.type === "bodyfat_low" ? "rgba(96,165,250,.3)" : alert.type === "stall" ? "rgba(96,165,250,.3)" : "rgba(245,158,11,.3)"}`,
               borderRadius:14, padding:"14px 16px", marginBottom:10
             }}>
               <span style={{ fontSize:20, flexShrink:0 }}>
-                {alert.type === "stall" ? "🔄" : alert.type === "volume" ? "📉" : alert.type === "rest" ? "🛌" : alert.type === "neglect" ? "🦵" : alert.type === "frequency" ? "📆" : "⚖️"}
+                {alert.type === "stall" ? "🔄" : alert.type === "volume" ? "📉" : alert.type === "rest" ? "🛌" : alert.type === "neglect" ? "🦵" : alert.type === "frequency" ? "📆" : alert.type === "bodyfat_high" ? "🔴" : alert.type === "bodyfat_low" ? "⚠️" : "⚖️"}
               </span>
               <div>
                 <p style={{ margin:"0 0 3px", fontSize:14, fontWeight:700, color:"var(--text)" }}>
-                  {alert.type === "stall" ? "Estancamiento de peso" : alert.type === "volume" ? "Caída de volumen" : alert.type === "rest" ? "Sin días de descanso" : alert.type === "neglect" ? "Piernas abandonadas" : alert.type === "frequency" ? "Frecuencia baja" : "Desbalance muscular"}
+                  {alert.type === "stall" ? "Estancamiento de peso" : alert.type === "volume" ? "Caída de volumen" : alert.type === "rest" ? "Sin días de descanso" : alert.type === "neglect" ? "Piernas abandonadas" : alert.type === "frequency" ? "Frecuencia baja" : alert.type === "bodyfat_high" ? "% Grasa elevado" : alert.type === "bodyfat_low" ? "% Grasa muy bajo" : "Desbalance muscular"}
                 </p>
                 <p style={{ margin:0, fontSize:13, color:"var(--muted)", lineHeight:1.5 }}>{alert.msg}</p>
               </div>
