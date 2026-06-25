@@ -106,16 +106,27 @@ export default function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onR
       )}
 
       {/* Live coach weight suggestion */}
-      {coachSuggestion && (
+      {coachSuggestion && coachSuggestion.dir !== null && (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(168,85,247,.08)", border: "1px solid rgba(168,85,247,.25)", borderRadius: 10, padding: "6px 10px", marginBottom: 6 }}>
           <span style={{ fontSize: 14, color: "var(--green)", fontWeight: 700 }}>
-            {coachSuggestion.dir === "up" ? "⬆ Subí a" : coachSuggestion.dir === "down" ? "⬇ Bajá a" : "✓"} {coachSuggestion.weight}kg
+            {coachSuggestion.dir === "up" ? "⬆ Subí a" : "⬇ Bajá a"} {coachSuggestion.weight}kg
           </span>
           <span style={{ fontSize: 13, color: "var(--muted)" }}>{coachSuggestion.reason}</span>
           <button className="ghost" style={{ fontSize: 13, padding: "2px 8px", marginLeft: 6 }}
             onClick={() => onUpdate({ weight: String(coachSuggestion.weight) })}>
             Aplicar
           </button>
+        </div>
+      )}
+      {coachSuggestion && coachSuggestion.dir === null && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(52,211,153,.07)", border: "1px solid rgba(52,211,153,.2)", borderRadius: 10, padding: "5px 10px", marginBottom: 6 }}>
+          <span style={{ fontSize: 13, color: "#34d399", fontWeight: 700 }}>✓</span>
+          <span style={{ fontSize: 12, color: "var(--muted)", flex: 1 }}>{coachSuggestion.reason}</span>
+          {coachSuggestion.rest && (
+            <span style={{ fontSize: 11, color: "rgba(117,217,255,.8)", fontWeight: 700, flexShrink: 0 }}>
+              ⏱ {coachSuggestion.rest < 60 ? `${coachSuggestion.rest}s` : `${coachSuggestion.rest/60}min`} descanso
+            </span>
+          )}
         </div>
       )}
 

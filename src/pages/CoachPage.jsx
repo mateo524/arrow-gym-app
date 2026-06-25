@@ -2956,6 +2956,85 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
         })()}
       </div>
 
+      {/* ── Training guidelines by goal ──────────────────────────────────────── */}
+      {(() => {
+        const gMap = {
+          fuerza:       { icon:"💪", color:"#f59e0b", label:"Fuerza",
+            reps:"1-6 reps al 80-90% 1RM",
+            rest:"2-3 min entre series (ACSM 2026 ≥2 min para cargas pesadas)",
+            exercises:"Dominan movimientos fundamentales: sentadilla, peso muerto, press banca, press militar, remo. Ratio 80% compound / 20% isolation.",
+            rir:"Trabajá cerca del fallo pero no a fallo — 1-3 RIR (PMC9935748: sin ventaja de entrenar a fallo vs 1-3 RIR).",
+            overload:"Progresión lineal semanal (+2.5kg) en principiantes. En intermedios, ondulación de cargas (wave loading).",
+            freq:"2x/semana por grupo muscular mínimo (Schoenfeld 2016 meta-análisis)." },
+          hipertrofia:  { icon:"🏋️", color:"#a855f7", label:"Hipertrofia / Masa",
+            reps:"6-20 reps (rango amplio — lo clave es el volumen total de series cerca del fallo)",
+            rest:"60-90 s entre series es suficiente para hipertrofia (PMC11349676 2024 meta-análisis bayesiano). Para series pesadas, 2 min.",
+            exercises:"70-80% compuestos + 20-30% aislamiento para completar volumen. Compuestos solos (~6-8 series/músculo) no alcanzan el MAV.",
+            rir:"Terminá la serie con 1-3 RIR. Entrenar a fallo tiene efecto trivial adicional (ES=0.19, PMC9935748) y aumenta fatiga innecesaria.",
+            overload:"Doble progresión: primero subí reps hasta el tope del rango, luego subí peso. Ej: 3x8-12 → cuando llegás a 3x12 con buena técnica, sumá 2.5kg (PMC9528903).",
+            freq:"2x/semana por grupo muscular. El volumen total semanal importa más que la frecuencia (10-20 series/músculo/semana, ACSM 2026)." },
+          definicion:   { icon:"🔥", color:"#38bdf8", label:"Definición",
+            reps:"8-15 reps. No reduzcas el peso — el entrenamiento con carga preserva el músculo en déficit calórico.",
+            rest:"45-75 s para mayor gasto calórico y estrés metabólico.",
+            exercises:"Misma base de compuestos + aislamiento. No cambiés el programa de masa — solo ajustá nutrición.",
+            rir:"1-3 RIR. Alta proteína (3.1g/kg LBM, Helms 2014) es lo más crítico para preservar músculo en déficit.",
+            overload:"Mantené las cargas o intentá progresar — la pérdida de fuerza en déficit indica pérdida muscular.",
+            freq:"Mantené o aumentá frecuencia para preservar músculo. Cardio adicional va separado del pesas o post-entreno." },
+          resistencia:  { icon:"⚡", color:"#34d399", label:"Resistencia",
+            reps:"15-25 reps con carga moderada.",
+            rest:"30-60 s para mantener densidad metabólica alta.",
+            exercises:"Circuitos y supersets aumentan el gasto calórico y la capacidad cardiovascular.",
+            rir:"Podés llegar más cerca del fallo muscular en series largas — la fatiga sistémica es menor.",
+            overload:"Progresión por densidad: más trabajo en el mismo tiempo, o menor descanso manteniendo volumen.",
+            freq:"Alta frecuencia (3-4x/semana por grupo) con cargas bajas — la recuperación es más rápida." },
+          mantenimiento: { icon:"⚖️", color:"#94a3b8", label:"Mantenimiento",
+            reps:"8-12 reps (rango clásico hipertrofia/fuerza mixto).",
+            rest:"60-90 s.",
+            exercises:"Balance entre compuestos e isolation. Priorizá los ejercicios donde tenés más margen de progresión.",
+            rir:"1-3 RIR — entrenamiento productivo sin acumular fatiga innecesaria.",
+            overload:"Si no podés progresar en reps ni peso por 3+ sesiones consecutivas → revisá sueño, calorías o agregá deload.",
+            freq:"2x/semana por grupo muscular. Revisar deload cada 4-8 semanas (encuesta 2024: cada 5.6±2.3 semanas)." },
+        };
+        const key = Object.keys(gMap).find(k => (userGoal||"mantenimiento").toLowerCase().includes(k)) || "mantenimiento";
+        const g = gMap[key];
+        return (
+          <div style={{ background:"var(--panel)", borderRadius:16, padding:"16px", marginBottom:12 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12 }}>
+              <span style={{ fontSize:22 }}>{g.icon}</span>
+              <div>
+                <p style={{ margin:0, fontSize:11, color:g.color, fontWeight:800, textTransform:"uppercase", letterSpacing:"0.06em" }}>Guía de entrenamiento</p>
+                <p style={{ margin:0, fontSize:15, fontWeight:900, color:"var(--text)" }}>{g.label}</p>
+              </div>
+            </div>
+            {[
+              { icon:"🔢", label:"Rango de repeticiones", val:g.reps },
+              { icon:"⏸", label:"Descanso entre series", val:g.rest },
+              { icon:"🏗️", label:"Selección de ejercicios", val:g.exercises },
+              { icon:"🎯", label:"Proximidad al fallo (RIR)", val:g.rir },
+              { icon:"📈", label:"Sobrecarga progresiva", val:g.overload },
+              { icon:"🗓️", label:"Frecuencia semanal", val:g.freq },
+            ].map(({ icon, label, val }) => (
+              <div key={label} style={{ display:"flex", gap:10, marginBottom:8, alignItems:"flex-start" }}>
+                <span style={{ fontSize:14, flexShrink:0, marginTop:1 }}>{icon}</span>
+                <div>
+                  <p style={{ margin:"0 0 1px", fontSize:11, fontWeight:800, color:"var(--text)" }}>{label}</p>
+                  <p style={{ margin:0, fontSize:12, color:"var(--muted)", lineHeight:1.45 }}>{val}</p>
+                </div>
+              </div>
+            ))}
+            {/* Recomposición corporal para principiantes */}
+            {(bodyFatPct === null || bodyFatPct > 15) && (workouts.length < 30 || (bodyFatPct !== null && bodyFatPct > 20)) && (
+              <div style={{ background:"rgba(52,211,153,.06)", border:"1px solid rgba(52,211,153,.2)", borderRadius:10, padding:"9px 11px", marginTop:6 }}>
+                <p style={{ margin:"0 0 2px", fontSize:11, fontWeight:800, color:"#34d399" }}>💡 Recomposición corporal posible</p>
+                <p style={{ margin:0, fontSize:11, color:"var(--muted)", lineHeight:1.45 }}>
+                  Principiantes y personas con BF elevado pueden ganar músculo y perder grasa simultáneamente. Clave: proteína 2.3-3.1g/kg masa magra, entrenamiento con carga progresiva y déficit calórico moderado (±200 kcal).
+                </p>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       {/* ── Supplement protocol ──────────────────────────────── */}
       <div style={{ background:"var(--panel)", borderRadius:16, padding:"16px", marginBottom:12 }}>
         <p style={{ margin:"0 0 10px", fontSize:11, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em" }}>Suplementación recomendada</p>
