@@ -55,7 +55,7 @@ body {
   touch-action: manipulation;
   overflow-x: hidden;
 }
-html { overflow-x: hidden; zoom: 1.18; }
+html { overflow-x: hidden; }
 
 button, input, select { font: inherit; }
 button { cursor: pointer; }

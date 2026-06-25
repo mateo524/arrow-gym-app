@@ -482,9 +482,9 @@ export default function App() {
     return () => { window.__showToast = undefined; };
   }, []);
 
-  // Apply font scale to root element
+  // Apply zoom (scales ALL pixel values including inline JSX styles)
   useEffect(() => {
-    document.documentElement.style.fontSize = fontScale === 1 ? "" : `${fontScale * 100}%`;
+    document.documentElement.style.zoom = fontScale || 1.18;
   }, [fontScale]);
 
   // Apply auto dark mode

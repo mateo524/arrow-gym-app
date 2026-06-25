@@ -156,6 +156,22 @@ export default function ProfilePage() {
         <div className="card">
           <h2>Configuración</h2>
 
+          {/* Font size control */}
+          <div className="settings-row" style={{ alignItems: "center" }}>
+            <div><label>Tamaño de letra</label><small>Ajustá el zoom de toda la app</small></div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <button
+                onClick={() => setFontScale(Math.max(0.8, Math.round((fontScale - 0.1) * 10) / 10))}
+                style={{ width: 34, height: 34, borderRadius: 10, border: "1px solid var(--line)", background: "var(--panel2)", color: "var(--text)", fontSize: 18, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                aria-label="Reducir letra">−</button>
+              <span style={{ fontSize: 13, color: "var(--muted)", minWidth: 36, textAlign: "center", fontWeight: 700 }}>{Math.round(fontScale * 100)}%</span>
+              <button
+                onClick={() => setFontScale(Math.min(2.0, Math.round((fontScale + 0.1) * 10) / 10))}
+                style={{ width: 34, height: 34, borderRadius: 10, border: "1px solid var(--line)", background: "var(--panel2)", color: "var(--text)", fontSize: 18, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                aria-label="Aumentar letra">+</button>
+            </div>
+          </div>
+
           <div className="settings-row" style={{ flexDirection:"column", alignItems:"flex-start", gap:8 }}>
             <div><label>Objetivo semanal</label><small>Entrenos por semana que se muestra en el inicio</small></div>
             <div style={{ display:"flex", gap:6 }}>

@@ -33,8 +33,8 @@ export const EXERCISE_DATABASE = [
   ex("Fondos en paralelas", "Pecho", "Pectoral inferior", "Peso corporal", "push"),
   ex("Flexiones", "Pecho", "Pectoral mayor", "Peso corporal", "push"),
   ex("Flexiones inclinadas", "Pecho", "Pectoral superior", "Peso corporal", "push"),
-  ex("Pullover con mancuerna", "Pecho", "Pectoral mayor", "Mancuernas", "push"),
-  ex("Pullover en polea", "Pecho", "Pectoral mayor", "Polea", "push"),
+  ex("Pullover con mancuerna", "Espalda", "Dorsales", "Mancuernas", "pull"),
+  ex("Pullover en polea", "Espalda", "Dorsales", "Polea", "pull"),
   ex("Fondos asistidos", "Pecho", "Pectoral mayor", "Máquina", "push"),
   ex("Cruces en polea con cable", "Pecho", "Pectoral mayor", "Polea", "push"),
   ex("Mariposa en máquina", "Pecho", "Pectoral mayor", "Máquina", "push"),
@@ -172,9 +172,9 @@ export const EXERCISE_DATABASE = [
   ex("Abdominales en V", "Core", "Recto abdominal", "Peso corporal", "core"),
 
   // ── PECHO ADICIONAL ───────────────────────────────────────────────────────
-  ex("Press de banca con agarre cerrado", "Pecho", "Pectoral mayor", "Barra", "push"),
+  ex("Press de banca con agarre cerrado", "Brazos", "Tríceps", "Barra", "push"),
   ex("Aperturas en máquina (mariposa)", "Pecho", "Pectoral mayor", "Máquina", "push"),
-  ex("Flexiones diamante", "Pecho", "Pectoral menor", "Peso corporal", "push"),
+  ex("Flexiones diamante", "Brazos", "Tríceps", "Peso corporal", "push"),
   ex("Flexiones con manos elevadas", "Pecho", "Pectoral inferior", "Peso corporal", "push"),
   ex("Flexiones con pies elevados", "Pecho", "Pectoral superior", "Peso corporal", "push"),
   ex("Press de banca con pausa", "Pecho", "Pectoral mayor", "Barra", "push"),
@@ -218,7 +218,6 @@ export const EXERCISE_DATABASE = [
   ex("Curl en polea alta", "Brazos", "Bíceps", "Polea", "pull"),
   ex("Bayesian curl", "Brazos", "Bíceps", "Polea", "pull"),
   ex("JM press", "Brazos", "Tríceps", "Barra", "push"),
-  ex("Press de banca con agarre cerrado", "Brazos", "Tríceps", "Barra", "push"),
   ex("Tate press", "Brazos", "Tríceps", "Mancuernas", "push"),
   ex("Extensión de tríceps con mancuerna sobre cabeza", "Brazos", "Tríceps", "Mancuernas", "push"),
   ex("Dips con lastre", "Brazos", "Tríceps", "Peso corporal", "push"),
@@ -229,7 +228,7 @@ export const EXERCISE_DATABASE = [
   // ── PIERNAS ADICIONAL ─────────────────────────────────────────────────────
   ex("Sentadilla pausa", "Piernas", "Cuádriceps", "Barra", "legs"),
   ex("Sentadilla box", "Piernas", "Cuádriceps", "Barra", "legs"),
-  ex("Sentadilla sumo", "Piernas", "Aductores", "Barra", "legs"),
+  ex("Sentadilla sumo", "Piernas", "Cuádriceps", "Barra", "legs"),
   ex("Sentadilla búlgara con barra", "Piernas", "Cuádriceps", "Barra", "legs"),
   ex("Estocada estacionaria", "Piernas", "Cuádriceps", "Mancuernas", "legs"),
   ex("Estocada lateral", "Piernas", "Aductores", "Mancuernas", "legs"),
@@ -237,7 +236,7 @@ export const EXERCISE_DATABASE = [
   ex("Hip thrust con mancuernas", "Piernas", "Glúteos", "Mancuernas", "legs"),
   ex("Puente de glúteos", "Piernas", "Glúteos", "Peso corporal", "legs"),
   ex("Peso muerto rumano con kettlebell", "Piernas", "Isquios", "Kettlebell", "legs"),
-  ex("Peso muerto con trap bar", "Piernas", "Isquios", "Barra", "legs"),
+  ex("Peso muerto con trap bar", "Piernas", "Cuádriceps", "Barra", "legs"),
   ex("Elevación de pantorrillas unilateral", "Piernas", "Gemelos", "Peso corporal", "legs"),
   ex("Elevación de gemelos con burro", "Piernas", "Gemelos", "Máquina", "legs"),
   ex("Elevación tibial", "Piernas", "Tibial anterior", "Peso corporal", "legs"),
@@ -319,7 +318,8 @@ export function resolveExerciseMuscle(name, fallback = "General") {
   if (clean.includes("martillo") || clean.includes("hammer")) return "Braquial";
   if (clean.includes("extension") && !clean.includes("tricep")) return "Cuádriceps";
   if (clean.includes("curl de isquio") || clean.includes("peso muerto") || clean.includes("rdl") || clean.includes("nordic")) return "Isquios";
-  if (clean.includes("glute") || clean.includes("gluteo") || clean.includes("hip thrust") || clean.includes("estocada") || clean.includes("step") || clean.includes("puente de glut")) return "Glúteos";
+  if (clean.includes("glute") || clean.includes("gluteo") || clean.includes("hip thrust") || clean.includes("puente de glut")) return "Glúteos";
+  if (clean.includes("estocada") || clean.includes("step") || clean.includes("zancada")) return "Cuádriceps";
   if (clean.includes("sentadilla") || clean.includes("squat") || clean.includes("prensa") || clean.includes("leg press")) return "Cuádriceps";
   if (clean.includes("pantorrilla") || clean.includes("gemelo") || clean.includes("calf")) return "Gemelos";
   if (clean.includes("crunch") || clean.includes("plancha") || clean.includes("abdominal") || clean.includes("abd")) return "Recto abdominal";
