@@ -294,11 +294,17 @@ export function resolveExerciseGroup(name, fallback = "Core") {
   const meta = findExerciseMeta(name);
   if (meta?.group) return meta.group;
   const clean = String(name || "").toLowerCase();
-  if (clean.includes("hombro") || clean.includes("shoulder") || clean.includes("lateral") || clean.includes("face pull") || clean.includes("deltoide") || clean.includes("militar") || clean.includes("landmine") || clean.includes("elevacion")) return "Hombros";
-  if (clean.includes("pecho") || clean.includes("chest") || clean.includes("press") || clean.includes("pec") || clean.includes("apertura")) return "Pecho";
+  // Piernas BEFORE arms — leg exercises that contain "curl", "extension", "zancada", "isquio" must resolve to Piernas
+  if (clean.includes("isquio") || clean.includes("femoral") || clean.includes("zancada") || clean.includes("nordico") || clean.includes("nordic") || clean.includes("curl femoral") || clean.includes("curl de isquio")) return "Piernas";
+  if (clean.includes("pierna") || clean.includes("sentadilla") || clean.includes("squat") || clean.includes("leg ") || clean.includes("pantorrilla") || clean.includes("gemelo") || clean.includes("calf") || clean.includes("estocada") || clean.includes("peso muerto") || clean.includes("hip thrust") || clean.includes("puente de glut") || clean.includes("gluteo") || clean.includes("glute") || clean.includes("prensa de pierna")) return "Piernas";
+  if ((clean.includes("extension") || clean.includes("extensión")) && !clean.includes("tricep") && !clean.includes("espalda")) return "Piernas";
+  if (clean.includes("hombro") || clean.includes("shoulder") || clean.includes("face pull") || clean.includes("deltoide") || clean.includes("militar") || clean.includes("landmine")) return "Hombros";
+  if (clean.includes("elevacion") || clean.includes("elevación")) return clean.includes("pierna") || clean.includes("cadera") ? "Piernas" : "Hombros";
+  if (clean.includes("pecho") || clean.includes("chest") || clean.includes("pec") || clean.includes("apertura")) return "Pecho";
+  if (clean.includes("press") && !clean.includes("leg")) return clean.includes("banca") || clean.includes("pecho") || clean.includes("bench") ? "Pecho" : "Hombros";
   if (clean.includes("espalda") || clean.includes("row") || clean.includes("pull") || clean.includes("jalon") || clean.includes("remo") || clean.includes("dorsal")) return "Espalda";
-  if (clean.includes("curl") || clean.includes("bicep") || clean.includes("tricep") || clean.includes("extension de tricep") || clean.includes("brazo")) return "Brazos";
-  if (clean.includes("pierna") || clean.includes("sentadilla") || clean.includes("press de") || clean.includes("squat") || clean.includes("leg") || clean.includes("pantorrilla") || clean.includes("estocada") || clean.includes("peso muerto") || clean.includes("hip thrust") || clean.includes("curl femoral") || clean.includes("curl nordic") || clean.includes("nordico") || clean.includes("puente de glut")) return "Piernas";
+  if (clean.includes("curl") || clean.includes("bicep") || clean.includes("tricep") || clean.includes("brazo")) return "Brazos";
+  if (clean.includes("lateral") || clean.includes("pajaro")) return "Hombros";
   return fallback;
 }
 
@@ -306,7 +312,14 @@ export function resolveExerciseMuscle(name, fallback = "General") {
   const meta = findExerciseMeta(name);
   if (meta?.muscle) return meta.muscle;
   const clean = String(name || "").toLowerCase();
-  if (clean.includes("lateral raise") || clean.includes("elevacion lateral")) return "Deltoide lateral";
+  // Leg muscles BEFORE arms — prevent "curl" from matching Bíceps on leg exercises
+  if (clean.includes("isquio") || clean.includes("femoral") || clean.includes("curl de isquio") || clean.includes("nordico") || clean.includes("nordic") || clean.includes("peso muerto") || clean.includes("rdl")) return "Isquios";
+  if (clean.includes("glute") || clean.includes("gluteo") || clean.includes("hip thrust") || clean.includes("puente de glut")) return "Glúteos";
+  if (clean.includes("estocada") || clean.includes("zancada") || clean.includes("step")) return "Cuádriceps";
+  if (clean.includes("sentadilla") || clean.includes("squat") || clean.includes("prensa") || clean.includes("leg press")) return "Cuádriceps";
+  if ((clean.includes("extension") || clean.includes("extensión")) && !clean.includes("tricep") && !clean.includes("espalda")) return "Cuádriceps";
+  if (clean.includes("pantorrilla") || clean.includes("gemelo") || clean.includes("calf")) return "Gemelos";
+  if (clean.includes("lateral raise") || clean.includes("elevacion lateral") || clean.includes("elevación lateral")) return "Deltoide lateral";
   if (clean.includes("face pull") || clean.includes("pajaro") || clean.includes("posterior")) return "Deltoide posterior";
   if (clean.includes("hombro") || clean.includes("shoulder") || clean.includes("press mil") || clean.includes("landmine")) return "Deltoide anterior";
   if (clean.includes("incline") || clean.includes("inclinado")) return "Pectoral superior";
@@ -316,12 +329,6 @@ export function resolveExerciseMuscle(name, fallback = "General") {
   if (clean.includes("tricep") || clean.includes("skullcrusher") || clean.includes("frances")) return "Tríceps";
   if (clean.includes("curl") || clean.includes("bicep")) return "Bíceps";
   if (clean.includes("martillo") || clean.includes("hammer")) return "Braquial";
-  if (clean.includes("extension") && !clean.includes("tricep")) return "Cuádriceps";
-  if (clean.includes("curl de isquio") || clean.includes("peso muerto") || clean.includes("rdl") || clean.includes("nordic")) return "Isquios";
-  if (clean.includes("glute") || clean.includes("gluteo") || clean.includes("hip thrust") || clean.includes("puente de glut")) return "Glúteos";
-  if (clean.includes("estocada") || clean.includes("step") || clean.includes("zancada")) return "Cuádriceps";
-  if (clean.includes("sentadilla") || clean.includes("squat") || clean.includes("prensa") || clean.includes("leg press")) return "Cuádriceps";
-  if (clean.includes("pantorrilla") || clean.includes("gemelo") || clean.includes("calf")) return "Gemelos";
   if (clean.includes("crunch") || clean.includes("plancha") || clean.includes("abdominal") || clean.includes("abd")) return "Recto abdominal";
   return fallback;
 }
