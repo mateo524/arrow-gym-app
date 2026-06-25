@@ -421,7 +421,13 @@ export function getExerciseProgression(workouts, exercise) {
 }
 
 // Live coaching: real-time suggestions for the active workout in progress
-// ── Volume landmarks (weekly sets) per muscle group — RP Hypertrophy model ──
+// ── Volume landmarks (weekly sets) per muscle group ─────────────────────────
+// Basado en:
+//   • RP Hypertrophy model (Dr. Mike Israetel) — MEV/MAV/MRV
+//   • ACSM 2026 Position Stand: 10-20 series/músculo/semana para hipertrofia
+//     (síntesis de 137 revisiones sistemáticas, >30.000 participantes)
+//   • Schoenfeld et al. 2017: dosis-respuesta volumen–hipertrofia
+// MRV refleja el límite superior ACSM (≤20 series/sem para la mayoría de grupos)
 export const VOLUME_LANDMARKS = {
   "Pecho":             { mev: 8,  mav: 14, mrv: 22 },
   "Espalda":           { mev: 10, mav: 16, mrv: 25 },

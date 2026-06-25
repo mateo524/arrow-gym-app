@@ -220,12 +220,23 @@ export default function CoachPage() {
       }
     }
 
-    // 7. Body composition alerts (updates reactively when skinfolds saved)
+    // 7. Body composition alerts — umbrales según Gallagher et al. 2000, Friedl et al. 1994
     if (bodyFatPct !== null) {
-      if (bodyFatPct > 28) {
-        alerts.push({ type: "bodyfat_high", msg: `% grasa corporal elevado (${bodyFatPct.toFixed(1)}%). Según Gallagher et al. (2000), valores >25% en hombres se asocian a mayor riesgo metabólico. Priorizar déficit moderado de 300-500 kcal/día y cardio 2-3x/semana.` });
-      } else if (bodyFatPct < 8) {
-        alerts.push({ type: "bodyfat_low", msg: `% grasa muy bajo (${bodyFatPct.toFixed(1)}%). Valores <8% en hombres pueden comprometer la función hormonal y el rendimiento (Friedl et al., 1994). Asegurate de consumir suficiente proteína y calorías.` });
+      // Umbrales según sexo (Gallagher et al. 2000)
+      const sexFlag = profile?.sex || "M";
+      const bfHighThresh  = sexFlag === "F" ? 32 : 25;  // obeso: >32% mujeres, >25% hombres
+      const bfModThresh   = sexFlag === "F" ? 25 : 20;  // exceso: >25% / >20%
+      const bfLowRisk     = sexFlag === "F" ? 14 : 8;   // riesgo bajo: <14% mujeres, <8% hombres
+      const bfEssential   = sexFlag === "F" ? 10 : 5;   // grasa esencial — riesgo hormonal severo
+
+      if (bodyFatPct > bfHighThresh) {
+        alerts.push({ type: "bodyfat_high", msg: `% grasa elevado (${bodyFatPct.toFixed(1)}%). Gallagher et al. (2000): >25% en hombres / >32% en mujeres se asocia a mayor riesgo metabólico. Objetivo: déficit 300-500 kcal/día → pérdida de 0.5-1% peso/semana (ISSN 2017). Cardio aeróbico 2-3x/semana complementa el déficit sin comprometer el músculo.` });
+      } else if (bodyFatPct > bfModThresh) {
+        alerts.push({ type: "bodyfat_mod", msg: `% grasa moderadamente elevado (${bodyFatPct.toFixed(1)}%). Considerá una fase de definición con déficit conservador (300 kcal/día) para llegar al rango óptimo (15-20% hombres, 22-28% mujeres) antes de un ciclo de volumen.` });
+      } else if (bodyFatPct < bfEssential) {
+        alerts.push({ type: "bodyfat_critical", msg: `⚠️ % grasa crítico (${bodyFatPct.toFixed(1)}%). Por debajo de la grasa esencial (5% hombres, 10% mujeres). Riesgo serio de disfunción hormonal, amenorrea e inmunodepresión (Friedl et al. 1994). Aumentá calorías de inmediato.` });
+      } else if (bodyFatPct < bfLowRisk) {
+        alerts.push({ type: "bodyfat_low", msg: `% grasa muy bajo (${bodyFatPct.toFixed(1)}%). Valores <8% en hombres (<14% mujeres) pueden comprometer testosterona y rendimiento (Friedl et al. 1994). Priorizar calorías suficientes y proteína ≥2g/kg.` });
       }
     }
 
@@ -429,9 +440,11 @@ export default function CoachPage() {
 
     let score = 50; // base
     // Sleep factor (0-35)
+    // Evidencia: <6h sueño → cortisol +21%, testosterona -24%, síntesis proteica -18% (PMC12610528, 2024)
+    // 7-9h = óptimo (NSF, AASM); <5h = riesgo de catabolismo y lesión
     if (todaySleep?.hours) {
       const h = todaySleep.hours;
-      score += h >= 7 && h <= 9 ? 35 : h >= 6 ? 20 : h >= 5 ? 5 : -5;
+      score += h >= 7 && h <= 9 ? 35 : h >= 6 ? 15 : h >= 5 ? 0 : -10;
     }
     // Hydration factor (0-25)
     if (todayWater?.glasses && waterGoal > 0) {
@@ -449,7 +462,12 @@ export default function CoachPage() {
     score = Math.max(10, Math.min(100, score));
     const label = score >= 80 ? "Óptimo" : score >= 60 ? "Bueno" : score >= 40 ? "Moderado" : "Recuperate";
     const color = score >= 80 ? "#22c55e" : score >= 60 ? "#a855f7" : score >= 40 ? "#f59e0b" : "#ef4444";
-    const tip   = score >= 80 ? "Ideal para entrenar fuerte hoy." : score >= 60 ? "Buen estado — entrenamiento normal." : score >= 40 ? "Reducí el volumen un 15-20% hoy." : "Priorizá recuperación — descanso activo o día libre.";
+    // Tip mejorado con datos de sueño
+    const sleepHours = todaySleep?.hours || 0;
+    const sleepTip = sleepHours > 0 && sleepHours < 6
+      ? ` ⚠️ Dormiste ${sleepHours}h — síntesis proteica reducida ~18% (PMC12610528). Bajá el RPE objetivo 1-2 puntos.`
+      : sleepHours >= 6 && sleepHours < 7 ? " Dormiste algo menos de lo ideal (7-9h recomendadas)." : "";
+    const tip   = (score >= 80 ? "Ideal para entrenar fuerte hoy." : score >= 60 ? "Buen estado — entrenamiento normal." : score >= 40 ? "Reducí el volumen un 15-20% hoy." : "Priorizá recuperación — descanso activo o día libre.") + sleepTip;
     return { score, label, color, tip };
   }, [sleepLog, waterLog, waterGoal, workouts]);
 
@@ -2488,36 +2506,62 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
   };
   const tdee = Math.round(bmr * (ACTIVITY[activityLevel]?.factor ?? ACTIVITY.moderado.factor));
 
-  // Ajuste por objetivo — superávit y déficit basados en % del TDEE, no en valores fijos
-  // Volumen: +8% TDEE (suficiente para masa sin acumular grasa en exceso)
-  // Definición: déficit del 15-20% del TDEE pero nunca más de 500 kcal
-  const surplusTarget  = Math.round(tdee * 0.08);
-  const deficitTarget  = Math.min(500, Math.round(tdee * 0.18));
+  // ── Ajuste calórico por objetivo ────────────────────────────────────────────
+  // Volumen: +200-300 kcal (lean bulk; Precision Nutrition / Hall et al.) — superávit modesto
+  // para minimizar acumulación de grasa. En sujetos con %BF >20 reducir a +150 kcal.
+  // Definición: déficit 300-500 kcal → pérdida de 0.5-1% peso/semana (ISSN 2017, Helms et al.)
+  // Mantenimiento / rendimiento: TDEE sin ajuste de base
+  const bfHigh = bodyFatPct !== null && bodyFatPct > 20;
+  const surplusTarget = bfHigh ? 150 : 250; // lean bulk conservador si ya hay grasa
+  const deficitTarget = Math.min(500, Math.max(300, Math.round(tdee * 0.15))); // 300-500 kcal
   const baseAdj = userGoal === "volumen" ? surplusTarget : userGoal === "definicion" ? -deficitTarget : 0;
-  // Día de entreno: +100 kcal extra (en carbs); descanso: -100 kcal
-  const dayAdj  = macroDay === "entreno" ? 100 : -100;
-  const targetCal = Math.max(1200, tdee + baseAdj + dayAdj); // nunca menos de 1200 kcal
+  // Carb cycling ligero: día de entreno +100 kcal en carbs; descanso −100 kcal
+  const dayAdj = macroDay === "entreno" ? 100 : -100;
+  // Mínimo absoluto: 1400 kcal mujeres, 1600 kcal hombres (abajo del basal = catabolismo)
+  const calFloor = sex === "F" ? 1400 : 1600;
+  const targetCal = Math.max(calFloor, tdee + baseAdj + dayAdj);
 
-  // Proteína: si hay LBM, calcular sobre masa magra (más preciso)
-  // En corte se usa 3.1g/LBM (preservar músculo); en volumen 2.4g; mantenimiento 2.2g
+  // ── Proteína ────────────────────────────────────────────────────────────────
+  // Base: masa magra (LBM) si disponible; si no, peso corporal total.
+  // Rangos ISSN 2017 / Morton et al. 2018 / Stokes et al. 2018:
+  //   • Déficit calórico: 2.3–3.1 g/kg LBM (preservar masa magra; Helms et al. 2014)
+  //   • Volumen/hipertrofia: 1.6–2.2 g/kg peso; ceiling en 2.4 g/kg para hiperresponders
+  //   • Mantenimiento/rendimiento: 1.6–2.0 g/kg peso
+  // Se usa el extremo alto del rango por ser población activa de gimnasio.
   const proteinBase = lbm !== null ? lbm : weight;
-  const proteinFactor = userGoal === "definicion" ? 3.1 : userGoal === "volumen" ? 2.4 : 2.2;
+  const proteinFactor = userGoal === "definicion"
+    ? (lbm !== null ? 3.1 : 2.4)   // 3.1g/kg LBM en corte (Helms 2014); 2.4g/kg total si no hay LBM
+    : userGoal === "volumen"
+      ? 2.2                          // 2.2g/kg — dentro del rango ISSN con margen para variación individual
+      : 2.0;                         // mantenimiento / rendimiento
   const proteinG = Math.round(proteinBase * proteinFactor);
 
-  // Grasa: mínimo 20% de calorías para función hormonal; máximo 35%
-  const fatMinG  = Math.round((targetCal * 0.20) / 9);
-  const fatTargG = Math.round((targetCal * 0.25) / 9);
-  const fatG     = Math.max(fatMinG, fatTargG);
+  // ── Grasa ────────────────────────────────────────────────────────────────────
+  // Mínimo 20% de kcal para síntesis hormonal (testosterona, estradiol).
+  // Target: 25% en volumen (permite mayor palatabilidad y saciedad),
+  //         20-22% en definición (libera más calorías para carbs y proteína).
+  const fatPct = userGoal === "definicion" ? 0.22 : 0.25;
+  const fatG   = Math.max(Math.round((targetCal * 0.20) / 9), Math.round((targetCal * fatPct) / 9));
 
-  // Carbohidratos: el resto de las calorías
+  // ── Carbohidratos ────────────────────────────────────────────────────────────
+  // El resto de calorías van a carbs. ISSN recomienda 3–5 g/kg peso para atletas de fuerza;
+  // se respeta automáticamente si proteína y grasa están bien calibradas.
   const carbG = Math.max(0, Math.round((targetCal - proteinG * 4 - fatG * 9) / 4));
 
-  // Fibra objetivo: 14g por cada 1000 kcal (Academy of Nutrition and Dietetics)
-  const fiberG = Math.round(targetCal / 1000 * 14);
+  // ── Fibra ────────────────────────────────────────────────────────────────────
+  // 14g / 1000 kcal (Academy of Nutrition and Dietetics; WHO: 25-38g/día mínimo)
+  const fiberG = Math.max(25, Math.round(targetCal / 1000 * 14));
 
-  // Nutrient timing targets
-  const postWorkoutProtein = Math.round(proteinG * 0.25); // ~25% of daily protein post-workout
-  const preWorkoutCarbs    = Math.round(carbG * 0.20);   // ~20% of carbs pre-workout
+  // ── Nutrient timing ─────────────────────────────────────────────────────────
+  // La "ventana anabólica" post-entreno es más amplia de lo que se creía:
+  // cualquier momento en un margen de ~2 h es efectivo (Schoenfeld & Aragon 2018 meta-análisis;
+  // confirmado en meta-análisis 2024 PMC12250900).
+  // Lo que SÍ importa: dosis por comida de 0.4 g/kg (~20-40g) para saturar síntesis proteica
+  // (Moore et al. 2009; Witard et al. 2014) y distribución cada 3-4h durante el día.
+  const postWorkoutProtein = Math.min(40, Math.max(20, Math.round(weight * 0.4))); // 0.4g/kg, capped 20-40g
+  const preWorkoutCarbs    = Math.round(carbG * 0.20); // 20% carbs pre-entreno (~1 g/kg)
+  // Pre-sueño: 20-40g caseína mejora síntesis proteica nocturna (Res et al. 2012; Snijders et al. 2015)
+  const preSleepProtein = Math.min(40, Math.max(20, Math.round(weight * 0.3)));
 
   const hasMeasurements = profile?.weight_kg && profile?.height_cm;
 
@@ -2763,22 +2807,34 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
           <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
             <div style={{ display:"flex", justifyContent:"space-between" }}>
               <span style={{ fontSize:12, color:"var(--text)" }}>Pre-entreno <small style={{ color:"var(--muted)" }}>(1-2h antes)</small></span>
-              <span style={{ fontSize:12, fontWeight:800, color:"#60a5fa" }}>{preWorkoutCarbs}g carbs</span>
+              <span style={{ fontSize:12, fontWeight:800, color:"#60a5fa" }}>{preWorkoutCarbs}g carbs + {Math.round(weight * 0.2)}g proteína</span>
             </div>
             <div style={{ display:"flex", justifyContent:"space-between" }}>
               <span style={{ fontSize:12, color:"var(--text)" }}>Post-entreno <small style={{ color:"var(--muted)" }}>(dentro de 2h)</small></span>
               <span style={{ fontSize:12, fontWeight:800, color:"#a855f7" }}>{postWorkoutProtein}g proteína</span>
             </div>
             <div style={{ display:"flex", justifyContent:"space-between" }}>
-              <span style={{ fontSize:12, color:"var(--text)" }}>Durante el día</span>
-              <span style={{ fontSize:12, fontWeight:800, color:"var(--text)" }}>{proteinG - postWorkoutProtein}g proteína restante</span>
+              <span style={{ fontSize:12, color:"var(--text)" }}>Resto del día <small style={{ color:"var(--muted)" }}>(en comidas cada 3-4h)</small></span>
+              <span style={{ fontSize:12, fontWeight:800, color:"var(--text)" }}>{Math.max(0, proteinG - postWorkoutProtein - Math.round(weight * 0.2))}g proteína</span>
             </div>
+            <div style={{ display:"flex", justifyContent:"space-between" }}>
+              <span style={{ fontSize:12, color:"var(--text)" }}>Pre-sueño <small style={{ color:"var(--muted)" }}>(30 min antes)</small></span>
+              <span style={{ fontSize:12, fontWeight:800, color:"#f59e0b" }}>{preSleepProtein}g proteína lenta</span>
+            </div>
+            <p style={{ margin:"6px 0 0", fontSize:10, color:"var(--muted)", lineHeight:1.4 }}>
+              💡 La ventana post-entreno dura ~2h, no minutos. La distribución a lo largo del día (cada 3-4h) es igual o más importante que el timing exacto. ¹
+            </p>
           </div>
         ) : (
-          <p style={{ margin:0, fontSize:12, color:"var(--muted)", lineHeight:1.5 }}>
-            Día de descanso: priorizá proteína distribuida en 3-4 comidas y carbohidratos complejos.
-            Reducís {150} kcal vs día de entreno.
-          </p>
+          <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+            <p style={{ margin:"0 0 4px", fontSize:12, color:"var(--muted)", lineHeight:1.5 }}>
+              Día de descanso: priorizá proteína distribuida en 4 comidas (~{Math.round(proteinG/4)}g c/u cada 3-4h) y carbohidratos complejos. Reducís ~200 kcal vs día de entreno.
+            </p>
+            <div style={{ display:"flex", justifyContent:"space-between" }}>
+              <span style={{ fontSize:12, color:"var(--text)" }}>Pre-sueño <small style={{ color:"var(--muted)" }}>(30 min antes)</small></span>
+              <span style={{ fontSize:12, fontWeight:800, color:"#f59e0b" }}>{preSleepProtein}g caseína o yogur griego</span>
+            </div>
+          </div>
         )}
       </div>
 
@@ -2904,12 +2960,14 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
       <div style={{ background:"var(--panel)", borderRadius:16, padding:"16px", marginBottom:12 }}>
         <p style={{ margin:"0 0 10px", fontSize:11, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em" }}>Suplementación recomendada</p>
         {[
-          { name:"Creatina monohidrato", dose:"5g/día", timing:"Cualquier momento (con consistencia)", benefit:"Fuerza +5-15%, volumen muscular, recuperación", all:true },
-          { name:"Proteína whey", dose:`${Math.round(postWorkoutProtein)}g post-entreno`, timing:"Dentro de 2h post-entreno", benefit:"Completar proteína diaria cuando la comida no alcanza", all:true },
-          ...(userGoal === "definicion" ? [{ name:"Cafeína", dose:"200-400mg", timing:"30-60 min pre-entreno", benefit:"Rendimiento +3-5%, quema de grasa como combustible", all:false }] : []),
-          ...(userGoal === "volumen" ? [{ name:"Beta-alanina", dose:"3-6g/día", timing:"Pre-entreno (repartido)", benefit:"Resistencia muscular, retrasa la fatiga en series 8-15 reps", all:false }] : []),
-          { name:"Vitamina D3 + K2", dose:"2000-4000 UI/día", timing:"Con comida grasa (almuerzo/cena)", benefit:"Testosterona, huesos, inmunidad", all:true },
-          { name:"Magnesio glicinato", dose:"300-400mg/día", timing:"Antes de dormir", benefit:"Calidad del sueño, reducción de calambres, recuperación", all:true },
+          { name:"Creatina monohidrato", dose:"3-5g/día", timing:"Cualquier momento del día — consistencia > timing (Lanhers et al. 2017)", benefit:"El suplemento más respaldado: fuerza +5-15%, potencia, volumen muscular, recuperación entre series" },
+          { name:"Proteína whey", dose:`${postWorkoutProtein}g post-entreno o entre comidas`, timing:"Dentro de ~2h post-entreno o cuando no llegás a la proteína diaria con comida", benefit:"Proteína de alta biodisponibilidad. Prioritario si la comida no cubre los ${proteinG}g diarios objetivo" },
+          { name:"Caseína micelar", dose:`${preSleepProtein}g pre-sueño`, timing:"30 min antes de dormir — digestión lenta 7-8h (Snijders et al. 2015)", benefit:"Aumenta síntesis proteica nocturna, reduce catabolismo muscular durante el ayuno de sueño" },
+          ...(userGoal === "definicion" ? [{ name:"Cafeína", dose:"3-6 mg/kg peso (~200-400mg)", timing:"45-60 min pre-entreno — no post-3pm si afecta sueño (Burke 2008)", benefit:"Rendimiento +3-7%, reduce percepción del esfuerzo, moviliza ácidos grasos libres" }] : []),
+          ...(userGoal === "volumen" ? [{ name:"Beta-alanina", dose:"3.2-6.4g/día (en dosis de 0.8g)", timing:"Repartido durante el día para minimizar parestesia (Hobson et al. 2012)", benefit:"Aumenta carnosina muscular → retrasa fatiga en series de 8-15 reps, mejora capacidad de trabajo" }] : []),
+          { name:"Omega 3 (EPA+DHA)", dose:"2-4g/día", timing:"Con comida principal para mejor absorción", benefit:"Reduce inflamación muscular post-entreno, mejora sensibilidad a la insulina, salud cardiovascular (Smith et al. 2011)" },
+          { name:"Vitamina D3 + K2", dose:"2000-4000 UI D3 + 100mcg K2", timing:"Con comida que contenga grasa", benefit:"Testosterona, absorción de calcio, función inmune. Déficit muy común en población indoor" },
+          { name:"Magnesio glicinato/malato", dose:"300-400mg/día", timing:"Antes de dormir — mejora calidad del sueño", benefit:"Relajación muscular, reduce calambres nocturnos, mejor recuperación. Forma glicinato > óxido para absorción" },
         ].map(({ name, dose, timing, benefit }) => (
           <div key={name} style={{ marginBottom:10, paddingBottom:10, borderBottom:"1px solid rgba(255,255,255,.05)" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:8 }}>
