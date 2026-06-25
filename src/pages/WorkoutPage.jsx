@@ -141,6 +141,7 @@ export default function WorkoutPage() {
   // Modals & panels
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [coachExpanded, setCoachExpanded] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
   const [swapTarget, setSwapTarget] = useState(null);
   const [supersetTarget, setSupersetTarget] = useState(null);
@@ -432,30 +433,41 @@ export default function WorkoutPage() {
       {/* ── COACH EN VIVO ───────────────────────────────────────────────────── */}
       {(() => {
         const hasAdj = activePlanAdjustment && new Date(activePlanAdjustment.expiresAt) >= new Date();
-        const firstHint = liveHints?.[0];
-        if (!hasAdj && !firstHint) return null;
+        const hints = liveHints || [];
+        if (!hasAdj && hints.length === 0) return null;
 
-        let icon, msg, color, border;
+        const messages = [];
         if (hasAdj) {
           const typeMap = {
-            deload:       { icon: "🔄", msg: `Semana de deload — pesos al ${Math.round(activePlanAdjustment.factor * 100)}% del habitual`, color: "rgba(117,217,255,.12)", border: "rgba(117,217,255,.3)" },
-            volume_up:    { icon: "📈", msg: "Semana de volumen — series aumentadas según el plan", color: "rgba(168,85,247,.12)", border: "rgba(168,85,247,.3)" },
-            intensity_up: { icon: "⚡", msg: "Semana de intensidad — pesos incrementados según el plan", color: "rgba(245,158,11,.12)", border: "rgba(245,158,11,.3)" },
+            deload:       { icon: '🔄', text: `Semana de deload — pesos al ${Math.round(activePlanAdjustment.factor * 100)}% del habitual · hasta el ${new Date(activePlanAdjustment.expiresAt).toLocaleDateString('es-AR', { day:'numeric', month:'short' })}` },
+            volume_up:    { icon: '📈', text: 'Semana de volumen — series aumentadas según el plan' },
+            intensity_up: { icon: '⚡', text: 'Semana de intensidad — pesos incrementados según el plan' },
           };
-          const t = typeMap[activePlanAdjustment.type] || { icon: "🏋️", msg: "Ajuste del coach activo", color: "rgba(168,85,247,.12)", border: "rgba(168,85,247,.3)" };
-          icon = t.icon; msg = t.msg; color = t.color; border = t.border;
-          const expires = new Date(activePlanAdjustment.expiresAt).toLocaleDateString("es-AR", { day: "numeric", month: "short" });
-          msg = `${msg} · hasta el ${expires}`;
-        } else {
-          icon = "⚡"; msg = firstHint.msg; color = "rgba(245,158,11,.08)"; border = "rgba(245,158,11,.2)";
+          const t = typeMap[activePlanAdjustment.type] || { icon: '🏋️', text: 'Ajuste del coach activo' };
+          messages.push(t);
         }
+        hints.forEach(h => messages.push({ icon: '⚡', text: h.msg }));
+
+        const firstMsg = messages[0];
         return (
-          <div style={{ background: color, borderBottom: `1px solid ${border}`, padding: "8px 16px", display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
-            <span style={{ fontSize: 16, flexShrink: 0 }}>🤖</span>
-            <div style={{ flex: 1 }}>
-              <span style={{ fontSize: 10, fontWeight: 800, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".06em", display: "block", marginBottom: 1 }}>Coach en vivo</span>
-              <span style={{ lineHeight: 1.3 }}><span style={{ marginRight: 4 }}>{icon}</span><strong>{msg}</strong></span>
-            </div>
+          <div style={{ borderBottom: '1px solid rgba(245,158,11,.25)', background: 'rgba(245,158,11,.06)' }}>
+            <button
+              onClick={() => setCoachExpanded(e => !e)}
+              style={{ width: '100%', background: 'none', border: 'none', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', textAlign: 'left' }}>
+              <span style={{ fontSize: 10, fontWeight: 800, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '.08em', flexShrink: 0 }}>Coach en vivo</span>
+              <span style={{ flex: 1, fontSize: 12, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{firstMsg.icon} {firstMsg.text}</span>
+              <span style={{ fontSize: 10, color: 'var(--muted)', flexShrink: 0 }}>{coachExpanded ? '▲' : '▼'} {messages.length}</span>
+            </button>
+            {coachExpanded && (
+              <div style={{ padding: '0 16px 10px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {messages.map((m, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', background: 'rgba(245,158,11,.06)', border: '1px solid rgba(245,158,11,.15)', borderRadius: 8, padding: '7px 10px' }}>
+                    <span style={{ flexShrink: 0 }}>{m.icon}</span>
+                    <span style={{ fontSize: 12, lineHeight: 1.4, color: 'var(--text)' }}>{m.text}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         );
       })()}
@@ -595,7 +607,9 @@ export default function WorkoutPage() {
                   /* SETS VIEW */
                   <div>
                     {sets.map((setItem, index) => {
-                      const isNewPR = Number(setItem.weight) > 0 && Number(setItem.weight) > bestPR;
+                      // PR badge only on the FIRST set in this session that beats the historical best
+                      const isNewPR = Number(setItem.weight) > 0 && Number(setItem.weight) > bestPR
+                        && !sets.slice(0, index).some(s => Number(s.weight) > bestPR);
                       return (
                         <div key={setItem.id} style={{ position: "relative" }}>
                           {isNewPR && (
@@ -700,11 +714,11 @@ export default function WorkoutPage() {
                     <Icon name="RefreshCw" size={16} strokeWidth={1.8} />
                   </button>
 
-                  {/* 3-dot menu — moved per exercise */}
+                  {/* 3-dot menu — per exercise */}
                   <button onClick={() => setShowMenu(true)}
-                    style={{ background: "var(--panel2)", border: "none", borderRadius: 10, width: 38, height: 38, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)" }}
+                    style={{ background: "rgba(168,85,247,.15)", border: "1px solid rgba(168,85,247,.35)", borderRadius: 10, width: 38, height: 38, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--green)" }}
                     title="Menú">
-                    <Icon name="MoreVertical" size={17} strokeWidth={1.8} />
+                    <Icon name="MoreVertical" size={18} strokeWidth={2.5} />
                   </button>
                 </div>
                 {/* Right: flip (2-cards = stats) */}

@@ -540,6 +540,24 @@ export default function CoachPage() {
                   <p style={{ margin:0, fontSize:16, fontWeight:900, color:"var(--text)" }}>{lbm.toFixed(1)}<span style={{ fontSize:10, fontWeight:400, color:"var(--muted)" }}>kg</span></p>
                 </div>
               )}
+              {profile?.height_cm && (
+                <div style={{ flex:"0 0 auto", minWidth:72, background:"rgba(245,158,11,.07)", border:"1px solid rgba(245,158,11,.2)", borderRadius:10, padding:"8px 10px", textAlign:"center" }}>
+                  <p style={{ margin:"0 0 1px", fontSize:10, color:"#f59e0b", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.04em" }}>Talla</p>
+                  <p style={{ margin:0, fontSize:16, fontWeight:900, color:"var(--text)" }}>{profile.height_cm}<span style={{ fontSize:10, fontWeight:400, color:"var(--muted)" }}>cm</span></p>
+                </div>
+              )}
+              {profile?.waist_cm && (
+                <div style={{ flex:"0 0 auto", minWidth:72, background:"rgba(248,113,113,.07)", border:"1px solid rgba(248,113,113,.2)", borderRadius:10, padding:"8px 10px", textAlign:"center" }}>
+                  <p style={{ margin:"0 0 1px", fontSize:10, color:"#f87171", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.04em" }}>Cintura</p>
+                  <p style={{ margin:0, fontSize:16, fontWeight:900, color:"var(--text)" }}>{profile.waist_cm}<span style={{ fontSize:10, fontWeight:400, color:"var(--muted)" }}>cm</span></p>
+                </div>
+              )}
+              {profile?.arm_flexed_cm && (
+                <div style={{ flex:"0 0 auto", minWidth:72, background:"rgba(52,211,153,.07)", border:"1px solid rgba(52,211,153,.2)", borderRadius:10, padding:"8px 10px", textAlign:"center" }}>
+                  <p style={{ margin:"0 0 1px", fontSize:10, color:"#34d399", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.04em" }}>Brazo</p>
+                  <p style={{ margin:0, fontSize:16, fontWeight:900, color:"var(--text)" }}>{profile.arm_flexed_cm}<span style={{ fontSize:10, fontWeight:400, color:"var(--muted)" }}>cm</span></p>
+                </div>
+              )}
               {!bodyWeight && (
                 <p style={{ margin:0, fontSize:12, color:"var(--muted)" }}>Sin datos. <button className="ghost" style={{ fontSize:12, color:"var(--green)", padding:0 }} onClick={() => setPage("measurements")}>Agregar</button></p>
               )}
