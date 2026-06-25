@@ -916,35 +916,57 @@ export default function CoachPage() {
                 );
               })()}
 
-              {/* ── Recuperación muscular ── */}
-              {muscleRecovery.some(m => m.daysSince !== null) && (
-                <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:18, padding:"14px 16px", marginBottom:12 }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12 }}>
-                    <div style={{ width:28, height:28, borderRadius:8, background:"rgba(96,165,250,.12)", border:"1px solid rgba(96,165,250,.2)", display:"flex", alignItems:"center", justifyContent:"center" }}>
-                      <Icon name="Activity" size={14} style={{ color:"#60a5fa" }} />
+              {/* ── Mejor sesión de la semana ── */}
+              {workouts.length >= 1 && (() => {
+                const now = new Date();
+                const weekStart = new Date(now); weekStart.setDate(now.getDate() - ((now.getDay()+6)%7)); weekStart.setHours(0,0,0,0);
+                const thisWeek = workouts.filter(w => w.date && new Date(w.date + "T12:00:00") >= weekStart);
+                if (!thisWeek.length) return (
+                  <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:14, padding:"12px 14px", marginBottom:12 }}>
+                    <p style={{ margin:0, fontSize:13, color:"var(--muted)" }}>Sin entrenamientos esta semana todavía.</p>
+                  </div>
+                );
+                const best = thisWeek.reduce((a, b) => {
+                  const va = (a.sets||[]).reduce((s,set) => s + (Number(set.weight)||0)*(Number(set.reps)||0), 0);
+                  const vb = (b.sets||[]).reduce((s,set) => s + (Number(set.weight)||0)*(Number(set.reps)||0), 0);
+                  return vb > va ? b : a;
+                });
+                const totalVol = (best.sets||[]).reduce((s,set) => s + (Number(set.weight)||0)*(Number(set.reps)||0), 0);
+                const totalSets = (best.sets||[]).length;
+                const exercises = [...new Set((best.sets||[]).map(s => s.exercise).filter(Boolean))];
+                const groups = [...new Set((best.sets||[]).map(s => s.group).filter(Boolean))];
+                return (
+                  <div style={{ background:"var(--panel)", border:"1px solid rgba(96,165,250,.3)", borderRadius:18, padding:"14px 16px", marginBottom:12 }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
+                      <span style={{ fontSize:20 }}>🏆</span>
+                      <p style={{ margin:0, fontSize:14, fontWeight:800 }}>Mejor sesión esta semana</p>
                     </div>
-                    <p style={{ margin:0, fontSize:14, fontWeight:800 }}>Recuperación muscular</p>
-                  </div>
-                  <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
-                    {muscleRecovery.filter(m => m.daysSince !== null).map(({ name, status, daysSince, recDays }) => {
-                      const color = status === "listo" ? "var(--green)" : status === "recuperando" ? "#f59e0b" : "#ef4444";
-                      const label = status === "listo" ? "Listo" : status === "recuperando" ? "Recuperando" : "Necesita descanso";
-                      return (
-                        <div key={name} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", background:"var(--panel2)", borderRadius:10, padding:"8px 12px" }}>
-                          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                            <div style={{ width:8, height:8, borderRadius:"50%", background:color, flexShrink:0 }} />
-                            <span style={{ fontSize:13, fontWeight:600 }}>{name}</span>
-                          </div>
-                          <div style={{ textAlign:"right" }}>
-                            <span style={{ fontSize:12, fontWeight:700, color }}>{label}</span>
-                            <span style={{ fontSize:10, color:"var(--muted)", marginLeft:6 }}>{daysSince}d desde último</span>
-                          </div>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+                      <span style={{ fontSize:13, fontWeight:700, color:"var(--text)" }}>{best.type || "Entrenamiento"}</span>
+                      <span style={{ fontSize:11, color:"var(--muted)" }}>{best.date?.slice(5).replace("-","/")||""}</span>
+                    </div>
+                    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:6, marginBottom:8 }}>
+                      {[
+                        { label:"Volumen", val: totalVol >= 1000 ? (totalVol/1000).toFixed(1)+"k" : totalVol+"", unit:"kg" },
+                        { label:"Series", val: String(totalSets), unit:"sets" },
+                        { label:"Ejercicios", val: String(exercises.length), unit:"ex." },
+                      ].map(s => (
+                        <div key={s.label} style={{ background:"var(--panel2)", borderRadius:10, padding:"8px", textAlign:"center" }}>
+                          <div style={{ fontSize:11, color:"var(--muted)", marginBottom:2 }}>{s.label}</div>
+                          <div style={{ fontSize:18, fontWeight:900, color:"#60a5fa" }}>{s.val}</div>
+                          <div style={{ fontSize:10, color:"var(--muted)" }}>{s.unit}</div>
                         </div>
-                      );
-                    })}
+                      ))}
+                    </div>
+                    {groups.length > 0 && (
+                      <div style={{ display:"flex", flexWrap:"wrap", gap:4 }}>
+                        {groups.map(g => <span key={g} style={{ fontSize:11, background:"rgba(96,165,250,.1)", border:"1px solid rgba(96,165,250,.2)", borderRadius:6, padding:"2px 8px", color:"#60a5fa" }}>{g}</span>)}
+                      </div>
+                    )}
+                    {thisWeek.length > 1 && <p style={{ margin:"8px 0 0", fontSize:11, color:"var(--muted)" }}>{thisWeek.length} sesiones esta semana en total</p>}
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* ── Historial de las últimas 4 semanas ── */}
               {workouts.length >= 2 && (() => {
@@ -1213,243 +1235,129 @@ export default function CoachPage() {
               </div>
 
               <>
-              {/* ── 1RM por ejercicio ── */}
-              {topExercises.length > 0 && (
-                <div style={{ marginBottom:16 }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
-                    <div style={{ width:28, height:28, borderRadius:8, background:"rgba(168,85,247,.12)", border:"1px solid rgba(168,85,247,.2)", display:"flex", alignItems:"center", justifyContent:"center" }}>
-                      <Icon name="TrendingUp" size={14} style={{ color:"var(--green)" }} />
-                    </div>
-                    <p style={{ margin:0, fontSize:14, fontWeight:800 }}>1RM estimado</p>
-                  </div>
-                  {topExercises.map((exercise, i) => {
-                    const pts = getOneRMHistory(workouts, exercise);
-                    if (pts.length < 2) return null;
-                    const vals = pts.map(p => p.orm);
-                    const minV = Math.min(...vals), maxV = Math.max(...vals);
-                    const range = maxV - minV || 1;
-                    const W = 260, H = 52;
-                    const polyPts = pts.map((p, i) => {
-                      const x = pts.length > 1 ? (i / (pts.length - 1)) * W : W / 2;
-                      const y = H - ((p.orm - minV) / range) * (H - 8) - 4;
-                      return `${x},${y}`;
-                    }).join(" ");
-                    const last = vals[vals.length - 1];
-                    const diff = last - vals[0];
-                    const trend = diff > 0 ? "var(--green)" : diff < 0 ? "var(--danger)" : "var(--muted)";
-                    return (
-                      <div key={exercise} style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:16, padding:"14px", marginBottom:8, overflow:"hidden" }}>
-                        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:8 }}>
-                          <div>
-                            <p style={{ margin:"0 0 2px", fontSize:14, fontWeight:800 }}>{exercise}</p>
-                            <p style={{ margin:0, fontSize:11, color:"var(--muted)" }}>{pts.length} sesiones registradas</p>
-                          </div>
-                          <div style={{ textAlign:"right" }}>
-                            <p style={{ margin:"0 0 1px", fontSize:22, fontWeight:900, color:trend, lineHeight:1 }}>
-                              {last}<span style={{ fontSize:12, fontWeight:500, color:"var(--muted)", marginLeft:2 }}>kg</span>
-                            </p>
-                            {diff !== 0 && (
-                              <p style={{ margin:0, fontSize:11, fontWeight:700, color:trend }}>
-                                {diff > 0 ? "+" : ""}{diff}kg desde el inicio
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                        <svg width="100%" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ display:"block", overflow:"visible" }}>
-                          <defs>
-                            <linearGradient id={`grad-${i}`} x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="var(--green)" stopOpacity="0.15" />
-                              <stop offset="100%" stopColor="var(--green)" stopOpacity="0" />
-                            </linearGradient>
-                          </defs>
-                          {pts.length > 1 && (
-                            <polyline
-                              points={[`0,${H}`, ...pts.map((p, i) => {
-                                const x = (i / (pts.length - 1)) * W;
-                                const y = H - ((p.orm - minV) / range) * (H - 8) - 4;
-                                return `${x},${y}`;
-                              }), `${W},${H}`].join(" ")}
-                              fill={`url(#grad-${i})`} stroke="none"
-                            />
-                          )}
-                          <polyline points={polyPts} fill="none" stroke="var(--green)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                          {pts.map((p, i) => {
-                            const x = pts.length > 1 ? (i / (pts.length - 1)) * W : W / 2;
-                            const y = H - ((p.orm - minV) / range) * (H - 8) - 4;
-                            const isLast = i === pts.length - 1;
-                            return <circle key={i} cx={x} cy={y} r={isLast ? 4 : 3} fill={isLast ? "var(--green)" : "rgba(168,85,247,.5)"} />;
-                          })}
-                        </svg>
-                        <div style={{ display:"flex", justifyContent:"space-between", marginTop:4 }}>
-                          <span style={{ fontSize:10, color:"var(--muted)" }}>{pts[0]?.date}</span>
-                          <span style={{ fontSize:10, color:"var(--muted)" }}>{pts[pts.length-1]?.date}</span>
-                        </div>
-                      </div>
-                    );
-                  }).filter(Boolean)}
-                </div>
-              )}
-
-              {/* ── Proyección ── */}
-              {topExercises.length > 0 && (() => {
-                const projections = topExercises.map(exercise => {
-                  const pts = getOneRMHistory(workouts, exercise);
-                  if (pts.length < 3) return null;
-                  const n = pts.length, xMean = (n - 1) / 2;
-                  const yMean = pts.reduce((s, p) => s + p.orm, 0) / n;
-                  let num = 0, den = 0;
-                  pts.forEach((p, i) => { num += (i - xMean) * (p.orm - yMean); den += (i - xMean) ** 2; });
-                  const slope = den ? num / den : 0;
-                  if (slope <= 0) return null;
-                  const lastOrm = pts[pts.length - 1].orm;
-                  const targetOrm = Math.ceil(lastOrm / 5) * 5 + 5;
-                  const weeksToGoal = Math.round((targetOrm - lastOrm) / (slope * (workouts.length > 4 ? 1 : 2)));
-                  if (weeksToGoal <= 0 || weeksToGoal > 52) return null;
-                  const pct = Math.round(((targetOrm - lastOrm) / lastOrm) * 100);
-                  return { exercise, currentOrm: lastOrm, targetOrm, weeksToGoal, pct };
-                }).filter(Boolean);
-                if (!projections.length) return null;
-                return (
-                  <div style={{ marginBottom:16 }}>
-                    <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
-                      <div style={{ width:28, height:28, borderRadius:8, background:"rgba(245,158,11,.1)", border:"1px solid rgba(245,158,11,.2)", display:"flex", alignItems:"center", justifyContent:"center" }}>
-                        <Icon name="Zap" size={14} style={{ color:"#f59e0b" }} />
-                      </div>
-                      <p style={{ margin:0, fontSize:14, fontWeight:800 }}>Proyección de progreso</p>
-                    </div>
-                    {projections.map(({ exercise, currentOrm, targetOrm, weeksToGoal, pct }) => (
-                      <div key={exercise} style={{ background:"var(--panel)", border:"1px solid rgba(245,158,11,.2)", borderRadius:16, padding:"14px", marginBottom:8 }}>
-                        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
-                          <div>
-                            <p style={{ margin:"0 0 2px", fontSize:13, fontWeight:800 }}>{exercise}</p>
-                            <p style={{ margin:0, fontSize:11, color:"var(--muted)" }}>1RM actual: <b style={{ color:"var(--text)" }}>{currentOrm}kg</b></p>
-                          </div>
-                          <div style={{ textAlign:"right" }}>
-                            <p style={{ margin:"0 0 1px", fontSize:20, fontWeight:900, color:"#f59e0b", lineHeight:1 }}>{targetOrm}<span style={{ fontSize:11, fontWeight:500, color:"var(--muted)", marginLeft:2 }}>kg</span></p>
-                            <p style={{ margin:0, fontSize:11, color:"var(--muted)" }}>en ~{weeksToGoal} sem.</p>
-                          </div>
-                        </div>
-                        <div style={{ background:"var(--panel2)", borderRadius:8, height:6, overflow:"hidden" }}>
-                          <div style={{ background:"linear-gradient(90deg, #f59e0b, #fcd34d)", height:"100%", borderRadius:8, width:`${Math.min(95, Math.round((currentOrm / targetOrm) * 100))}%`, transition:"width .5s" }} />
-                        </div>
-                        <p style={{ margin:"5px 0 0", fontSize:10, color:"var(--muted)", textAlign:"right" }}>+{pct}% hasta el próximo hito</p>
-                      </div>
-                    ))}
-                  </div>
-                );
-              })()}
-
-              {/* ── Volumen por grupo muscular (últimas 8 semanas) ── */}
+              {/* ── Racha semanal ── */}
               {workouts.length >= 2 && (() => {
-                const GROUPS = [
-                  { name:"Piernas", color:"#a855f7" },
-                  { name:"Espalda", color:"#60a5fa" },
-                  { name:"Pecho",   color:"#f472b6" },
-                  { name:"Hombros", color:"#fb923c" },
-                  { name:"Brazos",  color:"#34d399" },
-                ];
-                const weeks = [];
-                for (let i = 7; i >= 0; i--) {
-                  const d = new Date();
-                  d.setDate(d.getDate() - ((d.getDay()+6)%7) - i*7);
-                  const mon = d.toISOString().slice(0,10);
-                  const sun = new Date(d); sun.setDate(d.getDate()+6);
-                  const sunStr = sun.toISOString().slice(0,10);
-                  const label = i === 0 ? "Esta" : `-${i}`;
-                  const vols = {};
-                  GROUPS.forEach(g => { vols[g.name] = 0; });
-                  workouts.forEach(w => {
-                    if (!w.date || w.date < mon || w.date > sunStr) return;
-                    (w.sets||[]).forEach(s => {
-                      if (vols[s.group] !== undefined) vols[s.group] += (Number(s.weight)||0)*(Number(s.reps)||0);
-                    });
-                  });
-                  weeks.push({ label, mon, vols });
+                // Count consecutive weeks (Mon-Sun) with ≥2 sessions
+                const now = new Date();
+                let streak = 0;
+                for (let i = 0; i < 52; i++) {
+                  const mon = new Date(now); mon.setDate(now.getDate() - ((now.getDay()+6)%7) - i*7); mon.setHours(0,0,0,0);
+                  const sun = new Date(mon); sun.setDate(mon.getDate()+6); sun.setHours(23,59,59,999);
+                  const count = workouts.filter(w => {
+                    const d = w.date ? new Date(w.date + "T12:00:00") : null;
+                    return d && d >= mon && d <= sun;
+                  }).length;
+                  if (count >= 2) streak++;
+                  else if (i > 0) break; // break only after checking at least current week
+                  else if (i === 0) {} // skip current week if not enough yet
                 }
-                const maxVol = Math.max(...weeks.flatMap(w => GROUPS.map(g => w.vols[g.name])), 1);
-                const W = 280, H = 80, BAR_W = Math.floor(W / weeks.length) - 2;
+                // Also compute avg days between sessions
+                const dates = workouts.filter(w => w.date).map(w => new Date(w.date + "T12:00:00")).sort((a,b) => b-a);
+                let avgGap = null;
+                if (dates.length >= 2) {
+                  let totalGap = 0;
+                  for (let i = 0; i < Math.min(dates.length-1, 8); i++) {
+                    totalGap += Math.abs(dates[i] - dates[i+1]) / 86400000;
+                  }
+                  avgGap = (totalGap / Math.min(dates.length-1, 8)).toFixed(1);
+                }
                 return (
-                  <div style={{ marginBottom:16 }}>
-                    <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
-                      <div style={{ width:28, height:28, borderRadius:8, background:"rgba(168,85,247,.12)", border:"1px solid rgba(168,85,247,.2)", display:"flex", alignItems:"center", justifyContent:"center" }}>
-                        <Icon name="BarChart2" size={14} style={{ color:"#a855f7" }} />
+                  <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:18, padding:"14px 16px", marginBottom:12 }}>
+                    <p style={{ margin:"0 0 12px", fontSize:14, fontWeight:800 }}>🔥 Consistencia</p>
+                    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
+                      <div style={{ background:"var(--panel2)", borderRadius:12, padding:"12px", textAlign:"center" }}>
+                        <div style={{ fontSize:11, color:"var(--muted)", marginBottom:4 }}>Racha semanal</div>
+                        <div style={{ fontSize:28, fontWeight:900, color: streak >= 4 ? "var(--green)" : streak >= 2 ? "#f59e0b" : "var(--muted)" }}>{streak}</div>
+                        <div style={{ fontSize:11, color:"var(--muted)" }}>semanas seguidas</div>
                       </div>
-                      <p style={{ margin:0, fontSize:14, fontWeight:800 }}>Volumen por grupo muscular</p>
+                      <div style={{ background:"var(--panel2)", borderRadius:12, padding:"12px", textAlign:"center" }}>
+                        <div style={{ fontSize:11, color:"var(--muted)", marginBottom:4 }}>Cadencia</div>
+                        <div style={{ fontSize:28, fontWeight:900, color: avgGap <= 2.5 ? "var(--green)" : avgGap <= 4 ? "#f59e0b" : "#ef4444" }}>{avgGap ?? "—"}</div>
+                        <div style={{ fontSize:11, color:"var(--muted)" }}>días entre sesiones</div>
+                      </div>
                     </div>
-                    <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:16, padding:"14px", overflow:"hidden" }}>
-                      <svg width="100%" viewBox={`0 0 ${W} ${H+20}`} style={{ display:"block", overflow:"hidden", aspectRatio:`${W}/${H+20}` }}>
-                        {weeks.map((wk, wi) => {
-                          const x = wi * (W / weeks.length);
-                          let stackY = H;
-                          return (
-                            <g key={wi}>
-                              {GROUPS.map(g => {
-                                const vol = wk.vols[g.name];
-                                const bh = Math.round((vol / maxVol) * (H - 8));
-                                if (!bh) return null;
-                                stackY -= bh;
-                                return <rect key={g.name} x={x+2} y={stackY} width={BAR_W} height={bh} rx={2} fill={g.color} opacity={0.85} />;
-                              })}
-                              <text x={x + BAR_W/2 + 2} y={H+14} textAnchor="middle" fontSize={9} fill="rgba(255,255,255,.3)">{wk.label}</text>
-                            </g>
-                          );
-                        })}
-                      </svg>
-                      <div style={{ display:"flex", flexWrap:"wrap", gap:"4px 10px", marginTop:4 }}>
-                        {GROUPS.map(g => (
-                          <span key={g.name} style={{ display:"flex", alignItems:"center", gap:4, fontSize:10, color:"var(--muted)" }}>
-                            <span style={{ width:8, height:8, borderRadius:2, background:g.color, display:"inline-block" }} />
-                            {g.name}
-                          </span>
-                        ))}
-                      </div>
+                    <p style={{ margin:"10px 0 0", fontSize:12, color:"var(--muted)" }}>
+                      {avgGap <= 2.5 ? "Frecuencia excelente. Estás entrenando de forma muy regular." : avgGap <= 4 ? "Buena frecuencia. Intentá reducir el tiempo entre sesiones." : "Hay brechas largas entre entrenamientos. La consistencia supera a la intensidad."}
+                    </p>
+                  </div>
+                );
+              })()}
+
+              {/* ── Series por grupo este mes ── */}
+              {workouts.length >= 1 && (() => {
+                const now = new Date();
+                const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+                const GROUPS = ["Piernas","Espalda","Pecho","Hombros","Brazos","Core"];
+                const COLORS = { Piernas:"#a855f7", Espalda:"#60a5fa", Pecho:"#f472b6", Hombros:"#fb923c", Brazos:"#34d399", Core:"#facc15" };
+                const sets = {};
+                GROUPS.forEach(g => { sets[g] = 0; });
+                workouts.filter(w => w.date && new Date(w.date + "T12:00:00") >= monthStart).forEach(w => {
+                  (w.sets||[]).forEach(s => { if (sets[s.group] !== undefined) sets[s.group]++; });
+                });
+                const total = Object.values(sets).reduce((a,b) => a+b, 0);
+                if (!total) return null;
+                const maxSets = Math.max(...Object.values(sets), 1);
+                const sorted = GROUPS.filter(g => sets[g] > 0).sort((a,b) => sets[b]-sets[a]);
+                return (
+                  <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:18, padding:"14px 16px", marginBottom:12 }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+                      <p style={{ margin:0, fontSize:14, fontWeight:800 }}>📊 Series por grupo este mes</p>
+                      <span style={{ fontSize:12, color:"var(--muted)" }}>{total} series total</span>
+                    </div>
+                    <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+                      {sorted.map(g => {
+                        const pct = Math.round((sets[g] / maxSets) * 100);
+                        return (
+                          <div key={g}>
+                            <div style={{ display:"flex", justifyContent:"space-between", marginBottom:3 }}>
+                              <span style={{ fontSize:12, fontWeight:600 }}>{g}</span>
+                              <span style={{ fontSize:12, fontWeight:700, color:COLORS[g] }}>{sets[g]}</span>
+                            </div>
+                            <div style={{ height:7, background:"var(--panel2)", borderRadius:4, overflow:"hidden" }}>
+                              <div style={{ height:"100%", width:`${pct}%`, background:COLORS[g], borderRadius:4, transition:"width .4s" }} />
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 );
               })()}
 
-              {/* ── Ciclo 4 semanas ── */}
-              {cycleComparison && Object.keys(cycleComparison).length > 0 && (
-                <div style={{ marginBottom:16 }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
-                    <div style={{ width:28, height:28, borderRadius:8, background:"rgba(117,217,255,.1)", border:"1px solid rgba(117,217,255,.2)", display:"flex", alignItems:"center", justifyContent:"center" }}>
-                      <Icon name="BarChart2" size={14} style={{ color:"var(--cyan)" }} />
+              {/* ── Día de la semana más activo ── */}
+              {workouts.length >= 3 && (() => {
+                const DAY_NAMES = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+                const counts = Array(7).fill(0);
+                workouts.slice(0, 40).forEach(w => {
+                  if (!w.date) return;
+                  const d = new Date(w.date + "T12:00:00");
+                  counts[d.getDay()]++;
+                });
+                const maxCount = Math.max(...counts, 1);
+                const favDay = counts.indexOf(Math.max(...counts));
+                return (
+                  <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:18, padding:"14px 16px", marginBottom:12 }}>
+                    <p style={{ margin:"0 0 12px", fontSize:14, fontWeight:800 }}>📅 Días más activos</p>
+                    <div style={{ display:"flex", gap:4, alignItems:"flex-end", height:52 }}>
+                      {DAY_NAMES.map((day, i) => {
+                        const h = Math.max(8, Math.round((counts[i] / maxCount) * 44));
+                        const isFav = i === favDay && counts[i] > 0;
+                        return (
+                          <div key={day} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:3 }}>
+                            <div style={{ width:"100%", height:h, background: isFav ? "var(--green)" : counts[i] ? "rgba(168,85,247,.5)" : "var(--panel2)", borderRadius:4, transition:"height .4s" }} />
+                            <span style={{ fontSize:9, color: isFav ? "var(--green)" : "var(--muted)", fontWeight: isFav ? 800 : 400 }}>{day}</span>
+                          </div>
+                        );
+                      })}
                     </div>
-                    <p style={{ margin:0, fontSize:14, fontWeight:800 }}>Ciclo actual vs anterior</p>
+                    <p style={{ margin:"8px 0 0", fontSize:12, color:"var(--muted)" }}>
+                      Tu día favorito es el <b style={{ color:"var(--green)" }}>{DAY_NAMES[favDay]}</b> ({counts[favDay]} sesiones en el historial).
+                    </p>
                   </div>
-                  {Object.entries(cycleComparison).map(([type, { curVol, prevVol, curCount, prevCount, pct }]) => {
-                    const isUp = pct > 5, isDown = pct < -5;
-                    return (
-                      <div key={type} style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:14, padding:"12px 14px", marginBottom:6 }}>
-                        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
-                          <p style={{ margin:0, fontSize:13, fontWeight:800 }}>{type}</p>
-                          <span style={{
-                            padding:"3px 10px", borderRadius:20, fontSize:12, fontWeight:800,
-                            background: isUp ? "rgba(168,85,247,.1)" : isDown ? "rgba(239,68,68,.1)" : "rgba(255,255,255,.05)",
-                            color: isUp ? "var(--green)" : isDown ? "var(--danger)" : "var(--muted)",
-                          }}>
-                            {pct !== null ? `${pct > 0 ? "+" : ""}${pct}%` : "Nuevo"}
-                          </span>
-                        </div>
-                        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6 }}>
-                          <div style={{ background:"rgba(168,85,247,.06)", borderRadius:10, padding:"8px 10px" }}>
-                            <p style={{ margin:"0 0 2px", fontSize:10, color:"var(--green)", textTransform:"uppercase", letterSpacing:"0.06em", fontWeight:700 }}>Este ciclo</p>
-                            <b style={{ fontSize:14 }}>{curVol >= 1000 ? (curVol/1000).toFixed(1) + "k" : curVol}kg</b>
-                            <span style={{ fontSize:11, color:"var(--muted)", marginLeft:5 }}>{curCount}x</span>
-                          </div>
-                          <div style={{ background:"var(--panel2)", borderRadius:10, padding:"8px 10px" }}>
-                            <p style={{ margin:"0 0 2px", fontSize:10, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em", fontWeight:700 }}>Ciclo anterior</p>
-                            <b style={{ fontSize:14 }}>{prevVol >= 1000 ? (prevVol/1000).toFixed(1) + "k" : prevVol}kg</b>
-                            <span style={{ fontSize:11, color:"var(--muted)", marginLeft:5 }}>{prevCount}x</span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+                );
+              })()}
 
-              {/* ── PRs completo ── */}
+              {/* ── Todos los récords ── */}
               {prs.length > 0 && (
                 <div style={{ marginBottom:8 }}>
                   <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
@@ -1468,6 +1376,7 @@ export default function CoachPage() {
                   </div>
                 </div>
               )}
+
               </>
             </>
           )}
@@ -2346,14 +2255,14 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
 
   function selectFoodSuggestion(food) {
     setSelectedFood(food);
-    setFoodQuery(food.name);
+    setFoodQuery(cleanFoodName(food.name));
     setShowSuggestions(false);
     if (food.unit) {
       // Unit-based food: default to qty=1
       const factor = (1 * (food.unitWeight || 100)) / 100;
       setNewMeal(m => ({
         ...m,
-        name: food.name,
+        name: cleanFoodName(food.name),
         qty: "1",
         grams: "",
         kcal:    String(Math.round(food.kcal    * factor)),
@@ -2362,7 +2271,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
         fat:     String(Math.round(food.fat     * factor * 10) / 10),
       }));
     } else {
-      setNewMeal(m => ({ ...m, name: food.name, grams: "100", qty: "1" }));
+      setNewMeal(m => ({ ...m, name: cleanFoodName(food.name), grams: "100", qty: "1" }));
       applyGrams(food, 100);
     }
   }
