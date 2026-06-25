@@ -105,7 +105,9 @@ export function hydrateSet(set) {
   const muscle = legacyGroup
     ? meta.muscle || resolveExerciseMuscle(set.exercise, MUSCLES_BY_GROUP[group]?.[0] || "General")
     : set.muscle || meta.muscle || resolveExerciseMuscle(set.exercise, MUSCLES_BY_GROUP[group]?.[0] || "General");
-  return { ...set, group, muscle };
+  // Include secondary muscles from DB for multi-muscle volume tracking
+  const muscles = meta.muscles && meta.muscles.length > 0 ? meta.muscles : [muscle];
+  return { ...set, group, muscle, muscles };
 }
 
 export function getGroupTotals(workouts) {
@@ -433,7 +435,35 @@ export const VOLUME_LANDMARKS = {
   "Core":              { mev: 6,  mav: 12, mrv: 20 },
 };
 
-// Map exercise group → landmark key
+// Map individual muscle name → VOLUME_LANDMARKS key
+const MUSCLE_TO_LANDMARK = {
+  // Pecho
+  "Pectoral mayor": "Pecho", "Pectoral superior": "Pecho", "Pectoral inferior": "Pecho",
+  "Pectoral menor": "Pecho", "Serrato anterior": "Pecho",
+  // Espalda
+  "Dorsales": "Espalda", "Romboides": "Espalda", "Trapecio medio": "Espalda",
+  "Trapecio inferior": "Espalda", "Erectores espinales": "Espalda",
+  "Redondo mayor": "Espalda", "Lumbar": "Espalda",
+  // Hombros
+  "Deltoide anterior": "Hombros", "Deltoide lateral": "Hombros",
+  "Deltoide posterior": "Hombros", "Trapecio superior": "Hombros",
+  "Manguito rotador": "Hombros",
+  // Brazos
+  "Bíceps": "Bíceps", "Braquial": "Bíceps", "Braquiorradial": "Bíceps",
+  "Tríceps": "Tríceps",
+  "Antebrazo": "Bíceps",
+  // Piernas
+  "Cuádriceps": "Cuádriceps",
+  "Isquios": "Isquiotibiales", "Isquiotibiales": "Isquiotibiales",
+  "Glúteos": "Glúteos",
+  "Gemelos": "Gemelos", "Sóleo": "Gemelos",
+  "Aductores": "Core", "Abductores": "Core",
+  // Core
+  "Recto abdominal": "Core", "Oblicuos": "Core",
+  "Transverso abdominal": "Core", "Flexores de cadera": "Core",
+};
+
+// Fallback: map body group → landmark when individual muscle not found
 const GROUP_TO_LANDMARK = {
   "Pecho": "Pecho", "Chest": "Pecho",
   "Espalda": "Espalda", "Back": "Espalda",
@@ -443,26 +473,32 @@ const GROUP_TO_LANDMARK = {
   "Core": "Core", "Abdominales": "Core",
 };
 
+function muscleToLandmark(muscle, group) {
+  return MUSCLE_TO_LANDMARK[muscle] || GROUP_TO_LANDMARK[group] || null;
+}
+
+function countSetTowardMuscles(raw, bucket) {
+  const s = hydrateSet(raw);
+  // All muscles this exercise works (primary + secondary from DB)
+  const allMuscles = s.muscles && s.muscles.length > 0 ? s.muscles : [s.muscle];
+  allMuscles.forEach(m => {
+    const key = muscleToLandmark(m, s.group);
+    if (key) bucket[key] = (bucket[key] || 0) + 1;
+  });
+}
+
 export function getLiveVolumeStatus(activeWorkout, allWorkouts = []) {
   const now = Date.now();
   const weekStart = now - 7 * 86400000;
   const recentWorkouts = (allWorkouts || []).filter(w => parseDate(w.date).getTime() >= weekStart);
 
-  const weekSets = {}; // group → count this week (excluding current session)
+  const weekSets = {}; // landmark → count this week
   recentWorkouts.forEach(w => {
-    (w.sets || []).filter(hasData).forEach(raw => {
-      const s = hydrateSet(raw);
-      const key = GROUP_TO_LANDMARK[s.group] || s.group;
-      weekSets[key] = (weekSets[key] || 0) + 1;
-    });
+    (w.sets || []).filter(hasData).forEach(raw => countSetTowardMuscles(raw, weekSets));
   });
 
-  const sessionSets = {}; // group → count in current session
-  (activeWorkout?.sets || []).filter(hasData).forEach(raw => {
-    const s = hydrateSet(raw);
-    const key = GROUP_TO_LANDMARK[s.group] || s.group;
-    sessionSets[key] = (sessionSets[key] || 0) + 1;
-  });
+  const sessionSets = {}; // landmark → count in current session
+  (activeWorkout?.sets || []).filter(hasData).forEach(raw => countSetTowardMuscles(raw, sessionSets));
 
   const result = {};
   const allGroups = new Set([...Object.keys(weekSets), ...Object.keys(sessionSets)]);
