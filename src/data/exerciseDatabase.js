@@ -135,7 +135,7 @@ export const EXERCISE_DATABASE = [
   ex("Elevación de pantorrillas en prensa", "Piernas", "Gemelos", "Máquina", "legs", ["Soleo"]),
   ex("Step-up con mancuernas", "Piernas", "Cuádriceps", "Mancuernas", "legs", ["Glúteos"]),
   ex("Peso muerto rumano unilateral", "Piernas", "Isquios", "Mancuernas", "legs", ["Glúteos", "Erectores espinales"]),
-  ex("Curl nórdico", "Piernas", "Isquios", "Peso corporal", "legs", ["Gluteos"]),
+  ex("Curl nórdico", "Piernas", "Isquios", "Peso corporal", "legs"),
   ex("Sentadilla sissy", "Piernas", "Cuádriceps", "Peso corporal", "legs"),
   ex("Prensa de piernas unilateral", "Piernas", "Cuádriceps", "Máquina", "legs", ["Gluteos"]),
 
