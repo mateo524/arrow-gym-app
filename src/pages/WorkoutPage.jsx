@@ -308,6 +308,7 @@ export default function WorkoutPage() {
         });
         if (!alreadySaved) {
           setSaveRoutineName("");
+          setShowSummary(false);
           setShowSaveRoutine(true);
         } else {
           _commitFinish(notes, rpe, summary);
@@ -817,12 +818,12 @@ export default function WorkoutPage() {
 
       {/* ── ADD EXERCISE PICKER ───────────────────────────────────────────── */}
       {showPicker && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.8)", zIndex: 200, display: "flex", flexDirection: "column" }}>
-          <div style={{ background: "var(--bg)", borderRadius: "20px 20px 0 0", marginTop: "auto", maxHeight: "85vh", overflow: "auto", padding: 16 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-              <h2 style={{ margin: 0, fontSize: 17 }}>Agregar ejercicio</h2>
-              <button className="ghost" onClick={() => setShowPicker(false)} style={{ padding: "6px 12px" }}>✕</button>
-            </div>
+        <div style={{ position: "fixed", inset: 0, background: "var(--bg)", zIndex: 300, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 16px 10px", borderBottom: "1px solid var(--line)", flexShrink: 0 }}>
+            <h2 style={{ margin: 0, fontSize: 17 }}>Agregar ejercicio</h2>
+            <button className="ghost" onClick={() => setShowPicker(false)} style={{ padding: "6px 12px" }}>✕</button>
+          </div>
+          <div style={{ flex: 1, overflow: "auto", padding: "12px 16px 24px" }}>
             {/* Quick-add: last 5 unique exercises from recent workouts */}
             {(() => {
               const recent = [...new Set(
@@ -852,16 +853,18 @@ export default function WorkoutPage() {
 
       {/* ── SWAP EXERCISE ─────────────────────────────────────────────────── */}
       {swapTarget && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.8)", zIndex: 200, display: "flex", flexDirection: "column" }}>
-          <div style={{ background: "var(--bg)", borderRadius: "20px 20px 0 0", marginTop: "auto", maxHeight: "85vh", overflow: "auto", padding: 16 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+        <div style={{ position: "fixed", inset: 0, background: "var(--bg)", zIndex: 300, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <div style={{ padding: "16px 16px 10px", borderBottom: "1px solid var(--line)", flexShrink: 0 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
               <div>
                 <p style={{ margin: 0, fontSize: 12, color: workoutTypeTheme.accent, fontWeight: 700, textTransform: "uppercase" }}>Cambiar ejercicio</p>
-                <h2 style={{ margin: 0, fontSize: 16 }}>Reemplazar: <span style={{ color: "var(--green)" }}>{swapTarget}</span></h2>
+                <h2 style={{ margin: "2px 0 0", fontSize: 16 }}>Reemplazar: <span style={{ color: "var(--green)" }}>{swapTarget}</span></h2>
               </div>
               <button className="ghost" onClick={() => setSwapTarget(null)} style={{ padding: "6px 12px" }}>✕</button>
             </div>
-            <p style={{ fontSize: 12, color: "var(--muted)", margin: "0 0 12px" }}>Elegí el ejercicio con el que vas a reemplazarlo. Se mantienen los pesos y reps.</p>
+            <p style={{ fontSize: 12, color: "var(--muted)", margin: "6px 0 0" }}>Los pesos y reps se mantienen.</p>
+          </div>
+          <div style={{ flex: 1, overflow: "auto", padding: "12px 16px 24px" }}>
             <ExercisePicker compact onPick={(exercise) => {
               swapExercise(swapTarget, exercise.name || exercise);
               setSwapTarget(null);

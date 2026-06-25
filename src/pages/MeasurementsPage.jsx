@@ -272,7 +272,9 @@ export default function MeasurementsPage() {
     if (error) {
       setBasicoMsg("Error: " + error.message);
     } else {
-      useAuthStore.setState(s => ({ profile: { ...(s.profile || { id: uid }), ...payload } }));
+      const updated = { ...(useAuthStore.getState().profile || { id: uid }), ...payload };
+      useAuthStore.setState({ profile: updated });
+      try { localStorage.setItem("loop-gym-profile-v1", JSON.stringify(updated)); } catch {}
       setBasicoMsg("✓ Guardado");
       setTimeout(() => { setEditBasico(false); setBasicoMsg(""); }, 1400);
     }
@@ -309,7 +311,9 @@ export default function MeasurementsPage() {
     if (error) {
       setPlieguesMsg("Error: " + error.message);
     } else {
-      useAuthStore.setState(s => ({ profile: { ...(s.profile || { id: uid }), ...payload } }));
+      const updated = { ...(useAuthStore.getState().profile || { id: uid }), ...payload };
+      useAuthStore.setState({ profile: updated });
+      try { localStorage.setItem("loop-gym-profile-v1", JSON.stringify(updated)); } catch {}
       setPlieguesMsg("✓ Pliegues guardados");
       setTimeout(() => { setEditPliegues(false); setPlieguesMsg(""); }, 1400);
     }
@@ -344,7 +348,9 @@ export default function MeasurementsPage() {
     if (error) {
       setPerimetrosMsg("Error: " + error.message);
     } else {
-      useAuthStore.setState(s => ({ profile: { ...(s.profile || { id: uid }), ...payload } }));
+      const updated = { ...(useAuthStore.getState().profile || { id: uid }), ...payload };
+      useAuthStore.setState({ profile: updated });
+      try { localStorage.setItem("loop-gym-profile-v1", JSON.stringify(updated)); } catch {}
       // Guardar en historial local de circunferencias
       const today = todayLocal();
       setMeasHistory(prev => {

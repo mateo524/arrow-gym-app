@@ -249,6 +249,13 @@ export default function ProfilePage() {
           </div>
 
           <div className="settings-row">
+            <div><label>📏 Mediciones corporales</label><small>Peso, pliegues, perímetros y más</small></div>
+            <button className="ghost" style={{ padding: "8px 14px", fontSize: 13 }} onClick={() => setPage("measurements")}>
+              Ver
+            </button>
+          </div>
+
+          <div className="settings-row">
             <div><label>💪 Sincronizar con app de salud</label><small>Apple Health, Google Fit, Samsung Health, Mi Fitness</small></div>
             <button className="ghost" style={{ padding: "8px 14px", fontSize: 13 }} onClick={() => setPage("healthsync")}>
               Conectar

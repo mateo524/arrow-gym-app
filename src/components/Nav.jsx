@@ -8,7 +8,7 @@ const USER_TABS = [
   { id: "home",    label: "Inicio",    icon: "Home" },
   { id: "start",   label: "Entreno",   icon: "Dumbbell", badgeKey: "activeWorkout" },
   { id: "coach",   label: "Coach",     icon: "BrainCircuit", badgeKey: "coachBadge" },
-  { id: "measurements", label: "Mediciones", icon: "Ruler" },
+  { id: "history",      label: "Historial",  icon: "Clock" },
   { id: "profile", label: "Perfil",    icon: "User" },
 ];
 
