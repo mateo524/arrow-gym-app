@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect, useRef } from "react";
-import { playDone } from "../lib/sound.js";
+import { playDone, primeAudio } from "../lib/sound.js";
 
 const CIRCUMFERENCE = 2 * Math.PI * 28;
 
@@ -20,6 +20,7 @@ export default function RestTimer({ duration = 90, onComplete, onSkip, onChangeD
   }
 
   function startTimer(dur) {
+    primeAudio();
     const d = dur ?? selectedDuration;
     doneRef.current = false;
     setRunning(true);

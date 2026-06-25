@@ -1,4 +1,4 @@
-export const BODY_GROUPS = ["Hombros", "Pecho", "Espalda", "Brazos", "Piernas", "Core", "Compuestos"];
+export const BODY_GROUPS = ["Hombros", "Pecho", "Espalda", "Brazos", "Piernas", "Core"];
 
 export const MUSCLES_BY_GROUP = {
   Hombros: ["Deltoide anterior", "Deltoide lateral", "Deltoide posterior", "Manguito rotador", "Trapecio superior"],
@@ -7,7 +7,6 @@ export const MUSCLES_BY_GROUP = {
   Brazos: ["Bíceps", "Tríceps", "Braquial", "Antebrazo", "Braquiorradial"],
   Piernas: ["Cuádriceps", "Isquios", "Glúteos", "Aductores", "Abductores", "Gemelos", "Sóleo"],
   Core: ["Recto abdominal", "Oblicuos", "Transverso abdominal", "Lumbar", "Flexores de cadera"],
-  Compuestos: ["Cuádriceps", "Isquios", "Glúteos", "Hombros", "Espalda", "Pecho", "Brazos", "Core"],
 };
 
 function slug(v) {
@@ -252,40 +251,39 @@ export const EXERCISE_DATABASE = [
   ex("Goblet squat con kettlebell", "Piernas", "Cuádriceps", "Kettlebell", "legs"),
 
   // ── COMPUESTOS / FUNCIONALES ─────────────────────────────────────────────
-  ex("Thruster con barra", "Compuestos", "Cuádriceps", "Barra", "compound"),
-  ex("Thruster con mancuernas", "Compuestos", "Cuádriceps", "Mancuernas", "compound"),
-  ex("Sentadilla con press", "Compuestos", "Cuádriceps", "Mancuernas", "compound"),
-  ex("Sentadilla con press sobre cabeza", "Compuestos", "Cuádriceps", "Barra", "compound"),
-  ex("Clean and press con barra", "Compuestos", "Hombros", "Barra", "compound"),
-  ex("Clean and press con mancuernas", "Compuestos", "Hombros", "Mancuernas", "compound"),
-  ex("Clean and jerk", "Compuestos", "Hombros", "Barra", "compound"),
-  ex("Snatch con barra", "Compuestos", "Hombros", "Barra", "compound"),
-  ex("Peso muerto + remo", "Compuestos", "Espalda", "Barra", "compound"),
-  ex("Peso muerto + encogimiento de hombros", "Compuestos", "Espalda", "Barra", "compound"),
-  ex("Remo con mancuerna + rotación", "Compuestos", "Espalda", "Mancuernas", "compound"),
-  ex("Man maker", "Compuestos", "Espalda", "Mancuernas", "compound"),
-  ex("Burpee con press", "Compuestos", "Pecho", "Mancuernas", "compound"),
-  ex("Burpee con salto", "Compuestos", "Cuádriceps", "Peso corporal", "compound"),
-  ex("Kettlebell clean and press", "Compuestos", "Hombros", "Kettlebell", "compound"),
-  ex("Turkish get-up", "Compuestos", "Hombros", "Kettlebell", "compound"),
-  ex("Swing to press con kettlebell", "Compuestos", "Hombros", "Kettlebell", "compound"),
-  ex("Remo + curl de bíceps", "Compuestos", "Brazos", "Mancuernas", "compound"),
-  ex("Zancada con press", "Compuestos", "Cuádriceps", "Mancuernas", "compound"),
-  ex("Zancada con curl de bíceps", "Compuestos", "Brazos", "Mancuernas", "compound"),
-  ex("Sentadilla frontal a press", "Compuestos", "Cuádriceps", "Barra", "compound"),
-  ex("Hip thrust a press de hombros", "Compuestos", "Glúteos", "Mancuernas", "compound"),
-  ex("Peso muerto rumano + remo", "Compuestos", "Isquios", "Barra", "compound"),
-  ex("Dominada con rodillas al pecho", "Compuestos", "Espalda", "Peso corporal", "compound"),
-  ex("Push-up a remo con mancuernas", "Compuestos", "Pecho", "Mancuernas", "compound"),
-  ex("Escalador (mountain climber)", "Compuestos", "Core", "Peso corporal", "compound"),
-  ex("Bear crawl", "Compuestos", "Core", "Peso corporal", "compound"),
-  ex("Farmer carry", "Compuestos", "Core", "Mancuernas", "compound"),
-  ex("Farmer carry con kettlebell", "Compuestos", "Core", "Kettlebell", "compound"),
-  ex("Suitcase carry", "Compuestos", "Core", "Mancuernas", "compound"),
-  ex("Overhead carry", "Compuestos", "Hombros", "Mancuernas", "compound"),
-  ex("Tire flip", "Compuestos", "Espalda", "Otros", "compound"),
-  ex("Box jump con mancuernas", "Compuestos", "Cuádriceps", "Mancuernas", "compound"),
-  ex("Kettlebell flow (swing + snatch)", "Compuestos", "Espalda", "Kettlebell", "compound"),
+  ex("Thruster con barra", "Piernas", "Cuádriceps", "Barra", "compound"),
+  ex("Thruster con mancuernas", "Piernas", "Cuádriceps", "Mancuernas", "compound"),
+  ex("Sentadilla con press", "Piernas", "Cuádriceps", "Mancuernas", "compound"),
+  ex("Sentadilla frontal a press", "Piernas", "Cuádriceps", "Barra", "compound"),
+  ex("Zancada con press", "Piernas", "Cuádriceps", "Mancuernas", "compound"),
+  ex("Zancada con curl de bíceps", "Piernas", "Cuádriceps", "Mancuernas", "compound"),
+  ex("Burpee con salto", "Piernas", "Cuádriceps", "Peso corporal", "compound"),
+  ex("Box jump con mancuernas", "Piernas", "Cuádriceps", "Mancuernas", "compound"),
+  ex("Hip thrust a press de hombros", "Piernas", "Glúteos", "Mancuernas", "compound"),
+  ex("Peso muerto rumano + remo", "Piernas", "Isquios", "Barra", "compound"),
+  ex("Clean and press con barra", "Hombros", "Deltoide anterior", "Barra", "compound"),
+  ex("Clean and press con mancuernas", "Hombros", "Deltoide anterior", "Mancuernas", "compound"),
+  ex("Clean and jerk", "Hombros", "Deltoide anterior", "Barra", "compound"),
+  ex("Snatch con barra", "Hombros", "Deltoide anterior", "Barra", "compound"),
+  ex("Kettlebell clean and press", "Hombros", "Deltoide anterior", "Kettlebell", "compound"),
+  ex("Turkish get-up", "Hombros", "Deltoide anterior", "Kettlebell", "compound"),
+  ex("Swing to press con kettlebell", "Hombros", "Deltoide anterior", "Kettlebell", "compound"),
+  ex("Overhead carry", "Hombros", "Deltoide anterior", "Mancuernas", "compound"),
+  ex("Peso muerto + remo", "Espalda", "Dorsales", "Barra", "compound"),
+  ex("Peso muerto + encogimiento de hombros", "Espalda", "Trapecio superior", "Barra", "compound"),
+  ex("Remo con mancuerna + rotación", "Espalda", "Dorsales", "Mancuernas", "compound"),
+  ex("Man maker", "Espalda", "Dorsales", "Mancuernas", "compound"),
+  ex("Dominada con rodillas al pecho", "Espalda", "Dorsales", "Peso corporal", "compound"),
+  ex("Tire flip", "Espalda", "Erectores espinales", "Otros", "compound"),
+  ex("Kettlebell flow", "Espalda", "Dorsales", "Kettlebell", "compound"),
+  ex("Burpee con press", "Pecho", "Pectoral mayor", "Mancuernas", "compound"),
+  ex("Push-up a remo con mancuernas", "Pecho", "Pectoral mayor", "Mancuernas", "compound"),
+  ex("Remo + curl de bíceps", "Brazos", "Bíceps", "Mancuernas", "compound"),
+  ex("Escalador (mountain climber)", "Core", "Recto abdominal", "Peso corporal", "compound"),
+  ex("Bear crawl", "Core", "Transverso abdominal", "Peso corporal", "compound"),
+  ex("Farmer carry", "Core", "Transverso abdominal", "Mancuernas", "compound"),
+  ex("Farmer carry con kettlebell", "Core", "Transverso abdominal", "Kettlebell", "compound"),
+  ex("Suitcase carry", "Core", "Oblicuos", "Mancuernas", "compound"),
 ];
 
 export function findExerciseMeta(name) {
@@ -302,7 +300,6 @@ export function resolveExerciseGroup(name, fallback = "Core") {
   if (clean.includes("espalda") || clean.includes("row") || clean.includes("pull") || clean.includes("jalon") || clean.includes("remo") || clean.includes("dorsal")) return "Espalda";
   if (clean.includes("curl") || clean.includes("bicep") || clean.includes("tricep") || clean.includes("extension de tricep") || clean.includes("brazo")) return "Brazos";
   if (clean.includes("pierna") || clean.includes("sentadilla") || clean.includes("press de") || clean.includes("squat") || clean.includes("leg") || clean.includes("pantorrilla") || clean.includes("estocada") || clean.includes("peso muerto") || clean.includes("hip thrust") || clean.includes("curl femoral") || clean.includes("curl nordic") || clean.includes("nordico") || clean.includes("puente de glut")) return "Piernas";
-  if (clean.includes("thruster") || clean.includes("clean and") || clean.includes("man maker") || clean.includes("turkish") || clean.includes("farmer carry") || clean.includes("burpee") || clean.includes("snatch") || clean.includes("jerk") || clean.includes("bear crawl") || clean.includes("mountain climber")) return "Compuestos";
   return fallback;
 }
 

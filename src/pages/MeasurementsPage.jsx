@@ -366,7 +366,7 @@ export default function MeasurementsPage() {
   return (
     <section className="page">
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-        <button className="back-btn" onClick={() => setPage("profile")} aria-label="Volver" style={{ flexShrink: 0 }}>
+        <button className="back-btn" onClick={() => setPage("coach")} aria-label="Volver" style={{ flexShrink: 0 }}>
           <Icon name="ArrowLeft" size={20} />
         </button>
         <div>
@@ -412,15 +412,10 @@ export default function MeasurementsPage() {
             style={{ flex: 1, background: "var(--panel2)", border: "1px solid var(--line)", borderRadius: 12, padding: "10px 12px", color: "var(--text)", fontSize: 15 }}
           />
           <button className="primary" style={{ padding: "10px 18px" }} disabled={!todayKg}
-            onClick={async () => {
+            onClick={() => {
               if (!todayKg) return;
               logWeight(todayKg);
               setTodayKg("");
-              if (uid) {
-                const newWeight = toNum(todayKg);
-                await supabase.from("profiles").update({ weight_kg: newWeight }).eq("id", uid);
-                useAuthStore.setState(s => ({ profile: { ...(s.profile || { id: uid }), weight_kg: newWeight } }));
-              }
             }}>
             +
           </button>

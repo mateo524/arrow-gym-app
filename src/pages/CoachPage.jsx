@@ -1081,11 +1081,14 @@ export default function CoachPage() {
                 </div>
               </div>
 
-              {/* ── Ver análisis completo ── */}
-              <button onClick={() => setShowProgresoAdvanced(s => !s)}
-                style={{ width:"100%", padding:"8px", borderRadius:10, border:"1px solid var(--line)", background:"var(--panel)", cursor:"pointer", fontSize:12, fontWeight:600, color:"var(--muted)", marginBottom:12 }}>
-                {showProgresoAdvanced ? "▲ Ocultar análisis completo" : "▼ Ver análisis completo"}
-              </button>
+              {/* ── Análisis completo ── */}
+              <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12, cursor:"pointer" }} onClick={() => setShowProgresoAdvanced(s => !s)}>
+                <div style={{ flex:1, height:1, background:"var(--line)" }} />
+                <span style={{ fontSize:11, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.07em", whiteSpace:"nowrap" }}>
+                  {showProgresoAdvanced ? "▲ Menos detalle" : "▼ Más análisis"}
+                </span>
+                <div style={{ flex:1, height:1, background:"var(--line)" }} />
+              </div>
 
               {showProgresoAdvanced && (<>
               {/* ── 1RM por ejercicio ── */}
@@ -2020,8 +2023,13 @@ const SLOT_DEFS = {
   ],
 };
 
+function cleanFoodName(name) {
+  // Strip trailing parenthetical quantities: "(200g)", "(x2 rebanadas)", "(porción)", etc.
+  return name.replace(/\s*\([^)]*\)\s*$/, '').trim();
+}
+
 function generateNutritionPlan(config, tdee, targetCal, proteinG, carbG, fatG) {
-  const { days, mealsPerDay, goal, restrictions, likedCats, allergies, cuisine } = config;
+  const { days, mealsPerDay, goal, restrictions, likedCats, allergies, cuisine, seed } = config;
   const slots = SLOT_DEFS[mealsPerDay] || SLOT_DEFS[4];
 
   const MEAT_KEYWORDS = ["pollo","carne","pavo","cerdo","jamón","salame","vacío","entraña","asado","bife","lomo","cuadril","nalga","tapa","costilla","chorizo","lomito","roast beef"];
@@ -2057,26 +2065,29 @@ function generateNutritionPlan(config, tdee, targetCal, proteinG, carbG, fatG) {
       const kcalPerUnit = f.kcal * (f.unitWeight || 100) / 100;
       const qty = Math.max(1, Math.round(targetKcal / kcalPerUnit));
       const factor = qty * (f.unitWeight || 100) / 100;
-      return { name:f.name, qty, unit:true,
+      return { name:cleanFoodName(f.name), qty, unit:true,
         kcal:Math.round(f.kcal*factor), protein:Math.round(f.protein*factor*10)/10,
         carbs:Math.round(f.carbs*factor*10)/10, fat:Math.round(f.fat*factor*10)/10 };
     } else {
       const grams = Math.max(40, Math.min(400, Math.round(targetKcal * 100 / f.kcal)));
       const factor = grams / 100;
-      return { name:f.name, grams,
+      return { name:cleanFoodName(f.name), grams,
         kcal:Math.round(f.kcal*factor), protein:Math.round(f.protein*factor*10)/10,
         carbs:Math.round(f.carbs*factor*10)/10, fat:Math.round(f.fat*factor*10)/10 };
     }
   }
 
-  // Simple seeded PRNG for reproducibility per config
-  let rngSeed = days * 31 + mealsPerDay * 7 + (cuisine ? cuisine.charCodeAt(0) : 0);
+  // Seeded PRNG — includes random seed so each generation produces unique plans
+  let rngSeed = days * 31 + mealsPerDay * 7 + (cuisine ? cuisine.charCodeAt(0) : 0) + (seed || 0);
   function rng() { rngSeed = (rngSeed * 16807 + 0) % 2147483647; return (rngSeed - 1) / 2147483646; }
 
   function pickForSlot(slot, dayIdx, slotIdx) {
     const targetKcal = Math.round(targetCal * slot.factor);
-    const allowedCats = likedCats.length > 0
-      ? slot.cats.filter(c => likedCats.includes(c))
+    // Map user-friendly wizard labels to actual db category values
+    const CAT_LABEL_MAP = { principales:"principal", desayunos:"desayuno", legumbres:"legumbre", pescados:"proteina", carnes:"proteina", verduras:"verdura", huevos:"proteina", pastas:"carbohidrato", frutas:"fruta", lácteos:"lacteo", colaciones:"colacion" };
+    const mappedLiked = likedCats.map(c => CAT_LABEL_MAP[c] || c);
+    const allowedCats = mappedLiked.length > 0
+      ? slot.cats.filter(c => mappedLiked.includes(c))
       : slot.cats;
     const cats = allowedCats.length > 0 ? allowedCats : slot.cats;
 
@@ -2397,13 +2408,14 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
   // Wizard: generate plan on last step submit
   function handleWizardFinish() {
     const plan = generateNutritionPlan(
-      { days: wizDays, mealsPerDay: wizMeals, goal: wizGoal, restrictions: wizRestrictions, likedCats: wizLikedCats, allergies: wizAllergies, cuisine: wizCuisine },
+      { days: wizDays, mealsPerDay: wizMeals, goal: wizGoal, restrictions: wizRestrictions, likedCats: wizLikedCats, allergies: wizAllergies, cuisine: wizCuisine, seed: Math.floor(Math.random() * 999983) },
       tdee, targetCal, proteinG, carbG, fatG
     );
     plan.planStartDate = new Date().toISOString().slice(0, 10);
     saveNutritionPlan(plan);
     setSubPage("plan");
     setWizStep(0);
+    if (window.__showToast) window.__showToast("✓ Plan generado");
   }
 
   /* ── current day index for plan ────────────────────────── */
@@ -2557,9 +2569,9 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
           </div>
           <div style={{ display:"flex", flexWrap:"wrap", gap:4 }}>
             {nutritionPlan.days[currentPlanDayIdx].meals?.map(meal => (
-              <button key={meal.slot} onClick={() => logMeal({ name: meal.items.map(i=>i.name).join(" + "), kcal: Math.round(meal.kcal), protein: Math.round(meal.protein), carbs: Math.round(meal.carbs), fat: Math.round(meal.fat) })}
+              <button key={meal.slot} onClick={() => { logMeal({ name: meal.items.map(i=>i.name).join(" + "), kcal: Math.round(meal.kcal), protein: Math.round(meal.protein), carbs: Math.round(meal.carbs), fat: Math.round(meal.fat) }); if (window.__showToast) window.__showToast("✓ Comida registrada"); }}
                 style={{ background:"rgba(34,197,94,.1)", border:"1px solid rgba(34,197,94,.25)", borderRadius:8, padding:"4px 10px", cursor:"pointer", fontSize:11, color:"var(--text)" }}>
-                + {meal.label}
+                Añadir {meal.label}
               </button>
             ))}
           </div>
@@ -3156,7 +3168,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                     }
                   }}
                     style={{ width:"100%", padding:"9px 12px", background:"none", border:"none", borderBottom:"1px solid var(--line)", cursor:"pointer", textAlign:"left", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                    <span style={{ fontSize:13, color:"var(--text)", fontWeight:600 }}>{f.name}</span>
+                    <span style={{ fontSize:13, color:"var(--text)", fontWeight:600 }}>{cleanFoodName(f.name)}</span>
                     <span style={{ fontSize:11, color:"var(--muted)" }}>
                       {f.unit
                         ? `${Math.round(f.kcal*(f.unitWeight||100)/100)} kcal/u · P${Math.round(f.protein*(f.unitWeight||100)/100)}g`
@@ -3323,9 +3335,9 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                         <div key={meal.slot} style={{ paddingTop:12, borderTop:"1px solid rgba(255,255,255,.06)" }}>
                           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
                             <span style={{ fontSize:12, fontWeight:700, color:"var(--muted)" }}>{meal.label}</span>
-                            <button onClick={() => logMeal({ name: meal.items.map(i=>i.name).join(" + "), kcal: Math.round(meal.kcal), protein: Math.round(meal.protein), carbs: Math.round(meal.carbs), fat: Math.round(meal.fat) })}
+                            <button onClick={() => { logMeal({ name: meal.items.map(i=>i.name).join(" + "), kcal: Math.round(meal.kcal), protein: Math.round(meal.protein), carbs: Math.round(meal.carbs), fat: Math.round(meal.fat) }); if (window.__showToast) window.__showToast("✓ Comida registrada"); }}
                               style={{ background:"rgba(34,197,94,.1)", border:"1px solid rgba(34,197,94,.25)", borderRadius:6, padding:"2px 8px", cursor:"pointer", fontSize:10, color:"var(--green)", fontWeight:700 }}>
-                              + Log
+                              Añadir
                             </button>
                           </div>
                           {meal.items?.map((item, i) => (
@@ -3464,15 +3476,21 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
               <p style={{ fontSize:15, fontWeight:800, marginBottom:4 }}>¿Qué tipo de comidas preferís?</p>
               <p style={{ fontSize:12, color:"var(--muted)", marginBottom:16 }}>Opcional. El plan priorizará estas categorías.</p>
               <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginBottom:24 }}>
-                {["principales","desayunos","legumbres","pescados","carnes","verduras","huevos","pastas"].map(cat => {
-                  const on = wizLikedCats.includes(cat);
+                {[
+                  {v:"principal",l:"🍽 Principales"},{v:"desayuno",l:"☕ Desayunos"},
+                  {v:"proteina",l:"🥩 Proteínas"},{v:"legumbre",l:"🫘 Legumbres"},
+                  {v:"verdura",l:"🥦 Verduras"},{v:"fruta",l:"🍎 Frutas"},
+                  {v:"lacteo",l:"🥛 Lácteos"},{v:"carbohidrato",l:"🍞 Carbohidratos"},
+                  {v:"colacion",l:"🥜 Colaciones"},{v:"merienda",l:"🍪 Meriendas"},
+                ].map(({v,l}) => {
+                  const on = wizLikedCats.includes(v);
                   return (
-                    <button key={cat} onClick={() => setWizLikedCats(r => on ? r.filter(x=>x!==cat) : [...r,cat])}
+                    <button key={v} onClick={() => setWizLikedCats(r => on ? r.filter(x=>x!==v) : [...r,v])}
                       style={{ padding:"8px 14px", borderRadius:20, border:"1.5px solid", cursor:"pointer", fontSize:13, fontWeight:700,
                         borderColor: on ? "var(--green)" : "var(--border)",
                         background: on ? "rgba(34,197,94,.1)" : "var(--panel)",
                         color: on ? "var(--green)" : "var(--text)" }}>
-                      {cat}
+                      {l}
                     </button>
                   );
                 })}

@@ -40,6 +40,11 @@ export async function playBeep(frequency = 880, duration = 0.5) {
   } catch {}
 }
 
+export function primeAudio() {
+  const ctx = getCtx();
+  if (ctx.state !== "running") ctx.resume().catch(() => {});
+}
+
 export function playDone() {
   playBeep(660, 0.15);
   setTimeout(() => playBeep(880, 0.25), 200);

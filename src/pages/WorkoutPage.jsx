@@ -286,6 +286,7 @@ export default function WorkoutPage() {
   }, []);
 
   function doFinish(notes, rpe) {
+    setShowSummary(false);
     const summary = getPostWorkoutSummary(active, workouts);
     const exerciseNames = (active?.sets || []).map(s => s.exercise).filter(Boolean);
     const uniqueExercises = [...new Set(exerciseNames)];
@@ -1005,7 +1006,7 @@ export default function WorkoutPage() {
           <div className="field-group" style={{ marginBottom: 14, textAlign: "left" }}>
             <label>Nombre de la rutina</label>
             <input type="text" value={saveRoutineName} onChange={e => setSaveRoutineName(e.target.value)}
-              placeholder="ej: Push A — Pecho/Hombros" autoFocus />
+              placeholder="ej: Push A — Pecho/Hombros" />
           </div>
           {saveRoutineError && (
             <p style={{ color: "var(--danger)", fontSize: 12, margin: "0 0 10px", textAlign: "center" }}>{saveRoutineError}</p>
