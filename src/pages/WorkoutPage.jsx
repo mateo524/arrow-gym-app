@@ -643,10 +643,10 @@ export default function WorkoutPage() {
                               const r = Number(setItem.reps);
                               if (!w || !r) return null;
                               const goal = (userGoal || profile?.goal || "").toLowerCase();
-                              let lowThresh = 4, highThresh = 14;
-                              if (goal.includes("fuerza")) { lowThresh = 2; highThresh = 7; }
-                              else if (goal.includes("hipertrofia") || goal.includes("masa")) { lowThresh = 5; highThresh = 13; }
-                              else if (goal.includes("resistencia") || goal.includes("definicion") || goal.includes("definición") || goal.includes("perder")) { lowThresh = 10; highThresh = 21; }
+                              let lowThresh = 8, highThresh = 12;
+                              if (goal.includes("fuerza")) { lowThresh = 1; highThresh = 6; }
+                              else if (goal.includes("hipertrofia") || goal.includes("masa")) { lowThresh = 6; highThresh = 12; }
+                              else if (goal.includes("resistencia")) { lowThresh = 15; highThresh = 25; }
                               if (r >= highThresh) return { dir: "up", weight: Math.round((w + 2.5) * 2) / 2, reason: "Muchas reps — subí peso" };
                               if (r <= lowThresh)  return { dir: "down", weight: Math.max(Math.round((w - 2.5) * 2) / 2, 0), reason: "Pocas reps — bajá peso" };
                               return null;
