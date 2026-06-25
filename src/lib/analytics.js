@@ -560,13 +560,17 @@ export function buildLiveCoachHints(activeWorkout, allWorkouts = [], cardioHisto
     hints.push({ exercise: null, type: "balance", msg: `⚖ Push/Pull: ${pullSets} series de tirón vs ${pushSets} de empuje. Sesión orientada a espalda — OK si es intencional.`, priority: 5, exercise: null });
   }
 
-  // ── Volume overreach warnings ────────────────────────────────────
+  // ── Volume landmarks (MEV/MAV/MRV) per muscle group ─────────────
   const volStatus = getLiveVolumeStatus(activeWorkout, allWorkouts);
   Object.entries(volStatus).forEach(([group, data]) => {
     if (data.status === "over_mrv") {
-      hints.push({ exercise: null, type: "overreach", msg: `🔴 ${group}: ${data.weekTotal} series semanales — sobre el MRV (${data.landmark.mrv}). Riesgo de lesión, pará aquí.`, priority: 2, exercise: null });
+      hints.push({ exercise: null, type: "overreach", msg: `🔴 ${group}: ${data.weekTotal} series semanales — sobre el MRV (${data.landmark.mrv}). Riesgo de lesión, pará aquí.`, priority: 2 });
     } else if (data.status === "approaching_mrv" && data.sessionSets > 0) {
-      hints.push({ exercise: null, type: "high_volume", msg: `🟡 ${group}: ${data.weekTotal}/${data.landmark.mrv} series esta semana. Cerca del límite.`, priority: 4, exercise: null });
+      hints.push({ exercise: null, type: "high_volume", msg: `🟡 ${group}: ${data.weekTotal}/${data.landmark.mrv} series esta semana. Cerca del límite.`, priority: 4 });
+    } else if (data.status === "optimal" && data.sessionSets > 0) {
+      hints.push({ exercise: null, type: "volume_ok", msg: `✅ ${group}: ${data.weekTotal} series (MEV ${data.landmark.mev} → MAV ${data.landmark.mav}). Volumen óptimo esta semana.`, priority: 6 });
+    } else if (data.status === "below_mev" && data.sessionSets > 0) {
+      hints.push({ exercise: null, type: "low_volume", msg: `📊 ${group}: ${data.weekTotal}/${data.landmark.mev} series — aún bajo el MEV. Añadí más series esta semana.`, priority: 5 });
     }
   });
 

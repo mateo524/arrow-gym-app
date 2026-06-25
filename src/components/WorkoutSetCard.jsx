@@ -71,7 +71,7 @@ export default function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onR
             <span style={{ background:"var(--green)", color:"#fff", fontSize:9, fontWeight:900, padding:"2px 6px", borderRadius:6, marginRight:4 }}>PR 🔥</span>
           )}
           {setItem.lastWeight ? (
-            <small style={{ color: "var(--muted)", fontSize:11 }}>ant. {setItem.lastWeight}kg × {setItem.lastReps || "—"}</small>
+            <small style={{ color: "var(--muted)", fontSize:13 }}>ant. {setItem.lastWeight}kg × {setItem.lastReps || "—"}</small>
           ) : null}
         </div>
         <div style={{ display: "flex", gap: 4 }}>
@@ -108,11 +108,11 @@ export default function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onR
       {/* Live coach weight suggestion */}
       {coachSuggestion && (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(168,85,247,.08)", border: "1px solid rgba(168,85,247,.25)", borderRadius: 10, padding: "6px 10px", marginBottom: 6 }}>
-          <span style={{ fontSize: 12, color: "var(--green)", fontWeight: 700 }}>
+          <span style={{ fontSize: 14, color: "var(--green)", fontWeight: 700 }}>
             {coachSuggestion.dir === "up" ? "⬆ Subí a" : coachSuggestion.dir === "down" ? "⬇ Bajá a" : "✓"} {coachSuggestion.weight}kg
           </span>
-          <span style={{ fontSize: 11, color: "var(--muted)" }}>{coachSuggestion.reason}</span>
-          <button className="ghost" style={{ fontSize: 11, padding: "2px 8px", marginLeft: 6 }}
+          <span style={{ fontSize: 13, color: "var(--muted)" }}>{coachSuggestion.reason}</span>
+          <button className="ghost" style={{ fontSize: 13, padding: "2px 8px", marginLeft: 6 }}
             onClick={() => onUpdate({ weight: String(coachSuggestion.weight) })}>
             Aplicar
           </button>
@@ -123,9 +123,9 @@ export default function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onR
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, margin: "10px 0 8px" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.6px" }}>kg</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.6px" }}>kg</span>
             {setItem.lastWeight && !setItem.weight && (
-              <span style={{ fontSize: 9, color: "rgba(168,85,247,.6)", fontWeight: 700 }}>ult. {setItem.lastWeight}</span>
+              <span style={{ fontSize: 12, color: "rgba(168,85,247,.6)", fontWeight: 700 }}>ult. {setItem.lastWeight}</span>
             )}
           </div>
           <input
@@ -134,23 +134,23 @@ export default function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onR
             value={setItem.weight}
             placeholder={setItem.lastWeight || "—"}
             onChange={(e) => { haptic(); onUpdate({ weight: sanitizeWeight(e.target.value) }); }}
-            style={{ width: "100%", textAlign: "center", fontSize: 22, fontWeight: 800, borderColor: setItem.weight ? "rgba(168,85,247,.5)" : undefined, transition: "border-color .2s" }}
+            style={{ width: "100%", textAlign: "center", fontSize: 26, fontWeight: 800, borderColor: setItem.weight ? "rgba(168,85,247,.5)" : undefined, transition: "border-color .2s" }}
           />
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.6px" }}>reps</span>
-            {setItem.lastReps && !setItem.reps && (
-              <span style={{ fontSize: 9, color: "rgba(168,85,247,.6)", fontWeight: 700 }}>ult. {setItem.lastReps}</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.6px" }}>reps</span>
+            {(setItem.planReps || setItem.lastReps) && !setItem.reps && (
+              <span style={{ fontSize: 12, color: "rgba(168,85,247,.6)", fontWeight: 700 }}>{setItem.planReps ? `plan ${setItem.planReps}` : `ult. ${setItem.lastReps}`}</span>
             )}
           </div>
           <input
             className="set-val"
             inputMode="numeric"
             value={setItem.reps}
-            placeholder={setItem.lastReps || "—"}
+            placeholder={setItem.planReps || setItem.lastReps || "—"}
             onChange={(e) => { haptic(); onUpdate({ reps: sanitizeReps(e.target.value) }); }}
-            style={{ width: "100%", textAlign: "center", fontSize: 22, fontWeight: 800, borderColor: setItem.reps ? "rgba(168,85,247,.5)" : undefined, transition: "border-color .2s" }}
+            style={{ width: "100%", textAlign: "center", fontSize: 26, fontWeight: 800, borderColor: setItem.reps ? "rgba(168,85,247,.5)" : undefined, transition: "border-color .2s" }}
           />
         </div>
       </div>

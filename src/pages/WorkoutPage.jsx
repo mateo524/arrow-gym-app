@@ -454,16 +454,16 @@ export default function WorkoutPage() {
             <button
               onClick={() => setCoachExpanded(e => !e)}
               style={{ width: '100%', background: 'none', border: 'none', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', textAlign: 'left' }}>
-              <span style={{ fontSize: 10, fontWeight: 800, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '.08em', flexShrink: 0 }}>Coach en vivo</span>
-              <span style={{ flex: 1, fontSize: 12, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{firstMsg.icon} {firstMsg.text}</span>
-              <span style={{ fontSize: 10, color: 'var(--muted)', flexShrink: 0 }}>{coachExpanded ? '▲' : '▼'} {messages.length}</span>
+              <span style={{ fontSize: 12, fontWeight: 800, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '.08em', flexShrink: 0 }}>Coach en vivo</span>
+              <span style={{ flex: 1, fontSize: 14, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{firstMsg.icon} {firstMsg.text}</span>
+              <span style={{ fontSize: 12, color: 'var(--muted)', flexShrink: 0 }}>{coachExpanded ? '▲' : '▼'} {messages.length}</span>
             </button>
             {coachExpanded && (
               <div style={{ padding: '0 16px 10px', display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {messages.map((m, i) => (
                   <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', background: 'rgba(245,158,11,.06)', border: '1px solid rgba(245,158,11,.15)', borderRadius: 8, padding: '7px 10px' }}>
                     <span style={{ flexShrink: 0 }}>{m.icon}</span>
-                    <span style={{ fontSize: 12, lineHeight: 1.4, color: 'var(--text)' }}>{m.text}</span>
+                    <span style={{ fontSize: 14, lineHeight: 1.4, color: 'var(--text)' }}>{m.text}</span>
                   </div>
                 ))}
               </div>

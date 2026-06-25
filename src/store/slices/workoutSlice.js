@@ -117,7 +117,7 @@ export const createWorkoutSlice = (set, get) => ({
           const s = makePrefilledSet(ex, workouts);
           if (factor !== 1 && s.lastWeight) {
             const scaled = String(Math.max(0, Math.round(Number(s.lastWeight) * factor * 2) / 2) || s.lastWeight);
-            return { ...s, weight: scaled, lastWeight: scaled, reps: scaleRepsForDeload(s.lastReps) };
+            return { ...s, weight: scaled, lastWeight: scaled, reps: "", planReps: scaleRepsForDeload(s.lastReps) };
           }
           return s;
         }),
@@ -137,7 +137,7 @@ export const createWorkoutSlice = (set, get) => ({
           const s = makePrefilledSet(ex, workouts);
           if (factor !== 1 && s.lastWeight) {
             const scaled = String(Math.max(0, Math.round(Number(s.lastWeight) * factor * 2) / 2) || s.lastWeight);
-            return { ...s, weight: scaled, lastWeight: scaled, reps: scaleRepsForDeload(s.lastReps) };
+            return { ...s, weight: scaled, lastWeight: scaled, reps: "", planReps: scaleRepsForDeload(s.lastReps) };
           }
           return s;
         }),
@@ -308,7 +308,7 @@ export const createWorkoutSlice = (set, get) => ({
           const s = makePrefilledSet(e, state.workouts || []);
           if (factor !== 1 && s.lastWeight) {
             const scaled = String(Math.max(0, Math.round(Number(s.lastWeight) * factor * 2) / 2) || s.lastWeight);
-            return { ...s, weight: scaled, lastWeight: scaled, reps: scaleRepsForDeload(s.lastReps) };
+            return { ...s, weight: scaled, lastWeight: scaled, reps: "", planReps: scaleRepsForDeload(s.lastReps) };
           }
           return s;
         }),
@@ -414,7 +414,7 @@ export const createWorkoutSlice = (set, get) => ({
         const s = makeSet(ex, "", "", workouts);
         if (factor !== 1 && s.lastWeight) {
           const scaled = String(Math.max(0, Math.round(Number(s.lastWeight) * factor * 2) / 2) || s.lastWeight);
-          return { ...s, weight: scaled, lastWeight: scaled, reps: scaleRepsForDeload(s.lastReps) };
+          return { ...s, weight: scaled, lastWeight: scaled, reps: "", planReps: scaleRepsForDeload(s.lastReps) };
         }
         return s;
       })
