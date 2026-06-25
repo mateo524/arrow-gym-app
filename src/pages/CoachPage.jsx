@@ -1600,7 +1600,7 @@ const FOOD_DB = [
   { cat:"lacteo", name:"Yogur griego (0%)",         kcal:59,  protein:10,  carbs:4,   fat:0.4  },
   { cat:"lacteo", name:"Yogur griego (entero)",     kcal:97,  protein:9,   carbs:4,   fat:5    },
   { cat:"lacteo", name:"Yogur natural descremado",  kcal:56,  protein:5,   carbs:7,   fat:0.3  },
-  { cat:"lacteo", name:"Yogur bebible (125ml)",     kcal:70,  protein:3,   carbs:12,  fat:1.2  },
+  { cat:"lacteo", name:"Yogur bebible (125ml)",     kcal:70,  protein:3,   carbs:12,  fat:1.2, drink:true },
   { cat:"lacteo", name:"Queso descremado",          kcal:102, protein:14,  carbs:1,   fat:5    },
   { cat:"lacteo", name:"Queso port salut",          kcal:291, protein:22,  carbs:1,   fat:22   },
   { cat:"lacteo", name:"Queso mozzarella",          kcal:280, protein:22,  carbs:2,   fat:20   },
@@ -1609,12 +1609,22 @@ const FOOD_DB = [
   { cat:"lacteo", name:"Queso parmesano",           kcal:431, protein:38,  carbs:3,   fat:29   },
   { cat:"lacteo", name:"Queso crema",               kcal:342, protein:6,   carbs:4,   fat:34   },
   { cat:"lacteo", name:"Ricota",                    kcal:174, protein:11,  carbs:3,   fat:13   },
-  { cat:"lacteo", name:"Leche descremada (250ml)",  kcal:85,  protein:8.5, carbs:12.5,fat:0.3  },
-  { cat:"lacteo", name:"Leche entera (250ml)",      kcal:153, protein:8,   carbs:12,  fat:8    },
-  { cat:"lacteo", name:"Leche de avena (250ml)",    kcal:120, protein:3,   carbs:20,  fat:3    },
-  { cat:"lacteo", name:"Leche de almendra (250ml)", kcal:60,  protein:1,   carbs:8,   fat:2.5  },
+  { cat:"lacteo", name:"Leche descremada (250ml)",  kcal:85,  protein:8.5, carbs:12.5,fat:0.3, drink:true },
+  { cat:"lacteo", name:"Leche entera (250ml)",      kcal:153, protein:8,   carbs:12,  fat:8,   drink:true },
+  { cat:"lacteo", name:"Leche de avena (250ml)",    kcal:120, protein:3,   carbs:20,  fat:3,   drink:true },
+  { cat:"lacteo", name:"Leche de almendra (250ml)", kcal:60,  protein:1,   carbs:8,   fat:2.5, drink:true },
   { cat:"lacteo", name:"Crema de leche",            kcal:340, protein:2,   carbs:3,   fat:36   },
   { cat:"lacteo", name:"Manteca",                   kcal:717, protein:0.9, carbs:0.1, fat:81   },
+  { cat:"lacteo", name:"Kéfir natural",             kcal:61,  protein:3.4, carbs:4.5, fat:3.3, drink:true },
+  // ── Bebidas ──────────────────────────────────────────────────
+  { cat:"bebida", name:"Agua",                      kcal:0,   protein:0,   carbs:0,   fat:0,   drink:true },
+  { cat:"bebida", name:"Jugo de naranja natural",   kcal:45,  protein:0.7, carbs:10.4,fat:0.2, drink:true },
+  { cat:"bebida", name:"Leche entera",              kcal:61,  protein:3.2, carbs:4.8, fat:3.3, drink:true },
+  { cat:"bebida", name:"Leche descremada",          kcal:34,  protein:3.4, carbs:5,   fat:0.1, drink:true },
+  { cat:"bebida", name:"Kéfir natural",             kcal:61,  protein:3.4, carbs:4.5, fat:3.3, drink:true },
+  { cat:"bebida", name:"Té verde",                  kcal:2,   protein:0,   carbs:0.4, fat:0,   drink:true },
+  { cat:"bebida", name:"Café negro",                kcal:2,   protein:0.3, carbs:0,   fat:0,   drink:true },
+  { cat:"bebida", name:"Jugo de manzana natural",   kcal:46,  protein:0.1, carbs:11,  fat:0.1, drink:true },
   // ── Carbohidratos ────────────────────────────────────────────
   { cat:"carbohidrato", name:"Arroz blanco cocido",     kcal:130, protein:2.7, carbs:28,  fat:0.3  },
   { cat:"carbohidrato", name:"Arroz integral cocido",   kcal:122, protein:2.5, carbs:25,  fat:1    },
@@ -1758,8 +1768,8 @@ const FOOD_DB = [
   { cat:"desayuno", name:"Bowl de fruta con yogur",     kcal:140, protein:7,   carbs:24,  fat:2    },
   { cat:"desayuno", name:"Chia pudding (150g)",         kcal:210, protein:7,   carbs:18,  fat:13   },
   { cat:"desayuno", name:"Smoothie verde (espinaca+banana)",kcal:180,protein:6,carbs:32,  fat:3    },
-  { cat:"desayuno", name:"Café con leche (200ml)",      kcal:64,  protein:4,   carbs:6,   fat:2    },
-  { cat:"desayuno", name:"Mate cocido con leche",       kcal:55,  protein:3.5, carbs:5.5, fat:2    },
+  { cat:"desayuno", name:"Café con leche (200ml)",      kcal:64,  protein:4,   carbs:6,   fat:2,   drink:true },
+  { cat:"desayuno", name:"Mate cocido con leche",       kcal:55,  protein:3.5, carbs:5.5, fat:2,   drink:true },
   // ── Meriendas ────────────────────────────────────────────────
   { cat:"merienda", name:"Facturas dulces (c/u)",       kcal:180, protein:3,   carbs:25,  fat:8,   unit:true, unitWeight:60  },
   { cat:"merienda", name:"Alfajor de chocolate",        kcal:350, protein:4,   carbs:50,  fat:14,  unit:true, unitWeight:50  },
@@ -2055,12 +2065,12 @@ const SLOT_DEFS = {
 };
 
 function cleanFoodName(name) {
-  // Strip trailing parenthetical quantities: "(200g)", "(x2 rebanadas)", "(porción)", etc.
-  return name.replace(/\s*\([^)]*\)\s*$/, '').trim();
+  // Only strip if parenthetical contains digits or quantity units
+  return name.replace(/\s*\(\s*[^)]*\d[^)]*\)\s*$/i, '').trim();
 }
 
 function generateNutritionPlan(config, tdee, targetCal, proteinG, carbG, fatG) {
-  const { days, mealsPerDay, goal, restrictions, likedCats, allergies, cuisine, seed } = config;
+  const { days, mealsPerDay, goal, restrictions, likedCats, allergies, cuisine, prepTime, budget, seed } = config;
   const slots = SLOT_DEFS[mealsPerDay] || SLOT_DEFS[4];
 
   const MEAT_KEYWORDS = ["pollo","carne","pavo","cerdo","jamón","salame","vacío","entraña","asado","bife","lomo","cuadril","nalga","tapa","costilla","chorizo","lomito","roast beef"];
@@ -2099,8 +2109,14 @@ function generateNutritionPlan(config, tdee, targetCal, proteinG, carbG, fatG) {
       return { name:cleanFoodName(f.name), qty, unit:true,
         kcal:Math.round(f.kcal*factor), protein:Math.round(f.protein*factor*10)/10,
         carbs:Math.round(f.carbs*factor*10)/10, fat:Math.round(f.fat*factor*10)/10 };
+    } else if (f.drink) {
+      const mlAmount = Math.max(100, Math.min(500, Math.round(targetKcal * 100 / Math.max(f.kcal, 1))));
+      const factor = mlAmount / 100;
+      return { name:cleanFoodName(f.name), ml:mlAmount, drink:true,
+        kcal:Math.round(f.kcal*factor), protein:Math.round(f.protein*factor*10)/10,
+        carbs:Math.round(f.carbs*factor*10)/10, fat:Math.round(f.fat*factor*10)/10 };
     } else {
-      const grams = Math.max(40, Math.min(400, Math.round(targetKcal * 100 / f.kcal)));
+      const grams = Math.max(40, Math.min(400, Math.round(targetKcal * 100 / Math.max(f.kcal, 1))));
       const factor = grams / 100;
       return { name:cleanFoodName(f.name), grams,
         kcal:Math.round(f.kcal*factor), protein:Math.round(f.protein*factor*10)/10,
@@ -2112,17 +2128,21 @@ function generateNutritionPlan(config, tdee, targetCal, proteinG, carbG, fatG) {
   let rngSeed = days * 31 + mealsPerDay * 7 + (cuisine ? cuisine.charCodeAt(0) : 0) + (seed || 0);
   function rng() { rngSeed = (rngSeed * 16807 + 0) % 2147483647; return (rngSeed - 1) / 2147483646; }
 
-  function pickForSlot(slot, dayIdx, slotIdx) {
+  function pickForSlot(slot, dayIdx, slotIdx, recentNames) {
     const targetKcal = Math.round(targetCal * slot.factor);
     // Map user-friendly wizard labels to actual db category values
     const CAT_LABEL_MAP = { principales:"principal", desayunos:"desayuno", legumbres:"legumbre", pescados:"proteina", carnes:"proteina", verduras:"verdura", huevos:"proteina", pastas:"carbohidrato", frutas:"fruta", lácteos:"lacteo", colaciones:"colacion" };
     const mappedLiked = likedCats.map(c => CAT_LABEL_MAP[c] || c);
-    const allowedCats = mappedLiked.length > 0
-      ? slot.cats.filter(c => mappedLiked.includes(c))
-      : slot.cats;
+    const filtered = mappedLiked.length > 0 ? slot.cats.filter(c => mappedLiked.includes(c)) : slot.cats;
+    const allowedCats = filtered.length > 0 ? filtered : slot.cats; // always fall back to slot defaults
     const cats = allowedCats.length > 0 ? allowedCats : slot.cats;
 
     let pool = FOOD_DB.filter(f => cats.includes(f.cat) && foodAllowed(f));
+    // Budget filtering: economico prefers legumbres and carbohidratos
+    if (budget === "economico" && pool.length > 0) {
+      const budgetPool = pool.filter(f => ["legumbre","carbohidrato","verdura","fruta"].includes(f.cat));
+      if (budgetPool.length >= 2) pool = budgetPool;
+    }
     // Cuisine preference: if set, prefer items matching cuisine keywords
     if (cuisine && pool.length > 0) {
       const cuisinePool = pool.filter(f => f.name.toLowerCase().includes(cuisine));
@@ -2130,11 +2150,17 @@ function generateNutritionPlan(config, tdee, targetCal, proteinG, carbG, fatG) {
     }
     if (pool.length === 0) return [];
 
+    // Deprioritize foods used yesterday
+    const freshPool = recentNames && recentNames.size > 0
+      ? pool.filter(f => !recentNames.has(cleanFoodName(f.name)))
+      : pool;
+    const finalPool = freshPool.length >= 2 ? freshPool : pool;
+
     // True randomness per pick (not deterministic per dayIdx/slotIdx)
     // But shuffle deterministically per config so same config = same plan
-    const shuffled = [...pool].sort((a, b) => {
-      const sa = ((pool.indexOf(a) + 1) * rng()) % 1;
-      const sb = ((pool.indexOf(b) + 1) * rng()) % 1;
+    const shuffled = [...finalPool].sort((a, b) => {
+      const sa = ((finalPool.indexOf(a) + 1) * rng()) % 1;
+      const sb = ((finalPool.indexOf(b) + 1) * rng()) % 1;
       return sa - sb;
     });
     const main = shuffled[0];
@@ -2146,6 +2172,18 @@ function generateNutritionPlan(config, tdee, targetCal, proteinG, carbG, fatG) {
     return items;
   }
 
+  const result = [];
+  for (let dayIdx = 0; dayIdx < days; dayIdx++) {
+    const yesterday = dayIdx > 0 ? result[dayIdx-1] : null;
+    const recentNames = new Set(yesterday ? yesterday.meals.flatMap(m => m.items.map(i => i.name)) : []);
+    const meals = slots.map((slot, slotIdx) => {
+      const items = pickForSlot(slot, dayIdx, slotIdx, recentNames);
+      const tot = items.reduce((a,i) => ({ kcal:a.kcal+i.kcal, protein:a.protein+i.protein, carbs:a.carbs+i.carbs, fat:a.fat+i.fat }), {kcal:0,protein:0,carbs:0,fat:0});
+      return { slot:slot.id, label:slot.label, items, ...tot };
+    });
+    const dayTot = meals.reduce((a,m) => ({ kcal:a.kcal+m.kcal, protein:a.protein+m.protein, carbs:a.carbs+m.carbs, fat:a.fat+m.fat }), {kcal:0,protein:0,carbs:0,fat:0});
+    result.push({ dayIdx, dayName:DAY_NAMES_PLAN[dayIdx % 7], meals, ...dayTot });
+  }
   return {
     config,
     dailyKcal: targetCal,
@@ -2153,15 +2191,7 @@ function generateNutritionPlan(config, tdee, targetCal, proteinG, carbG, fatG) {
     dailyCarbs: carbG,
     dailyFat: fatG,
     generatedAt: new Date().toISOString(),
-    days: Array.from({ length: days }, (_, dayIdx) => {
-      const meals = slots.map((slot, slotIdx) => {
-        const items = pickForSlot(slot, dayIdx, slotIdx);
-        const tot = items.reduce((a,i) => ({ kcal:a.kcal+i.kcal, protein:a.protein+i.protein, carbs:a.carbs+i.carbs, fat:a.fat+i.fat }), {kcal:0,protein:0,carbs:0,fat:0});
-        return { slot:slot.id, label:slot.label, items, ...tot };
-      });
-      const dayTot = meals.reduce((a,m) => ({ kcal:a.kcal+m.kcal, protein:a.protein+m.protein, carbs:a.carbs+m.carbs, fat:a.fat+m.fat }), {kcal:0,protein:0,carbs:0,fat:0});
-      return { dayIdx, dayName:DAY_NAMES_PLAN[dayIdx % 7], meals, ...dayTot };
-    }),
+    days: result,
   };
 }
 
@@ -2201,6 +2231,8 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
   const [wizLikedCats, setWizLikedCats] = useState([]);
   const [wizAllergies, setWizAllergies] = useState([]);
   const [wizCuisine, setWizCuisine] = useState("");
+  const [wizPrepTime, setWizPrepTime] = useState("30min"); // "rapido" | "30min" | "elaborado"
+  const [wizBudget, setWizBudget] = useState("moderado"); // "economico" | "moderado" | "amplio"
   // Nutrition plan from store
   const nutritionPlan = useStore(s => s.nutritionPlan);
   const saveNutritionPlan = useStore(s => s.saveNutritionPlan);
@@ -2270,6 +2302,9 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
         carbs:   String(Math.round(food.carbs   * factor * 10) / 10),
         fat:     String(Math.round(food.fat     * factor * 10) / 10),
       }));
+    } else if (food.drink) {
+      setNewMeal(m => ({ ...m, name: cleanFoodName(food.name), grams: "200", qty: "1" }));
+      applyGrams(food, 200);
     } else {
       setNewMeal(m => ({ ...m, name: cleanFoodName(food.name), grams: "100", qty: "1" }));
       applyGrams(food, 100);
@@ -2439,7 +2474,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
   // Wizard: generate plan on last step submit
   function handleWizardFinish() {
     const plan = generateNutritionPlan(
-      { days: wizDays, mealsPerDay: wizMeals, goal: wizGoal, restrictions: wizRestrictions, likedCats: wizLikedCats, allergies: wizAllergies, cuisine: wizCuisine, seed: Math.floor(Math.random() * 999983) },
+      { days: wizDays, mealsPerDay: wizMeals, goal: wizGoal, restrictions: wizRestrictions, likedCats: wizLikedCats, allergies: wizAllergies, cuisine: wizCuisine, prepTime: wizPrepTime, budget: wizBudget, seed: Math.floor(Math.random() * 999983) },
       tdee, targetCal, proteinG, carbG, fatG
     );
     plan.planStartDate = new Date().toISOString().slice(0, 10);
@@ -3252,7 +3287,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                   </div>
                 ) : (
                   <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:8 }}>
-                    <label style={{ fontSize:12, fontWeight:700, color:"var(--green)", flexShrink:0 }}>Cantidad (g)</label>
+                    <label style={{ fontSize:12, fontWeight:700, color:"var(--green)", flexShrink:0 }}>Cantidad ({selectedFood?.drink ? "ml" : "g"})</label>
                     <input type="number" inputMode="numeric" value={newMeal.grams}
                       onChange={e => {
                         setNewMeal(m => ({ ...m, grams: e.target.value }));
@@ -3375,7 +3410,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                             <div key={i} style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
                               <span style={{ fontSize:13, color:"var(--text)" }}>{item.name}</span>
                               <span style={{ fontSize:11, color:"var(--muted)" }}>
-                                {item.qty}{item.unit ? (item.unitLabel || " u") : "g"} · {Math.round(item.kcal)} kcal
+                                {item.ml ? `${item.ml}ml` : item.unit ? `${item.qty}${item.unitLabel || " u"}` : `${item.grams}g`} · {Math.round(item.kcal)} kcal
                               </span>
                             </div>
                           ))}
@@ -3538,6 +3573,56 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
           )}
           {wizStep === 5 && (
             <div>
+              <p style={{ fontSize:15, fontWeight:800, marginBottom:4 }}>¿Cuánto tiempo tenés para preparar cada comida?</p>
+              <p style={{ fontSize:12, color:"var(--muted)", marginBottom:16 }}>Esto ayuda a personalizar las recetas del plan.</p>
+              <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:24 }}>
+                {[
+                  {v:"rapido",    l:"⚡ Rápido",            d:"Menos de 15 minutos"},
+                  {v:"30min",     l:"🍳 Normal",             d:"Hasta 30 minutos"},
+                  {v:"elaborado", l:"👨‍🍳 Me gusta cocinar", d:"Sin límite de tiempo"},
+                ].map(({v,l,d}) => (
+                  <button key={v} onClick={() => setWizPrepTime(v)}
+                    style={{ padding:"12px 14px", borderRadius:10, border:"1.5px solid", cursor:"pointer", textAlign:"left",
+                      borderColor: wizPrepTime === v ? "var(--green)" : "var(--border)",
+                      background: wizPrepTime === v ? "rgba(34,197,94,.08)" : "var(--panel)" }}>
+                    <div style={{ fontSize:14, fontWeight:800, color: wizPrepTime === v ? "var(--green)" : "var(--text)" }}>{l}</div>
+                    <div style={{ fontSize:11, color:"var(--muted)", marginTop:2 }}>{d}</div>
+                  </button>
+                ))}
+              </div>
+              <div style={{ display:"flex", gap:8 }}>
+                <button style={{ flex:1, padding:"12px", borderRadius:10, border:"1px solid var(--border)", background:"var(--panel)", color:"var(--muted)", cursor:"pointer" }} onClick={() => setWizStep(4)}>← Atrás</button>
+                <button className="primary" style={{ flex:2 }} onClick={() => setWizStep(6)}>Siguiente →</button>
+              </div>
+            </div>
+          )}
+          {wizStep === 6 && (
+            <div>
+              <p style={{ fontSize:15, fontWeight:800, marginBottom:4 }}>¿Cuál es tu presupuesto semanal para comida?</p>
+              <p style={{ fontSize:12, color:"var(--muted)", marginBottom:16 }}>El plan se adaptará a tus posibilidades económicas.</p>
+              <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:24 }}>
+                {[
+                  {v:"economico", l:"💰 Económico",         d:"Legumbres, huevos, arroz"},
+                  {v:"moderado",  l:"💳 Moderado",           d:"Carnes, lácteos, variado"},
+                  {v:"amplio",    l:"✨ Sin restricciones",  d:"Todo tipo de alimentos"},
+                ].map(({v,l,d}) => (
+                  <button key={v} onClick={() => setWizBudget(v)}
+                    style={{ padding:"12px 14px", borderRadius:10, border:"1.5px solid", cursor:"pointer", textAlign:"left",
+                      borderColor: wizBudget === v ? "var(--green)" : "var(--border)",
+                      background: wizBudget === v ? "rgba(34,197,94,.08)" : "var(--panel)" }}>
+                    <div style={{ fontSize:14, fontWeight:800, color: wizBudget === v ? "var(--green)" : "var(--text)" }}>{l}</div>
+                    <div style={{ fontSize:11, color:"var(--muted)", marginTop:2 }}>{d}</div>
+                  </button>
+                ))}
+              </div>
+              <div style={{ display:"flex", gap:8 }}>
+                <button style={{ flex:1, padding:"12px", borderRadius:10, border:"1px solid var(--border)", background:"var(--panel)", color:"var(--muted)", cursor:"pointer" }} onClick={() => setWizStep(5)}>← Atrás</button>
+                <button className="primary" style={{ flex:2 }} onClick={() => setWizStep(7)}>Siguiente →</button>
+              </div>
+            </div>
+          )}
+          {wizStep === 7 && (
+            <div>
               <p style={{ fontSize:15, fontWeight:800, marginBottom:4 }}>Preferencias de cocina</p>
               <p style={{ fontSize:12, color:"var(--muted)", marginBottom:16 }}>Opcional. Elegí un estilo de cocina para el plan.</p>
               <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginBottom:20 }}>
@@ -3556,9 +3641,11 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                 {wizDays} días · {wizMeals} comidas/día · ~{Math.round(targetCal)} kcal/día · {Math.round(proteinG)}g proteína
                 {wizRestrictions.length > 0 && <span> · {wizRestrictions.length} restricción(es)</span>}
                 {wizCuisine && <span> · Cocina {wizCuisine}</span>}
+                {" · "}{wizPrepTime === "rapido" ? "⚡ Preparación rápida" : wizPrepTime === "elaborado" ? "👨‍🍳 Cocina elaborada" : "🍳 Preparación normal"}
+                {" · "}{wizBudget === "economico" ? "💰 Presupuesto económico" : wizBudget === "amplio" ? "✨ Sin restricción económica" : "💳 Presupuesto moderado"}
               </div>
               <div style={{ display:"flex", gap:8 }}>
-                <button style={{ flex:1, padding:"12px", borderRadius:10, border:"1px solid var(--border)", background:"var(--panel)", color:"var(--muted)", cursor:"pointer" }} onClick={() => setWizStep(4)}>← Atrás</button>
+                <button style={{ flex:1, padding:"12px", borderRadius:10, border:"1px solid var(--border)", background:"var(--panel)", color:"var(--muted)", cursor:"pointer" }} onClick={() => setWizStep(6)}>← Atrás</button>
                 <button className="primary" style={{ flex:2 }} onClick={handleWizardFinish}>✨ Generar plan</button>
               </div>
             </div>
