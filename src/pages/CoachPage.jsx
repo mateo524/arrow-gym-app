@@ -179,6 +179,47 @@ export default function CoachPage() {
       alerts.push({ type: "imbalance", msg: `Más tirón que empuje (${ratio}:1): ${pullSets} series de espalda vs ${pushSets} de pecho/hombros. Revisá si es intencional.` });
     }
 
+    // 4. No rest days: 5+ consecutive training days
+    if (workouts.length >= 5) {
+      const sortedDates = [...new Set(sortedW.slice(0, 10).map(w => w.date?.slice(0,10)).filter(Boolean))].sort().reverse();
+      let consecutive = 0;
+      for (let i = 0; i < sortedDates.length - 1; i++) {
+        const d1 = new Date(sortedDates[i] + "T12:00:00");
+        const d2 = new Date(sortedDates[i+1] + "T12:00:00");
+        const diff = Math.round((d1 - d2) / 86400000);
+        if (diff === 1) { consecutive++; } else { break; }
+      }
+      if (consecutive >= 4) {
+        alerts.push({ type: "rest", msg: `${consecutive + 1} días seguidos entrenando sin descanso. Tu cuerpo necesita al menos 1 día de recuperación por semana para supercompensar.` });
+      }
+    }
+
+    // 5. Neglected legs: no leg training in 10+ days with 5+ total workouts
+    if (workouts.length >= 5) {
+      const legWords = ["sentadilla", "pierna", "femoral", "glúteo", "peso muerto", "estocada", "leg press", "hack squat", "hip thrust", "nordico", "pantorrilla"];
+      const lastLeg = sortedW.find(w => (w.sets || []).some(s => {
+        const g = (s.group || "").toLowerCase();
+        const ex = (s.exercise || "").toLowerCase();
+        return g === "piernas" || legWords.some(k => ex.includes(k));
+      }));
+      const daysSinceLeg = lastLeg
+        ? Math.floor((now - new Date(lastLeg.date + "T12:00:00")) / 86400000)
+        : null;
+      if (daysSinceLeg !== null && daysSinceLeg >= 10) {
+        alerts.push({ type: "neglect", msg: `Sin entrenamiento de piernas hace ${daysSinceLeg} días. Las piernas son el grupo más grande — no entrenarlas afecta tu hormona de crecimiento y fuerza general.` });
+      }
+    }
+
+    // 6. Low frequency: < 2 workouts/week average over last 4 weeks
+    if (workouts.length >= 3) {
+      const fourWAgo = new Date(now - 28 * msPerDay);
+      const last4w = workouts.filter(w => w.date && new Date(w.date) >= fourWAgo);
+      const avgPerWeek = last4w.length / 4;
+      if (avgPerWeek < 2 && avgPerWeek > 0) {
+        alerts.push({ type: "frequency", msg: `Promedio de ${avgPerWeek.toFixed(1)} entrenos/semana en las últimas 4 semanas. Para progresar se recomiendan al menos 3 sesiones semanales.` });
+      }
+    }
+
     return alerts;
   }, [workouts]);
 
@@ -855,6 +896,89 @@ export default function CoachPage() {
                 );
               })()}
 
+              {/* ── Días desde último entreno ── */}
+              {workouts.length >= 1 && (() => {
+                const last = workouts[0];
+                const daysSince = last?.date
+                  ? Math.floor((new Date() - new Date(last.date + "T12:00:00")) / 86400000)
+                  : null;
+                if (daysSince === null) return null;
+                const color = daysSince === 0 ? "var(--green)" : daysSince <= 2 ? "#60a5fa" : daysSince <= 4 ? "#f59e0b" : "#ef4444";
+                const msg = daysSince === 0 ? "Entrenaste hoy 💪" : daysSince === 1 ? "Ayer fue el último entreno" : `Hace ${daysSince} días sin entrenar`;
+                return (
+                  <div style={{ display:"flex", alignItems:"center", gap:12, background:"var(--panel)", border:`1px solid ${color}33`, borderRadius:14, padding:"12px 14px", marginBottom:12 }}>
+                    <span style={{ fontSize:24 }}>{daysSince === 0 ? "🔥" : daysSince <= 2 ? "✅" : daysSince <= 4 ? "⏳" : "😴"}</span>
+                    <div>
+                      <p style={{ margin:"0 0 2px", fontSize:14, fontWeight:800, color }}>{msg}</p>
+                      {last?.type && <p style={{ margin:0, fontSize:12, color:"var(--muted)" }}>Último: {last.type}</p>}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* ── Recuperación muscular ── */}
+              {muscleRecovery.some(m => m.daysSince !== null) && (
+                <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:18, padding:"14px 16px", marginBottom:12 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12 }}>
+                    <div style={{ width:28, height:28, borderRadius:8, background:"rgba(96,165,250,.12)", border:"1px solid rgba(96,165,250,.2)", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                      <Icon name="Activity" size={14} style={{ color:"#60a5fa" }} />
+                    </div>
+                    <p style={{ margin:0, fontSize:14, fontWeight:800 }}>Recuperación muscular</p>
+                  </div>
+                  <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+                    {muscleRecovery.filter(m => m.daysSince !== null).map(({ name, status, daysSince, recDays }) => {
+                      const color = status === "listo" ? "var(--green)" : status === "recuperando" ? "#f59e0b" : "#ef4444";
+                      const label = status === "listo" ? "Listo" : status === "recuperando" ? "Recuperando" : "Necesita descanso";
+                      return (
+                        <div key={name} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", background:"var(--panel2)", borderRadius:10, padding:"8px 12px" }}>
+                          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                            <div style={{ width:8, height:8, borderRadius:"50%", background:color, flexShrink:0 }} />
+                            <span style={{ fontSize:13, fontWeight:600 }}>{name}</span>
+                          </div>
+                          <div style={{ textAlign:"right" }}>
+                            <span style={{ fontSize:12, fontWeight:700, color }}>{label}</span>
+                            <span style={{ fontSize:10, color:"var(--muted)", marginLeft:6 }}>{daysSince}d desde último</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* ── Historial de las últimas 4 semanas ── */}
+              {workouts.length >= 2 && (() => {
+                const now = new Date();
+                const weeks = [0,1,2,3].map(i => {
+                  const end = new Date(now); end.setDate(now.getDate() - i*7);
+                  const start = new Date(end); start.setDate(end.getDate() - 6);
+                  const ws = workouts.filter(w => {
+                    if (!w.date) return false;
+                    const d = new Date(w.date + "T12:00:00");
+                    return d >= start && d <= end;
+                  });
+                  const vol = ws.reduce((s,w) => s + (w.sets||[]).reduce((ss,set) => ss + (Number(set.weight)||0)*(Number(set.reps)||0), 0), 0);
+                  return { label: i === 0 ? "Esta semana" : `−${i}sem`, count: ws.length, vol: Math.round(vol) };
+                }).reverse();
+                return (
+                  <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:18, padding:"14px 16px", marginBottom:12 }}>
+                    <p style={{ margin:"0 0 12px", fontSize:14, fontWeight:800 }}>📊 Últimas 4 semanas</p>
+                    <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:6 }}>
+                      {weeks.map(w => (
+                        <div key={w.label} style={{ background:"var(--panel2)", borderRadius:12, padding:"10px 8px", textAlign:"center" }}>
+                          <div style={{ fontSize:11, color:"var(--muted)", marginBottom:4 }}>{w.label}</div>
+                          <div style={{ fontSize:20, fontWeight:900, color: w.count >= 3 ? "var(--green)" : w.count >= 1 ? "#f59e0b" : "var(--muted)" }}>{w.count}</div>
+                          <div style={{ fontSize:10, color:"var(--muted)", marginTop:2 }}>sesiones</div>
+                          <div style={{ fontSize:11, fontWeight:700, color:"var(--muted)", marginTop:4 }}>
+                            {w.vol >= 1000 ? (w.vol/1000).toFixed(1)+"k" : w.vol}kg
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* ── Grupos sin entrenar ── */}
               {skippedGroups.length > 0 && (
                 <div style={{ background:"rgba(239,68,68,.06)", border:"1px solid rgba(239,68,68,.2)", borderRadius:14, padding:"14px 16px" }}>
@@ -1081,16 +1205,14 @@ export default function CoachPage() {
                 </div>
               </div>
 
-              {/* ── Análisis completo ── */}
-              <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12, cursor:"pointer" }} onClick={() => setShowProgresoAdvanced(s => !s)}>
+              {/* ── Análisis detallado ── */}
+              <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
                 <div style={{ flex:1, height:1, background:"var(--line)" }} />
-                <span style={{ fontSize:11, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.07em", whiteSpace:"nowrap" }}>
-                  {showProgresoAdvanced ? "▲ Menos detalle" : "▼ Más análisis"}
-                </span>
+                <span style={{ fontSize:11, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.07em", whiteSpace:"nowrap" }}>Análisis detallado</span>
                 <div style={{ flex:1, height:1, background:"var(--line)" }} />
               </div>
 
-              {showProgresoAdvanced && (<>
+              <>
               {/* ── 1RM por ejercicio ── */}
               {topExercises.length > 0 && (
                 <div style={{ marginBottom:16 }}>
@@ -1346,7 +1468,7 @@ export default function CoachPage() {
                   </div>
                 </div>
               )}
-              </>)}
+              </>
             </>
           )}
         </div>
@@ -1384,16 +1506,16 @@ export default function CoachPage() {
           {smartAlerts.map((alert, i) => (
             <div key={i} style={{
               display:"flex", gap:10, alignItems:"flex-start",
-              background: alert.type === "imbalance" ? "rgba(239,68,68,.07)" : alert.type === "stall" ? "rgba(96,165,250,.08)" : "rgba(245,158,11,.08)",
-              border:`1px solid ${alert.type === "imbalance" ? "rgba(239,68,68,.25)" : alert.type === "stall" ? "rgba(96,165,250,.3)" : "rgba(245,158,11,.25)"}`,
+              background: alert.type === "imbalance" ? "rgba(239,68,68,.07)" : alert.type === "stall" ? "rgba(96,165,250,.08)" : (alert.type === "rest" || alert.type === "neglect" || alert.type === "frequency") ? "rgba(245,158,11,.08)" : "rgba(245,158,11,.08)",
+              border:`1px solid ${alert.type === "imbalance" ? "rgba(239,68,68,.25)" : alert.type === "stall" ? "rgba(96,165,250,.3)" : (alert.type === "rest" || alert.type === "neglect" || alert.type === "frequency") ? "rgba(245,158,11,.3)" : "rgba(245,158,11,.25)"}`,
               borderRadius:14, padding:"14px 16px", marginBottom:10
             }}>
               <span style={{ fontSize:20, flexShrink:0 }}>
-                {alert.type === "stall" ? "🔄" : alert.type === "volume" ? "📉" : "⚖️"}
+                {alert.type === "stall" ? "🔄" : alert.type === "volume" ? "📉" : alert.type === "rest" ? "🛌" : alert.type === "neglect" ? "🦵" : alert.type === "frequency" ? "📆" : "⚖️"}
               </span>
               <div>
                 <p style={{ margin:"0 0 3px", fontSize:14, fontWeight:700, color:"var(--text)" }}>
-                  {alert.type === "stall" ? "Estancamiento de peso" : alert.type === "volume" ? "Caída de volumen" : "Desbalance muscular"}
+                  {alert.type === "stall" ? "Estancamiento de peso" : alert.type === "volume" ? "Caída de volumen" : alert.type === "rest" ? "Sin días de descanso" : alert.type === "neglect" ? "Piernas abandonadas" : alert.type === "frequency" ? "Frecuencia baja" : "Desbalance muscular"}
                 </p>
                 <p style={{ margin:0, fontSize:13, color:"var(--muted)", lineHeight:1.5 }}>{alert.msg}</p>
               </div>

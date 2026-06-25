@@ -412,10 +412,17 @@ export default function MeasurementsPage() {
             style={{ flex: 1, background: "var(--panel2)", border: "1px solid var(--line)", borderRadius: 12, padding: "10px 12px", color: "var(--text)", fontSize: 15 }}
           />
           <button className="primary" style={{ padding: "10px 18px" }} disabled={!todayKg}
-            onClick={() => {
+            onClick={async () => {
               if (!todayKg) return;
               logWeight(todayKg);
               setTodayKg("");
+              if (uid) {
+                const newWeight = toNum(todayKg);
+                const updated = { ...(useAuthStore.getState().profile || { id: uid }), weight_kg: newWeight };
+                useAuthStore.setState({ profile: updated });
+                try { localStorage.setItem("loop-gym-profile-v1", JSON.stringify(updated)); } catch {}
+                supabase.from("profiles").update({ weight_kg: newWeight }).eq("id", uid).catch(() => {});
+              }
             }}>
             +
           </button>

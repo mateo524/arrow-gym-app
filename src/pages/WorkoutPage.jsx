@@ -897,7 +897,7 @@ export default function WorkoutPage() {
 
       {/* ── FINISH CONFIRM ────────────────────────────────────────────────── */}
       {showFinishConfirm && (
-        <div className="modal-overlay" onClick={() => setShowFinishConfirm(false)}>
+        <div className="modal-overlay" style={{ alignItems: "center", padding: "16px" }} onClick={() => setShowFinishConfirm(false)}>
           <div className="modal-card confirm-modal" onClick={(e) => e.stopPropagation()}>
             <h2 style={{ margin: "0 0 8px" }}>¿Finalizar entrenamiento?</h2>
             <p style={{ color: "var(--muted)", fontSize: 14, margin: "0 0 16px" }}>
@@ -952,7 +952,7 @@ export default function WorkoutPage() {
 
     {/* ── POST WORKOUT SUMMARY ──────────────────────────────────────────── */}
     {postSummary && (
-      <div className="modal-overlay">
+      <div className="modal-overlay" style={{ alignItems: "center", padding: "16px" }}>
         <div className="modal-card" style={{ maxWidth: 360, width: "100%", maxHeight: "85vh", overflowY: "auto" }}>
           <div style={{ textAlign: "center", marginBottom: 14 }}>
             <div style={{ fontSize: 36, marginBottom: 6 }}>🎯</div>
@@ -996,7 +996,7 @@ export default function WorkoutPage() {
 
     {/* ── SAVE ROUTINE PROMPT ───────────────────────────────────────────── */}
     {showSaveRoutine && (
-      <div className="modal-overlay">
+      <div className="modal-overlay" style={{ alignItems: "center", padding: "16px" }}>
         <div className="modal-card" style={{ textAlign: "center" }}>
           <div style={{ fontSize: 40, marginBottom: 8 }}>💾</div>
           <h2 style={{ margin: "0 0 6px" }}>¿Guardás esta rutina?</h2>
