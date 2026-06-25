@@ -1,5 +1,6 @@
 import { useState } from "react";
 import useStore from "../store/useStore.js";
+import { todayLocal } from "../lib/dates.js";
 import Icon from "../components/Icon.jsx";
 
 const PRESET_CHALLENGES = [
@@ -15,7 +16,7 @@ export default function ChallengesPage() {
   const start30DayChallenge = useStore(s => s.start30DayChallenge);
   const markChallengeDay = useStore(s => s.markChallengeDay);
   const deleteChallenge = useStore(s => s.deleteChallenge);
-  const today = new Date().toISOString().slice(0,10);
+  const today = todayLocal();
 
   return (
     <section className="page">

@@ -2,6 +2,8 @@
 import useStore from "../store/useStore.js";
 import useAuthStore from "../store/useAuthStore.js";
 import { supabase } from "../lib/supabase.js";
+import { todayLocal } from "../lib/dates.js";
+import { formatDate } from "../lib/analytics.js";
 import Icon from "../components/Icon.jsx";
 
 function calcAge(dob) {
@@ -13,6 +15,8 @@ function calcAge(dob) {
   if (m < 0 || (m === 0 && today.getDate() < d.getDate())) age--;
   return age;
 }
+
+function toNum(v) { return Number(String(v || "").replace(/,/g, ".")) || 0; }
 
 const TAB_STYLE_BASE = {
   flex: 1,
@@ -255,8 +259,8 @@ export default function MeasurementsPage() {
     e.preventDefault();
     if (!uid) { setBasicoMsg("Error: sesión no válida"); return; }
     const payload = {};
-    if (measWeight) payload.weight_kg = parseFloat(measWeight);
-    if (measHeight) payload.height_cm = parseFloat(measHeight);
+    if (measWeight) payload.weight_kg = toNum(measWeight);
+    if (measHeight) payload.height_cm = toNum(measHeight);
     if (measDob) {
       payload.date_of_birth = measDob;
       const computed = calcAge(measDob);
@@ -291,14 +295,14 @@ export default function MeasurementsPage() {
     e.preventDefault();
     if (!uid) { setPlieguesMsg("Error: sesión no válida"); return; }
     const payload = {};
-    if (triceps)     payload.triceps_mm     = parseFloat(triceps);
-    if (subscapular) payload.subscapular_mm = parseFloat(subscapular);
-    if (biceps)      payload.biceps_mm      = parseFloat(biceps);
-    if (iliacCrest)  payload.iliac_crest_mm = parseFloat(iliacCrest);
-    if (supraspinal) payload.supraspinal_mm = parseFloat(supraspinal);
-    if (abdominal)   payload.abdominal_mm   = parseFloat(abdominal);
-    if (frontThigh)  payload.front_thigh_mm = parseFloat(frontThigh);
-    if (medialCalf)  payload.medial_calf_mm = parseFloat(medialCalf);
+    if (triceps)     payload.triceps_mm     = toNum(triceps);
+    if (subscapular) payload.subscapular_mm = toNum(subscapular);
+    if (biceps)      payload.biceps_mm      = toNum(biceps);
+    if (iliacCrest)  payload.iliac_crest_mm = toNum(iliacCrest);
+    if (supraspinal) payload.supraspinal_mm = toNum(supraspinal);
+    if (abdominal)   payload.abdominal_mm   = toNum(abdominal);
+    if (frontThigh)  payload.front_thigh_mm = toNum(frontThigh);
+    if (medialCalf)  payload.medial_calf_mm = toNum(medialCalf);
     if (!Object.keys(payload).length) { setPlieguesMsg("Ingresá al menos un valor."); return; }
     setPlieguesMsg("Guardando…");
     const { error } = await supabase.from("profiles").update(payload).eq("id", uid);
@@ -327,13 +331,13 @@ export default function MeasurementsPage() {
     e.preventDefault();
     if (!uid) { setPerimetrosMsg("Error: sesión no válida"); return; }
     const payload = {};
-    if (armRelaxed) payload.arm_relaxed_cm = parseFloat(armRelaxed);
-    if (armFlexed)  payload.arm_flexed_cm  = parseFloat(armFlexed);
-    if (waist)      payload.waist_cm       = parseFloat(waist);
-    if (hip)        payload.hip_cm         = parseFloat(hip);
-    if (calfPer)    payload.calf_cm        = parseFloat(calfPer);
-    if (humerus)    payload.humerus_cm     = parseFloat(humerus);
-    if (femur)      payload.femur_cm       = parseFloat(femur);
+    if (armRelaxed) payload.arm_relaxed_cm = toNum(armRelaxed);
+    if (armFlexed)  payload.arm_flexed_cm  = toNum(armFlexed);
+    if (waist)      payload.waist_cm       = toNum(waist);
+    if (hip)        payload.hip_cm         = toNum(hip);
+    if (calfPer)    payload.calf_cm        = toNum(calfPer);
+    if (humerus)    payload.humerus_cm     = toNum(humerus);
+    if (femur)      payload.femur_cm       = toNum(femur);
     if (!Object.keys(payload).length) { setPerimetrosMsg("Ingresá al menos un valor."); return; }
     setPerimetrosMsg("Guardando…");
     const { error } = await supabase.from("profiles").update(payload).eq("id", uid);
@@ -342,7 +346,7 @@ export default function MeasurementsPage() {
     } else {
       useAuthStore.setState(s => ({ profile: { ...(s.profile || { id: uid }), ...payload } }));
       // Guardar en historial local de circunferencias
-      const today = new Date().toISOString().slice(0, 10);
+      const today = todayLocal();
       setMeasHistory(prev => {
         const next = [{ date: today, ...payload }, ...prev.filter(e => e.date !== today)].slice(0, 60);
         try { localStorage.setItem("pulse-meas-history", JSON.stringify(next)); } catch {}
@@ -369,7 +373,7 @@ export default function MeasurementsPage() {
         {weightLog.length > 0 && (
           <p style={{ margin: "0 0 10px", fontSize: 13, color: "var(--muted)" }}>
             Último: <b style={{ color: "var(--text)" }}>{weightLog[0]?.kg} kg</b>
-            <span style={{ marginLeft: 8 }}>{weightLog[0]?.date}</span>
+            <span style={{ marginLeft: 8 }}>{formatDate(weightLog[0]?.date)}</span>
           </p>
         )}
         {(() => {
@@ -402,7 +406,7 @@ export default function MeasurementsPage() {
               logWeight(todayKg);
               setTodayKg("");
               if (uid) {
-                const newWeight = parseFloat(todayKg);
+                const newWeight = toNum(todayKg);
                 await supabase.from("profiles").update({ weight_kg: newWeight }).eq("id", uid);
                 useAuthStore.setState(s => ({ profile: { ...(s.profile || { id: uid }), weight_kg: newWeight } }));
               }

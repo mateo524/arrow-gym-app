@@ -290,21 +290,30 @@ export default function WorkoutPage() {
     const exerciseNames = (active?.sets || []).map(s => s.exercise).filter(Boolean);
     const uniqueExercises = [...new Set(exerciseNames)];
     pendingFinishRef.current = { notes, rpe, summary };
+    const userId = profile?.id || useAuthStore.getState().profile?.id;
+    if (!userId || uniqueExercises.length === 0) {
+      _commitFinish(notes, rpe, summary);
+      return;
+    }
+    const timeout = setTimeout(() => _commitFinish(notes, rpe, summary), 5000);
     import("../lib/supabase.js").then(({ supabase }) => {
-      supabase.from("routines").select("id, exercises").eq("user_id", profile?.id).then(({ data }) => {
+      supabase.from("routines").select("id, exercises").eq("user_id", userId).then(({ data, error }) => {
+        clearTimeout(timeout);
+        if (error || !data) { _commitFinish(notes, rpe, summary); return; }
         const routines = data || [];
         const alreadySaved = routines.some(r => {
           const rNames = (r.exercises || []).map(e => e.name);
-          return uniqueExercises.every(n => rNames.includes(n)) && rNames.every(n => uniqueExercises.includes(n));
+          const overlap = uniqueExercises.filter(n => rNames.includes(n)).length;
+          return overlap >= Math.min(uniqueExercises.length, rNames.length) * 0.8;
         });
-        if (!alreadySaved && uniqueExercises.length > 0) {
+        if (!alreadySaved) {
           setSaveRoutineName("");
           setShowSaveRoutine(true);
         } else {
           _commitFinish(notes, rpe, summary);
         }
-      }).catch(() => _commitFinish(notes, rpe, summary));
-    }).catch(() => _commitFinish(notes, rpe, summary));
+      }).catch(() => { clearTimeout(timeout); _commitFinish(notes, rpe, summary); });
+    }).catch(() => { clearTimeout(timeout); _commitFinish(notes, rpe, summary); });
   }
 
   function _commitFinish(notes, rpe, summary) {
@@ -648,7 +657,7 @@ export default function WorkoutPage() {
                 {editRestExercise === exercise && (
                   <div style={{ padding: "8px 0", display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginTop: 6 }}>
                     <span style={{ fontSize: 12, color: "var(--muted)", width: "100%", marginBottom: 4 }}>Tiempo de descanso:</span>
-                    {[30,60,90,120,180,240].map(s => (
+                    {[30,45,60,90,120,150,180,240,300].map(s => (
                       <button key={s} onClick={() => { setExerciseRestTime(exercise, s); setEditRestExercise(null); }}
                         style={{ padding: "7px 12px", borderRadius: 10, border: `1.5px solid ${(exerciseRestTimes[exercise]||90)===s ? "var(--green)" : "var(--line)"}`, background: (exerciseRestTimes[exercise]||90)===s ? "rgba(168,85,247,.15)" : "var(--panel2)", color: (exerciseRestTimes[exercise]||90)===s ? "var(--green)" : "var(--muted)", fontSize: 13, cursor: "pointer", fontWeight: 700 }}>
                         {s < 60 ? `${s}s` : `${s/60}min`}
@@ -966,7 +975,7 @@ export default function WorkoutPage() {
              postSummary.overallPct < -10 ? "Volumen debajo del promedio — si fue intencional, perfecto." :
              "Sesión dentro de tu promedio. Constancia es la clave."}
           </p>
-          <button className="primary" style={{ width: "100%" }} onClick={() => { setPostSummary(null); setPage("home"); }}>
+          <button className="primary" style={{ width: "100%" }} onClick={() => { setPostSummary(null); setPage("home"); if (window.__showToast) window.__showToast("✓ Entrenamiento guardado"); }}>
             Listo
           </button>
         </div>
@@ -1057,6 +1066,7 @@ export default function WorkoutPage() {
           soundEnabled={soundEnabled}
           onSkip={handleSkipRest}
           onComplete={handleRestComplete}
+          onChangeDuration={(secs) => { if (restExercise) setExerciseRestTime(restExercise, secs); }}
           nextLabel={nextExercise}
         />
       </div>

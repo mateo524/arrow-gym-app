@@ -22,6 +22,7 @@ export default function TrainerPage() {
   const [routineName, setRoutineName] = useState("");
   const [routineDayIndex, setRoutineDayIndex] = useState("");
   const [routineNotes, setRoutineNotes] = useState("");
+  const [routineGroupName, setRoutineGroupName] = useState("");
   const [exercises, setExercises] = useState([]);
 
   const catalogNames = EXERCISE_DATABASE.map((e) => e.name);
@@ -64,6 +65,8 @@ export default function TrainerPage() {
     setRoutineName(routine.name);
     setRoutineDayIndex(routine.day_index != null ? String(routine.day_index) : "");
     setRoutineNotes(routine.notes || "");
+    const grp = (routine.notes || "").match(/^\[GRUPO: (.+?)\]/);
+    setRoutineGroupName(grp ? grp[1] : "");
     setExercises(routine.exercises || []);
   }
 
@@ -72,12 +75,16 @@ export default function TrainerPage() {
     setSaving(true);
     setSaveMsg("");
     const cleanExercises = exercises.filter((e) => e.name.trim());
+    const isGroup = routineGroupName.trim().length > 0;
+    const finalNotes = isGroup
+      ? `[GRUPO: ${routineGroupName.trim()}] ${routineNotes.trim()}`
+      : routineNotes.trim() || null;
     const payload = {
-      user_id: selectedClient.id,
+      user_id: isGroup ? profile.id : selectedClient.id,
       trainer_id: profile.id,
       name: routineName.trim(),
       exercises: cleanExercises,
-      notes: routineNotes.trim() || null,
+      notes: finalNotes,
       day_index: routineDayIndex !== "" ? parseInt(routineDayIndex, 10) : null,
     };
 
@@ -181,8 +188,8 @@ export default function TrainerPage() {
 
   if (!["trainer", "admin", "superadmin"].includes(profile?.role)) return null;
 
-  return (
-    <section className="page">
+  return (<>
+  <section className="page">
       <div className="page-header">
         <p className="eyebrow">{isAdmin ? "Admin" : "Entrenador"}</p>
         <h1>Mis clientes</h1>
@@ -267,6 +274,19 @@ export default function TrainerPage() {
                   rows={2}
                   style={{ width:"100%", background:"#0b1518", border:"1px solid #1b2d31", borderRadius:12, padding:"10px 12px", color:"var(--text)", fontSize:13, resize:"vertical" }}
                 />
+              </div>
+
+              <div className="field-group" style={{ marginBottom:12, display:"flex", alignItems:"center", gap:10 }}>
+                <input type="checkbox" id="grupChk" checked={routineGroupName.trim().length > 0}
+                  onChange={(e) => setRoutineGroupName(e.target.checked ? "Grupo" : "")}
+                  style={{ width:18, height:18 }} />
+                <label htmlFor="grupChk" style={{ margin:0 }}>Rutina grupal (todos mis clientes)</label>
+                {routineGroupName.trim().length > 0 && (
+                  <input type="text" value={routineGroupName}
+                    onChange={(e) => setRoutineGroupName(e.target.value)}
+                    placeholder="Nombre del grupo"
+                    style={{ flex:1, background:"#0b1518", border:"1px solid #1b2d31", borderRadius:8, padding:"6px 10px", color:"var(--text)", fontSize:12 }} />
+                )}
               </div>
 
               <p className="section-label" style={{ marginBottom:8 }}>Ejercicios</p>
@@ -385,9 +405,13 @@ export default function TrainerPage() {
                             {r.day_index != null && (
                               <span className="day-badge">Día {r.day_index}</span>
                             )}
+                            {(r.notes || "").startsWith("[GRUPO:") && (() => {
+                              const g = (r.notes || "").match(/^\[GRUPO: (.+?)\]/);
+                              return g ? <span className="day-badge" style={{ background:"rgba(168,85,247,.15)", color:"var(--green)", marginLeft:4 }}>👥 {g[1]}</span> : null;
+                            })()}
                             <strong style={{ display:"block" }}>{r.name}</strong>
                             <small>{r.exercises?.length || 0} ejercicios</small>
-                            {r.notes && <small style={{ color:"var(--muted)", display:"block", marginTop:2 }}>{r.notes}</small>}
+                            {r.notes && <small style={{ color:"var(--muted)", display:"block", marginTop:2 }}>{r.notes.replace(/^\[GRUPO:.+?\]\s*/,"")}</small>}
                           </div>
                           <div className="routine-item-actions">
                             <button className="ghost icon-btn" onClick={() => openEditRoutine(r)}>
@@ -412,30 +436,30 @@ export default function TrainerPage() {
             </>
           )}
         </>
-      )}
-      {showAssign && selectedClient && (
-        <AssignRoutineModal
-          targetUser={selectedClient}
-          onClose={() => setShowAssign(false)}
-          onDone={() => selectClient(selectedClient)}
-        />
-      )}
+    )}
+  </section>
+  {showAssign && selectedClient && (
+    <AssignRoutineModal
+      targetUser={selectedClient}
+      onClose={() => setShowAssign(false)}
+      onDone={() => selectClient(selectedClient)}
+    />
+  )}
 
-      {deleteRoutineTarget && (
-        <div className="modal-overlay" onClick={() => setDeleteRoutineTarget(null)}>
-          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <Icon name="Trash2" size={20} style={{ color: "var(--danger, #e05)" }} />
-              <h3>Eliminar rutina</h3>
-            </div>
-            <p>¿Estás seguro de que querés eliminar esta rutina? Esta acción no se puede deshacer.</p>
-            <div className="modal-actions">
-              <button className="ghost" onClick={() => setDeleteRoutineTarget(null)}>Cancelar</button>
-              <button className="danger" onClick={confirmDeleteRoutine}>Eliminar</button>
-            </div>
-          </div>
+  {deleteRoutineTarget && (
+    <div className="modal-overlay" onClick={() => setDeleteRoutineTarget(null)}>
+      <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <Icon name="Trash2" size={20} style={{ color: "var(--danger, #e05)" }} />
+          <h3>Eliminar rutina</h3>
         </div>
-      )}
-    </section>
-  );
+        <p>¿Estás seguro de que querés eliminar esta rutina? Esta acción no se puede deshacer.</p>
+        <div className="modal-actions">
+          <button className="ghost" onClick={() => setDeleteRoutineTarget(null)}>Cancelar</button>
+          <button className="danger" onClick={confirmDeleteRoutine}>Eliminar</button>
+        </div>
+      </div>
+    </div>
+  )}
+</>);
 }

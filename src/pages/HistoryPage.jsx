@@ -1,5 +1,6 @@
 ﻿import { useState, useMemo } from "react";
 import useStore from "../store/useStore.js";
+import { todayLocal } from "../lib/dates.js";
 import { getWorkoutVolume, formatDate } from "../lib/analytics.js";
 import ExerciseProgressChart from "../components/ExerciseProgressChart.jsx";
 import Icon from "../components/Icon.jsx";
@@ -18,7 +19,7 @@ function buildMonthCalendar(workouts, year, month) {
   }
 
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const todayIso = new Date().toISOString().slice(0, 10);
+  const todayIso = todayLocal();
   const monthPrefix = `${year}-${String(month + 1).padStart(2, "0")}`;
 
   const firstDow = new Date(year, month, 1).getDay();
@@ -105,6 +106,7 @@ export default function HistoryPage() {
   const workouts = useStore((state) => state.workouts);
   const restDays = useStore(s => s.restDays) || [];
   const prs = useStore((state) => state.prs) ?? [];
+  const cardioHistory = useStore(s => s.cardioHistory) || [];
   const setPage = useStore((state) => state.setPage);
   const openWorkout = useStore((state) => state.openWorkout);
 
@@ -154,9 +156,10 @@ export default function HistoryPage() {
     const entries = [
       ...(workouts || []).map(w => ({ ...w, _type: 'workout' })),
       ...(restDays || []).map(r => ({ id: 'rest-' + r.date, date: r.date, _type: 'rest' })),
+      ...(cardioHistory || []).map(c => ({ ...c, _type: 'cardio' })),
     ];
     return entries.sort((a,b) => String(b.date).localeCompare(String(a.date)));
-  }, [workouts, restDays]);
+  }, [workouts, restDays, cardioHistory]);
 
   const filteredEntries = useMemo(() => {
     if (!searchQuery.trim()) return allEntries;
@@ -296,7 +299,7 @@ export default function HistoryPage() {
                   {isExpanded && uniqueExercises.length > 0 && (
                     <div style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 12, padding: 12, marginTop: 4 }}>
                       {uniqueExercises.map(exercise => (
-                        <ExerciseProgressChart key={exercise} exercise={exercise} />
+                        <ExerciseProgressChart key={exercise} exerciseName={exercise} workouts={workouts} />
                       ))}
                     </div>
                   )}
@@ -322,7 +325,7 @@ export default function HistoryPage() {
                 items.push(
                   <div key={`month-${entryMonth}`} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 2px 4px", marginTop:12 }}>
                     <span style={{ fontSize:13, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.5px" }}>{monthLabel}</span>
-                    <span style={{ fontSize:12, color:"var(--muted)" }}>{(monthVolume/1000).toFixed(1)}t · {monthWorkoutCount} entrenos</span>
+                    <span style={{ fontSize:12, color:"var(--muted)" }}>{monthVolume >= 1000 ? (monthVolume/1000).toFixed(1) + "k" : monthVolume}kg · {monthWorkoutCount} entrenos</span>
                   </div>
                 );
               }
@@ -334,6 +337,22 @@ export default function HistoryPage() {
                     <div>
                       <p style={{ margin:0, fontSize:13, fontWeight:600, color:"var(--text)" }}>Día de descanso</p>
                       <small style={{ color:"var(--muted)" }}>{formatDate(entry.date)}</small>
+                    </div>
+                  </div>
+                );
+              } else if (entry._type === 'cardio') {
+                const mins = entry.duration ? Math.round(entry.duration / 60) : null;
+                items.push(
+                  <div key={entry.id || `cardio-${entry.date}-${entry.sport}`} style={{ display:"flex", alignItems:"center", gap:10, background:"var(--panel)", border:"1px solid rgba(117,217,255,.2)", borderRadius:12, padding:"10px 14px", marginBottom:6 }}>
+                    <span style={{ fontSize:20 }}>{entry.icon || "🏃"}</span>
+                    <div style={{ flex:1 }}>
+                      <p style={{ margin:"0 0 2px", fontSize:13, fontWeight:700, color:"var(--text)" }}>{entry.sportName || entry.sport || "Cardio"}</p>
+                      <small style={{ color:"var(--muted)" }}>
+                        {formatDate(entry.date)}
+                        {mins ? ` · ${mins} min` : ""}
+                        {entry.distance ? ` · ${entry.distance} km` : ""}
+                        {entry.kcal ? ` · ${entry.kcal} kcal` : ""}
+                      </small>
                     </div>
                   </div>
                 );
@@ -376,7 +395,7 @@ export default function HistoryPage() {
                     {isExpanded && !compareMode && uniqueExercises.length > 0 && (
                       <div style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 12, padding: 12, marginTop: 4 }}>
                         {uniqueExercises.map(exercise => (
-                          <ExerciseProgressChart key={exercise} exercise={exercise} />
+                          <ExerciseProgressChart key={exercise} exerciseName={exercise} workouts={workouts} />
                         ))}
                       </div>
                     )}
@@ -394,6 +413,27 @@ export default function HistoryPage() {
             }
             return items;
           })()}
+        </div>
+      )}
+
+      {/* ── Cardio history ── */}
+      {!isSearching && cardioHistory.length > 0 && (
+        <div style={{ marginTop: 12 }}>
+          <p style={{ fontSize:13, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.05em", margin:"0 0 8px" }}>Cardio</p>
+          {cardioHistory.slice(0, 10).map(c => (
+            <div key={c.id} style={{ display:"flex", alignItems:"center", gap:10, background:"var(--panel)", border:"1px solid var(--line)", borderRadius:12, padding:"8px 12px", marginBottom:4 }}>
+              <span style={{ fontSize:20 }}>{c.sportIcon || "🏃"}</span>
+              <div style={{ flex:1 }}>
+                <p style={{ margin:0, fontSize:13, fontWeight:600 }}>{c.sportName || c.sport}</p>
+                <p style={{ margin:0, fontSize:11, color:"var(--muted)" }}>
+                  {c.duration ? `${Math.floor(c.duration/60)}min` : ""}
+                  {c.calories ? ` · ${Math.round(c.calories)} kcal` : ""}
+                  {c.distance ? ` · ${c.distance} km` : ""}
+                </p>
+              </div>
+              <small style={{ color:"var(--muted)", fontSize:10 }}>{formatDate(c.date)}</small>
+            </div>
+          ))}
         </div>
       )}
 

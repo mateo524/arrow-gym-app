@@ -109,6 +109,7 @@ export default function CardioPage() {
     setSaved(session);
     setStep("done");
     setRunning(false);
+    if (window.__showToast) window.__showToast("✓ Cardio guardado");
   }
 
   const cats = [...new Set(SPORTS.map(s => s.cat))];
@@ -289,8 +290,8 @@ export default function CardioPage() {
                   </span>
                 )}
               </div>
-              <input type="number" inputMode="decimal" value={distance}
-                onChange={e => setDistance(e.target.value)}
+              <input type="text" inputMode="decimal" value={distance}
+                onChange={e => setDistance(e.target.value.replace(/,/g, ".").replace(/[^0-9.]/g, "").replace(/^(\d{0,5})(\.\d{0,2})?.*/, "$1$2"))}
                 placeholder="0.0"
                 style={{ width: "100%", background: "none", border: "none", outline: "none", fontSize: 28, fontWeight: 900, color: "var(--text)", marginTop: 4 }} />
             </div>

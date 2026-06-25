@@ -2,6 +2,7 @@
 import { useShallow } from "zustand/react/shallow";
 import useStore from "../store/useStore.js";
 import useAuthStore from "../store/useAuthStore.js";
+import { todayLocal } from "../lib/dates.js";
 import { getWorkoutVolume, formatDate, getMuscleIntensity, filterCurrentWeek, getNextWorkoutSuggestion, getDeloadSuggestion } from "../lib/analytics.js";
 import AdvancedMuscleDiagram from "../components/AdvancedMuscleDiagram.jsx";
 import Icon from "../components/Icon.jsx";
@@ -75,7 +76,7 @@ export default function HomePage() {
 
   // Weekly summary — last Mon→Sun
   const monthDays = useMemo(() => {
-    const prefix = new Date().toISOString().slice(0,7);
+    const prefix = todayLocal().slice(0,7);
     return new Set(workouts.filter(w => w.date?.startsWith(prefix)).map(w => w.date?.slice(0,10))).size;
   }, [workouts]);
 
@@ -224,7 +225,7 @@ export default function HomePage() {
             weekStart.setDate(weekStart.getDate()+off); weekStart.setHours(0,0,0,0);
             const weekWorkouts = workouts.filter(w => w.date >= weekStart.toISOString().slice(0,10));
             const weekVolume = weekWorkouts.reduce((s,w) => s+(w.sets||[]).reduce((sv,set)=>sv+(Number(set.weight)||0)*(Number(set.reps)||0),0),0);
-            const todayStr = new Date().toISOString().slice(0,10);
+            const todayStr = todayLocal();
             const mealLog = useStore.getState().mealLog || [];
             const todayKcal = mealLog.filter(m=>m.date===todayStr).reduce((s,m)=>s+(Number(m.kcal)||0),0);
             const maxWeekVol = 50000;

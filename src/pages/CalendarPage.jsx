@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import useStore from "../store/useStore";
+import { todayLocal } from "../lib/dates.js";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -52,7 +53,7 @@ export default function CalendarPage() {
   const workouts = useStore((s) => s.workouts);
   const setPage = useStore((s) => s.setPage);
 
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = todayLocal();
   const todayDate = new Date();
 
   const [year, setYear] = useState(todayDate.getFullYear());

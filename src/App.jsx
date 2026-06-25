@@ -28,19 +28,7 @@ import useStore from "./store/useStore.js";
 import useAuthStore from "./store/useAuthStore.js";
 import { supabase } from "./lib/supabase.js";
 
-const APP_VERSION = "46";
-const NOVEDADES = [
-  { version: 46, icon: "⏱", text: "Timer de descanso funciona aunque cambies de pestaña." },
-  { version: 46, icon: "🏆", text: "Resumen de records al terminar un entrenamiento." },
-  { version: 46, icon: "▶️", text: "Timer de descanso manual — apretas 'Iniciar descanso' cuando estes listo." },
-  { version: 46, icon: "🎯", text: "Al crear rutina, elegi entre hacerla vos o que el coach te ayude." },
-  { version: 46, icon: "📊", text: "Progresion redisenada — records primero, stats opcionales." },
-  { version: 46, icon: "🔌", text: "Health Sync reemplazada por 'Proximamente'." },
-  { version: 46, icon: "🛡️", text: "Manejo de errores mejorado en toda la app." },
-  { version: 46, icon: "🥗", text: "Plan de comidas: hoy destacado, auto-expansion, log rapido por comida." },
-  { version: 46, icon: "🔴", text: "Punto rojo en Coach solo cuando terminas un entreno con reportes." },
-  { version: 46, icon: "🗣️", text: "Coach por voz removido — limpieza general de emojis." },
-];
+const APP_VERSION = "54";
 
 function InstallBanner({ onInstall, onDismiss, isIOS }) {
   if (isIOS) {
@@ -70,31 +58,6 @@ function InstallBanner({ onInstall, onDismiss, isIOS }) {
       <div style={{ display:"flex", flexDirection:"column", gap:6, flexShrink:0 }}>
         <button className="primary" style={{ padding:"8px 14px", fontSize:13 }} onClick={onInstall}>Instalar</button>
         <button onClick={onDismiss} style={{ background:"none", border:"none", color:"var(--muted)", fontSize:12, cursor:"pointer", textAlign:"center" }}>Ahora no</button>
-      </div>
-    </div>
-  );
-}
-
-function NovedadesModal({ onClose, lastSeenVersion }) {
-  const newItems = NOVEDADES.filter(n => n.version > (lastSeenVersion || 0));
-  return (
-    <div style={{ position:"fixed", inset:0, zIndex:10000, background:"rgba(0,0,0,.65)", display:"flex", alignItems:"flex-end", justifyContent:"center" }}
-      onClick={onClose}>
-      <div style={{ background:"var(--panel)", borderRadius:"20px 20px 0 0", padding:"24px 20px 32px", width:"100%", maxWidth:480, boxShadow:"0 -4px 32px rgba(0,0,0,.4)" }}
-        onClick={e => e.stopPropagation()}>
-        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 }}>
-          <span style={{ fontWeight:700, fontSize:18 }}>🚀 Novedades</span>
-          <button style={{ background:"none", border:"none", color:"var(--muted)", fontSize:22, lineHeight:1, cursor:"pointer", padding:"0 4px" }} onClick={onClose}>✕</button>
-        </div>
-        <div style={{ display:"flex", flexDirection:"column", gap:12, marginBottom:20 }}>
-          {newItems.map((n, i) => (
-            <div key={i} style={{ display:"flex", gap:12, alignItems:"flex-start" }}>
-              <span style={{ fontSize:22, lineHeight:"1.4" }}>{n.icon}</span>
-              <span style={{ fontSize:14, color:"var(--text)", lineHeight:"1.5" }}>{n.text}</span>
-            </div>
-          ))}
-        </div>
-        <button className="primary" style={{ width:"100%" }} onClick={onClose}>¡Entendido!</button>
       </div>
     </div>
   );
@@ -157,7 +120,6 @@ function AppContent() {
   const setPage = useStore((s) => s.setPage);
   const lastSeenVersion = useStore((s) => s.lastSeenVersion);
   const markVersionSeen = useStore((s) => s.markVersionSeen);
-  const [showNovedades, setShowNovedades] = useState(false);
   const [installPrompt, setInstallPrompt] = useState(null);   // Android: deferred prompt
   const [showInstallBanner, setShowInstallBanner] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
@@ -174,15 +136,6 @@ function AppContent() {
   const [passwordError, setPasswordError] = useState("");
   const [passwordLoading, setPasswordLoading] = useState(false);
   const isReturningUser = workouts.length > 0 || Boolean(profile?.goal) || Boolean(profile?.fitness_level) || Boolean(profile?.weight_kg);
-
-  // Show "Novedades" popup when a new version is deployed
-  useEffect(() => {
-    if (user && lastSeenVersion !== APP_VERSION) {
-      // Small delay so the app shell renders first
-      const t = setTimeout(() => setShowNovedades(true), 800);
-      return () => clearTimeout(t);
-    }
-  }, [user, lastSeenVersion]);
 
   // PWA install prompt — Android: capture beforeinstallprompt; iOS: detect Safari
   useEffect(() => {
@@ -331,11 +284,6 @@ function AppContent() {
     if (PAGE_MAP[path] && path !== currentPage) setPage(path);
   }, []); // eslint-disable-line
 
-  // Active workout always wins — redirect to workout page
-  useEffect(() => {
-    if (activeWorkout && currentPage !== "workout") setPage("workout");
-  }, [activeWorkout]);
-
   // Store → URL (one-way, no feedback loop)
   useEffect(() => {
     const path = "/" + currentPage;
@@ -351,8 +299,29 @@ function AppContent() {
   // Show splash while: (a) initial load with no cached session, or (b) session
   // refreshed but profile hasn't loaded yet — prevents the black screen on iOS PWA
   // when the app is opened after the JWT has expired.
-  if (loading || (user && !profile)) {
-    return (
+  const splashScreen = loading || (user && !profile);
+  const showLogin = !splashScreen && !user;
+
+  // Access control
+  const subStatus = profile?.subscription_status;
+  const hasAccess = !subStatus || subStatus === "active" || subStatus === "trialing";
+  const role = profile?.role;
+  const isAdminRole = ["superadmin", "admin", "trainer"].includes(role);
+  const accountAgeMs = profile?.created_at ? Date.now() - new Date(profile.created_at).getTime() : 0;
+  const trialExpired = !isAdminRole && accountAgeMs > 30 * 24 * 60 * 60 * 1000 && subStatus !== "active";
+
+  const PAGE_ROLE_GUARDS = {
+    admin: ["admin", "superadmin"],
+    trainer: ["trainer", "admin", "superadmin"],
+  };
+  const requiredRoles = PAGE_ROLE_GUARDS[currentPage];
+  const isAllowed = !requiredRoles || requiredRoles.includes(role);
+  const PageComponent = isAllowed ? (PAGE_MAP[currentPage] || HomePage) : HomePage;
+  const showOnboarding = user && profile && !hasSeenOnboarding && !isReturningUser;
+
+  let inner;
+  if (splashScreen) {
+    inner = (
       <div className="splash-screen">
         <div className="splash-logo">
           <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
@@ -363,16 +332,10 @@ function AppContent() {
         </div>
       </div>
     );
-  }
-
-  if (!user) return <LoginPage />;
-
-  // Access control: block only if subscription is explicitly inactive/cancelled.
-  // Users with no subscription_status (existing users) get free access.
-  const subStatus = profile?.subscription_status;
-  const hasAccess = !subStatus || subStatus === "active" || subStatus === "trialing";
-  if (!hasAccess) {
-    return (
+  } else if (showLogin) {
+    inner = <LoginPage />;
+  } else if (!hasAccess) {
+    inner = (
       <div style={{ minHeight:"100vh", background:"var(--bg)", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:24, textAlign:"center" }}>
         <div style={{ fontSize:40, marginBottom:16 }}>🔒</div>
         <h2 style={{ margin:"0 0 8px" }}>Suscripción vencida</h2>
@@ -383,15 +346,8 @@ function AppContent() {
         <button className="ghost" onClick={() => useAuthStore.getState().logout()}>Cerrar sesión</button>
       </div>
     );
-  }
-
-  const role = profile?.role;
-  const isAdminRole = ["superadmin", "admin", "trainer"].includes(role);
-  const accountAgeMs = profile?.created_at ? Date.now() - new Date(profile.created_at).getTime() : 0;
-  const trialExpired = !isAdminRole && accountAgeMs > 30 * 24 * 60 * 60 * 1000 && subStatus !== "active";
-
-  if (trialExpired) {
-    return (
+  } else if (trialExpired) {
+    inner = (
       <div style={{ minHeight:"100vh", background:"var(--bg)", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:24, textAlign:"center" }}>
         <div style={{ fontSize:48, marginBottom:16 }}>⏳</div>
         <h2 style={{ margin:"0 0 8px" }}>Hola {profile?.name || profile?.email?.split("@")[0] || ""},</h2>
@@ -408,34 +364,29 @@ function AppContent() {
         </button>
       </div>
     );
-  }
-
-  const PAGE_ROLE_GUARDS = {
-    admin: ["admin", "superadmin"],
-    trainer: ["trainer", "admin", "superadmin"],
-  };
-  const requiredRoles = PAGE_ROLE_GUARDS[currentPage];
-  const isAllowed = !requiredRoles || requiredRoles.includes(role);
-  const PageComponent = isAllowed ? (PAGE_MAP[currentPage] || HomePage) : HomePage;
-  const showOnboarding = user && profile && !hasSeenOnboarding && !isReturningUser;
-
-  return (
-    <div className={`app-shell${amoled ? " amoled" : ""}`}>
-      {draftRecovered && (
-        <div style={{ position: "fixed", top: "max(env(safe-area-inset-top,0px),0px)", left: 0, right: 0, zIndex: 9999, background: "rgba(168,85,247,.15)", borderBottom: "1px solid rgba(168,85,247,.4)", padding: "10px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 13 }}>
-          <span style={{ color: "var(--green)", fontWeight: 700 }}>Entrenamiento recuperado</span>
-          <button style={{ background: "none", border: "none", color: "var(--muted)", fontSize: 16, cursor: "pointer", padding: "0 4px" }} onClick={() => setDraftRecovered(false)}>✕</button>
-        </div>
-      )}
-      <main className="app-main">
-        <ErrorBoundary resetKey={currentPage}>
+  } else {
+    inner = (
+      <div className={`app-shell${amoled ? " amoled" : ""}`}>
+        {draftRecovered && (
+          <div style={{ position: "fixed", top: "max(env(safe-area-inset-top,0px),0px)", left: 0, right: 0, zIndex: 9999, background: "rgba(168,85,247,.15)", borderBottom: "1px solid rgba(168,85,247,.4)", padding: "10px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 13 }}>
+            <span style={{ color: "var(--green)", fontWeight: 700 }}>Entrenamiento recuperado</span>
+            <button style={{ background: "none", border: "none", color: "var(--muted)", fontSize: 16, cursor: "pointer", padding: "0 4px" }} onClick={() => setDraftRecovered(false)}>✕</button>
+          </div>
+        )}
+        <main className="app-main">
           <Suspense fallback={<div style={{ display:"flex", alignItems:"center", justifyContent:"center", minHeight:"60vh" }}><div className="spin" style={{ width:32, height:32, border:"3px solid var(--line)", borderTopColor:"var(--green)", borderRadius:"50%" }} /></div>}>
             <PageComponent />
           </Suspense>
-        </ErrorBoundary>
-      </main>
-      <Nav role={role} />
-      {showOnboarding && <OnboardingModal />}
+        </main>
+        <Nav role={role} />
+        {showOnboarding && <OnboardingModal />}
+      </div>
+    );
+  }
+
+  return (
+    <ErrorBoundary resetKey={currentPage}>
+      {inner}
 
       {/* ── FIRST LOGIN / PASSWORD RECOVERY MODAL ──────────────────────── */}
       {(showPasswordModal || profile?.has_changed_password === false) && (
@@ -465,7 +416,6 @@ function AppContent() {
                 setPasswordError("");
                 const { error } = await supabase.auth.updateUser({ password: newPassword });
                 if (error) { setPasswordError(error.message); setPasswordLoading(false); return; }
-                // Mark password as changed in profile
                 try {
                   const uid = useAuthStore.getState().user?.id;
                   if (uid) await supabase.from("profiles").update({ has_changed_password: true }).eq("id", uid);
@@ -487,9 +437,6 @@ function AppContent() {
         </div>
       )}
 
-      {showNovedades && (
-        <NovedadesModal onClose={() => { setShowNovedades(false); markVersionSeen(APP_VERSION); }} lastSeenVersion={lastSeenVersion} />
-      )}
       {swUpdateReady && (
         <div style={{ position:"fixed", top:0, left:0, right:0, zIndex:9999,
           background:"var(--green)", color:"#050709", padding:"12px 16px",
@@ -502,7 +449,7 @@ function AppContent() {
           </button>
         </div>
       )}
-      {showInstallBanner && !showNovedades && (
+      {showInstallBanner && (
         <InstallBanner
           isIOS={isIOS}
           onDismiss={() => setShowInstallBanner(false)}
@@ -515,13 +462,25 @@ function AppContent() {
           }}
         />
       )}
-    </div>
+    </ErrorBoundary>
   );
 }
 
 export default function App() {
   const fontScale = useStore(s => s.fontScale) || 1;
   const autoDarkMode = useStore(s => s.autoDarkMode) || false;
+  const [toastMsg, setToastMsg] = useState("");
+  const toastTimer = useRef(null);
+
+  // Expose global toast function
+  useEffect(() => {
+    window.__showToast = (msg) => {
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+      setToastMsg(msg);
+      toastTimer.current = setTimeout(() => { setToastMsg(""); toastTimer.current = null; }, 2200);
+    };
+    return () => { window.__showToast = undefined; };
+  }, []);
 
   // Apply font scale to root element
   useEffect(() => {
@@ -544,6 +503,19 @@ export default function App() {
   return (
     <Router hook={useHashLocation}>
       <AppContent />
+      {/* Global toast */}
+      {toastMsg && (
+        <div style={{
+          position:"fixed", bottom:"calc(80px + env(safe-area-inset-bottom, 0px))",
+          left:"50%", transform:"translateX(-50%)", zIndex:99999,
+          background:"var(--green)", color:"#050709",
+          padding:"10px 20px", borderRadius:12,
+          fontSize:14, fontWeight:700,
+          boxShadow:"0 4px 20px rgba(0,0,0,.4)",
+          animation:"toast-in .25s ease",
+          whiteSpace:"nowrap",
+        }}>{toastMsg}</div>
+      )}
     </Router>
   );
 }

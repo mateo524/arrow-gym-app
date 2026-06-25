@@ -3,7 +3,7 @@ import useStore from "../store/useStore.js";
 import useAuthStore from "../store/useAuthStore.js";
 import Icon from "../components/Icon.jsx";
 import { shareWorkout } from "../lib/shareWorkout.js";
-import { buildCoachReport, formatDate, getPeriodizationPhase, getWeeklyFatigueScore, getWeightPrescriptions, getSkippedGroups, getOneRMHistory, getCycleComparison, getMuscleBalance, getWeekComparison, VOLUME_LANDMARKS } from "../lib/analytics.js";
+import { buildCoachReport, formatDate, getPeriodizationPhase, getWeeklyFatigueScore, getWeightPrescriptions, getSkippedGroups, getOneRMHistory, getCycleComparison, getMuscleBalance, getWeekComparison, getWorkoutVolume, VOLUME_LANDMARKS } from "../lib/analytics.js";
 function MuscleRadarChart({ data }) {
   const cx = 95, cy = 95, r = 62;
   const n = data.length;
@@ -67,13 +67,28 @@ export default function CoachPage() {
   const sortedWeightLog = [...weightLog].sort((a,b) => String(b.date||'').localeCompare(String(a.date||'')));
   const bodyWeight = Number(sortedWeightLog[0]?.kg) || null;
 
+  // Body fat estimation from skinfolds (Durnin-Womersley)
+  const hasSkinfolds = profile?.triceps_mm && profile?.subscapular_mm && profile?.biceps_mm && profile?.iliac_crest_mm;
+  const bodyFatPct = hasSkinfolds ? (() => {
+    const sum4 = Number(profile.triceps_mm) + Number(profile.subscapular_mm) + Number(profile.biceps_mm) + Number(profile.iliac_crest_mm);
+    if (sum4 <= 0) return null;
+    const logSum = Math.log10(sum4);
+    const age = userAge || 28;
+    const density = age >= 30 ? 1.1581 - 0.0720 * logSum : 1.1620 - 0.0630 * logSum;
+    return Math.max(3, Math.min(50, ((4.95 / density) - 4.5) * 100));
+  })() : null;
+  const lbm = bodyFatPct !== null && bodyWeight ? bodyWeight * (1 - bodyFatPct / 100) : null;
+
   const sleepLog   = useStore(s => s.sleepLog)   || [];
   const waterLog   = useStore(s => s.waterLog)   || [];
   const waterGoal  = useStore(s => s.waterGoal)  || 8;
 
   const [tab, setTab] = useState("resumen");
+  const [planSubTab, setPlanSubTab] = useState("rendimiento"); // "rendimiento" | "nutricion"
   const [muscleRange, setMuscleRange] = useState("1m"); // "1w","1m","3m","6m","1y","all"
   const [sharing, setSharing] = useState(false);
+  const [showProgresoAdvanced, setShowProgresoAdvanced] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [macroDay, setMacroDay] = useState("entreno"); // "entreno" | "descanso"
 
   useEffect(() => {
@@ -224,7 +239,11 @@ export default function CoachPage() {
     { id: "plan",     label: "Plan"       },
     { id: "progreso", label: "Progresión" },
     { id: "alertas",  label: "Alertas"    },
-    { id: "macros",   label: "Macros"     },
+  ];
+
+  const PLAN_SUB_TABS = [
+    { id: "rendimiento", label: "Rendimiento" },
+    { id: "nutricion",   label: "Nutrición"   },
   ];
 
   const MUSCLE_RANGE_LABELS = [
@@ -296,8 +315,11 @@ export default function CoachPage() {
     if (Math.abs(diff) < 0.08) return null; // within ±80g/wk is on track
     const calAdj = Math.round(-diff * 7700 / 7);
     const clamped = Math.max(-400, Math.min(400, calAdj));
-    return { weeklyChange: weeklyChange.toFixed(2), targetWeekly, suggestion: clamped, entries: sorted.length };
-  }, [weightLog, userGoal]);
+    // Adjust targets based on body fat: higher BF → more conservative surplus, more aggressive deficit
+    const bfAdjustment = bodyFatPct !== null ? (bodyFatPct > 25 ? 1.2 : bodyFatPct > 18 ? 1.0 : 0.85) : 1.0;
+    const adjusted = Math.round(clamped * bfAdjustment);
+    return { weeklyChange: weeklyChange.toFixed(2), targetWeekly, suggestion: adjusted, entries: sorted.length, bodyFat: bodyFatPct, lbm };
+  }, [weightLog, userGoal, bodyFatPct, lbm]);
 
   // ── Weekly caloric balance ────────────────────────────────────────────────────
   const weeklyBalance = useMemo(() => {
@@ -441,6 +463,39 @@ export default function CoachPage() {
       {/* ── TAB: RESUMEN ────────────────────────────────────── */}
       {tab === "resumen" && (
         <div>
+          {/* ── Medidas ── */}
+          <div style={{ background:"var(--panel)", borderRadius:16, padding:"12px 14px", marginBottom:14 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+              <p style={{ margin:0, fontSize:13, fontWeight:700, color:"var(--text)" }}>📏 Medidas</p>
+              <button className="ghost" style={{ fontSize:11, color:"var(--green)", fontWeight:600, padding:"2px 8px" }} onClick={() => setPage("measurements")}>
+                Ver todo →
+              </button>
+            </div>
+            <div style={{ display:"flex", gap:8, overflow:"auto", flexWrap:"nowrap" }}>
+              {bodyWeight && (
+                <div style={{ flex:"0 0 auto", minWidth:80, background:"rgba(34,197,94,.07)", border:"1px solid rgba(34,197,94,.2)", borderRadius:10, padding:"8px 10px", textAlign:"center" }}>
+                  <p style={{ margin:"0 0 1px", fontSize:10, color:"var(--green)", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.04em" }}>Peso</p>
+                  <p style={{ margin:0, fontSize:16, fontWeight:900, color:"var(--text)" }}>{bodyWeight}<span style={{ fontSize:10, fontWeight:400, color:"var(--muted)" }}>kg</span></p>
+                </div>
+              )}
+              {bodyFatPct !== null && (
+                <div style={{ flex:"0 0 auto", minWidth:80, background:"rgba(168,85,247,.07)", border:"1px solid rgba(168,85,247,.2)", borderRadius:10, padding:"8px 10px", textAlign:"center" }}>
+                  <p style={{ margin:"0 0 1px", fontSize:10, color:"var(--green)", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.04em" }}>Grasa</p>
+                  <p style={{ margin:0, fontSize:16, fontWeight:900, color:"var(--text)" }}>{bodyFatPct.toFixed(1)}<span style={{ fontSize:10, fontWeight:400, color:"var(--muted)" }}>%</span></p>
+                </div>
+              )}
+              {lbm !== null && (
+                <div style={{ flex:"0 0 auto", minWidth:80, background:"rgba(96,165,250,.07)", border:"1px solid rgba(96,165,250,.2)", borderRadius:10, padding:"8px 10px", textAlign:"center" }}>
+                  <p style={{ margin:"0 0 1px", fontSize:10, color:"var(--green)", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.04em" }}>Masa magra</p>
+                  <p style={{ margin:0, fontSize:16, fontWeight:900, color:"var(--text)" }}>{lbm.toFixed(1)}<span style={{ fontSize:10, fontWeight:400, color:"var(--muted)" }}>kg</span></p>
+                </div>
+              )}
+              {!bodyWeight && (
+                <p style={{ margin:0, fontSize:12, color:"var(--muted)" }}>Sin datos. <button className="ghost" style={{ fontSize:12, color:"var(--green)", padding:0 }} onClick={() => setPage("measurements")}>Agregar</button></p>
+              )}
+            </div>
+          </div>
+
           {/* Readiness score */}
           <div style={{ background: "var(--panel)", borderRadius: 16, padding: "14px 16px", marginBottom: 14, display: "flex", alignItems: "center", gap: 14 }}>
             <div style={{ position: "relative", width: 56, height: 56, flexShrink: 0 }}>
@@ -489,7 +544,7 @@ export default function CoachPage() {
           {workouts.length === 0 ? (
             <div className="notice"><b>Sin entrenamientos</b><p>Completá tu primer entrenamiento para activar el Coach.</p></div>
           ) : (
-            <HolisticSummary workouts={workouts} prs={prs} userAge={userAge} bodyWeight={bodyWeight} userGoal={userGoal} />
+            <HolisticSummary workouts={workouts} prs={prs} userAge={userAge} bodyWeight={bodyWeight} bodyFatPct={bodyFatPct} lbm={lbm} userGoal={userGoal} />
           )}
 
           {weeklyChallenge && (
@@ -511,38 +566,44 @@ export default function CoachPage() {
             </div>
           )}
 
-              {/* Distribución muscular */}
-              <div className="card" style={{ marginTop:16 }}>
-                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 }}>
-                  <h2 style={{ margin:0, fontSize:16 }}>Distribución muscular</h2>
+          {/* ▼ Análisis avanzado (colapsable) */}
+          <button onClick={() => setShowAdvanced(s => !s)}
+            style={{ width:"100%", padding:"8px", borderRadius:10, border:"1px solid var(--line)", background:"var(--panel)", cursor:"pointer", fontSize:12, fontWeight:600, color:"var(--muted)", marginBottom:12 }}>
+            {showAdvanced ? "▲ Ocultar análisis avanzado" : "▼ Ver análisis avanzado"}
+          </button>
+
+          {showAdvanced && (<>
+          {/* Distribución muscular */}
+          <div className="card" style={{ marginTop:0 }}>
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 }}>
+              <h2 style={{ margin:0, fontSize:16 }}>Distribución muscular</h2>
+            </div>
+            <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:14 }}>
+              {MUSCLE_RANGE_LABELS.map(({key, label}) => (
+                <button key={key} onClick={() => setMuscleRange(key)} style={{
+                  padding:"5px 12px", borderRadius:20, fontSize:12, fontWeight:600,
+                  border: muscleRange===key ? "2px solid var(--green)" : "2px solid var(--line)",
+                  background: muscleRange===key ? "rgba(168,85,247,.15)" : "var(--panel2)",
+                  color: muscleRange===key ? "var(--green)" : "var(--muted)",
+                  cursor:"pointer",
+                }}>{label}</button>
+              ))}
+            </div>
+            <div style={{ display:"flex", justifyContent:"center" }}>
+              <MuscleRadarChart data={muscleData} />
+            </div>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginTop:8 }}>
+              {muscleData.filter(d => d.value > 0).map((d,i) => (
+                <div key={d.name} style={{ textAlign:"center", background:"var(--panel2)", borderRadius:10, padding:"8px 4px" }}>
+                  <div style={{ fontSize:14, fontWeight:800, color:"var(--green)" }}>{d.pct}%</div>
+                  <div style={{ fontSize:10, color:"var(--muted)" }}>{d.name}</div>
                 </div>
-                <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:14 }}>
-                  {MUSCLE_RANGE_LABELS.map(({key, label}) => (
-                    <button key={key} onClick={() => setMuscleRange(key)} style={{
-                      padding:"5px 12px", borderRadius:20, fontSize:12, fontWeight:600,
-                      border: muscleRange===key ? "2px solid var(--green)" : "2px solid var(--line)",
-                      background: muscleRange===key ? "rgba(168,85,247,.15)" : "var(--panel2)",
-                      color: muscleRange===key ? "var(--green)" : "var(--muted)",
-                      cursor:"pointer",
-                    }}>{label}</button>
-                  ))}
-                </div>
-                <div style={{ display:"flex", justifyContent:"center" }}>
-                  <MuscleRadarChart data={muscleData} />
-                </div>
-                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginTop:8 }}>
-                  {muscleData.filter(d => d.value > 0).map((d,i) => (
-                    <div key={d.name} style={{ textAlign:"center", background:"var(--panel2)", borderRadius:10, padding:"8px 4px" }}>
-                      <div style={{ fontSize:14, fontWeight:800, color:"var(--green)" }}>{d.pct}%</div>
-                      <div style={{ fontSize:10, color:"var(--muted)" }}>{d.name}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              ))}
+            </div>
+          </div>
 
           {/* 1RM Predictor */}
           {workouts.length > 0 && (() => {
-            // Top 5 ejercicios más frecuentes con peso
             const exMap = {};
             workouts.slice(0,20).forEach(w => (w.sets||[]).forEach(s => {
               if (!s.exercise || !Number(s.weight) || !Number(s.reps)) return;
@@ -603,13 +664,29 @@ export default function CoachPage() {
               </div>
             );
           })()}
+          </>)}
         </div>
       )}
 
       {/* ── TAB: PLAN ───────────────────────────────────────── */}
       {tab === "plan" && (
         <div>
-          {workouts.length < 3 ? (
+          {/* Sub-tab bar: Rendimiento | Nutrición */}
+          <div style={{ display:"flex", gap:4, background:"var(--panel)", borderRadius:14, padding:4, marginBottom:16 }}>
+            {PLAN_SUB_TABS.map(({ id, label }) => (
+              <button key={id} onClick={() => setPlanSubTab(id)} style={{
+                flex:1, padding:"8px 4px", fontSize:12, fontWeight:600, borderRadius:10,
+                border:"none", cursor:"pointer", transition:"all .15s",
+                background: planSubTab === id ? "var(--green)" : "transparent",
+                color: planSubTab === id ? "#fff" : "var(--muted)",
+              }}>{label}</button>
+            ))}
+          </div>
+
+          {planSubTab === "nutricion" ? (
+            <MacroCalculator profile={profile} workouts={workouts} userGoal={userGoal} macroDay={macroDay} setMacroDay={setMacroDay} adaptiveTDEE={adaptiveTDEE} weeklyBalance={weeklyBalance} />
+          ) : (
+          workouts.length < 3 ? (
             <div style={{ textAlign:"center", padding:"40px 20px" }}>
               <div style={{ fontSize:48, marginBottom:12 }}>📋</div>
               <h3 style={{ margin:"0 0 8px", fontSize:17 }}>Plan en construcción</h3>
@@ -627,7 +704,7 @@ export default function CoachPage() {
                 const icon     = isDeload ? "🔄" : isAccum ? "📈" : "⚡";
                 const label    = periodization.needsDeload ? "Deload recomendado" : isAccum ? "Fase de acumulación" : periodization.phase === "deload" ? "Fase de descarga" : "Fase de intensificación";
                 const desc     = periodization.needsDeload
-                  ? "Llevas 3+ semanas subiendo volumen. Esta semana bajá el peso al 60% para que el cuerpo superkompense y seguir progresando."
+                  ? "Llevas 3+ semanas subiendo volumen. Esta semana bajá el peso al 60% y aumentá las repeticiones (12-20 reps por serie) para que el cuerpo se recupere sin perder calidad."
                   : isAccum ? "Volumen en alza — buena señal. Priorizá técnica perfecta antes de seguir subiendo cargas."
                   : periodization.phase === "deload" ? "Volumen bajando. Si es planificado, perfecto. Si no, revisá fatiga o motivación."
                   : "Volumen estable — momento ideal para subir la intensidad (más kg, mismas series).";
@@ -674,7 +751,7 @@ export default function CoachPage() {
                     <div>
                       <p style={{ margin:"0 0 1px", fontSize:11, color:"var(--muted)", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em" }}>Carga semanal</p>
                       <p style={{ margin:0, fontSize:22, fontWeight:900, color: fatigueScore.overreaching ? "var(--danger)" : "var(--text)" }}>
-                        {fatigueScore.thisWeek >= 1000 ? (fatigueScore.thisWeek/1000).toFixed(1) + " t" : fatigueScore.thisWeek}<span style={{ fontSize:13, fontWeight:400, color:"var(--muted)", marginLeft:3 }}>kg</span>
+                        {fatigueScore.thisWeek >= 1000 ? (fatigueScore.thisWeek/1000).toFixed(1) + "k" : fatigueScore.thisWeek}<span style={{ fontSize:13, fontWeight:400, color:"var(--muted)", marginLeft:3 }}>kg</span>
                       </p>
                     </div>
                     <span style={{
@@ -689,11 +766,11 @@ export default function CoachPage() {
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
                     <div style={{ background:"var(--panel2)", borderRadius:12, padding:"8px 10px" }}>
                       <p style={{ margin:"0 0 2px", fontSize:10, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em" }}>Esta semana</p>
-                      <b style={{ fontSize:14 }}>{(fatigueScore.thisWeek/1000).toFixed(1)}t</b>
+                      <b style={{ fontSize:14 }}>{fatigueScore.thisWeek >= 1000 ? (fatigueScore.thisWeek/1000).toFixed(1) + "k" : fatigueScore.thisWeek}kg</b>
                     </div>
                     <div style={{ background:"var(--panel2)", borderRadius:12, padding:"8px 10px" }}>
                       <p style={{ margin:"0 0 2px", fontSize:10, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em" }}>Semana anterior</p>
-                      <b style={{ fontSize:14 }}>{(fatigueScore.lastWeek/1000).toFixed(1)}t</b>
+                      <b style={{ fontSize:14 }}>{fatigueScore.lastWeek >= 1000 ? (fatigueScore.lastWeek/1000).toFixed(1) + "k" : fatigueScore.lastWeek}kg</b>
                     </div>
                   </div>
                   {fatigueScore.overreaching && (
@@ -822,7 +899,7 @@ export default function CoachPage() {
                 </div>
               )}
             </>
-          )}
+          ))}
         </div>
       )}
 
@@ -837,6 +914,180 @@ export default function CoachPage() {
             </div>
           ) : (
             <>
+              {/* ── Header: grupos activos + sparkline ── */}
+              {(() => {
+                const activeGroups = Object.entries(muscleBalance).filter(([,v]) => v.sets > 0).length;
+                const totalGroups = Object.keys(muscleBalance).length;
+                // Weekly volumes for sparkline
+                const now = new Date();
+                const volSpark = [6,5,4,3,2,1,0].map(i => {
+                  const start = new Date(now); start.setDate(start.getDate() - start.getDay() - i*7 + 1);
+                  const end = new Date(start); end.setDate(end.getDate() + 6);
+                  return workouts.filter(w => w.date && w.date >= start.toISOString().slice(0,10) && w.date <= end.toISOString().slice(0,10))
+                    .reduce((s,w) => s + getWorkoutVolume(w), 0);
+                });
+                const maxV = Math.max(...volSpark, 1);
+                const SPW = 200, SPH = 32;
+                return (
+                  <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:14, background:"var(--panel)", borderRadius:14, padding:"10px 14px" }}>
+                    <div style={{ flex:1 }}>
+                      <p style={{ margin:0, fontSize:15, fontWeight:900, color:"var(--text)" }}>
+                        {activeGroups}/{totalGroups} grupos activos
+                      </p>
+                      <p style={{ margin:"2px 0 0", fontSize:11, color:"var(--muted)" }}>
+                        {volSpark[volSpark.length-1] >= 1000 ? (volSpark[volSpark.length-1]/1000).toFixed(1) + "k" : Math.round(volSpark[volSpark.length-1])}kg esta semana
+                      </p>
+                    </div>
+                    <svg width={SPW} height={SPH} viewBox={`0 0 ${SPW} ${SPH}`} style={{ flexShrink:0 }}>
+                      {volSpark.map((v,i) => {
+                        const x = (i / (volSpark.length-1)) * SPW;
+                        const y = SPH - (v / maxV) * (SPH - 4) - 2;
+                        return <circle key={i} cx={x} cy={y} r={2.5} fill={i === volSpark.length-1 ? "var(--green)" : "rgba(168,85,247,.5)"} />;
+                      })}
+                      {volSpark.length > 1 && (
+                        <polyline points={volSpark.map((v,i) => `${(i/(volSpark.length-1))*SPW},${SPH - (v/maxV)*(SPH-4)-2}`).join(" ")}
+                          fill="none" stroke="var(--green)" strokeWidth="1.5" strokeLinecap="round" />
+                      )}
+                    </svg>
+                  </div>
+                );
+              })()}
+
+              {/* ── Coach insights adaptativos ── */}
+              {(() => {
+                const hoy = new Date().toISOString().slice(0, 10);
+                const wDates = [...new Set((workouts||[]).map(w => w.date?.slice(0,10)).filter(Boolean))].sort().reverse();
+                // Streak
+                let racha = 0;
+                const d = new Date();
+                while (true) {
+                  const iso = d.toISOString().slice(0, 10);
+                  if (wDates.includes(iso)) { racha++; d.setDate(d.getDate() - 1); }
+                  else break;
+                }
+                // Week days
+                const mon = new Date(); mon.setDate(mon.getDate() - ((mon.getDay() + 6) % 7));
+                const monStr = mon.toISOString().slice(0, 10);
+                const semana = wDates.filter(x => x >= monStr && x <= hoy).length;
+                // Avg days last 4 weeks
+                let totalD = 0, wkCnt = 0;
+                for (let w = 1; w <= 4; w++) {
+                  const end = new Date(mon); end.setDate(end.getDate() - w * 7);
+                  const start = new Date(end); start.setDate(start.getDate() - 6);
+                  const days = wDates.filter(x => x >= start.toISOString().slice(0,10) && x <= end.toISOString().slice(0,10)).length;
+                  totalD += days; if (days > 0) wkCnt++;
+                }
+                const avgSem = wkCnt > 0 ? (totalD / wkCnt).toFixed(1) : "—";
+                // Weight trend (last 30 days)
+                const weightEntries = [...(weightLog||[])].sort((a,b) => String(a.date).localeCompare(b.date));
+                const recentWeight = weightEntries.filter(e => e.date >= monStr);
+                const lastMonthWeight = weightEntries.filter(e => {
+                  const m = new Date(); m.setDate(m.getDate() - 30);
+                  return e.date >= m.toISOString().slice(0, 10);
+                });
+                const wTrend = lastMonthWeight.length >= 2
+                  ? (Number(lastMonthWeight[lastMonthWeight.length-1].kg) - Number(lastMonthWeight[0].kg)).toFixed(1)
+                  : null;
+                // Sleep avg (last 7 days)
+                const sleepWeek = [...(sleepLog||[])].filter(e => e.date >= monStr);
+                const sleepAvg = sleepWeek.length > 0
+                  ? (sleepWeek.reduce((s, e) => s + Number(e.hours), 0) / sleepWeek.length).toFixed(1)
+                  : null;
+                // Volume trend this week vs last
+                const lastWeekStart = new Date(mon); lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+                const lastWeekEnd = new Date(mon); lastWeekEnd.setDate(lastWeekEnd.getDate() - 1);
+                const volThis = (workouts||[]).filter(w => w.date >= monStr && w.date <= hoy).reduce((s, w) => s + getWorkoutVolume(w), 0);
+                const volLast = (workouts||[]).filter(w => w.date >= lastWeekStart.toISOString().slice(0,10) && w.date <= lastWeekEnd.toISOString().slice(0,10)).reduce((s, w) => s + getWorkoutVolume(w), 0);
+                const volTrend = volLast > 0 ? Math.round((volThis - volLast) / volLast * 100) : null;
+                // Water compliance
+                const waterWeek = [...(waterLog||[])].filter(e => e.date >= monStr);
+                const waterAvg = waterWeek.length > 0
+                  ? (waterWeek.reduce((s, e) => s + Number(e.glasses), 0) / waterWeek.length)
+                  : null;
+
+                const insights = [];
+                // Consistency
+                if (racha >= 3) insights.push({ icon:"🔥", text:`Racha de ${racha} días entrenando`, color:"var(--green)" });
+                else if (semana > 0) insights.push({ icon:"💪", text:`${semana} días esta semana (prom. ${avgSem}/sem)`, color:"var(--text)" });
+                else insights.push({ icon:"⏳", text:"Sin entrenos esta semana", color:"var(--muted)" });
+
+                // Weight trend vs goal
+                if (wTrend !== null && Math.abs(Number(wTrend)) >= 0.3) {
+                  const dir = Number(wTrend) > 0 ? "subiste" : "bajaste";
+                  const emoji = userGoal === "definicion" && Number(wTrend) < 0 ? "✅" :
+                    userGoal === "volumen" && Number(wTrend) > 0 ? "✅" : "⚠️";
+                  insights.push({ icon:emoji, text:`${dir} ${Math.abs(Number(wTrend))}kg en 30 días`, color:emoji === "✅" ? "var(--green)" : "#f59e0b" });
+                }
+                // Sleep
+                if (sleepAvg !== null) {
+                  const ok = Number(sleepAvg) >= 7;
+                  insights.push({ icon:ok ? "😴" : "🌙", text:`Sueño: ${sleepAvg}h promedio${ok ? " — óptimo" : " — ideal ≥7h"}`, color:ok ? "var(--green)" : "#f59e0b" });
+                }
+                // Volume trend
+                if (volTrend !== null) {
+                  const dir = volTrend > 0 ? "↑" : "↓";
+                  insights.push({ icon:"📦", text:`Volumen ${dir} ${Math.abs(volTrend)}% vs semana pasada`, color:volTrend > 0 ? "var(--green)" : "var(--muted)" });
+                }
+                // Water
+                if (waterAvg !== null && waterGoal) {
+                  const ok = waterAvg >= waterGoal;
+                  insights.push({ icon:"💧", text:`Agua: ${waterAvg.toFixed(0)}/${waterGoal} vasos${ok ? " ✓" : ""}`, color:ok ? "var(--green)" : "#f59e0b" });
+                }
+                // Body composition
+                if (bodyFatPct !== null && lbm !== null) {
+                  insights.push({ icon:"📐", text:`Grasa: ${bodyFatPct.toFixed(1)}% · Masa magra: ${lbm.toFixed(1)}kg`, color:"var(--text)" });
+                }
+
+                return (
+                  <div style={{ display:"flex", flexDirection:"column", gap:5, marginBottom:12 }}>
+                    {insights.slice(0, 5).map((ins, i) => (
+                      <div key={i} style={{ display:"flex", alignItems:"center", gap:8, background:"var(--panel)", borderRadius:10, padding:"7px 10px" }}>
+                        <span style={{ fontSize:16, flexShrink:0 }}>{ins.icon}</span>
+                        <span style={{ fontSize:12, color:ins.color, lineHeight:1.4 }}>{ins.text}</span>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+
+              {/* ── Top cards: PRs + grupo + medidas ── */}
+              <div style={{ display:"flex", gap:8, marginBottom:14, overflow:"auto", flexWrap:"nowrap" }}>
+                {/* Top 3 PRs */}
+                {prs.slice(0,3).map((pr,i) => (
+                  <div key={i} style={{ flex:"0 0 auto", minWidth:120, background:"rgba(232,247,119,.07)", border:"1px solid rgba(232,247,119,.15)", borderRadius:12, padding:"8px 10px" }}>
+                    <p style={{ margin:"0 0 2px", fontSize:10, color:"var(--yellow)", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.05em" }}>PR #{i+1}</p>
+                    <p style={{ margin:0, fontSize:13, fontWeight:800, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{pr.exercise}</p>
+                    <p style={{ margin:"2px 0 0", fontSize:11, color:"var(--text)" }}>{pr.weight}kg × {pr.reps}</p>
+                  </div>
+                ))}
+                {/* Grupo más trabajado */}
+                {(() => {
+                  const topGroup = Object.entries(muscleBalance).sort((a,b) => b[1].sets - a[1].sets)[0];
+                  if (!topGroup || !topGroup[1].sets) return null;
+                  const prevSets = 0; // simplified: show current sets only
+                  return (
+                    <div style={{ flex:"0 0 auto", minWidth:100, background:"rgba(168,85,247,.07)", border:"1px solid rgba(168,85,247,.2)", borderRadius:12, padding:"8px 10px" }}>
+                      <p style={{ margin:"0 0 2px", fontSize:10, color:"var(--green)", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.05em" }}>Mejor grupo</p>
+                      <p style={{ margin:0, fontSize:13, fontWeight:800 }}>{topGroup[0]}</p>
+                      <p style={{ margin:"2px 0 0", fontSize:11, color:"var(--muted)" }}>{topGroup[1].sets} series/sem</p>
+                    </div>
+                  );
+                })()}
+                {/* Medidas link */}
+                <div style={{ flex:"0 0 auto", minWidth:100, background:"rgba(34,197,94,.07)", border:"1px solid rgba(34,197,94,.2)", borderRadius:12, padding:"8px 10px", cursor:"pointer" }} onClick={() => setPage("measurements")}>
+                  <p style={{ margin:"0 0 2px", fontSize:10, color:"var(--green)", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.05em" }}>Medidas</p>
+                  <p style={{ margin:0, fontSize:13, fontWeight:800 }}>{bodyWeight ? `${bodyWeight}kg` : "—"}</p>
+                  <p style={{ margin:"2px 0 0", fontSize:11, color:"var(--muted)" }}>Ver todo →</p>
+                </div>
+              </div>
+
+              {/* ── Ver análisis completo ── */}
+              <button onClick={() => setShowProgresoAdvanced(s => !s)}
+                style={{ width:"100%", padding:"8px", borderRadius:10, border:"1px solid var(--line)", background:"var(--panel)", cursor:"pointer", fontSize:12, fontWeight:600, color:"var(--muted)", marginBottom:12 }}>
+                {showProgresoAdvanced ? "▲ Ocultar análisis completo" : "▼ Ver análisis completo"}
+              </button>
+
+              {showProgresoAdvanced && (<>
               {/* ── 1RM por ejercicio ── */}
               {topExercises.length > 0 && (
                 <div style={{ marginBottom:16 }}>
@@ -963,90 +1214,6 @@ export default function CoachPage() {
                 );
               })()}
 
-              {/* ── Comparación por grupo ── */}
-              {progression.length > 0 && (
-                <div style={{ marginBottom:16 }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
-                    <div style={{ width:28, height:28, borderRadius:8, background:"rgba(117,217,255,.1)", border:"1px solid rgba(117,217,255,.2)", display:"flex", alignItems:"center", justifyContent:"center" }}>
-                      <Icon name="RefreshCw" size={14} style={{ color:"var(--cyan)" }} />
-                    </div>
-                    <p style={{ margin:0, fontSize:14, fontWeight:800 }}>Último vs anterior por grupo</p>
-                  </div>
-                  {progression.map(({ type, date, exercises }) => (
-                    <div key={type} style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:16, padding:"12px 14px", marginBottom:8 }}>
-                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10, paddingBottom:8, borderBottom:"1px solid var(--line)" }}>
-                        <p style={{ margin:0, fontSize:14, fontWeight:800 }}>{type}</p>
-                        <p style={{ margin:0, fontSize:11, color:"var(--muted)" }}>{date}</p>
-                      </div>
-                      {exercises.map(([name, { current, prev }]) => {
-                        const curVol = Number(current.weight) * Number(current.reps);
-                        const prevVol = prev ? Number(prev.weight) * Number(prev.reps) : 0;
-                        const diff = prev ? ((curVol - prevVol) / (prevVol || 1)) * 100 : null;
-                        const arrow = diff === null ? null : diff > 5 ? "↑" : diff < -5 ? "↓" : "=";
-                        const arrowColor = diff === null ? "var(--muted)" : diff > 5 ? "var(--green)" : diff < -5 ? "var(--danger)" : "var(--muted)";
-                        return (
-                          <div key={name} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"6px 0", borderBottom:"1px solid rgba(255,255,255,.04)" }}>
-                            <p style={{ margin:0, fontSize:12, fontWeight:600, flex:1, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{name}</p>
-                            <div style={{ display:"flex", alignItems:"center", gap:8, flexShrink:0, marginLeft:8 }}>
-                              {prev ? (
-                                <span style={{ fontSize:11, color:"var(--muted)" }}>{prev.weight}kg×{prev.reps}</span>
-                              ) : (
-                                <span style={{ fontSize:11, color:"var(--muted)" }}>Primera vez</span>
-                              )}
-                              {arrow && <span style={{ fontSize:14, fontWeight:900, color:arrowColor, width:14, textAlign:"center" }}>{arrow}</span>}
-                              <span style={{ fontSize:12, fontWeight:800, color: diff && diff > 5 ? "var(--green)" : diff && diff < -5 ? "var(--danger)" : "var(--text)" }}>
-                                {current.weight}kg×{current.reps}
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* ── Ciclo 4 semanas ── */}
-              {cycleComparison && Object.keys(cycleComparison).length > 0 && (
-                <div style={{ marginBottom:16 }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
-                    <div style={{ width:28, height:28, borderRadius:8, background:"rgba(117,217,255,.1)", border:"1px solid rgba(117,217,255,.2)", display:"flex", alignItems:"center", justifyContent:"center" }}>
-                      <Icon name="BarChart2" size={14} style={{ color:"var(--cyan)" }} />
-                    </div>
-                    <p style={{ margin:0, fontSize:14, fontWeight:800 }}>Ciclo actual vs anterior</p>
-                  </div>
-                  {Object.entries(cycleComparison).map(([type, { curVol, prevVol, curCount, prevCount, pct }]) => {
-                    const isUp = pct > 5, isDown = pct < -5;
-                    return (
-                      <div key={type} style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:14, padding:"12px 14px", marginBottom:6 }}>
-                        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
-                          <p style={{ margin:0, fontSize:13, fontWeight:800 }}>{type}</p>
-                          <span style={{
-                            padding:"3px 10px", borderRadius:20, fontSize:12, fontWeight:800,
-                            background: isUp ? "rgba(168,85,247,.1)" : isDown ? "rgba(239,68,68,.1)" : "rgba(255,255,255,.05)",
-                            color: isUp ? "var(--green)" : isDown ? "var(--danger)" : "var(--muted)",
-                          }}>
-                            {pct !== null ? `${pct > 0 ? "+" : ""}${pct}%` : "Nuevo"}
-                          </span>
-                        </div>
-                        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6 }}>
-                          <div style={{ background:"rgba(168,85,247,.06)", borderRadius:10, padding:"8px 10px" }}>
-                            <p style={{ margin:"0 0 2px", fontSize:10, color:"var(--green)", textTransform:"uppercase", letterSpacing:"0.06em", fontWeight:700 }}>Este ciclo</p>
-                            <b style={{ fontSize:14 }}>{(curVol/1000).toFixed(1)}t</b>
-                            <span style={{ fontSize:11, color:"var(--muted)", marginLeft:5 }}>{curCount}x</span>
-                          </div>
-                          <div style={{ background:"var(--panel2)", borderRadius:10, padding:"8px 10px" }}>
-                            <p style={{ margin:"0 0 2px", fontSize:10, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em", fontWeight:700 }}>Ciclo anterior</p>
-                            <b style={{ fontSize:14 }}>{(prevVol/1000).toFixed(1)}t</b>
-                            <span style={{ fontSize:11, color:"var(--muted)", marginLeft:5 }}>{prevCount}x</span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
               {/* ── Volumen por grupo muscular (últimas 8 semanas) ── */}
               {workouts.length >= 2 && (() => {
                 const GROUPS = [
@@ -1074,8 +1241,7 @@ export default function CoachPage() {
                   });
                   weeks.push({ label, mon, vols });
                 }
-                const allVols = weeks.flatMap(w => GROUPS.map(g => w.vols[g.name]));
-                const maxVol = Math.max(...allVols, 1);
+                const maxVol = Math.max(...weeks.flatMap(w => GROUPS.map(g => w.vols[g.name])), 1);
                 const W = 280, H = 80, BAR_W = Math.floor(W / weeks.length) - 2;
                 return (
                   <div style={{ marginBottom:16 }}>
@@ -1097,8 +1263,7 @@ export default function CoachPage() {
                                 const bh = Math.round((vol / maxVol) * (H - 8));
                                 if (!bh) return null;
                                 stackY -= bh;
-                                const rect = <rect key={g.name} x={x+2} y={stackY} width={BAR_W} height={bh} rx={2} fill={g.color} opacity={0.85} />;
-                                return rect;
+                                return <rect key={g.name} x={x+2} y={stackY} width={BAR_W} height={bh} rx={2} fill={g.color} opacity={0.85} />;
                               })}
                               <text x={x + BAR_W/2 + 2} y={H+14} textAnchor="middle" fontSize={9} fill="rgba(255,255,255,.3)">{wk.label}</text>
                             </g>
@@ -1118,28 +1283,67 @@ export default function CoachPage() {
                 );
               })()}
 
-              {/* ── PRs resumen ── */}
+              {/* ── Ciclo 4 semanas ── */}
+              {cycleComparison && Object.keys(cycleComparison).length > 0 && (
+                <div style={{ marginBottom:16 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
+                    <div style={{ width:28, height:28, borderRadius:8, background:"rgba(117,217,255,.1)", border:"1px solid rgba(117,217,255,.2)", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                      <Icon name="BarChart2" size={14} style={{ color:"var(--cyan)" }} />
+                    </div>
+                    <p style={{ margin:0, fontSize:14, fontWeight:800 }}>Ciclo actual vs anterior</p>
+                  </div>
+                  {Object.entries(cycleComparison).map(([type, { curVol, prevVol, curCount, prevCount, pct }]) => {
+                    const isUp = pct > 5, isDown = pct < -5;
+                    return (
+                      <div key={type} style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:14, padding:"12px 14px", marginBottom:6 }}>
+                        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+                          <p style={{ margin:0, fontSize:13, fontWeight:800 }}>{type}</p>
+                          <span style={{
+                            padding:"3px 10px", borderRadius:20, fontSize:12, fontWeight:800,
+                            background: isUp ? "rgba(168,85,247,.1)" : isDown ? "rgba(239,68,68,.1)" : "rgba(255,255,255,.05)",
+                            color: isUp ? "var(--green)" : isDown ? "var(--danger)" : "var(--muted)",
+                          }}>
+                            {pct !== null ? `${pct > 0 ? "+" : ""}${pct}%` : "Nuevo"}
+                          </span>
+                        </div>
+                        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6 }}>
+                          <div style={{ background:"rgba(168,85,247,.06)", borderRadius:10, padding:"8px 10px" }}>
+                            <p style={{ margin:"0 0 2px", fontSize:10, color:"var(--green)", textTransform:"uppercase", letterSpacing:"0.06em", fontWeight:700 }}>Este ciclo</p>
+                            <b style={{ fontSize:14 }}>{curVol >= 1000 ? (curVol/1000).toFixed(1) + "k" : curVol}kg</b>
+                            <span style={{ fontSize:11, color:"var(--muted)", marginLeft:5 }}>{curCount}x</span>
+                          </div>
+                          <div style={{ background:"var(--panel2)", borderRadius:10, padding:"8px 10px" }}>
+                            <p style={{ margin:"0 0 2px", fontSize:10, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em", fontWeight:700 }}>Ciclo anterior</p>
+                            <b style={{ fontSize:14 }}>{prevVol >= 1000 ? (prevVol/1000).toFixed(1) + "k" : prevVol}kg</b>
+                            <span style={{ fontSize:11, color:"var(--muted)", marginLeft:5 }}>{prevCount}x</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* ── PRs completo ── */}
               {prs.length > 0 && (
                 <div style={{ marginBottom:8 }}>
                   <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
                     <div style={{ width:28, height:28, borderRadius:8, background:"rgba(232,247,119,.1)", border:"1px solid rgba(232,247,119,.2)", display:"flex", alignItems:"center", justifyContent:"center" }}>
                       <Icon name="Star" size={14} style={{ color:"var(--yellow)" }} />
                     </div>
-                    <p style={{ margin:0, fontSize:14, fontWeight:800 }}>Récords personales</p>
+                    <p style={{ margin:0, fontSize:14, fontWeight:800 }}>Todos los récords</p>
                   </div>
                   <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
-                    {prs.slice(0, 8).map((pr, i) => (
+                    {prs.map((pr, i) => (
                       <div key={i} style={{ background:"rgba(232,247,119,.07)", border:"1px solid rgba(232,247,119,.15)", borderRadius:10, padding:"6px 10px" }}>
                         <p style={{ margin:"0 0 1px", fontSize:12, fontWeight:700 }}>{pr.exercise}</p>
                         <p style={{ margin:0, fontSize:11, color:"var(--yellow)" }}>{pr.weight}kg × {pr.reps}</p>
                       </div>
                     ))}
                   </div>
-                  <button className="ghost" style={{ width:"100%", marginTop:10, fontSize:13 }} onClick={() => setPage("prs")}>
-                    Ver análisis completo →
-                  </button>
                 </div>
               )}
+              </>)}
             </>
           )}
         </div>
@@ -1270,7 +1474,7 @@ export default function CoachPage() {
                 <div>
                   <p style={{ margin:"0 0 3px", fontSize:14, fontWeight:700, color:"var(--text)" }}>Deload recomendado</p>
                   <p style={{ margin:0, fontSize:13, color:"var(--muted)", lineHeight:1.5 }}>
-                    Llevás 3+ semanas aumentando volumen. La próxima semana bajá el peso al 60% — tu cuerpo lo necesita para seguir progresando.
+                    Llevás 3+ semanas aumentando volumen. Esta semana bajá el peso al 60% y aumentá las repeticiones (12-20 reps por serie) — tu cuerpo lo necesita para recuperarse y seguir progresando.
                   </p>
                 </div>
               </div>
@@ -1283,7 +1487,7 @@ export default function CoachPage() {
                 <div style={{ display:"flex", gap:8 }}>
                   <button onClick={() => acceptPlanRecommendation("deload", 0.6)}
                     style={{ flex:1, background:"rgba(245,158,11,.15)", border:"1px solid rgba(245,158,11,.4)", borderRadius:10, padding:"9px", cursor:"pointer", fontSize:13, fontWeight:700, color:"#f59e0b" }}>
-                    ✓ Aceptar deload (60% pesos)
+                    ✓ Aceptar deload (60% peso, 12-20 reps)
                   </button>
                   <button onClick={() => setDeclinedAlert("deload")}
                     style={{ flex:1, background:"rgba(255,255,255,.04)", border:"1px solid var(--line)", borderRadius:10, padding:"9px", cursor:"pointer", fontSize:13, fontWeight:700, color:"var(--muted)" }}>
@@ -1296,10 +1500,6 @@ export default function CoachPage() {
             </div>
           )}
         </div>
-      )}
-      {/* ── TAB: MACROS ─────────────────────────────────────── */}
-      {tab === "macros" && (
-        <MacroCalculator profile={profile} workouts={workouts} userGoal={userGoal} macroDay={macroDay} setMacroDay={setMacroDay} adaptiveTDEE={adaptiveTDEE} weeklyBalance={weeklyBalance} />
       )}
     </section>
   );
@@ -1821,11 +2021,19 @@ const SLOT_DEFS = {
 };
 
 function generateNutritionPlan(config, tdee, targetCal, proteinG, carbG, fatG) {
-  const { days, mealsPerDay, goal, restrictions, likedCats } = config;
+  const { days, mealsPerDay, goal, restrictions, likedCats, allergies, cuisine } = config;
   const slots = SLOT_DEFS[mealsPerDay] || SLOT_DEFS[4];
 
   const MEAT_KEYWORDS = ["pollo","carne","pavo","cerdo","jamón","salame","vacío","entraña","asado","bife","lomo","cuadril","nalga","tapa","costilla","chorizo","lomito","roast beef"];
-  const GLUTEN_KEYWORDS = ["pan","pasta","fideos","tallarines","ñoquis","ravioles","canelones","lasaña","tostada","alfajor","galletita","medialunas","bizcochuelo","pizza","empanada"];
+  const GLUTEN_KEYWORDS = ["pan","pasta","fideos","tallarines","ñoquis","ravioles","canelones","lasaña","tostada","alfajor","galletita","medialunas","bizcochuelo","pizza","empanada","galleta","galletón","cracker","pancho","panecillo","panqueque","panqueque","panque", "sémola", "cuscús", "trigo", "cebada", "centeno", "avena", "espelta"];
+  const ALLERGEN_KEYWORDS = {
+    frutos_secos: ["nuez","almendra","cacahuate","maní","mani","castaña","avellana","pistacho","pecán","pecan","macadamia","nueces","nueces de","crema de maní","crema de cacahuate","manteca de maní","crema de almendras","pasta de maní"],
+    huevo: ["huevo","huevos","omelette","tortilla","mayonesa","mayonesa","merengue","flan","budín","budin","crema pastelera","crema de huevo","clara de huevo","yema"],
+    pescado: ["pescado","pescados","merluza","salmón","atún","caballa","jurel","corvina","lenguado","brótola","trucha","abadejo","bacalao","rape","pejerrey"],
+    mariscos: ["camarón","camarones","langostino","langosta","cangrejo","mejillón","mejillones","almeja","almejas","pulpo","calamar","chipirones","vieira","ostra","ostras","berberecho"],
+    soja: ["tofu","soja","soya","edamame","miso","tempeh","salsa de soja","sillao","shoyu","proteína de soja","leche de soja","yogur de soja"],
+    mani: ["maní","mani","cacahuate","manteca de maní","crema de cacahuate","pasta de maní","cacahuetes"],
+  };
 
   function foodAllowed(f) {
     if (["rapida","suplemento","bebida"].includes(f.cat)) return false;
@@ -1835,6 +2043,12 @@ function generateNutritionPlan(config, tdee, targetCal, proteinG, carbG, fatG) {
     }
     if (restrictions.includes("sin_lacteos") && f.cat === "lacteo") return false;
     if (restrictions.includes("sin_gluten") && GLUTEN_KEYWORDS.some(k => f.name.toLowerCase().includes(k))) return false;
+    if (allergies && allergies.length > 0) {
+      for (const a of allergies) {
+        const keywords = ALLERGEN_KEYWORDS[a];
+        if (keywords && keywords.some(k => f.name.toLowerCase().includes(k))) return false;
+      }
+    }
     return true;
   }
 
@@ -1855,6 +2069,10 @@ function generateNutritionPlan(config, tdee, targetCal, proteinG, carbG, fatG) {
     }
   }
 
+  // Simple seeded PRNG for reproducibility per config
+  let rngSeed = days * 31 + mealsPerDay * 7 + (cuisine ? cuisine.charCodeAt(0) : 0);
+  function rng() { rngSeed = (rngSeed * 16807 + 0) % 2147483647; return (rngSeed - 1) / 2147483646; }
+
   function pickForSlot(slot, dayIdx, slotIdx) {
     const targetKcal = Math.round(targetCal * slot.factor);
     const allowedCats = likedCats.length > 0
@@ -1862,14 +2080,24 @@ function generateNutritionPlan(config, tdee, targetCal, proteinG, carbG, fatG) {
       : slot.cats;
     const cats = allowedCats.length > 0 ? allowedCats : slot.cats;
 
-    const pool = FOOD_DB.filter(f => cats.includes(f.cat) && foodAllowed(f));
+    let pool = FOOD_DB.filter(f => cats.includes(f.cat) && foodAllowed(f));
+    // Cuisine preference: if set, prefer items matching cuisine keywords
+    if (cuisine && pool.length > 0) {
+      const cuisinePool = pool.filter(f => f.name.toLowerCase().includes(cuisine));
+      if (cuisinePool.length > 0) pool = cuisinePool;
+    }
     if (pool.length === 0) return [];
 
-    const seed = dayIdx * 11 + slotIdx * 7;
-    // Pick main food (~65%) + side (~35%)
-    const main = pool[seed % pool.length];
-    const sidePool = pool.filter(f => f.cat !== main.cat);
-    const side = sidePool.length > 0 ? sidePool[(seed + 5) % sidePool.length] : null;
+    // True randomness per pick (not deterministic per dayIdx/slotIdx)
+    // But shuffle deterministically per config so same config = same plan
+    const shuffled = [...pool].sort((a, b) => {
+      const sa = ((pool.indexOf(a) + 1) * rng()) % 1;
+      const sb = ((pool.indexOf(b) + 1) * rng()) % 1;
+      return sa - sb;
+    });
+    const main = shuffled[0];
+    const sidePool = shuffled.filter(f => f.cat !== main.cat);
+    const side = sidePool.length > 0 ? sidePool[0] : null;
 
     const items = [scaleFood(main, side ? Math.round(targetKcal * 0.65) : targetKcal)];
     if (side) items.push(scaleFood(side, Math.round(targetKcal * 0.35)));
@@ -1929,6 +2157,8 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
   const [wizGoal, setWizGoal] = useState("mantener");
   const [wizRestrictions, setWizRestrictions] = useState([]);
   const [wizLikedCats, setWizLikedCats] = useState([]);
+  const [wizAllergies, setWizAllergies] = useState([]);
+  const [wizCuisine, setWizCuisine] = useState("");
   // Nutrition plan from store
   const nutritionPlan = useStore(s => s.nutritionPlan);
   const saveNutritionPlan = useStore(s => s.saveNutritionPlan);
@@ -2117,7 +2347,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
     activo:      { label: "Activo (6-7x)",     factor: 1.725 },
     muy_activo:  { label: "Muy activo (2x/día)",factor: 1.9  },
   };
-  const tdee = Math.round(bmr * ACTIVITY[activityLevel].factor);
+  const tdee = Math.round(bmr * (ACTIVITY[activityLevel]?.factor ?? ACTIVITY.moderado.factor));
 
   // Ajuste por objetivo — superávit y déficit basados en % del TDEE, no en valores fijos
   // Volumen: +8% TDEE (suficiente para masa sin acumular grasa en exceso)
@@ -2167,7 +2397,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
   // Wizard: generate plan on last step submit
   function handleWizardFinish() {
     const plan = generateNutritionPlan(
-      { days: wizDays, mealsPerDay: wizMeals, goal: wizGoal, restrictions: wizRestrictions, likedCats: wizLikedCats },
+      { days: wizDays, mealsPerDay: wizMeals, goal: wizGoal, restrictions: wizRestrictions, likedCats: wizLikedCats, allergies: wizAllergies, cuisine: wizCuisine },
       tdee, targetCal, proteinG, carbG, fatG
     );
     plan.planStartDate = new Date().toISOString().slice(0, 10);
@@ -3187,7 +3417,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
             <div>
               <p style={{ fontSize:15, fontWeight:800, marginBottom:4 }}>¿Tenés restricciones alimentarias?</p>
               <p style={{ fontSize:12, color:"var(--muted)", marginBottom:16 }}>Opcional. Seleccioná todas las que apliquen.</p>
-              <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:24 }}>
+              <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:16 }}>
                 {[{v:"vegano",l:"🌱 Vegano"},{v:"vegetariano",l:"🥦 Vegetariano"},{v:"sin_lacteos",l:"🥛 Sin lácteos"},{v:"sin_gluten",l:"🌾 Sin gluten"}].map(({v,l}) => {
                   const on = wizRestrictions.includes(v);
                   return (
@@ -3197,6 +3427,28 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                         background: on ? "rgba(34,197,94,.08)" : "var(--panel)",
                         color: on ? "var(--green)" : "var(--text)", fontWeight:700, fontSize:14 }}>
                       {l} {on ? "✓" : ""}
+                    </button>
+                  );
+                })}
+              </div>
+              <p style={{ fontSize:13, fontWeight:700, marginBottom:8 }}>Alergias o intolerancias</p>
+              <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginBottom:24 }}>
+                {[
+                  {v:"frutos_secos",l:"🥜 Frutos secos"},
+                  {v:"huevo",l:"🥚 Huevo"},
+                  {v:"pescado",l:"🐟 Pescado"},
+                  {v:"mariscos",l:"🦐 Mariscos"},
+                  {v:"soja",l:"🫘 Soja"},
+                  {v:"mani",l:"🥜 Maní"},
+                ].map(({v,l}) => {
+                  const on = wizAllergies.includes(v);
+                  return (
+                    <button key={v} onClick={() => setWizAllergies(r => on ? r.filter(x=>x!==v) : [...r,v])}
+                      style={{ padding:"6px 12px", borderRadius:20, border:"1.5px solid", cursor:"pointer", fontSize:12, fontWeight:700,
+                        borderColor: on ? "#ef4444" : "var(--border)",
+                        background: on ? "rgba(239,68,68,.1)" : "var(--panel)",
+                        color: on ? "#ef4444" : "var(--text)" }}>
+                      {l} {on ? "✕" : ""}
                     </button>
                   );
                 })}
@@ -3231,6 +3483,33 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
               </div>
               <div style={{ display:"flex", gap:8 }}>
                 <button style={{ flex:1, padding:"12px", borderRadius:10, border:"1px solid var(--border)", background:"var(--panel)", color:"var(--muted)", cursor:"pointer" }} onClick={() => setWizStep(3)}>← Atrás</button>
+                <button className="primary" style={{ flex:2 }} onClick={() => setWizStep(5)}>Siguiente →</button>
+              </div>
+            </div>
+          )}
+          {wizStep === 5 && (
+            <div>
+              <p style={{ fontSize:15, fontWeight:800, marginBottom:4 }}>Preferencias de cocina</p>
+              <p style={{ fontSize:12, color:"var(--muted)", marginBottom:16 }}>Opcional. Elegí un estilo de cocina para el plan.</p>
+              <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginBottom:20 }}>
+                {[{v:"",l:"Sin preferencia"},{v:"italiana",l:"🍝 Italiana"},{v:"mexicana",l:"🌮 Mexicana"},{v:"japonesa",l:"🍣 Japonesa"},{v:"mediterránea",l:"🥗 Mediterránea"},{v:"argentina",l:"🥩 Argentina"},{v:"vegetal",l:"🥬 Vegetal"},{v:"asiática",l:"🥢 Asiática"}].map(({v,l}) => (
+                  <button key={v} onClick={() => setWizCuisine(v)}
+                    style={{ padding:"8px 14px", borderRadius:20, border:"1.5px solid", cursor:"pointer", fontSize:13, fontWeight:700,
+                      borderColor: wizCuisine === v ? "var(--green)" : "var(--border)",
+                      background: wizCuisine === v ? "rgba(34,197,94,.1)" : "var(--panel)",
+                      color: wizCuisine === v ? "var(--green)" : "var(--text)" }}>
+                    {l}
+                  </button>
+                ))}
+              </div>
+              <div style={{ background:"rgba(34,197,94,.06)", border:"1px solid rgba(34,197,94,.2)", borderRadius:12, padding:"12px 14px", marginBottom:20, fontSize:12, color:"var(--muted)" }}>
+                <b style={{ color:"var(--text)", display:"block", marginBottom:4 }}>Resumen del plan</b>
+                {wizDays} días · {wizMeals} comidas/día · ~{Math.round(targetCal)} kcal/día · {Math.round(proteinG)}g proteína
+                {wizRestrictions.length > 0 && <span> · {wizRestrictions.length} restricción(es)</span>}
+                {wizCuisine && <span> · Cocina {wizCuisine}</span>}
+              </div>
+              <div style={{ display:"flex", gap:8 }}>
+                <button style={{ flex:1, padding:"12px", borderRadius:10, border:"1px solid var(--border)", background:"var(--panel)", color:"var(--muted)", cursor:"pointer" }} onClick={() => setWizStep(4)}>← Atrás</button>
                 <button className="primary" style={{ flex:2 }} onClick={handleWizardFinish}>✨ Generar plan</button>
               </div>
             </div>
@@ -3241,7 +3520,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
   );
 }
 
-function HolisticSummary({ workouts, prs, userAge, bodyWeight, userGoal }) {
+function HolisticSummary({ workouts, prs, userAge, bodyWeight, bodyFatPct, lbm, userGoal }) {
   const totalVolume = workouts.reduce((sum, w) =>
     sum + (w.sets || []).reduce((s2, s) => s2 + (Number(s.weight)||0) * (Number(s.reps)||0), 0), 0);
   const totalSets = workouts.reduce((sum, w) => sum + (w.sets||[]).length, 0);
@@ -3337,6 +3616,8 @@ function HolisticSummary({ workouts, prs, userAge, bodyWeight, userGoal }) {
           <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
             {userAge && <div style={{ background:"var(--panel2)", borderRadius:10, padding:"6px 12px", fontSize:12 }}><span style={{ color:"var(--muted)" }}>Edad · </span><b>{userAge} años</b></div>}
             {bodyWeight && <div style={{ background:"var(--panel2)", borderRadius:10, padding:"6px 12px", fontSize:12 }}><span style={{ color:"var(--muted)" }}>Peso · </span><b>{bodyWeight}kg</b></div>}
+            {bodyFatPct !== null && <div style={{ background:"var(--panel2)", borderRadius:10, padding:"6px 12px", fontSize:12 }}><span style={{ color:"var(--muted)" }}>Grasa · </span><b>{bodyFatPct.toFixed(1)}%</b></div>}
+            {lbm !== null && <div style={{ background:"var(--panel2)", borderRadius:10, padding:"6px 12px", fontSize:12 }}><span style={{ color:"var(--muted)" }}>LBM · </span><b>{lbm.toFixed(1)}kg</b></div>}
             {bodyWeight && (
               <div style={{ background:"rgba(168,85,247,.07)", borderRadius:10, padding:"6px 12px", fontSize:12, border:"1px solid rgba(168,85,247,.15)" }}>
                 <span style={{ color:"var(--muted)" }}>Proteína · </span>

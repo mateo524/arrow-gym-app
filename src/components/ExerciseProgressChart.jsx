@@ -12,17 +12,13 @@ export default function ExerciseProgressChart({ workouts, exerciseName, height =
 
       let maxWeight = null;
 
-      const exercises = workout.exercises || [];
-      for (const ex of exercises) {
-        const name = ex.name || ex.exerciseName || "";
+      const sets = workout.sets || [];
+      for (const set of sets) {
+        const name = set.exercise || "";
         if (name.toLowerCase() !== exerciseName.toLowerCase()) continue;
-
-        const sets = ex.sets || [];
-        for (const set of sets) {
-          const w = parseFloat(set.weight ?? set.kg ?? set.lbs ?? 0);
-          if (!isNaN(w) && w > 0) {
-            if (maxWeight === null || w > maxWeight) maxWeight = w;
-          }
+        const w = parseFloat(set.weight ?? 0);
+        if (!isNaN(w) && w > 0) {
+          if (maxWeight === null || w > maxWeight) maxWeight = w;
         }
       }
 

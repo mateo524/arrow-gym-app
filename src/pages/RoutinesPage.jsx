@@ -32,9 +32,12 @@ export default function RoutinesPage() {
     const { data } = await supabase
       .from("routines")
       .select("*")
-      .eq("user_id", profile?.id)
+      .or(`user_id.eq.${profile?.id}${profile?.trainer_id ? `,user_id.eq.${profile.trainer_id}` : ""}`)
       .order("created_at", { ascending: false });
-    setRoutines(data || []);
+    setRoutines((data || []).filter(r =>
+      r.user_id === profile?.id ||
+      (profile?.trainer_id && r.user_id === profile.trainer_id && r.notes?.startsWith("[GRUPO:"))
+    ));
     setLoading(false);
   }
 
@@ -230,7 +233,8 @@ export default function RoutinesPage() {
   }
 
   return (
-    <section className="page">
+    <>
+      <section className="page">
       <div className="page-head">
         <button className="back-btn" onClick={() => setPage("home")}><Icon name="ArrowLeft" size={20} strokeWidth={2.5} /></button>
         <div className="page-head-titles">
@@ -282,6 +286,10 @@ export default function RoutinesPage() {
                   <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>
                     {(r.exercises || []).length} ejercicio{r.exercises?.length !== 1 ? "s" : ""}
                     {r.is_template && <span style={{ marginLeft: 8, color: "var(--accent)", fontWeight: 600 }}>· Plantilla</span>}
+                    {(r.notes || "").startsWith("[GRUPO:") && (() => {
+                      const g = (r.notes || "").match(/^\[GRUPO: (.+?)\]/);
+                      return g ? <span style={{ marginLeft: 8, color: "var(--green)", fontWeight: 600 }}>· 👥 {g[1]}</span> : null;
+                    })()}
                   </div>
                 </div>
                 <button className="ghost icon-btn" onClick={() => openEdit(r)}><Icon name="Edit2" size={16} /></button>
@@ -301,6 +309,7 @@ export default function RoutinesPage() {
           ))}
         </div>
       )}
+      </section>
 
       {/* Create/Edit modal */}
       {showCreate && (
@@ -433,6 +442,6 @@ export default function RoutinesPage() {
           </div>
         </div>
       )}
-    </section>
+    </>
   );
 }

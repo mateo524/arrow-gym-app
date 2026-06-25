@@ -1,15 +1,15 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import useStore from "../store/useStore.js";
 import useAuthStore from "../store/useAuthStore.js";
 import { supabase } from "../lib/supabase.js";
 import Icon from "./Icon.jsx";
 
 const USER_TABS = [
-  { id: "home",         label: "Inicio",      icon: "Home" },
-  { id: "start",        label: "Entreno",     icon: "Dumbbell", badgeKey: "activeWorkout" },
-  { id: "measurements", label: "Medidas",     icon: "Ruler" },
-  { id: "coach",        label: "Coach",       icon: "BrainCircuit", badgeKey: "coachBadge" },
-  { id: "profile",      label: "Perfil",      icon: "User" },
+  { id: "home",    label: "Inicio",    icon: "Home" },
+  { id: "start",   label: "Entreno",   icon: "Dumbbell", badgeKey: "activeWorkout" },
+  { id: "coach",   label: "Coach",     icon: "BrainCircuit", badgeKey: "coachBadge" },
+  { id: "measurements", label: "Mediciones", icon: "Ruler" },
+  { id: "profile", label: "Perfil",    icon: "User" },
 ];
 
 const TRAINER_EXTRA = { id: "trainer", label: "Alumnos", icon: "Users" };
@@ -69,3 +69,4 @@ export default function Nav({ role }) {
     </nav>
   );
 }
+

@@ -205,3 +205,34 @@ create policy "Admins can read all workouts"
 -- where email = 'YOUR_EMAIL@example.com';
 --
 -- ────────────────────────────────────────────────────────────────────────────
+
+-- ─── GROUP ROUTINES MIGRATION ───────────────────────────────────────────────
+-- Run this after the schema to enable group routines (trainer → all clients)
+--
+-- alter table public.routines
+--   add column if not exists group_id uuid references public.profiles(id) on delete cascade;
+--
+-- create policy "Users can see group routines from their trainer"
+--   on public.routines for select
+--   using (
+--     exists (
+--       select 1 from public.profiles p
+--       where p.id = auth.uid()
+--       and p.trainer_id = routines.user_id
+--       and routines.notes like '[GRUPO:%'
+--     )
+--   );
+
+-- ─── HEALTH DATA MIGRATION ────────────────────────────────────────────────────
+-- Column for storing all health/diary data (weight log, meals, sleep, water, etc.)
+-- Run this in Supabase SQL Editor:
+--
+-- alter table public.profiles
+--   add column if not exists health_data jsonb default '{}';
+--
+-- Then update the RLS policy so users can update their own health_data:
+--
+-- create policy "Users can update their own health_data"
+--   on public.profiles for update
+--   using (auth.uid() = id)
+--   with check (auth.uid() = id);

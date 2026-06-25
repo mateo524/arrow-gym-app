@@ -1,5 +1,6 @@
 import { SEED_WORKOUTS } from "../data/seedData.js";
 import { resolveExerciseGroup, resolveExerciseMuscle, findExerciseMeta } from "../data/exerciseDatabase.js";
+import { todayLocal } from "./dates.js";
 
 // Incluye las keys de todas las versiones anteriores, incluida la app original.
 const OLD_KEYS = [
@@ -124,7 +125,7 @@ export function normalizeWorkout(workout) {
 
   return {
     id: workout.id || uid("workout"),
-    date: workout.date || new Date().toISOString().slice(0, 10),
+    date: workout.date || todayLocal(),
     type: workout.type || workout.session_type || workout.sessionType || "Workout",
     sets,
     migrated: Boolean(workout.migrated),

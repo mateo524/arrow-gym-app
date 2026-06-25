@@ -1,7 +1,8 @@
 ﻿import { useState, useEffect, useMemo } from "react";
 import useStore, { ROUTINES } from "../store/useStore.js";
-import useAuthStore from "../store/useAuthStore.js";
+import { todayLocal } from "../lib/dates.js";
 import { supabase } from "../lib/supabase.js";
+import useAuthStore from "../store/useAuthStore.js";
 import { EXERCISE_DATABASE } from "../data/exerciseDatabase.js";
 import Icon from "../components/Icon.jsx";
 import ExercisePicker from "../components/ExercisePicker.jsx";
@@ -52,10 +53,15 @@ export default function StartWorkoutPage() {
     supabase
       .from("routines")
       .select("*")
-      .eq("user_id", profile.id)
+      .or(`user_id.eq.${profile.id}${profile.trainer_id ? `,user_id.eq.${profile.trainer_id}` : ""}`)
       .order("day_index", { ascending: true, nullsFirst: false })
       .then(({ data }) => {
-        setAssignedRoutines(data || []);
+        // Filter: personal routines (user_id = my id) OR group routines from my trainer
+        const filtered = (data || []).filter(r =>
+          r.user_id === profile.id ||
+          (profile.trainer_id && r.user_id === profile.trainer_id && r.notes?.startsWith("[GRUPO:"))
+        );
+        setAssignedRoutines(filtered);
         setLoadingRoutines(false);
       })
       .catch(() => { setLoadingRoutines(false); });
@@ -121,7 +127,7 @@ export default function StartWorkoutPage() {
         activeWorkout: {
           id: `workout-${Date.now()}-${Math.random().toString(16).slice(2)}`,
           type: name,
-          date: new Date().toISOString().slice(0, 10),
+          date: todayLocal(),
           sets: finalExercises.map((ex) => {
             const meta = EXERCISE_DATABASE.find((e) => e.name === ex) || {};
             return {
@@ -267,7 +273,8 @@ export default function StartWorkoutPage() {
   }, [workouts]);
 
   return (
-    <section className="page">
+    <>
+      <section className="page">
       <div className="page-head">
         <button className="back-btn" onClick={() => setPage("home")} aria-label="Back">
           <Icon name="ArrowLeft" size={20} strokeWidth={2.5} />
@@ -527,6 +534,7 @@ export default function StartWorkoutPage() {
           Registrar día de descanso
         </button>
       )}
+      </section>
 
       {/* Save template modal */}
       {saveTemplateModal && (
@@ -801,7 +809,7 @@ export default function StartWorkoutPage() {
           </div>
         </div>
       )}
-    </section>
+    </>
   );
 }
 

@@ -4,12 +4,13 @@ import { loadInitialWorkouts, normalizeSet } from "../../lib/storageMigration.js
 import { syncWorkoutUp, syncAllWorkoutsUp, fetchWorkoutsFromDB, mergeWorkouts } from "../../lib/workoutSync.js";
 import { getAuthUserId, getAuthProfile } from "../../lib/authBridge.js";
 import { EXERCISE_DATABASE, findExerciseMeta, resolveExerciseGroup, resolveExerciseMuscle } from "../../data/exerciseDatabase.js";
+import { todayLocal } from "../../lib/dates.js";
 
 function uid(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 function today() {
-  return new Date().toISOString().slice(0, 10);
+  return todayLocal();
 }
 function sameExercise(a, b) {
   return String(a || "").trim().toLowerCase() === String(b || "").trim().toLowerCase();
@@ -47,6 +48,16 @@ function makeSet(exercise, weight = "", reps = "", workouts = []) {
 function makePrefilledSet(exercise, workouts) {
   const stats = getExerciseStats(workouts, exercise);
   return makeSet(exercise, stats.lastWeight || "", stats.lastReps || "", workouts);
+}
+
+function scaleRepsForDeload(lastReps) {
+  if (!lastReps) return "12-15";
+  const n = Number(lastReps);
+  if (isNaN(n)) return "12-15";
+  if (n <= 3) return "12-15";
+  if (n <= 6) return "15-20";
+  if (n <= 10) return "18-25";
+  return "20-30";
 }
 
 export const createWorkoutSlice = (set, get) => ({
@@ -106,7 +117,7 @@ export const createWorkoutSlice = (set, get) => ({
           const s = makePrefilledSet(ex, workouts);
           if (factor !== 1 && s.lastWeight) {
             const scaled = String(Math.max(0, Math.round(Number(s.lastWeight) * factor * 2) / 2) || s.lastWeight);
-            return { ...s, weight: scaled, lastWeight: scaled };
+            return { ...s, weight: scaled, lastWeight: scaled, reps: scaleRepsForDeload(s.lastReps) };
           }
           return s;
         }),
@@ -126,7 +137,7 @@ export const createWorkoutSlice = (set, get) => ({
           const s = makePrefilledSet(ex, workouts);
           if (factor !== 1 && s.lastWeight) {
             const scaled = String(Math.max(0, Math.round(Number(s.lastWeight) * factor * 2) / 2) || s.lastWeight);
-            return { ...s, weight: scaled, lastWeight: scaled };
+            return { ...s, weight: scaled, lastWeight: scaled, reps: scaleRepsForDeload(s.lastReps) };
           }
           return s;
         }),
@@ -297,7 +308,7 @@ export const createWorkoutSlice = (set, get) => ({
           const s = makePrefilledSet(e, state.workouts || []);
           if (factor !== 1 && s.lastWeight) {
             const scaled = String(Math.max(0, Math.round(Number(s.lastWeight) * factor * 2) / 2) || s.lastWeight);
-            return { ...s, weight: scaled, lastWeight: scaled };
+            return { ...s, weight: scaled, lastWeight: scaled, reps: scaleRepsForDeload(s.lastReps) };
           }
           return s;
         }),
@@ -325,20 +336,53 @@ export const createWorkoutSlice = (set, get) => ({
   acceptPlanRecommendation: (type, factor = 1) => {
     const accepted = today();
     const d = new Date(accepted); d.setDate(d.getDate() + 7);
-    set({ activePlanAdjustment: { type, factor, acceptedAt: accepted, expiresAt: d.toISOString().slice(0, 10) } });
+    const planAdjustment = { type, factor, acceptedAt: accepted, expiresAt: d.toISOString().slice(0, 10) };
+    set({ activePlanAdjustment: planAdjustment });
+    const uid = getAuthUserId();
+    if (uid) {
+      import("../../lib/supabase.js").then(({ supabase }) => {
+        supabase.from("profiles").update({ plan_adjustment: JSON.stringify(planAdjustment) }).eq("id", uid).catch(() => {});
+      });
+    }
   },
-  declinePlanRecommendation: () => {},
-  clearPlanAdjustment: () => set({ activePlanAdjustment: null }),
+  declinePlanRecommendation: (type) => {
+    const d = new Date(); d.setDate(d.getDate() + 7);
+    const planAdjustment = { type, declined: true, declinedAt: today(), expiresAt: d.toISOString().slice(0, 10) };
+    set({ activePlanAdjustment: planAdjustment });
+    const uid = getAuthUserId();
+    if (uid) {
+      import("../../lib/supabase.js").then(({ supabase }) => {
+        supabase.from("profiles").update({ plan_adjustment: JSON.stringify(planAdjustment) }).eq("id", uid).catch(() => {});
+      });
+    }
+  },
+  clearPlanAdjustment: () => {
+    set({ activePlanAdjustment: null });
+    const uid = getAuthUserId();
+    if (uid) {
+      import("../../lib/supabase.js").then(({ supabase }) => {
+        supabase.from("profiles").update({ plan_adjustment: null }).eq("id", uid).catch(() => {});
+      });
+    }
+  },
+  loadPlanAdjustmentFromDB: async (userId) => {
+    try {
+      const { supabase } = await import("../../lib/supabase.js");
+      const { data, error } = await supabase.from("profiles").select("plan_adjustment").eq("id", userId).single();
+      if (error || !data?.plan_adjustment) return;
+      const parsed = typeof data.plan_adjustment === "string" ? JSON.parse(data.plan_adjustment) : data.plan_adjustment;
+      if (parsed && parsed.expiresAt && new Date(parsed.expiresAt) >= new Date()) {
+        set({ activePlanAdjustment: parsed });
+      }
+    } catch {}
+  },
 
   generateWeeklyChallenge: (force = false) => {
     const { workouts } = get();
     const now = new Date();
     const monday = new Date(now); monday.setDate(now.getDate() - ((now.getDay() + 6) % 7)); monday.setHours(0, 0, 0, 0);
-    const yr = monday.getFullYear();
-    const wn = Math.ceil(((monday - new Date(yr, 0, 1)) / 86400000 + 1) / 7);
-    const isoWeek = `${yr}-W${String(wn).padStart(2, "0")}`;
     const existing = get().weeklyChallenge;
-    if (!force && existing?.isoWeek === isoWeek) {
+    if (!force && existing) {
       const thisWeek = (workouts || []).filter((w) => w.date && new Date(w.date) >= monday);
       set({ weeklyChallenge: { ...existing, doneCount: thisWeek.length } });
       return;
@@ -353,7 +397,8 @@ export const createWorkoutSlice = (set, get) => ({
       { text: "Alcanzá 10 series en grupos grandes (pecho/espalda/piernas)", targetCount: 10, doneCount: thisWeek.reduce((a, w) => a + (w.sets || []).filter((s) => ["Pecho", "Espalda", "Piernas"].includes(s.group)).length, 0) },
       { text: "Superá 5000 kg de volumen total esta semana", targetCount: 5000, doneCount: Math.round(thisWeek.reduce((a, w) => a + (w.sets || []).reduce((b, s) => b + ((s.weight || 0) * (s.reps || 0)), 0), 0)) },
     ];
-    set({ weeklyChallenge: { ...CHALLENGES[wn % CHALLENGES.length], isoWeek } });
+    const pick = CHALLENGES[Math.floor(Math.random() * CHALLENGES.length)];
+    set({ weeklyChallenge: { ...pick, isoWeek: null } });
   },
 
   repeatLastWorkout: () => {
@@ -369,7 +414,7 @@ export const createWorkoutSlice = (set, get) => ({
         const s = makeSet(ex, "", "", workouts);
         if (factor !== 1 && s.lastWeight) {
           const scaled = String(Math.max(0, Math.round(Number(s.lastWeight) * factor * 2) / 2) || s.lastWeight);
-          return { ...s, weight: scaled, lastWeight: scaled };
+          return { ...s, weight: scaled, lastWeight: scaled, reps: scaleRepsForDeload(s.lastReps) };
         }
         return s;
       })
