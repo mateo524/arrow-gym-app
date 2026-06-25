@@ -158,20 +158,6 @@ export default function ExercisePicker({ onPick, compact = false, query: queryPr
         </select>
       </div>
 
-      {recentItems.length > 0 && (
-        <div className="recent-section">
-          <small className="section-label">Recientes</small>
-          <div className="recent-list">
-            {recentItems.map((ex) => (
-              <button key={ex.id || ex.name} className="exercise-row compact" onClick={() => handlePick(ex)}>
-                <b>{ex.name}</b>
-                <small>{ex.group}</small>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
       <ExerciseList
         items={displayed}
         favoriteExercises={favoriteExercises}

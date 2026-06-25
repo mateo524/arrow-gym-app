@@ -113,7 +113,7 @@ function WeightChart({ data }) {
           {diff > 0 ? "+" : ""}{diff.toFixed(1)} kg
         </span>
       </div>
-      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", display: "block", overflow: "visible" }}>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", display: "block", overflow: "hidden" }}>
         {/* Area fill */}
         <defs>
           <linearGradient id="wg" x1="0" y1="0" x2="0" y2="1">
@@ -196,13 +196,13 @@ export default function MeasurementsPage() {
   const waterLog = useStore(s => s.waterLog) || [];
   const waterGoal = useStore(s => s.waterGoal) || 8;
   const logWater = useStore(s => s.logWater);
-  const todayWater = waterLog.find(e => e.date === new Date().toISOString().slice(0,10))?.glasses || 0;
+  const todayWater = waterLog.find(e => e.date === todayLocal())?.glasses || 0;
 
   // Sueño
   const sleepLog = useStore(s => s.sleepLog) || [];
   const logSleep = useStore(s => s.logSleep);
   const [todaySleep, setTodaySleep] = useState("");
-  const todaySleepEntry = sleepLog.find(e => e.date === new Date().toISOString().slice(0,10));
+  const todaySleepEntry = sleepLog.find(e => e.date === todayLocal());
 
   // Historial de circunferencias (localStorage)
   const [measHistory, setMeasHistory] = useState(() => {
@@ -365,9 +365,14 @@ export default function MeasurementsPage() {
 
   return (
     <section className="page">
-      <div style={{ marginBottom: 16 }}>
-        <p className="eyebrow">Mi cuerpo</p>
-        <h1 style={{ margin: 0 }}>Mediciones</h1>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+        <button className="back-btn" onClick={() => setPage("profile")} aria-label="Volver" style={{ flexShrink: 0 }}>
+          <Icon name="ArrowLeft" size={20} />
+        </button>
+        <div>
+          <p className="eyebrow" style={{ margin: 0 }}>Mi cuerpo</p>
+          <h1 style={{ margin: 0 }}>Mediciones</h1>
+        </div>
       </div>
 
       {/* Peso corporal rápido */}

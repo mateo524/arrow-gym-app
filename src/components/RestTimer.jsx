@@ -19,15 +19,16 @@ export default function RestTimer({ duration = 90, onComplete, onSkip, onChangeD
     startTimeRef.current = null;
   }
 
-  function startTimer() {
+  function startTimer(dur) {
+    const d = dur ?? selectedDuration;
     doneRef.current = false;
     setRunning(true);
     startTimeRef.current = Date.now();
-    setRemaining(selectedDuration);
+    setRemaining(d);
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
       const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
-      const left = Math.max(0, selectedDuration - elapsed);
+      const left = Math.max(0, d - elapsed);
       setRemaining(left);
       if (left <= 0) {
         clearInterval(timerRef.current);
@@ -65,7 +66,7 @@ export default function RestTimer({ duration = 90, onComplete, onSkip, onChangeD
     doneRef.current = false;
     setSelectedDuration(secs);
     setRemaining(secs);
-    if (wasRunning) startTimer();
+    if (wasRunning) startTimer(secs);
   }
 
   function handleCustom(e) {
@@ -74,7 +75,7 @@ export default function RestTimer({ duration = 90, onComplete, onSkip, onChangeD
     if (!secs || secs < 5 || secs > 600) return;
     setCustomInput("");
     applyDuration(secs);
-    if (!running) setTimeout(startTimer, 50);
+    if (!running) startTimer(secs);
   }
 
   const progress = selectedDuration > 0 ? remaining / selectedDuration : 0;

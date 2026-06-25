@@ -318,10 +318,13 @@ export default function WorkoutPage() {
   }
 
   function _commitFinish(notes, rpe, summary) {
-    finish(notes);
     clearWorkoutDraft();
-    if (summary) setPostSummary({ ...summary, rpe });
-    else setPage("home");
+    if (summary) {
+      setPostSummary({ ...summary, rpe });
+    } else {
+      finish(notes);
+      setPage("home");
+    }
   }
 
   async function handleSaveRoutineAndFinish() {
@@ -978,7 +981,12 @@ export default function WorkoutPage() {
              postSummary.overallPct < -10 ? "Volumen debajo del promedio — si fue intencional, perfecto." :
              "Sesión dentro de tu promedio. Constancia es la clave."}
           </p>
-          <button className="primary" style={{ width: "100%" }} onClick={() => { setPostSummary(null); setPage("home"); if (window.__showToast) window.__showToast("✓ Entrenamiento guardado"); }}>
+          <button className="primary" style={{ width: "100%" }} onClick={() => {
+            const { notes } = pendingFinishRef.current || {};
+            setPostSummary(null);
+            finish(notes);
+            if (window.__showToast) window.__showToast("✓ Entrenamiento guardado");
+          }}>
             Listo
           </button>
         </div>
