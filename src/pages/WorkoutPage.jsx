@@ -8,7 +8,6 @@ import WorkoutSetCard from "../components/WorkoutSetCard.jsx";
 import RestTimer from "../components/RestTimer.jsx";
 import VolumeSparkline from "../components/VolumeSparkline.jsx";
 import Icon from "../components/Icon.jsx";
-import ExerciseInfoModal from "../components/ExerciseInfoModal.jsx";
 
 function groupSetsByExercise(sets) {
   const map = new Map();
@@ -163,7 +162,6 @@ export default function WorkoutPage() {
   const [summaryData, setSummaryData] = useState(null);
   const [deletedSet, setDeletedSet] = useState(null);
   const [showSaveRoutine, setShowSaveRoutine] = useState(false);
-  const [infoExercise, setInfoExercise] = useState(null);
   const [saveRoutineName, setSaveRoutineName] = useState("");
   const [savingRoutine, setSavingRoutine] = useState(false);
   const [saveRoutineError, setSaveRoutineError] = useState("");
@@ -537,17 +535,6 @@ export default function WorkoutPage() {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                       <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, lineHeight: 1.2 }}>{exercise}</h2>
-                      <button
-                        onClick={() => setInfoExercise(exercise)}
-                        title="Ver cómo se hace"
-                        style={{
-                          background: "rgba(255,255,255,.07)", border: "1px solid rgba(255,255,255,.12)",
-                          borderRadius: "50%", width: 22, height: 22, cursor: "pointer",
-                          color: "rgba(255,255,255,.45)", fontSize: 11, fontWeight: 800,
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                          flexShrink: 0, padding: 0, lineHeight: 1,
-                        }}
-                      >?</button>
                       {isSupersetted && (
                         <span
                           style={{ fontSize: 10, background: "rgba(167,139,250,.15)", color: "#a78bfa", border: "1px solid rgba(167,139,250,.3)", borderRadius: 6, padding: "1px 6px", fontWeight: 700, cursor: "pointer" }}
@@ -1262,9 +1249,6 @@ export default function WorkoutPage() {
           </button>
         </div>
       </div>
-    )}
-    {infoExercise && (
-      <ExerciseInfoModal exerciseName={infoExercise} onClose={() => setInfoExercise(null)} />
     )}
     </>
   );
