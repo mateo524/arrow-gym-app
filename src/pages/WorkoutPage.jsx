@@ -8,6 +8,8 @@ import WorkoutSetCard from "../components/WorkoutSetCard.jsx";
 import RestTimer from "../components/RestTimer.jsx";
 import VolumeSparkline from "../components/VolumeSparkline.jsx";
 import Icon from "../components/Icon.jsx";
+import ExerciseIllustration from "../components/ExerciseIllustration.jsx";
+import { findExerciseMeta } from "../data/exerciseDatabase.js";
 
 function groupSetsByExercise(sets) {
   const map = new Map();
@@ -167,6 +169,7 @@ export default function WorkoutPage() {
   const [saveRoutineError, setSaveRoutineError] = useState("");
   const [shareMsg, setShareMsg] = useState("");
   const [prToast, setPrToast] = useState(null);
+  const [illustrationExercise, setIllustrationExercise] = useState(null);
   const [restDone, setRestDone] = useState(false);
   const pendingFinishRef = useRef(null);
   const undoTimerRef = useRef(null);
@@ -560,9 +563,61 @@ export default function WorkoutPage() {
                         <span style={{ fontSize: 11, color: "var(--text)", lineHeight: 1.35 }}>{coachHint.msg}</span>
                       </div>
                     )}
+
+                    {/* Illustration toggle */}
+                    <button
+                      onClick={() => setIllustrationExercise(illustrationExercise === exercise ? null : exercise)}
+                      style={{ marginTop: 6, display: "inline-flex", alignItems: "center", gap: 5, background: illustrationExercise === exercise ? "rgba(168,85,247,.15)" : "rgba(255,255,255,.05)", border: `1px solid ${illustrationExercise === exercise ? "rgba(168,85,247,.4)" : "rgba(255,255,255,.1)"}`, borderRadius: 8, padding: "4px 10px", cursor: "pointer", fontSize: 11, fontWeight: 600, color: illustrationExercise === exercise ? "#a855f7" : "var(--muted)" }}
+                    >
+                      <svg viewBox="0 0 16 20" width={10} height={12} fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round">
+                        <circle cx={8} cy={3} r={2} />
+                        <line x1={8} y1={5} x2={8} y2={12} />
+                        <line x1={4} y1={7} x2={12} y2={7} />
+                        <line x1={5} y1={12} x2={3} y2={18} />
+                        <line x1={11} y1={12} x2={13} y2={18} />
+                      </svg>
+                      {illustrationExercise === exercise ? "Ocultar" : "Ver ejecución"}
+                    </button>
+
                   </div>
                 </div>
               </div>
+
+              {/* Illustration panel */}
+              {illustrationExercise === exercise && (() => {
+                const exMeta = findExerciseMeta(exercise);
+                return (
+                  <div style={{ margin: "0 16px 8px", background: "rgba(168,85,247,.06)", border: "1px solid rgba(168,85,247,.15)", borderRadius: 14, padding: "12px 16px", display: "flex", alignItems: "center", gap: 16, overflow: "hidden" }}>
+                    <div style={{ flexShrink: 0 }}>
+                      <ExerciseIllustration
+                        name={exercise}
+                        pattern={exMeta?.pattern || first?.pattern}
+                        muscle={exMeta?.muscle || first?.muscle}
+                        equipment={exMeta?.equipment || first?.equipment}
+                        size={100}
+                      />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ margin: "0 0 5px", fontSize: 11, fontWeight: 700, color: "#a855f7", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                        {exMeta?.group || first?.group}
+                      </p>
+                      <p style={{ margin: "0 0 3px", fontSize: 12, color: "var(--text)", fontWeight: 600, lineHeight: 1.3 }}>
+                        {exMeta?.muscle || first?.muscle}
+                      </p>
+                      {(exMeta?.equipment || first?.equipment) && (
+                        <p style={{ margin: "0 0 3px", fontSize: 11, color: "var(--muted)" }}>
+                          {exMeta?.equipment || first.equipment}
+                        </p>
+                      )}
+                      {exMeta?.muscles?.length > 1 && (
+                        <p style={{ margin: 0, fontSize: 10, color: "var(--muted)", lineHeight: 1.4 }}>
+                          + {exMeta.muscles.slice(1, 3).join(" · ")}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Sets area (scrollable) OR PR/History view */}
               <div style={{ flex: 1, overflowY: "auto", padding: "0 16px 8px", WebkitOverflowScrolling: "touch" }}>
