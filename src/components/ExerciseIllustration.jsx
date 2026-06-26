@@ -1,816 +1,857 @@
-// Exercise illustrations — thick-limb solid style.
-// viewBox 0 0 120 160. strokeLinecap=round + strokeWidth 10-14 = solid-looking limbs.
+// Exercise illustrations — thick-limb solid style, side/profile views for clarity.
+// viewBox 0 0 120 160 — all coords kept within x:4-116, y:4-156.
 
-const B  = "#7bacc4";   // body
-const E  = "#a855f7";   // equipment / purple
-const P  = "#2a3747";   // platform / bench dark
-const PL = "#3d5166";   // bench lighter
+const B  = "#7bacc4";
+const E  = "#a855f7";
+const P  = "#2a3747";
+const PL = "#3d5166";
 
 function L({ x1,y1,x2,y2,w=11,c=B }) {
   return <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={c} strokeWidth={w} strokeLinecap="round"/>;
 }
-function H({ cx,cy,r=9 }) {
-  return <circle cx={cx} cy={cy} r={r} fill={B}/>;
-}
-function Bar({ x,y,len=76 }) {
+function H({ cx,cy,r=9 }) { return <circle cx={cx} cy={cy} r={r} fill={B}/>; }
+
+// Barbell — center at (cx, cy), horizontal
+function Barbell({ cx,cy,half=36 }) {
   return <>
-    <rect x={x} y={y-2} width={len} height={5} rx={2} fill={E}/>
-    <rect x={x-2} y={y-7} width={9} height={15} rx={1} fill={E} opacity={0.75}/>
-    <rect x={x+len-7} y={y-7} width={9} height={15} rx={1} fill={E} opacity={0.75}/>
+    <rect x={cx-half} y={cy-2} width={half*2} height={5} rx={2} fill={E}/>
+    <rect x={cx-half-3} y={cy-6} width={8} height={13} rx={1} fill={E} opacity={0.8}/>
+    <rect x={cx+half-5} y={cy-6} width={8} height={13} rx={1} fill={E} opacity={0.8}/>
   </>;
 }
-function Dv({ x,y }) {
+// Dumbbell at (cx,cy) — horizontal orientation
+function DB({ cx,cy }) {
   return <>
-    <rect x={x-4} y={y} width={9} height={14} rx={2} fill={E}/>
-    <rect x={x-8} y={y+2} width={17} height={4} rx={1} fill={E} opacity={0.7}/>
-    <rect x={x-8} y={y+8} width={17} height={4} rx={1} fill={E} opacity={0.7}/>
+    <rect x={cx-8} y={cy-4} width={16} height={9} rx={2} fill={E}/>
+    <rect x={cx-10} y={cy-7} width={5} height={15} rx={1} fill={E} opacity={0.7}/>
+    <rect x={cx+5} y={cy-7} width={5} height={15} rx={1} fill={E} opacity={0.7}/>
   </>;
 }
-function Dh({ x,y }) {
+// Dumbbell at (cx,cy) — vertical orientation
+function DBV({ cx,cy }) {
   return <>
-    <rect x={x} y={y-4} width={14} height={9} rx={2} fill={E}/>
-    <rect x={x+2} y={y-8} width={4} height={17} rx={1} fill={E} opacity={0.7}/>
-    <rect x={x+8} y={y-8} width={4} height={17} rx={1} fill={E} opacity={0.7}/>
+    <rect x={cx-4} y={cy-8} width={9} height={16} rx={2} fill={E}/>
+    <rect x={cx-7} y={cy-10} width={15} height={5} rx={1} fill={E} opacity={0.7}/>
+    <rect x={cx-7} y={cy+5} width={15} height={5} rx={1} fill={E} opacity={0.7}/>
   </>;
 }
-function Bench({ x,y,w=90,h=7 }) {
+// Flat bench (side view) — surface at y, legs going down
+function FlatBench({ y=100 }) {
   return <>
-    <rect x={x} y={y} width={w} height={h} rx={3} fill={P}/>
-    <rect x={x+4} y={y+h} width={6} height={28} fill={P}/>
-    <rect x={x+w-10} y={y+h} width={6} height={28} fill={P}/>
+    <rect x={12} y={y} width={96} height={8} rx={3} fill={P}/>
+    <L x1={18} y1={y+8} x2={18} y2={y+40} w={6} c={P}/>
+    <L x1={102} y1={y+8} x2={102} y2={y+40} w={6} c={P}/>
   </>;
 }
 function Floor({ y=152 }) {
   return <line x1={4} y1={y} x2={116} y2={y} stroke={PL} strokeWidth={5} strokeLinecap="round"/>;
 }
+// Arrow indicator
 function Arr({ x,y,dir="up",len=20 }) {
   const u = `M${x},${y+len} L${x},${y} M${x-5},${y+9} L${x},${y} L${x+5},${y+9}`;
   const d = `M${x},${y} L${x},${y+len} M${x-5},${y+len-9} L${x},${y+len} L${x+5},${y+len-9}`;
   const ud = `M${x},${y} L${x},${y+len} M${x-4},${y+8} L${x},${y} L${x+4},${y+8} M${x-4},${y+len-8} L${x},${y+len} L${x+4},${y+len-8}`;
-  const paths = { up:u, down:d, updown:ud };
+  const paths = {up:u,down:d,updown:ud};
   return <path d={paths[dir]||u} stroke={E} fill="none" strokeWidth={2.5} strokeLinecap="round"/>;
 }
 
-// Standing base: head + torso + legs
-function StandBase() {
+// ─── STANDING FRONT VIEW BASE ─────────────────────────────────────────────────
+// Head(60,18) · Torso(60,28→72) · Hips(72) · Knees(108) · Feet(150)
+function Stand() {
   return <>
-    <H cx={60} cy={14}/>
-    <L x1={60} y1={23} x2={60} y2={68} w={14}/>
-    <L x1={54} y1={68} x2={46} y2={106} w={12}/>
-    <L x1={46} y1={106} x2={42} y2={150} w={10}/>
-    <L x1={66} y1={68} x2={74} y2={106} w={12}/>
-    <L x1={74} y1={106} x2={78} y2={150} w={10}/>
+    <H cx={60} cy={18}/>
+    <L x1={60} y1={27} x2={60} y2={72} w={14}/>
+    <L x1={54} y1={72} x2={46} y2={108} w={12}/>
+    <L x1={46} y1={108} x2={42} y2={150} w={10}/>
+    <L x1={66} y1={72} x2={74} y2={108} w={12}/>
+    <L x1={74} y1={108} x2={78} y2={150} w={10}/>
+  </>;
+}
+
+// ─── LYING ON BENCH BASE (side view, head right) ─────────────────────────────
+// Use for all bench exercises — body clearly horizontal
+function LyingOnBench({ benchY=100 }) {
+  return <>
+    <FlatBench y={benchY}/>
+    <H cx={108} cy={benchY-18}/>
+    {/* Torso horizontal on bench */}
+    <L x1={99} y1={benchY-8} x2={22} y2={benchY-6} w={13}/>
+    {/* Legs bent at left end, feet on floor */}
+    <L x1={26} y1={benchY-4} x2={16} y2={benchY+20} w={12}/>
+    <L x1={16} y1={benchY+20} x2={22} y2={benchY+52} w={10}/>
   </>;
 }
 
 // ─── CHEST ───────────────────────────────────────────────────────────────────
 
 function BenchHorizontal() {
-  // Lying flat, bar pressed up from chest — arms bent then extended up
+  // Profile: person flat, bar pressed straight UP
+  const by = 100;
   return <>
-    <Bench x={8} y={82} w={104}/>
-    <H cx={106} cy={63}/>
-    <L x1={97} y1={71} x2={20} y2={73} w={14}/>
-    <L x1={20} y1={73} x2={12} y2={108} w={12}/>
-    <L x1={12} y1={108} x2={16} y2={154} w={10}/>
-    <L x1={28} y1={73} x2={30} y2={108} w={12}/>
-    <L x1={30} y1={108} x2={34} y2={154} w={10}/>
-    {/* Arms: upper arms diagonal, forearms VERTICAL pressing bar up */}
-    <L x1={65} y1={73} x2={54} y2={52} w={10}/>
-    <L x1={54} y1={52} x2={58} y2={28} w={9}/>
-    <L x1={73} y1={73} x2={80} y2={52} w={10}/>
-    <L x1={80} y1={52} x2={76} y2={28} w={9}/>
-    <Bar x={42} y={26} len={34}/>
-    <Arr x={14} y={68} dir="updown" len={18}/>
+    <LyingOnBench benchY={by}/>
+    {/* Arms: both visible pressing BAR straight up */}
+    <L x1={62} y1={by-6} x2={52} y2={by-30} w={10}/>
+    <L x1={52} y1={by-30} x2={54} y2={by-52} w={9}/>
+    <L x1={72} y1={by-6} x2={78} y2={by-30} w={10}/>
+    <L x1={78} y1={by-30} x2={76} y2={by-52} w={9}/>
+    {/* Bar above chest */}
+    <Barbell cx={65} cy={by-54} half={22}/>
+    <Arr x={16} y={by-36} dir="updown" len={20}/>
   </>;
 }
 
 function BenchIncline() {
-  // Bench at ~45°, pressing bar upward at angle
+  // Inclined bench (~45°), pressing bar at angle
   return <>
-    <polygon points="10,154 26,154 96,50 80,50" fill={P}/>
-    <rect x={10} y={122} width={16} height={32} fill={P}/>
-    <H cx={90} cy={34}/>
-    <L x1={82} y1={42} x2={34} y2={92} w={14}/>
-    <L x1={34} y1={92} x2={20} y2={130} w={12}/>
-    <L x1={20} y1={130} x2={16} y2={154} w={10}/>
-    <L x1={44} y1={94} x2={52} y2={130} w={12}/>
-    <L x1={52} y1={130} x2={50} y2={154} w={10}/>
-    <L x1={62} y1={64} x2={52} y2={44} w={10}/>
-    <L x1={52} y1={44} x2={56} y2={24} w={9}/>
-    <L x1={68} y1={66} x2={76} y2={46} w={10}/>
-    <L x1={76} y1={46} x2={72} y2={26} w={9}/>
-    <Bar x={38} y={22} len={36}/>
-    <Arr x={14} y={82} dir="updown" len={18}/>
-  </>;
-}
-
-function Dip() {
-  // Parallel bars dip: arms supporting body, elbows bent
-  return <>
-    <rect x={18} y={56} width={6} height={96} fill={P}/>
-    <rect x={96} y={56} width={6} height={96} fill={P}/>
-    <rect x={6} y={48} width={34} height={9} rx={4} fill={E}/>
-    <rect x={80} y={48} width={34} height={9} rx={4} fill={E}/>
-    <H cx={60} cy={16}/>
-    <L x1={60} y1={25} x2={58} y2={64} w={14}/>
-    <L x1={52} y1={36} x2={36} y2={48} w={10}/>
-    <L x1={36} y1={48} x2={22} y2={58} w={9}/>
-    <L x1={68} y1={36} x2={84} y2={48} w={10}/>
-    <L x1={84} y1={48} x2={98} y2={58} w={9}/>
-    <L x1={50} y1={64} x2={42} y2={96} w={12}/>
-    <L x1={42} y1={96} x2={50} y2={124} w={10}/>
-    <L x1={66} y1={64} x2={74} y2={96} w={12}/>
-    <L x1={74} y1={96} x2={66} y2={124} w={10}/>
-    <Arr x={112} y={66} dir="updown" len={24}/>
-  </>;
-}
-
-function Pushup() {
-  // Body in plank, arms pushing up from floor
-  return <>
-    <Floor/>
-    <H cx={100} cy={80}/>
-    <L x1={91} y1={88} x2={22} y2={106} w={14}/>
-    <L x1={82} y1={92} x2={86} y2={118} w={10}/>
-    <L x1={86} y1={118} x2={92} y2={152} w={9}/>
-    <L x1={68} y1={96} x2={68} y2={120} w={10}/>
-    <L x1={68} y1={120} x2={72} y2={152} w={9}/>
-    <L x1={22} y1={106} x2={8} y2={118} w={12}/>
-    <L x1={8} y1={118} x2={4} y2={152} w={10}/>
-    <L x1={22} y1={106} x2={36} y2={118} w={12}/>
-    <L x1={36} y1={118} x2={42} y2={152} w={10}/>
-    <Arr x={52} y={86} dir="updown" len={18}/>
+    {/* Inclined seat */}
+    <polygon points="10,155 26,155 100,46 84,46" fill={P}/>
+    <rect x={10} y={126} width={16} height={30} fill={P}/>
+    {/* Person on incline */}
+    <H cx={92} cy={30}/>
+    <L x1={84} y1={38} x2={36} y2={88} w={13}/>
+    <L x1={36} y1={88} x2={22} y2={122} w={12}/>
+    <L x1={22} y1={122} x2={18} y2={155} w={10}/>
+    <L x1={46} y1={94} x2={56} y2={126} w={12}/>
+    <L x1={56} y1={126} x2={54} y2={155} w={10}/>
+    {/* Arms pressing at angle */}
+    <L x1={66} y1={62} x2={56} y2={42} w={10}/>
+    <L x1={56} y1={42} x2={60} y2={24} w={9}/>
+    <L x1={72} y1={64} x2={80} y2={44} w={10}/>
+    <L x1={80} y1={44} x2={76} y2={26} w={9}/>
+    <Barbell cx={68} cy={22} half={18}/>
+    <Arr x={14} y={80} dir="updown" len={18}/>
   </>;
 }
 
 function Fly() {
-  // Flat bench, arms wide open to sides with dumbbells (NOT pressing up)
+  // Profile: person flat on bench, arms WIDE open to sides — clearly different from press
+  const by = 100;
   return <>
-    <Bench x={8} y={82} w={104}/>
-    <H cx={106} cy={63}/>
-    <L x1={97} y1={71} x2={20} y2={73} w={14}/>
-    <L x1={20} y1={73} x2={12} y2={108} w={12}/>
-    <L x1={12} y1={108} x2={16} y2={154} w={10}/>
-    {/* Arms WIDE open — nearly horizontal, low arc */}
-    <L x1={66} y1={73} x2={42} y2={48} w={10}/>
-    <L x1={42} y1={48} x2={20} y2={36} w={9}/>
-    <L x1={72} y1={73} x2={94} y2={48} w={10}/>
-    <L x1={94} y1={48} x2={114} y2={36} w={9}/>
-    <Dv x={14} y={29}/>
-    <Dv x={110} y={29}/>
-    <path d="M20,36 Q67,18 114,36" fill="none" stroke={E} strokeWidth={2} strokeDasharray="5,3" opacity={0.7}/>
+    <LyingOnBench benchY={by}/>
+    {/* Arms going WIDE to each side — near-horizontal */}
+    <L x1={62} y1={by-6} x2={38} y2={by-28} w={10}/>
+    <L x1={38} y1={by-28} x2={14} y2={by-38} w={9}/>
+    <L x1={72} y1={by-6} x2={94} y2={by-28} w={10}/>
+    <L x1={94} y1={by-28} x2={112} y2={by-38} w={9}/>
+    <DB cx={12} cy={by-40}/>
+    <DB cx={110} cy={by-40}/>
+    {/* Arc showing the closing motion */}
+    <path d={`M14,${by-38} Q64,${by-68} 112,${by-38}`} fill="none" stroke={E} strokeWidth={2} strokeDasharray="5,3" opacity={0.7}/>
+  </>;
+}
+
+function Pushup() {
+  // Profile: body plank on floor, arms pushing up
+  return <>
+    <Floor/>
+    <H cx={104} cy={76}/>
+    <L x1={95} y1={84} x2={20} y2={100} w={13}/>
+    {/* Arms: elbows slightly bent */}
+    <L x1={84} y1={88} x2={88} y2={112} w={10}/>
+    <L x1={88} y1={112} x2={92} y2={152} w={9}/>
+    <L x1={68} y1={92} x2={70} y2={116} w={10}/>
+    <L x1={70} y1={116} x2={72} y2={152} w={9}/>
+    {/* Legs: toes on floor */}
+    <L x1={20} y1={100} x2={6} y2={108} w={12}/>
+    <L x1={6} y1={108} x2={4} y2={152} w={10}/>
+    <L x1={20} y1={100} x2={36} y2={108} w={12}/>
+    <L x1={36} y1={108} x2={38} y2={152} w={10}/>
+    <Arr x={54} y={82} dir="updown" len={16}/>
+  </>;
+}
+
+function Dip() {
+  // Parallel bars: body suspended, arms bent at sides
+  return <>
+    <rect x={18} y={52} width={6} height={100} fill={P}/>
+    <rect x={96} y={52} width={6} height={100} fill={P}/>
+    <rect x={6} y={44} width={34} height={9} rx={4} fill={E}/>
+    <rect x={80} y={44} width={34} height={9} rx={4} fill={E}/>
+    <H cx={60} cy={16}/>
+    <L x1={60} y1={25} x2={58} y2={62} w={14}/>
+    <L x1={52} y1={36} x2={34} y2={46} w={10}/>
+    <L x1={34} y1={46} x2={22} y2={56} w={9}/>
+    <L x1={68} y1={36} x2={86} y2={46} w={10}/>
+    <L x1={86} y1={46} x2={98} y2={56} w={9}/>
+    <L x1={50} y1={62} x2={42} y2={96} w={12}/>
+    <L x1={42} y1={96} x2={50} y2={126} w={10}/>
+    <L x1={66} y1={62} x2={74} y2={96} w={12}/>
+    <L x1={74} y1={96} x2={66} y2={126} w={10}/>
+    <Arr x={112} y={62} dir="updown" len={26}/>
   </>;
 }
 
 // ─── SHOULDERS ────────────────────────────────────────────────────────────────
 
 function OverheadPress() {
-  // Standing, bar pressed from shoulders to overhead
+  // Front view: bar clearly ABOVE HEAD — bar at y=14 (safe from clip)
   return <>
-    <StandBase/>
-    <L x1={52} y1={34} x2={40} y2={14} w={10}/>
-    <L x1={40} y1={14} x2={40} y2={2} w={9}/>
-    <L x1={68} y1={34} x2={80} y2={14} w={10}/>
-    <L x1={80} y1={14} x2={80} y2={2} w={9}/>
-    <Bar x={22} y={0} len={76}/>
-    <Arr x={110} y={36} dir="updown" len={24}/>
+    <Stand/>
+    {/* Arms extended overhead — bar just above head level */}
+    <L x1={52} y1={38} x2={42} y2={22} w={10}/>
+    <L x1={42} y1={22} x2={44} y2={14} w={9}/>
+    <L x1={68} y1={38} x2={78} y2={22} w={10}/>
+    <L x1={78} y1={22} x2={76} y2={14} w={9}/>
+    {/* Bar above head — plates well within viewBox */}
+    <Barbell cx={60} cy={12} half={34}/>
+    <Arr x={112} y={36} dir="updown" len={26}/>
   </>;
 }
 
 function LateralRaise() {
-  // Standing, arms raised out to sides at shoulder height
+  // Front view: arms at SHOULDER HEIGHT out to sides — T-shape
   return <>
-    <StandBase/>
-    <L x1={52} y1={34} x2={18} y2={38} w={10}/>
-    <L x1={18} y1={38} x2={4} y2={44} w={9}/>
-    <L x1={68} y1={34} x2={102} y2={38} w={10}/>
-    <L x1={102} y1={38} x2={116} y2={44} w={9}/>
-    <Dh x={-4} y={40}/>
-    <Dh x={108} y={40}/>
-    <Arr x={60} y={56} dir="updown" len={14}/>
+    <Stand/>
+    {/* Arms horizontal, out to sides */}
+    <L x1={52} y1={38} x2={20} y2={42} w={10}/>
+    <L x1={20} y1={42} x2={6} y2={46} w={9}/>
+    <L x1={68} y1={38} x2={100} y2={42} w={10}/>
+    <L x1={100} y1={42} x2={114} y2={46} w={9}/>
+    {/* Dumbbells — within bounds */}
+    <DB cx={6} cy={46}/>
+    <DB cx={114} cy={46}/>
+    <Arr x={60} y={58} dir="updown" len={14}/>
   </>;
 }
 
 function FrontRaise() {
-  // Standing, one arm raised forward to shoulder height
+  // Front view: one arm raised FORWARD at shoulder height
   return <>
-    <StandBase/>
-    <L x1={52} y1={34} x2={30} y2={18} w={10}/>
-    <L x1={30} y1={18} x2={16} y2={10} w={9}/>
-    <Dh x={2} y={6}/>
-    <L x1={68} y1={34} x2={86} y2={58} w={10}/>
-    <L x1={86} y1={58} x2={92} y2={84} w={9}/>
-    <Arr x={24} y={26} dir="up" len={18}/>
+    <Stand/>
+    {/* Left arm raised to front/up */}
+    <L x1={52} y1={38} x2={28} y2={22} w={10}/>
+    <L x1={28} y1={22} x2={14} y2={14} w={9}/>
+    <DB cx={14} cy={14}/>
+    {/* Right arm at side */}
+    <L x1={68} y1={38} x2={86} y2={62} w={10}/>
+    <L x1={86} y1={62} x2={92} y2={88} w={9}/>
+    <Arr x={22} y={26} dir="up" len={18}/>
   </>;
 }
 
 function Shrug() {
-  // Standing, arms straight down with dumbbells, shoulders raised
+  // Front view: arms DOWN, shoulders RAISED, traps engaged
   return <>
-    <StandBase/>
-    <L x1={52} y1={30} x2={36} y2={58} w={10}/>
-    <L x1={36} y1={58} x2={28} y2={90} w={9}/>
-    <L x1={68} y1={30} x2={84} y2={58} w={10}/>
-    <L x1={84} y1={58} x2={92} y2={90} w={9}/>
-    <Dv x={22} y={88}/>
-    <Dv x={88} y={88}/>
-    <Arr x={60} y={18} dir="up" len={14}/>
+    <Stand/>
+    <L x1={52} y1={32} x2={36} y2={60} w={10}/>
+    <L x1={36} y1={60} x2={28} y2={92} w={9}/>
+    <L x1={68} y1={32} x2={84} y2={60} w={10}/>
+    <L x1={84} y1={60} x2={92} y2={92} w={9}/>
+    <DBV cx={24} cy={100}/>
+    <DBV cx={96} cy={100}/>
+    <Arr x={60} y={20} dir="up" len={12}/>
   </>;
 }
 
 // ─── BACK ────────────────────────────────────────────────────────────────────
 
 function Pulldown() {
-  // Seated at lat machine, arms pulling bar DOWN to chest
+  // Seated, bar pulled DOWN from above to chest
   return <>
-    <rect x={4} y={4} width={112} height={8} rx={2} fill={P}/>
-    <line x1={60} y1={12} x2={60} y2={38} stroke={E} strokeWidth={2} strokeDasharray="4,2"/>
-    <Bar x={26} y={36} len={68}/>
-    <Bench x={28} y={118} w={64}/>
-    <rect x={34} y={126} width={6} height={26} fill={P}/>
-    <rect x={80} y={126} width={6} height={26} fill={P}/>
+    <rect x={4} y={8} width={112} height={7} rx={2} fill={P}/>
+    <line x1={60} y1={15} x2={60} y2={38} stroke={E} strokeWidth={2} strokeDasharray="4,2"/>
+    <Barbell cx={60} cy={40} half={32}/>
+    {/* Seat */}
+    <rect x={30} y={116} width={60} height={8} rx={2} fill={P}/>
+    <rect x={36} y={124} width={6} height={26} fill={P}/>
+    <rect x={78} y={124} width={6} height={26} fill={P}/>
+    {/* Person */}
     <H cx={60} cy={60}/>
-    <L x1={60} y1={69} x2={60} y2={116} w={14}/>
-    <L x1={54} y1={116} x2={28} y2={118} w={12}/>
-    <L x1={66} y1={116} x2={92} y2={118} w={12}/>
-    {/* Arms reaching UP to bar, elbows pulled DOWN */}
-    <L x1={52} y1={78} x2={36} y2={50} w={10}/>
-    <L x1={36} y1={50} x2={32} y2={40} w={9}/>
-    <L x1={68} y1={78} x2={84} y2={50} w={10}/>
-    <L x1={84} y1={50} x2={88} y2={40} w={9}/>
-    <Arr x={110} y={70} dir="down" len={22}/>
+    <L x1={60} y1={69} x2={60} y2={114} w={14}/>
+    <L x1={54} y1={114} x2={32} y2={116} w={12}/>
+    <L x1={66} y1={114} x2={88} y2={116} w={12}/>
+    {/* Arms reaching UP to bar, pulling DOWN */}
+    <L x1={52} y1={78} x2={36} y2={52} w={10}/>
+    <L x1={36} y1={52} x2={32} y2={42} w={9}/>
+    <L x1={68} y1={78} x2={84} y2={52} w={10}/>
+    <L x1={84} y1={52} x2={88} y2={42} w={9}/>
+    <Arr x={112} y={70} dir="down" len={24}/>
   </>;
 }
 
 function Pullup() {
-  // Hanging from bar, chin above bar — arms bent
+  // Hanging from bar, chin pulled above bar
   return <>
-    <rect x={12} y={6} width={96} height={9} rx={4} fill={E}/>
+    <rect x={12} y={8} width={96} height={8} rx={4} fill={E}/>
     <H cx={60} cy={30}/>
     <L x1={60} y1={39} x2={60} y2={86} w={14}/>
     <L x1={54} y1={86} x2={46} y2={126} w={12}/>
-    <L x1={46} y1={126} x2={44} y2={158} w={10}/>
+    <L x1={46} y1={126} x2={44} y2={156} w={10}/>
     <L x1={66} y1={86} x2={74} y2={126} w={12}/>
-    <L x1={74} y1={126} x2={76} y2={158} w={10}/>
-    {/* Arms bent, elbows pointing down, hands at bar */}
+    <L x1={74} y1={126} x2={76} y2={156} w={10}/>
+    {/* Arms bent, elbows pulling DOWN */}
     <L x1={52} y1={48} x2={34} y2={26} w={10}/>
-    <L x1={34} y1={26} x2={30} y2={14} w={9}/>
+    <L x1={34} y1={26} x2={30} y2={16} w={9}/>
     <L x1={68} y1={48} x2={86} y2={26} w={10}/>
-    <L x1={86} y1={26} x2={90} y2={14} w={9}/>
-    <Arr x={110} y={66} dir="updown" len={24}/>
+    <L x1={86} y1={26} x2={90} y2={16} w={9}/>
+    <Arr x={110} y={64} dir="updown" len={26}/>
   </>;
 }
 
 function RowBent() {
-  // Bent-over ~45°, pulling barbell up to lower chest
+  // Profile: bent ~45°, barbell pulled to lower torso
   return <>
-    <Bar x={12} y={136} len={78}/>
-    <H cx={96} cy={36}/>
-    <L x1={88} y1={44} x2={42} y2={88} w={14}/>
-    <L x1={42} y1={88} x2={28} y2={126} w={12}/>
-    <L x1={28} y1={126} x2={24} y2={156} w={10}/>
-    <L x1={52} y1={92} x2={60} y2={126} w={12}/>
-    <L x1={60} y1={126} x2={58} y2={156} w={10}/>
-    {/* Arms: upper arms beside torso, forearms reaching DOWN to bar */}
-    <L x1={70} y1={64} x2={56} y2={94} w={10}/>
-    <L x1={56} y1={94} x2={48} y2={138} w={9}/>
-    <L x1={74} y1={66} x2={64} y2={96} w={10}/>
-    <L x1={64} y1={96} x2={60} y2={138} w={9}/>
-    <Arr x={112} y={78} dir="up" len={26}/>
+    {/* Person side profile, facing right */}
+    <H cx={100} cy={32}/>
+    <L x1={92} y1={40} x2={52} y2={82} w={14}/>
+    {/* Legs: standing */}
+    <L x1={52} y1={82} x2={38} y2={120} w={12}/>
+    <L x1={38} y1={120} x2={34} y2={156} w={10}/>
+    <L x1={62} y1={86} x2={68} y2={120} w={12}/>
+    <L x1={68} y1={120} x2={66} y2={156} w={10}/>
+    {/* Arms pulling bar up toward torso */}
+    <L x1={72} y1={60} x2={56} y2={90} w={10}/>
+    <L x1={56} y1={90} x2={46} y2={132} w={9}/>
+    <L x1={78} y1={62} x2={66} y2={92} w={10}/>
+    <L x1={66} y1={92} x2={58} y2={132} w={9}/>
+    <Barbell cx={52} cy={136} half={38}/>
+    <Arr x={114} y={76} dir="up" len={28}/>
   </>;
 }
 
 function RowSeated() {
-  // Seated, pulling cable toward abdomen
+  // Profile: seated, cable pulled from front to abdomen
   return <>
-    <rect x={0} y={92} width={10} height={8} rx={2} fill={P}/>
-    <line x1={10} y1={96} x2={40} y2={96} stroke={E} strokeWidth={2} strokeDasharray="4,2"/>
-    <Bench x={48} y={118} w={64}/>
-    <H cx={90} cy={58}/>
-    <L x1={90} y1={67} x2={88} y2={116} w={14}/>
-    <L x1={82} y1={116} x2={52} y2={118} w={12}/>
-    <L x1={52} y1={118} x2={38} y2={152} w={10}/>
-    {/* Arms pulling cable from front to belly */}
-    <L x1={82} y1={80} x2={56} y2={92} w={10}/>
-    <L x1={56} y1={92} x2={40} y2={96} w={9}/>
-    <L x1={84} y1={82} x2={60} y2={95} w={10}/>
-    <Arr x={112} y={84} dir="updown" len={18}/>
+    {/* Cable machine */}
+    <rect x={4} y={88} width={12} height={10} rx={2} fill={P}/>
+    <line x1={16} y1={93} x2={46} y2={98} stroke={E} strokeWidth={2.5} strokeDasharray="5,2"/>
+    {/* Seat */}
+    <rect x={52} y={116} width={60} height={8} rx={2} fill={P}/>
+    <rect x={58} y={124} width={6} height={26} fill={P}/>
+    {/* Person seated, upright back */}
+    <H cx={96} cy={58}/>
+    <L x1={96} y1={67} x2={92} y2={114} w={14}/>
+    {/* Thighs horizontal on seat */}
+    <L x1={86} y1={114} x2={54} y2={116} w={12}/>
+    <L x1={54} y1={116} x2={40} y2={150} w={10}/>
+    {/* Arms pulling cable handle toward belly */}
+    <L x1={88} y1={82} x2={62} y2={94} w={10}/>
+    <L x1={62} y1={94} x2={46} y2={98} w={9}/>
+    <L x1={90} y1={86} x2={68} y2={96} w={10}/>
+    <Arr x={114} y={84} dir="updown" len={18}/>
   </>;
 }
 
 function ReverseFly() {
-  // Bent-over, arms raising OUT to sides
+  // Bent over, arms raising OUT to sides
   return <>
-    <H cx={96} cy={36}/>
-    <L x1={88} y1={44} x2={42} y2={88} w={14}/>
-    <L x1={42} y1={88} x2={28} y2={126} w={12}/>
-    <L x1={28} y1={126} x2={24} y2={156} w={10}/>
-    <L x1={52} y1={92} x2={60} y2={126} w={12}/>
-    <L x1={60} y1={126} x2={58} y2={156} w={10}/>
-    {/* Arms raising UPWARD/OUTWARD */}
-    <L x1={72} y1={64} x2={48} y2={44} w={10}/>
-    <L x1={48} y1={44} x2={26} y2={30} w={9}/>
-    <L x1={74} y1={66} x2={96} y2={46} w={10}/>
-    <L x1={96} y1={46} x2={114} y2={32} w={9}/>
-    <Dv x={18} y={24}/>
-    <Dv x={110} y={26}/>
-    <path d="M26,30 Q62,52 114,32" fill="none" stroke={E} strokeWidth={2} strokeDasharray="4,3" opacity={0.6}/>
+    <H cx={100} cy={32}/>
+    <L x1={92} y1={40} x2={52} y2={82} w={14}/>
+    <L x1={52} y1={82} x2={38} y2={120} w={12}/>
+    <L x1={38} y1={120} x2={34} y2={156} w={10}/>
+    <L x1={62} y1={86} x2={68} y2={120} w={12}/>
+    <L x1={68} y1={120} x2={66} y2={156} w={10}/>
+    {/* Arms raising UPWARD/OUTWARD from bent position */}
+    <L x1={74} y1={60} x2={50} y2={42} w={10}/>
+    <L x1={50} y1={42} x2={28} y2={28} w={9}/>
+    <L x1={76} y1={62} x2={98} y2={44} w={10}/>
+    <L x1={98} y1={44} x2={114} y2={30} w={9}/>
+    <DBV cx={24} cy={24}/>
+    <DBV cx={114} cy={26}/>
+    <path d="M28,28 Q65,50 114,30" fill="none" stroke={E} strokeWidth={2} strokeDasharray="4,3" opacity={0.6}/>
   </>;
 }
 
 function BackExtension() {
-  // GHD: body hinging at hips, torso raises up
+  // GHD: body extends up from hip pivot
   return <>
-    <rect x={4} y={86} width={80} height={8} rx={2} fill={P}/>
-    <rect x={8} y={94} width={6} height={46} fill={P}/>
-    <rect x={60} y={94} width={6} height={46} fill={P}/>
-    <rect x={52} y={76} width={30} height={10} rx={4} fill={E} opacity={0.8}/>
-    <H cx={108} cy={58}/>
-    <L x1={100} y1={66} x2={62} y2={84} w={14}/>
-    <L x1={62} y1={84} x2={46} y2={92} w={12}/>
-    <L x1={46} y1={92} x2={32} y2={122} w={12}/>
-    <L x1={32} y1={122} x2={28} y2={152} w={10}/>
+    <rect x={4} y={90} width={82} height={7} rx={2} fill={P}/>
+    <rect x={8} y={97} width={6} height={46} fill={P}/>
+    <rect x={62} y={97} width={6} height={46} fill={P}/>
+    <rect x={54} y={80} width={28} height={10} rx={4} fill={E} opacity={0.8}/>
+    {/* Body extended upward */}
+    <H cx={110} cy={56}/>
+    <L x1={102} y1={64} x2={64} y2={88} w={14}/>
+    <L x1={64} y1={88} x2={46} y2={94} w={12}/>
+    <L x1={46} y1={94} x2={30} y2={124} w={12}/>
+    <L x1={30} y1={124} x2={26} y2={156} w={10}/>
     {/* Arms folded on chest */}
-    <L x1={92} y1={70} x2={76} y2={74} w={9}/>
-    <L x1={76} y1={68} x2={92} y2={74} w={9}/>
-    <Arr x={60} y={66} dir="updown" len={18}/>
+    <L x1={94} y1={68} x2={80} y2={72} w={9}/>
+    <L x1={82} y1={66} x2={96} y2={72} w={9}/>
+    <Arr x={60} y={64} dir="updown" len={20}/>
   </>;
 }
 
 // ─── ARMS ─────────────────────────────────────────────────────────────────────
 
 function CurlStanding() {
-  // Standing, forearm BENT UP (curl) — upper arm stays vertical
+  // Front view: left arm BENT UP (curl), right arm hanging down
   return <>
-    <StandBase/>
-    {/* LEFT arm: upper arm hanging down, forearm curled UP toward shoulder */}
-    <L x1={52} y1={34} x2={38} y2={62} w={10}/>
-    <L x1={38} y1={62} x2={46} y2={38} w={9}/>
-    <Dv x={40} y={30}/>
-    {/* RIGHT arm hanging at side */}
-    <L x1={68} y1={34} x2={84} y2={60} w={10}/>
-    <L x1={84} y1={60} x2={90} y2={88} w={9}/>
-    <Dv x={86} y={86}/>
-    <Arr x={26} y={52} dir="up" len={20}/>
+    <Stand/>
+    {/* LEFT arm curled: upper arm down, forearm bent UP toward shoulder */}
+    <L x1={52} y1={38} x2={38} y2={64} w={10}/>
+    <L x1={38} y1={64} x2={46} y2={40} w={9}/>
+    <DBV cx={44} cy={32}/>
+    {/* RIGHT arm hanging straight */}
+    <L x1={68} y1={38} x2={84} y2={62} w={10}/>
+    <L x1={84} y1={62} x2={90} y2={90} w={9}/>
+    <DBV cx={90} cy={98}/>
+    <Arr x={24} y={48} dir="up" len={20}/>
   </>;
 }
 
 function CurlSeated() {
-  // Preacher bench: arm resting on incline, forearm curls up
+  // Preacher/incline: arm on pad, forearm curls up
   return <>
-    <polygon points="20,156 36,156 92,72 76,72" fill={P}/>
+    <polygon points="20,156 36,156 94,70 78,70" fill={P}/>
     <rect x={20} y={146} width={16} height={10} fill={P}/>
-    <H cx={90} cy={48}/>
-    <L x1={86} y1={57} x2={78} y2={86} w={14}/>
-    <L x1={70} y1={86} x2={54} y2={120} w={12}/>
-    <L x1={54} y1={120} x2={46} y2={156} w={10}/>
+    <H cx={92} cy={46}/>
+    <L x1={88} y1={55} x2={80} y2={84} w={14}/>
+    <L x1={72} y1={84} x2={56} y2={118} w={12}/>
+    <L x1={56} y1={118} x2={48} y2={156} w={10}/>
     {/* Upper arm on pad, forearm curled UP */}
-    <L x1={80} y1={70} x2={62} y2={86} w={10}/>
-    <L x1={62} y1={86} x2={54} y2={66} w={9}/>
-    <Bar x={42} y={62} len={18}/>
-    <Arr x={42} y={74} dir="up" len={20}/>
+    <L x1={82} y1={68} x2={62} y2={84} w={10}/>
+    <L x1={62} y1={84} x2={54} y2={62} w={9}/>
+    <Barbell cx={52} cy={58} half={12}/>
+    <Arr x={40} y={72} dir="up" len={20}/>
   </>;
 }
 
 function TricepPushdown() {
-  // Standing, cable from above, upper arms PINNED to sides, forearms push DOWN
+  // Cable from top, upper arms PINNED to sides, forearms push DOWN
   return <>
-    <rect x={4} y={4} width={112} height={8} rx={2} fill={P}/>
-    <line x1={60} y1={12} x2={60} y2={36} stroke={E} strokeWidth={2} strokeDasharray="4,2"/>
-    <line x1={60} y1={36} x2={46} y2={46} stroke={E} strokeWidth={3} strokeLinecap="round"/>
-    <line x1={60} y1={36} x2={74} y2={46} stroke={E} strokeWidth={3} strokeLinecap="round"/>
-    <circle cx={46} cy={46} r={4} fill={E}/>
-    <circle cx={74} cy={46} r={4} fill={E}/>
-    <StandBase/>
-    {/* Upper arms nearly vertical (pinned at sides) */}
-    <L x1={52} y1={34} x2={48} y2={42} w={10}/>
-    <L x1={68} y1={34} x2={72} y2={42} w={10}/>
+    <rect x={4} y={8} width={112} height={7} rx={2} fill={P}/>
+    <line x1={60} y1={15} x2={60} y2={42} stroke={E} strokeWidth={2} strokeDasharray="4,2"/>
+    <line x1={60} y1={42} x2={46} y2={52} stroke={E} strokeWidth={3} strokeLinecap="round"/>
+    <line x1={60} y1={42} x2={74} y2={52} stroke={E} strokeWidth={3} strokeLinecap="round"/>
+    <circle cx={46} cy={52} r={5} fill={E}/>
+    <circle cx={74} cy={52} r={5} fill={E}/>
+    <Stand/>
+    {/* Upper arms close to body (vertical/pinned) */}
+    <L x1={52} y1={38} x2={48} y2={48} w={10}/>
+    <L x1={68} y1={38} x2={72} y2={48} w={10}/>
     {/* Forearms pushing DOWN */}
-    <L x1={48} y1={42} x2={46} y2={62} w={9}/>
-    <L x1={72} y1={42} x2={74} y2={62} w={9}/>
-    <Arr x={112} y={42} dir="down" len={22}/>
+    <L x1={48} y1={48} x2={46} y2={70} w={9}/>
+    <L x1={72} y1={48} x2={74} y2={70} w={9}/>
+    <Arr x={114} y={48} dir="down" len={22}/>
   </>;
 }
 
 function TricepOverhead() {
-  // Standing, weight behind head, elbows up, extending overhead
+  // Weight behind head, elbows up, arms extending overhead
   return <>
-    <StandBase/>
-    {/* Upper arms UP beside head */}
-    <L x1={52} y1={34} x2={44} y2={10} w={10}/>
-    <L x1={68} y1={34} x2={76} y2={10} w={10}/>
-    {/* Forearms folded BEHIND HEAD */}
-    <L x1={44} y1={10} x2={50} y2={34} w={9}/>
-    <L x1={76} y1={10} x2={70} y2={34} w={9}/>
-    <rect x={46} y={32} width={28} height={8} rx={3} fill={E}/>
+    <Stand/>
+    {/* Upper arms straight UP beside head */}
+    <L x1={52} y1={38} x2={44} y2={14} w={10}/>
+    <L x1={68} y1={38} x2={76} y2={14} w={10}/>
+    {/* Forearms bent BEHIND head */}
+    <L x1={44} y1={14} x2={50} y2={36} w={9}/>
+    <L x1={76} y1={14} x2={70} y2={36} w={9}/>
+    <rect x={46} y={34} width={28} height={8} rx={3} fill={E}/>
     <Arr x={60} y={20} dir="updown" len={16}/>
   </>;
 }
 
 function SkullCrusher() {
-  // Lying on bench, upper arms perpendicular to bench (vertical), forearms fold toward head
+  // Lying: upper arms vertical, forearms fold toward forehead
+  const by = 100;
   return <>
-    <Bench x={8} y={82} w={104}/>
-    <H cx={106} cy={63}/>
-    <L x1={97} y1={71} x2={20} y2={73} w={14}/>
-    <L x1={20} y1={73} x2={12} y2={108} w={12}/>
-    {/* Upper arms pointing straight UP from torso */}
-    <L x1={64} y1={73} x2={62} y2={46} w={10}/>
-    <L x1={72} y1={73} x2={78} y2={46} w={10}/>
-    {/* Forearms fold back toward head */}
-    <L x1={62} y1={46} x2={78} y2={38} w={9}/>
-    <L x1={78} y1={46} x2={92} y2={38} w={9}/>
-    <Bar x={74} y={34} len={24}/>
-    <Arr x={14} y={73} dir="updown" len={16}/>
+    <LyingOnBench benchY={by}/>
+    {/* Upper arms perpendicular to bench (vertical) */}
+    <L x1={64} y1={by-6} x2={62} y2={by-30} w={10}/>
+    <L x1={74} y1={by-6} x2={78} y2={by-30} w={10}/>
+    {/* Forearms angled back toward head */}
+    <L x1={62} y1={by-30} x2={76} y2={by-42} w={9}/>
+    <L x1={78} y1={by-30} x2={90} y2={by-42} w={9}/>
+    <Barbell cx={83} cy={by-46} half={14}/>
+    <Arr x={16} y={by-32} dir="updown" len={18}/>
   </>;
 }
 
 // ─── LEGS ─────────────────────────────────────────────────────────────────────
 
 function Squat() {
-  // Bar on upper back, BOTH KNEES symmetrically bent wide — deep squat
+  // Profile side view: bar on back, KNEES DEEPLY BENT — most recognizable view
   return <>
-    <Bar x={8} y={42} len={104}/>
-    <H cx={60} cy={26}/>
-    <L x1={60} y1={35} x2={58} y2={76} w={14}/>
-    {/* Arms holding bar wide */}
-    <L x1={52} y1={46} x2={32} y2={44} w={9}/>
-    <L x1={68} y1={46} x2={88} y2={44} w={9}/>
-    {/* BOTH THIGHS wide and down — symmetric */}
-    <L x1={52} y1={76} x2={24} y2={112} w={12}/>
-    <L x1={24} y1={112} x2={18} y2={154} w={10}/>
-    <L x1={66} y1={76} x2={96} y2={112} w={12}/>
-    <L x1={96} y1={112} x2={102} y2={154} w={10}/>
-    <Arr x={112} y={94} dir="updown" len={24}/>
+    {/* Bar across back/shoulders, spanning wide */}
+    <Barbell cx={60} cy={38} half={50}/>
+    {/* Head: slightly in front of bar */}
+    <H cx={78} cy={22}/>
+    {/* Torso: angled forward in deep squat */}
+    <L x1={72} y1={30} x2={56} y2={78} w={14}/>
+    {/* Arms holding bar */}
+    <L x1={66} y1={38} x2={28} y2={42} w={9}/>
+    <L x1={70} y1={38} x2={96} y2={40} w={9}/>
+    {/* LEFT LEG (front leg in side view): thigh forward, shin back */}
+    <L x1={52} y1={78} x2={76} y2={112} w={12}/>
+    <L x1={76} y1={112} x2={62} y2={154} w={10}/>
+    {/* RIGHT LEG (back leg): thigh back, shin forward */}
+    <L x1={58} y1={80} x2={34} y2={114} w={12}/>
+    <L x1={34} y1={114} x2={46} y2={154} w={10}/>
+    <Arr x={114} y={92} dir="updown" len={24}/>
   </>;
 }
 
 function Deadlift() {
-  // Bar from floor, hips LOW, knees BENT significantly (more bent than RDL)
+  // Profile: bar on FLOOR, back ~60°, knees BENT picking up bar
   return <>
-    <Bar x={8} y={132} len={104}/>
-    <H cx={86} cy={36}/>
-    {/* Back at ~60° angle */}
-    <L x1={78} y1={44} x2={46} y2={88} w={14}/>
-    {/* Arms straight down to bar */}
-    <L x1={62} y1={64} x2={50} y2={92} w={10}/>
-    <L x1={50} y1={92} x2={46} y2={134} w={9}/>
-    <L x1={66} y1={66} x2={58} y2={94} w={10}/>
-    <L x1={58} y1={94} x2={58} y2={134} w={9}/>
-    {/* Knees BENT — hips LOW (key diff from RDL) */}
-    <L x1={46} y1={88} x2={28} y2={118} w={12}/>
-    <L x1={28} y1={118} x2={22} y2={154} w={10}/>
-    <L x1={58} y1={92} x2={68} y2={118} w={12}/>
-    <L x1={68} y1={118} x2={70} y2={154} w={10}/>
-    <Arr x={112} y={80} dir="up" len={26}/>
+    {/* Head tilted forward */}
+    <H cx={96} cy={30}/>
+    {/* Back: angled ~60° from vertical */}
+    <L x1={88} y1={38} x2={48} y2={80} w={14}/>
+    {/* Arms: straight down to bar on floor */}
+    <L x1={68} y1={58} x2={52} y2={86} w={10}/>
+    <L x1={52} y1={86} x2={44} y2={130} w={9}/>
+    <L x1={76} y1={60} x2={62} y2={88} w={10}/>
+    <L x1={62} y1={88} x2={56} y2={130} w={9}/>
+    {/* Legs: KNEES BENT significantly */}
+    <L x1={48} y1={80} x2={28} y2={114} w={12}/>
+    <L x1={28} y1={114} x2={24} y2={154} w={10}/>
+    <L x1={60} y1={84} x2={70} y2={114} w={12}/>
+    <L x1={70} y1={114} x2={72} y2={154} w={10}/>
+    {/* Bar on floor */}
+    <Barbell cx={50} cy={134} half={42}/>
+    <Arr x={114} y={78} dir="up" len={28}/>
   </>;
 }
 
 function RDL() {
-  // Hip hinge: back NEARLY HORIZONTAL, legs barely bent — key diff from Deadlift
+  // Profile: back NEARLY HORIZONTAL, STRAIGHT legs — key contrast vs Deadlift
   return <>
-    <Bar x={8} y={112} len={104}/>
-    <H cx={98} cy={34}/>
-    {/* Almost horizontal back */}
-    <L x1={90} y1={42} x2={46} y2={82} w={14}/>
-    {/* Arms hanging straight down */}
-    <L x1={72} y1={60} x2={58} y2={86} w={10}/>
-    <L x1={58} y1={86} x2={50} y2={114} w={9}/>
-    <L x1={76} y1={62} x2={66} y2={88} w={10}/>
-    <L x1={66} y1={88} x2={62} y2={114} w={9}/>
-    {/* LEGS barely bent — mostly straight */}
-    <L x1={46} y1={82} x2={38} y2={118} w={12}/>
-    <L x1={38} y1={118} x2={34} y2={154} w={10}/>
-    <L x1={56} y1={84} x2={62} y2={118} w={12}/>
-    <L x1={62} y1={118} x2={64} y2={154} w={10}/>
-    <Arr x={112} y={74} dir="updown" len={24}/>
+    <H cx={104} cy={28}/>
+    {/* Back almost horizontal — clearly different from deadlift */}
+    <L x1={96} y1={36} x2={44} y2={72} w={14}/>
+    {/* Arms hanging down straight */}
+    <L x1={72} y1={52} x2={56} y2={76} w={10}/>
+    <L x1={56} y1={76} x2={46} y2={110} w={9}/>
+    <L x1={80} y1={54} x2={68} y2={78} w={10}/>
+    <L x1={68} y1={78} x2={60} y2={110} w={9}/>
+    {/* LEGS NEARLY STRAIGHT — minimal knee bend */}
+    <L x1={44} y1={72} x2={30} y2={112} w={12}/>
+    <L x1={30} y1={112} x2={26} y2={154} w={10}/>
+    <L x1={56} y1={74} x2={64} y2={112} w={12}/>
+    <L x1={64} y1={112} x2={66} y2={154} w={10}/>
+    {/* Bar at thigh/shin level */}
+    <Barbell cx={53} cy={114} half={38}/>
+    <Arr x={114} y={70} dir="updown" len={22}/>
   </>;
 }
 
 function HipThrust() {
-  // Upper back on bench, hips HIGH, bar on hips, feet on floor
+  // Back on bench, hips HIGH, bar on hips
   return <>
-    <Bench x={54} y={48} w={58}/>
+    <FlatBench y={52}/>
     <Floor/>
-    <Bar x={16} y={74} len={78}/>
-    <H cx={106} cy={38}/>
-    {/* Upper back on bench */}
-    <L x1={98} y1={46} x2={64} y2={56} w={14}/>
-    {/* Hips raised: torso diagonal */}
-    <L x1={64} y1={56} x2={48} y2={76} w={14}/>
-    {/* Legs: knees bent, feet flat on floor */}
-    <L x1={48} y1={76} x2={30} y2={116} w={12}/>
-    <L x1={30} y1={116} x2={24} y2={154} w={10}/>
-    <L x1={54} y1={78} x2={66} y2={116} w={12}/>
-    <L x1={66} y1={116} x2={68} y2={154} w={10}/>
-    <Arr x={14} y={80} dir="updown" len={22}/>
+    {/* Person: upper back on bench, hips raised, feet on floor */}
+    <H cx={108} cy={38}/>
+    <L x1={100} y1={46} x2={64} y2={58} w={14}/>
+    <L x1={64} y1={58} x2={50} y2={78} w={14}/>
+    {/* Legs bent, feet on floor */}
+    <L x1={50} y1={78} x2={34} y2={118} w={12}/>
+    <L x1={34} y1={118} x2={28} y2={154} w={10}/>
+    <L x1={56} y1={80} x2={68} y2={116} w={12}/>
+    <L x1={68} y1={116} x2={70} y2={154} w={10}/>
+    {/* Bar across hips */}
+    <Barbell cx={57} cy={76} half={30}/>
+    <Arr x={16} y={80} dir="updown" len={22}/>
   </>;
 }
 
 function Lunge() {
-  // SPLIT STANCE: front knee bent 90°, back knee near floor — ASYMMETRIC
+  // Front view: VERY CLEAR split stance — front leg bent, back knee near floor
   return <>
     <Floor/>
-    <H cx={62} cy={14}/>
-    <L x1={62} y1={23} x2={62} y2={72} w={14}/>
-    {/* Arms with dumbbells */}
-    <L x1={54} y1={36} x2={20} y2={68} w={10}/>
-    <L x1={20} y1={68} x2={12} y2={98} w={9}/>
-    <Dv x={6} y={96}/>
-    <L x1={70} y1={36} x2={104} y2={68} w={10}/>
-    <L x1={104} y1={68} x2={110} y2={98} w={9}/>
-    <Dv x={106} y={96}/>
-    {/* FRONT LEG: thigh angled forward/down, shin vertical */}
-    <L x1={56} y1={72} x2={32} y2={110} w={12}/>
-    <L x1={32} y1={110} x2={28} y2={154} w={10}/>
-    {/* BACK LEG: thigh angled back, knee near ground */}
-    <L x1={68} y1={72} x2={92} y2={112} w={12}/>
-    <L x1={92} y1={112} x2={98} y2={140} w={10}/>
-    <circle cx={98} cy={140} r={7} fill={E} opacity={0.4}/>
-    <Arr x={116} y={100} dir="updown" len={24}/>
+    <H cx={60} cy={14}/>
+    <L x1={60} y1={23} x2={60} y2={68} w={14}/>
+    {/* Arms with dumbbells at sides */}
+    <L x1={52} y1={38} x2={18} y2={68} w={10}/>
+    <L x1={18} y1={68} x2={10} y2={98} w={9}/>
+    <DBV cx={8} cy={106}/>
+    <L x1={68} y1={38} x2={102} y2={68} w={10}/>
+    <L x1={102} y1={68} x2={110} y2={98} w={9}/>
+    <DBV cx={112} cy={106}/>
+    {/* FRONT LEG: thigh forward-down, shin nearly vertical */}
+    <L x1={54} y1={68} x2={28} y2={108} w={12}/>
+    <L x1={28} y1={108} x2={24} y2={154} w={10}/>
+    {/* BACK LEG: thigh backward-down, knee NEAR FLOOR */}
+    <L x1={66} y1={68} x2={92} y2={110} w={12}/>
+    <L x1={92} y1={110} x2={98} y2={144} w={10}/>
+    {/* Back knee indicator — near floor */}
+    <circle cx={98} cy={144} r={8} fill={E} opacity={0.35}/>
+    <Arr x={116} y={102} dir="updown" len={26}/>
   </>;
 }
 
 function LegCurl() {
-  // LYING FACE DOWN on machine, shin curls UP toward butt
+  // LYING FACE DOWN — shin curling UP toward butt
   return <>
-    <Bench x={8} y={74} w={104}/>
-    {/* Ankle roller at foot end */}
-    <rect x={10} y={60} width={24} height={14} rx={5} fill={E} opacity={0.9}/>
-    {/* Figure PRONE — head right side */}
-    <H cx={106} cy={54}/>
-    <L x1={97} y1={62} x2={28} y2={66} w={14}/>
-    {/* Hands near face on bench */}
-    <L x1={88} y1={64} x2={84} y2={80} w={9}/>
-    {/* THIGH: lying flat on bench */}
-    <L x1={28} y1={66} x2={18} y2={80} w={12}/>
-    {/* SHIN: CURLED UP toward butt — key movement */}
-    <L x1={18} y1={80} x2={24} y2={46} w={10}/>
-    {/* Second leg mostly flat for reference */}
-    <L x1={34} y1={66} x2={26} y2={80} w={12}/>
-    <L x1={26} y1={80} x2={22} y2={116} w={10}/>
-    <Arr x={10} y={54} dir="up" len={24}/>
+    <FlatBench y={78}/>
+    {/* Roller pad at ankle end */}
+    <rect x={8} y={64} width={26} height={14} rx={5} fill={E} opacity={0.9}/>
+    {/* Figure PRONE — head at RIGHT, face down */}
+    <H cx={108} cy={60}/>
+    <L x1={99} y1={68} x2={26} y2={70} w={14}/>
+    {/* THIGH: flat on bench */}
+    <L x1={26} y1={70} x2={14} y2={82} w={12}/>
+    {/* SHIN: curled UP — this is the KEY feature, clearly going upward */}
+    <L x1={14} y1={82} x2={20} y2={50} w={10}/>
+    {/* Arrow pointing up clearly showing the curling motion */}
+    <Arr x={8} y={46} dir="up" len={24}/>
+    {/* Hands near head */}
+    <L x1={90} y1={68} x2={86} y2={84} w={9}/>
   </>;
 }
 
 function LegExtension() {
-  // SEATED on machine, lower leg extending FORWARD from bent to straight
+  // SEATED on machine — shin clearly EXTENDING FORWARD from bent
   return <>
-    {/* Seat back */}
-    <rect x={74} y={48} width={40} height={62} rx={3} fill={P}/>
-    {/* Seat horizontal */}
-    <rect x={44} y={62} width={70} height={18} rx={3} fill={P}/>
-    <rect x={48} y={80} width={6} height={52} fill={P}/>
-    <rect x={108} y={80} width={6} height={52} fill={P}/>
-    {/* Shin roller pad */}
-    <rect x={6} y={96} width={26} height={12} rx={5} fill={E} opacity={0.9}/>
-    <H cx={94} cy={36}/>
-    <L x1={94} y1={45} x2={92} y2={80} w={14}/>
+    {/* Machine: seat back + seat + legs */}
+    <rect x={76} y={44} width={38} height={64} rx={3} fill={P}/>
+    <rect x={46} y={62} width={68} height={16} rx={3} fill={P}/>
+    <rect x={50} y={78} width={6} height={54} fill={P}/>
+    <rect x={108} y={78} width={6} height={54} fill={P}/>
+    {/* Shin roller at foot */}
+    <rect x={6} y={96} width={28} height={12} rx={5} fill={E} opacity={0.9}/>
+    {/* Person seated */}
+    <H cx={96} cy={36}/>
+    <L x1={96} y1={45} x2={92} y2={78} w={14}/>
     {/* Thigh HORIZONTAL on seat */}
-    <L x1={86} y1={80} x2={50} y2={82} w={12}/>
-    {/* SHIN EXTENDING FORWARD — from bent to horizontal */}
-    <L x1={50} y1={82} x2={22} y2={96} w={10}/>
-    <L x1={22} y1={96} x2={6} y2={104} w={10}/>
-    {/* Arms resting on machine handles */}
-    <L x1={86} y1={58} x2={76} y2={70} w={9}/>
+    <L x1={86} y1={78} x2={50} y2={80} w={12}/>
+    {/* SHIN EXTENDED FORWARD — horizontal from bent position */}
+    <L x1={50} y1={80} x2={22} y2={98} w={10}/>
+    <L x1={22} y1={98} x2={6} y2={104} w={10}/>
+    {/* Arms on arm rests */}
+    <L x1={88} y1={56} x2={78} y2={68} w={9}/>
+    {/* Arrow showing extension direction */}
     <Arr x={4} y={90} dir="up" len={22}/>
   </>;
 }
 
 function CalfRaise() {
-  // Standing on step, heels raised (tiptoe position)
+  // Standing on elevated step, heels RAISED (tiptoe)
   return <>
-    <rect x={18} y={130} width={84} height={10} rx={2} fill={P}/>
-    <Floor y={156}/>
+    <rect x={16} y={128} width={88} height={10} rx={2} fill={P}/>
+    <Floor y={154}/>
     <H cx={60} cy={14}/>
     <L x1={60} y1={23} x2={60} y2={68} w={14}/>
-    <L x1={52} y1={34} x2={34} y2={60} w={10}/>
-    <L x1={34} y1={60} x2={26} y2={90} w={9}/>
-    <Dv x={20} y={88}/>
-    <L x1={68} y1={34} x2={86} y2={60} w={10}/>
-    <L x1={86} y1={60} x2={94} y2={90} w={9}/>
-    <Dv x={90} y={88}/>
-    {/* Legs: standing on TOES — heels raised */}
-    <L x1={54} y1={68} x2={46} y2={106} w={12}/>
-    <L x1={46} y1={106} x2={44} y2={130} w={10}/>
-    <L x1={66} y1={68} x2={74} y2={106} w={12}/>
-    <L x1={74} y1={106} x2={76} y2={130} w={10}/>
-    <circle cx={44} cy={130} r={5} fill={B}/>
-    <circle cx={76} cy={130} r={5} fill={B}/>
-    <Arr x={112} y={104} dir="updown" len={18}/>
+    {/* Arms at sides holding dumbbells */}
+    <L x1={52} y1={38} x2={34} y2={62} w={10}/>
+    <L x1={34} y1={62} x2={26} y2={90} w={9}/>
+    <DBV cx={22} cy={98}/>
+    <L x1={68} y1={38} x2={86} y2={62} w={10}/>
+    <L x1={86} y1={62} x2={94} y2={90} w={9}/>
+    <DBV cx={98} cy={98}/>
+    {/* Legs: HEELS RAISED, standing on TOES */}
+    <L x1={54} y1={68} x2={46} y2={108} w={12}/>
+    <L x1={46} y1={108} x2={44} y2={128} w={10}/>
+    <L x1={66} y1={68} x2={74} y2={108} w={12}/>
+    <L x1={74} y1={108} x2={76} y2={128} w={10}/>
+    {/* Toes on step */}
+    <circle cx={44} cy={128} r={5} fill={B}/>
+    <circle cx={76} cy={128} r={5} fill={B}/>
+    <Arr x={114} y={104} dir="updown" len={18}/>
   </>;
 }
 
 // ─── CORE ────────────────────────────────────────────────────────────────────
 
 function Plank() {
-  // Forearm plank: body rigid horizontal, forearms on floor
+  // Profile: rigid horizontal body, forearms on floor
   return <>
     <Floor/>
-    <H cx={100} cy={82}/>
-    <L x1={91} y1={90} x2={22} y2={104} w={14}/>
-    {/* FOREARMS on floor — elbows and hands both touching */}
-    <L x1={82} y1={94} x2={88} y2={116} w={10}/>
+    <H cx={104} cy={80}/>
+    {/* Rigid body, horizontal */}
+    <L x1={95} y1={88} x2={18} y2={106} w={14}/>
+    {/* FOREARMS on floor — elbows and hands down */}
+    <L x1={82} y1={92} x2={88} y2={116} w={10}/>
     <L x1={88} y1={116} x2={96} y2={152} w={9}/>
-    <L x1={68} y1={97} x2={72} y2={118} w={10}/>
-    <L x1={72} y1={118} x2={76} y2={152} w={9}/>
-    <L x1={22} y1={104} x2={8} y2={116} w={12}/>
-    <L x1={8} y1={116} x2={4} y2={152} w={10}/>
-    <L x1={22} y1={104} x2={38} y2={116} w={12}/>
-    <L x1={38} y1={116} x2={44} y2={152} w={10}/>
-    <text x={60} y={146} textAnchor="middle" fontSize={9} fill={E} fontFamily="system-ui" fontWeight={700} letterSpacing={1}>HOLD</text>
+    <L x1={66} y1={95} x2={70} y2={118} w={10}/>
+    <L x1={70} y1={118} x2={76} y2={152} w={9}/>
+    {/* Legs */}
+    <L x1={18} y1={106} x2={6} y2={116} w={12}/>
+    <L x1={6} y1={116} x2={4} y2={152} w={10}/>
+    <L x1={18} y1={106} x2={32} y2={116} w={12}/>
+    <L x1={32} y1={116} x2={36} y2={152} w={10}/>
+    <text x={60} y={148} textAnchor="middle" fontSize={9} fill={E} fontFamily="system-ui" fontWeight={700} letterSpacing={1}>HOLD</text>
   </>;
 }
 
 function Crunch() {
-  // ONLY upper torso curls up — hips stay on floor, knees bent
+  // Profile: UPPER torso curls up, HIPS STAY on floor
   return <>
     <Floor/>
-    {/* Hips and lower back on floor */}
-    <L x1={18} y1={130} x2={50} y2={128} w={12}/>
-    {/* Legs: thighs angled up, shins bent toward floor */}
-    <L x1={18} y1={130} x2={36} y2={104} w={12}/>
-    <L x1={36} y1={104} x2={64} y2={116} w={10}/>
-    <L x1={64} y1={116} x2={72} y2={152} w={10}/>
-    {/* Torso CURLING UP from lower back */}
-    <L x1={50} y1={128} x2={68} y2={110} w={14}/>
-    <L x1={68} y1={110} x2={80} y2={86} w={14}/>
-    <H cx={86} cy={76}/>
+    {/* Lower back + hips flat on floor */}
+    <L x1={14} y1={132} x2={48} y2={128} w={12}/>
+    {/* Knees bent */}
+    <L x1={14} y1={132} x2={32} y2={106} w={12}/>
+    <L x1={32} y1={106} x2={62} y2={118} w={10}/>
+    <L x1={62} y1={118} x2={70} y2={152} w={10}/>
+    {/* UPPER TORSO CURLING UP */}
+    <L x1={48} y1={128} x2={66} y2={110} w={14}/>
+    <L x1={66} y1={110} x2={80} y2={84} w={14}/>
+    <H cx={86} cy={74}/>
     {/* Hands behind head */}
-    <L x1={80} y1={80} x2={66} y2={68} w={9}/>
-    <L x1={88} y1={72} x2={102} y2={64} w={9}/>
-    <Arr x={54} y={112} dir="up" len={20}/>
+    <L x1={80} y1={78} x2={66} y2={66} w={9}/>
+    <L x1={88} y1={70} x2={104} y2={62} w={9}/>
+    <Arr x={52} y={112} dir="up" len={20}/>
   </>;
 }
 
 function HangingLegRaise() {
-  // Hanging from bar, legs raised to 90°
+  // Hanging from bar, LEGS RAISED to 90°
   return <>
-    <rect x={12} y={6} width={96} height={9} rx={4} fill={E}/>
+    <rect x={12} y={8} width={96} height={8} rx={4} fill={E}/>
     <H cx={60} cy={30}/>
-    <L x1={60} y1={39} x2={60} y2={86} w={14}/>
+    <L x1={60} y1={39} x2={60} y2={84} w={14}/>
     {/* Arms gripping bar */}
     <L x1={52} y1={48} x2={34} y2={26} w={10}/>
-    <L x1={34} y1={26} x2={30} y2={14} w={9}/>
+    <L x1={34} y1={26} x2={30} y2={16} w={9}/>
     <L x1={68} y1={48} x2={86} y2={26} w={10}/>
-    <L x1={86} y1={26} x2={90} y2={14} w={9}/>
-    {/* LEGS RAISED horizontal — 90° */}
-    <L x1={54} y1={86} x2={32} y2={86} w={12}/>
-    <L x1={32} y1={86} x2={14} y2={118} w={10}/>
-    <L x1={66} y1={86} x2={88} y2={86} w={12}/>
-    <L x1={88} y1={86} x2={106} y2={118} w={10}/>
-    <Arr x={60} y={110} dir="up" len={24}/>
+    <L x1={86} y1={26} x2={90} y2={16} w={9}/>
+    {/* LEGS RAISED HORIZONTAL */}
+    <L x1={54} y1={84} x2={32} y2={86} w={12}/>
+    <L x1={32} y1={86} x2={14} y2={116} w={10}/>
+    <L x1={66} y1={84} x2={88} y2={86} w={12}/>
+    <L x1={88} y1={86} x2={106} y2={116} w={10}/>
+    <Arr x={60} y={110} dir="up" len={22}/>
   </>;
 }
 
 function KettlebellSwing() {
-  // Hip hinge, KB swings forward and up
+  // Profile: hip hinge, KB swings from between legs to chest height
   return <>
     <Floor/>
-    <H cx={84} cy={36}/>
-    <L x1={76} y1={44} x2={40} y2={86} w={14}/>
-    <L x1={40} y1={86} x2={24} y2={120} w={12}/>
-    <L x1={24} y1={120} x2={18} y2={154} w={10}/>
-    <L x1={52} y1={90} x2={62} y2={120} w={12}/>
+    <H cx={88} cy={34}/>
+    <L x1={80} y1={42} x2={42} y2={84} w={14}/>
+    <L x1={42} y1={84} x2={26} y2={120} w={12}/>
+    <L x1={26} y1={120} x2={20} y2={154} w={10}/>
+    <L x1={54} y1={88} x2={62} y2={120} w={12}/>
     <L x1={62} y1={120} x2={64} y2={154} w={10}/>
     {/* Arms swinging KB forward */}
-    <L x1={60} y1={62} x2={44} y2={78} w={10}/>
-    <L x1={44} y1={78} x2={28} y2={66} w={9}/>
-    <L x1={62} y1={64} x2={48} y2={80} w={10}/>
-    <rect x={16} y={58} width={18} height={14} rx={4} fill={E}/>
-    <path d="M20,58 Q25,50 32,58" fill="none" stroke={E} strokeWidth={2.5} strokeLinecap="round"/>
-    <Arr x={112} y={88} dir="up" len={26}/>
+    <L x1={62} y1={60} x2={46} y2={76} w={10}/>
+    <L x1={46} y1={76} x2={30} y2={64} w={9}/>
+    {/* Kettlebell */}
+    <rect x={18} y={56} width={18} height={14} rx={4} fill={E}/>
+    <path d="M22,56 Q27,48 34,56" fill="none" stroke={E} strokeWidth={2.5} strokeLinecap="round"/>
+    <Arr x={114} y={86} dir="up" len={28}/>
   </>;
 }
 
 function AbWheel() {
-  // On knees, arms extended rolling wheel forward
+  // Profile: on knees, arms extended rolling wheel forward
   return <>
     <Floor/>
-    <circle cx={38} cy={144} r={10} fill="none" stroke={E} strokeWidth={3}/>
-    <line x1={22} y1={144} x2={54} y2={144} stroke={E} strokeWidth={3} strokeLinecap="round"/>
-    <H cx={102} cy={72}/>
-    <L x1={94} y1={80} x2={46} y2={110} w={14}/>
-    {/* Arms extended forward toward wheel */}
-    <L x1={76} y1={86} x2={56} y2={116} w={10}/>
-    <L x1={56} y1={116} x2={42} y2={144} w={9}/>
-    <L x1={80} y1={88} x2={62} y2={118} w={10}/>
+    <circle cx={36} cy={144} r={11} fill="none" stroke={E} strokeWidth={3}/>
+    <line x1={20} y1={144} x2={52} y2={144} stroke={E} strokeWidth={3} strokeLinecap="round"/>
+    <H cx={106} cy={68}/>
+    <L x1={98} y1={76} x2={48} y2={108} w={14}/>
+    {/* Arms extended to wheel */}
+    <L x1={78} y1={84} x2={58} y2={112} w={10}/>
+    <L x1={58} y1={112} x2={40} y2={144} w={9}/>
+    <L x1={84} y1={86} x2={66} y2={114} w={10}/>
     {/* Knees on floor */}
-    <L x1={46} y1={110} x2={36} y2={130} w={12}/>
+    <L x1={48} y1={108} x2={36} y2={130} w={12}/>
     <L x1={36} y1={130} x2={30} y2={154} w={10}/>
-    <L x1={46} y1={110} x2={58} y2={130} w={12}/>
-    <L x1={58} y1={130} x2={60} y2={154} w={10}/>
-    <Arr x={26} y={118} dir="down" len={20}/>
+    <L x1={48} y1={108} x2={60} y2={130} w={12}/>
+    <L x1={60} y1={130} x2={62} y2={154} w={10}/>
+    <Arr x={24} y={116} dir="down" len={20}/>
   </>;
 }
 
 function RussianTwist() {
-  // V-sit, rotating torso side to side with weight
+  // V-sit, arms rotate to one side
   return <>
     <Floor/>
-    <H cx={62} cy={52}/>
-    {/* Torso leaning back ~45° */}
-    <L x1={62} y1={61} x2={56} y2={98} w={14}/>
-    {/* Legs RAISED and bent */}
-    <L x1={46} y1={98} x2={28} y2={126} w={12}/>
-    <L x1={28} y1={126} x2={32} y2={154} w={10}/>
-    <L x1={66} y1={98} x2={74} y2={126} w={12}/>
-    <L x1={74} y1={126} x2={72} y2={154} w={10}/>
-    {/* Arms reaching to ONE SIDE (showing rotation) */}
-    <L x1={56} y1={72} x2={34} y2={62} w={10}/>
-    <L x1={34} y1={62} x2={18} y2={54} w={9}/>
-    <rect x={6} y={48} width={14} height={8} rx={3} fill={E}/>
-    <Arr x={92} y={68} dir="updown" len={16}/>
+    <H cx={64} cy={50}/>
+    <L x1={64} y1={59} x2={58} y2={96} w={14}/>
+    {/* Legs raised and bent */}
+    <L x1={48} y1={96} x2={30} y2={124} w={12}/>
+    <L x1={30} y1={124} x2={34} y2={152} w={10}/>
+    <L x1={68} y1={96} x2={76} y2={124} w={12}/>
+    <L x1={76} y1={124} x2={74} y2={152} w={10}/>
+    {/* Arms reaching to ONE SIDE */}
+    <L x1={58} y1={70} x2={36} y2={60} w={10}/>
+    <L x1={36} y1={60} x2={18} y2={52} w={9}/>
+    <rect x={8} y={46} width={14} height={8} rx={3} fill={E}/>
+    <Arr x={96} y={66} dir="updown" len={16}/>
   </>;
 }
 
 function Rotation() {
-  // Cable rotation / pallof press
+  // Pallof press / cable anti-rotation
   return <>
-    <rect x={0} y={76} width={10} height={8} rx={2} fill={P}/>
-    <line x1={10} y1={80} x2={42} y2={80} stroke={E} strokeWidth={2} strokeDasharray="4,2"/>
-    <StandBase/>
-    <L x1={52} y1={40} x2={38} y2={66} w={10}/>
-    <L x1={38} y1={66} x2={42} y2={80} w={9}/>
-    <L x1={68} y1={40} x2={80} y2={62} w={10}/>
-    <L x1={80} y1={62} x2={82} y2={76} w={9}/>
-    <path d="M38,80 Q60,60 86,76" fill="none" stroke={E} strokeWidth={2} strokeDasharray="5,3" opacity={0.8}/>
+    <rect x={4} y={74} width={12} height={10} rx={2} fill={P}/>
+    <line x1={16} y1={79} x2={46} y2={79} stroke={E} strokeWidth={2} strokeDasharray="4,2"/>
+    <Stand/>
+    <L x1={52} y1={42} x2={38} y2={66} w={10}/>
+    <L x1={38} y1={66} x2={46} y2={78} w={9}/>
+    <L x1={68} y1={42} x2={80} y2={62} w={10}/>
+    <L x1={80} y1={62} x2={82} y2={74} w={9}/>
+    <path d="M38,79 Q60,62 86,74" fill="none" stroke={E} strokeWidth={2} strokeDasharray="5,3" opacity={0.8}/>
   </>;
 }
 
 function Compound() {
-  // Generic compound movement
+  // Generic compound — standing overhead press position, bar visible
   return <>
-    <StandBase/>
-    <L x1={52} y1={34} x2={40} y2={12} w={10}/>
-    <L x1={40} y1={12} x2={40} y2={2} w={9}/>
-    <L x1={68} y1={34} x2={80} y2={12} w={10}/>
-    <L x1={80} y1={12} x2={80} y2={2} w={9}/>
-    <Bar x={22} y={0} len={76}/>
-    <Arr x={112} y={36} dir="updown" len={24}/>
+    <Stand/>
+    <L x1={52} y1={38} x2={44} y2={22} w={10}/>
+    <L x1={44} y1={22} x2={46} y2={14} w={9}/>
+    <L x1={68} y1={38} x2={76} y2={22} w={10}/>
+    <L x1={76} y1={22} x2={74} y2={14} w={9}/>
+    {/* Bar safely above head, within bounds */}
+    <Barbell cx={60} cy={12} half={34}/>
+    <Arr x={114} y={38} dir="updown" len={24}/>
   </>;
 }
 
 // ─── MAPPING ─────────────────────────────────────────────────────────────────
 
 function norm(s) {
-  return (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  return (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
 }
 
 function getKey(name, pattern, muscle) {
   const n = norm(name);
   const m = norm(muscle);
-  const p = pattern || "";
+  const p = pattern||"";
 
   // ── CORE ──────────────────────────────────────────────────────────────────
-  if (p === "core") {
-    if (n.includes("rueda") || n.includes("wheel") || n.includes("ab wheel")) return "ab-wheel";
-    if (n.includes("colgado") || n.includes("elevacion") || (n.includes("pierna") && n.includes("colgad"))) return "hanging-leg-raise";
-    if (n.includes("hanging") || n.includes("toes to bar") || n.includes("rodillas al pecho colgado")) return "hanging-leg-raise";
-    if (n.includes("twist") || n.includes("ruso") || n.includes("russian") || n.includes("bicicleta") || n.includes("giro")) return "russian-twist";
-    if (n.includes("crunch") || n.includes("abdominal") || n.includes("sit-up") || n.includes("situp") || n.includes("encogimiento")) return "crunch";
-    if (n.includes("pallof") || n.includes("rotacion") || n.includes("rotation")) return "rotation";
-    if (n.includes("plancha") || n.includes("plank") || n.includes("hollow") || n.includes("dead bug") || n.includes("farmer") || n.includes("l-sit") || n.includes("caminata")) return "plank";
-    if (n.includes("swing") || n.includes("kettlebell")) return "kettlebell-swing";
+  if (p==="core") {
+    if (n.includes("rueda")||n.includes("wheel")||n.includes("ab wheel")) return "ab-wheel";
+    if (n.includes("colgado")||n.includes("hanging")||(n.includes("pierna")&&n.includes("colgad"))||n.includes("toes to bar")) return "hanging-leg-raise";
+    if (n.includes("twist")||n.includes("ruso")||n.includes("russian")||n.includes("bicicleta")||n.includes("giro")) return "russian-twist";
+    if (n.includes("pallof")||n.includes("rotacion")||n.includes("rotation")) return "rotation";
+    if (n.includes("swing")||n.includes("kettlebell")) return "kettlebell-swing";
+    if (n.includes("crunch")||n.includes("abdominal")||n.includes("sit-up")||n.includes("situp")||n.includes("encogimiento")) return "crunch";
+    if (n.includes("plancha")||n.includes("plank")||n.includes("hollow")||n.includes("dead bug")||n.includes("farmer")||n.includes("l-sit")||n.includes("caminata")) return "plank";
     return "crunch";
   }
 
   // ── PUSH ──────────────────────────────────────────────────────────────────
-  if (p === "push") {
-    const isTri = m.includes("tricep") || n.includes("tricep");
+  if (p==="push") {
+    const isTri = m.includes("tricep")||n.includes("tricep");
     if (isTri) {
-      if (n.includes("polea") || n.includes("cable") || n.includes("pushdown") || n.includes("cuerda") || n.includes("barra v") || n.includes("press banca agarre")) return "tricep-pushdown";
-      if (n.includes("cabeza") || n.includes("overhead") || n.includes("sobre la cabeza") || n.includes("mancuerna")) return "tricep-overhead";
-      if (n.includes("banco") || n.includes("fondo en banco")) return "skull-crusher";
-      if (n.includes("frances") || n.includes("rompe") || n.includes("skull") || n.includes("jm press") || n.includes("tate") || n.includes("acostado")) return "skull-crusher";
+      if (n.includes("polea")||n.includes("cable")||n.includes("pushdown")||n.includes("cuerda")||n.includes("barra v")) return "tricep-pushdown";
+      if (n.includes("cabeza")||n.includes("overhead")||n.includes("sobre la cabeza")||n.includes("mancuerna")) return "tricep-overhead";
+      if (n.includes("frances")||n.includes("rompe")||n.includes("skull")||n.includes("jm press")||n.includes("tate")||n.includes("acostado")||n.includes("banco")) return "skull-crusher";
       return "tricep-pushdown";
     }
-    if (n.includes("flexion") || n.includes("push-up") || n.includes("push up") || n.includes("lagartija")) return "pushup";
-    if (n.includes("fondo") && (n.includes("paralela") || n.includes("barra"))) return "dip";
-    if (n.includes("apertura") || n.includes("cruce") || n.includes("mariposa") || (m.includes("pectoral") && (n.includes("polea") || n.includes("cable") || n.includes("trx")))) return "fly";
-    if (m.includes("pectoral") || n.includes("pecho") || n.includes("banca") || n.includes("bench") || n.includes("press de pecho")) {
-      if (n.includes("inclinado") || n.includes("incline")) return "bench-incline";
+    if (n.includes("flexion")||n.includes("push-up")||n.includes("push up")||n.includes("lagartija")) return "pushup";
+    if (n.includes("fondo")&&(n.includes("paralela")||n.includes("barra"))) return "dip";
+    if (n.includes("apertura")||n.includes("cruce")||n.includes("mariposa")||(m.includes("pectoral")&&(n.includes("polea")||n.includes("cable")||n.includes("trx")))) return "fly";
+    if (m.includes("pectoral")||n.includes("pecho")||n.includes("banca")||n.includes("bench")||n.includes("press de pecho")) {
+      if (n.includes("inclinado")||n.includes("incline")) return "bench-incline";
       return "bench-horizontal";
     }
-    if (m.includes("deltoide lateral") || (n.includes("lateral") && !n.includes("estocada"))) return "lateral-raise";
-    if (n.includes("frontal") || n.includes("front raise") || (n.includes("elevacion") && !n.includes("posterior") && !n.includes("pierna"))) return "front-raise";
+    if (m.includes("deltoide lateral")||(n.includes("lateral")&&!n.includes("estocada"))) return "lateral-raise";
+    if (n.includes("frontal")||n.includes("front raise")||(n.includes("elevacion")&&!n.includes("posterior")&&!n.includes("pierna"))) return "front-raise";
     return "overhead-press";
   }
 
   // ── PULL ──────────────────────────────────────────────────────────────────
-  if (p === "pull") {
-    if (m.includes("bicep") || m.includes("braquial") || n.includes("curl")) {
-      if (n.includes("concentrado") || n.includes("predicador") || n.includes("inclinado") || n.includes("bayesian") || n.includes("spider") || n.includes("banco inclinado") || n.includes("21")) return "curl-seated";
+  if (p==="pull") {
+    if (m.includes("bicep")||m.includes("braquial")||n.includes("curl")) {
+      if (n.includes("concentrado")||n.includes("predicador")||n.includes("inclinado")||n.includes("bayesian")||n.includes("spider")||n.includes("banco inclinado")||n.includes("21")) return "curl-seated";
       return "curl-standing";
     }
-    if (m.includes("trapecio") || n.includes("encogimiento") || n.includes("shrug") || n.includes("remo al menton")) return "shrug";
-    if (m.includes("erector") || n.includes("hiperextension") || n.includes("extension de espalda") || n.includes("superman") || n.includes("buenos dias")) return "back-extension";
-    if (m.includes("deltoide posterior") || n.includes("pajaro") || n.includes("face pull") || n.includes("elevacion posterior") || n.includes("posterior")) return "reverse-fly";
-    if (n.includes("jalon") || n.includes("pulldown") || n.includes("pull down") || n.includes("pullover")) return "pulldown";
-    if (n.includes("dominada") || n.includes("pull-up") || n.includes("pull up") || n.includes("chin-up")) return "pullup";
-    if (n.includes("remo") || n.includes("row")) {
-      if (n.includes("cable") || n.includes("polea baja") || n.includes("sentado") || n.includes("maquina") || n.includes("pecho apoyado")) return "row-seated";
+    if (m.includes("trapecio")||n.includes("encogimiento")||n.includes("shrug")||n.includes("remo al menton")) return "shrug";
+    if (m.includes("erector")||n.includes("hiperextension")||n.includes("extension de espalda")||n.includes("superman")||n.includes("buenos dias")) return "back-extension";
+    if (m.includes("deltoide posterior")||n.includes("pajaro")||n.includes("face pull")||n.includes("elevacion posterior")||n.includes("posterior")) return "reverse-fly";
+    if (n.includes("jalon")||n.includes("pulldown")||n.includes("pull down")||n.includes("pullover")) return "pulldown";
+    if (n.includes("dominada")||n.includes("pull-up")||n.includes("pull up")||n.includes("chin-up")) return "pullup";
+    if (n.includes("remo")||n.includes("row")) {
+      if (n.includes("cable")||n.includes("polea baja")||n.includes("sentado")||n.includes("maquina")||n.includes("pecho apoyado")) return "row-seated";
       return "row-bent";
     }
     if (n.includes("peso muerto")) return "deadlift";
@@ -818,25 +859,23 @@ function getKey(name, pattern, muscle) {
   }
 
   // ── LEGS ──────────────────────────────────────────────────────────────────
-  if (p === "legs") {
+  if (p==="legs") {
     if (n.includes("peso muerto")) {
-      if (n.includes("rumano") || n.includes("rdl") || n.includes("pierna recta") || n.includes("stiff")) return "rdl";
+      if (n.includes("rumano")||n.includes("rdl")||n.includes("pierna recta")||n.includes("stiff")) return "rdl";
       return "deadlift";
     }
-    if (n.includes("hip thrust") || n.includes("puente de glut") || n.includes("glute bridge") || n.includes("empuje de cadera")) return "hip-thrust";
-    if (n.includes("estocada") || n.includes("zancada") || n.includes("lunge") || n.includes("bulgara") || n.includes("bulgar") || n.includes("step-up") || n.includes("estacionaria") || n.includes("split")) return "lunge";
-    // Leg curl — check before generic curl
-    if (n.includes("curl femoral") || n.includes("curl de isquio") || n.includes("isquiotibial") || n.includes("nordico") || n.includes("nordic") || (n.includes("curl") && (n.includes("femoral") || n.includes("isquio") || n.includes("pierna")))) return "leg-curl";
-    // Leg extension
-    if ((n.includes("extension") || n.includes("extensi")) && (n.includes("pierna") || n.includes("cuadricep") || n.includes("quad") || n.includes("rodilla"))) return "leg-extension";
-    if (n.includes("pantorrilla") || n.includes("gemelo") || n.includes("calf") || n.includes("soleo") || n.includes("tibial") || n.includes("elevacion de talones")) return "calf-raise";
-    if (n.includes("abductor") || n.includes("aductor")) return "lateral-raise";
-    if (n.includes("swing") || n.includes("goblet") || n.includes("kettlebell")) return "kettlebell-swing";
+    if (n.includes("hip thrust")||n.includes("puente de glut")||n.includes("glute bridge")||n.includes("empuje de cadera")) return "hip-thrust";
+    if (n.includes("estocada")||n.includes("zancada")||n.includes("lunge")||n.includes("bulgara")||n.includes("bulgar")||n.includes("step-up")||n.includes("estacionaria")||n.includes("split")) return "lunge";
+    if (n.includes("curl femoral")||n.includes("curl de isquio")||n.includes("isquiotibial")||n.includes("nordico")||n.includes("nordic")||(n.includes("curl")&&(n.includes("femoral")||n.includes("isquio")||n.includes("pierna")))) return "leg-curl";
+    if ((n.includes("extension")||n.includes("extensi"))&&(n.includes("pierna")||n.includes("cuadricep")||n.includes("quad")||n.includes("rodilla"))) return "leg-extension";
+    if (n.includes("pantorrilla")||n.includes("gemelo")||n.includes("calf")||n.includes("soleo")||n.includes("tibial")||n.includes("talon")) return "calf-raise";
+    if (n.includes("abductor")||n.includes("aductor")) return "lateral-raise";
+    if (n.includes("swing")||n.includes("kettlebell")) return "kettlebell-swing";
     return "squat";
   }
 
-  if (p === "rehab") return "rotation";
-  if (p === "compound") return "compound";
+  if (p==="rehab") return "rotation";
+  if (p==="compound") return "compound";
   return "compound";
 }
 
@@ -879,7 +918,7 @@ const FIGURES = {
   "compound":          Compound,
 };
 
-export default function ExerciseIllustration({ name, pattern, muscle, equipment, size = 100 }) {
+export default function ExerciseIllustration({ name, pattern, muscle, equipment, size=100 }) {
   const key = getKey(name, pattern, muscle);
   const Figure = FIGURES[key] || Compound;
   return (
@@ -887,10 +926,10 @@ export default function ExerciseIllustration({ name, pattern, muscle, equipment,
       viewBox="0 0 120 160"
       width={size}
       height={Math.round(size * 1.33)}
-      style={{ display: "block", overflow: "visible" }}
+      style={{ display:"block" }}
       aria-label={`Ilustración: ${name}`}
     >
-      <Figure />
+      <Figure/>
     </svg>
   );
 }
