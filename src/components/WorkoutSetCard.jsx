@@ -9,7 +9,7 @@ function haptic(type = "tap") {
   else if (type === "delete") navigator.vibrate([15, 20, 15]);
 }
 
-export default function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onRemove, onStartRest, prData, coachSuggestion }) {
+export default function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onRemove, onStartRest, prData, coachSuggestion, isBodyweight=false, bodyWeight=0 }) {
   const [flipped, setFlipped] = useState(false);
   const [done, setDone] = useState(false);
   const hasData = (setItem.weight !== '' && setItem.weight !== null && setItem.weight !== undefined) &&
@@ -130,11 +130,45 @@ export default function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onR
         </div>
       )}
 
+      {/* Pre-set suggestion: tap to fill */}
+      {!setItem.weight && setItem.lastWeight != null && setItem.lastWeight !== '' && (
+        <button
+          onClick={() => onUpdate({ weight: String(setItem.lastWeight), reps: String(setItem.lastReps || '') })}
+          style={{
+            width: "100%", marginBottom: 6, padding: "7px 12px",
+            background: "rgba(168,85,247,.07)", border: "1px dashed rgba(168,85,247,.3)",
+            borderRadius: 10, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between",
+          }}
+        >
+          <span style={{ fontSize: 12, color: "var(--muted)" }}>Probá igual que última vez</span>
+          <span style={{ fontSize: 13, fontWeight: 800, color: "var(--green)" }}>
+            {isBodyweight ? (setItem.lastWeight > 0 ? `+${setItem.lastWeight}kg` : "PC") : `${setItem.lastWeight}kg`} × {setItem.lastReps || "?"}
+          </span>
+        </button>
+      )}
+
+      {/* Bodyweight indicator */}
+      {isBodyweight && (
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6, padding: "5px 10px", background: "rgba(96,165,250,.07)", border: "1px solid rgba(96,165,250,.2)", borderRadius: 8 }}>
+          <span style={{ fontSize: 11, color: "#60a5fa", fontWeight: 700 }}>PC</span>
+          <span style={{ fontSize: 11, color: "var(--muted)" }}>
+            {bodyWeight > 0 ? `${bodyWeight}kg` : "?"} + {Number(setItem.weight) || 0}kg extra
+          </span>
+          {bodyWeight > 0 && (
+            <span style={{ marginLeft: "auto", fontSize: 12, fontWeight: 800, color: "#60a5fa" }}>
+              = {bodyWeight + (Number(setItem.weight) || 0)}kg total
+            </span>
+          )}
+        </div>
+      )}
+
       {/* kg + reps side by side */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, margin: "10px 0 8px" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.6px" }}>kg</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.6px" }}>
+              {isBodyweight ? "extra" : "kg"}
+            </span>
             {setItem.lastWeight && !setItem.weight && (
               <span style={{ fontSize: 12, color: "rgba(168,85,247,.6)", fontWeight: 700 }}>ult. {setItem.lastWeight}</span>
             )}
@@ -143,7 +177,7 @@ export default function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onR
             className="set-val"
             inputMode="decimal"
             value={setItem.weight}
-            placeholder={setItem.lastWeight || "—"}
+            placeholder={setItem.lastWeight || "0"}
             onChange={(e) => { haptic(); onUpdate({ weight: sanitizeWeight(e.target.value) }); }}
             onFocus={(e) => e.target.select()}
             style={{ width: "100%", textAlign: "center", fontSize: 26, fontWeight: 800, borderColor: setItem.weight ? "rgba(168,85,247,.5)" : undefined, transition: "border-color .2s" }}
@@ -192,7 +226,7 @@ export default function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onR
       <div className="set-actions">
         <button
           className="ghost set-action-sm"
-          onClick={() => { haptic(); onStartRest(); }}
+          onClick={() => { haptic(); onStartRest(setItem.rpe); }}
           title="Descanso"
           style={{ display:"flex", alignItems:"center", gap:5, border:"1.5px dashed var(--cyan)", color:"var(--cyan)", background:"rgba(117,217,255,.06)" }}
         >

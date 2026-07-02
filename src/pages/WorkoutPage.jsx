@@ -129,6 +129,11 @@ export default function WorkoutPage() {
   const soundEnabled = useStore((state) => state.soundEnabled);
   const userGoal = useStore((state) => state.userGoal);
   const weightLog = useStore((state) => state.weightLog) || [];
+  const latestBodyWeight = useMemo(() => {
+    if (!weightLog.length) return 0;
+    const sorted = [...weightLog].sort((a,b) => (b.date||"") > (a.date||"") ? 1 : -1);
+    return Number(sorted[0]?.weight || 0);
+  }, [weightLog]);
   const profile = useAuthStore((state) => state.profile);
   const prs = useStore(s => s.prs) || [];
   const saveWorkoutDraft = useStore(s => s.saveWorkoutDraft);
@@ -149,6 +154,7 @@ export default function WorkoutPage() {
   const [supersetTarget, setSupersetTarget] = useState(null);
   const [restExercise, setRestExercise] = useState(null);
   const [restKey, setRestKey] = useState(0);
+  const [restDuration, setRestDuration] = useState(90);
   const [showFinishConfirm, setShowFinishConfirm] = useState(false);
   const [showRpe, setShowRpe] = useState(false);
   const [sessionRpe, setSessionRpe] = useState(null);
@@ -251,8 +257,22 @@ export default function WorkoutPage() {
     sliderRef.current.scrollTo({ left: idx * sliderRef.current.clientWidth, behavior: "smooth" });
   }
 
-  const handleSetComplete = useCallback((exercise) => {
+  const handleSetComplete = useCallback((exercise, rpe=null) => {
     if (navigator.vibrate) navigator.vibrate([30, 20, 60]);
+    // Smart rest duration based on RPE and goal
+    const goal = (userGoal || profile?.goal || "").toLowerCase();
+    let baseDuration = exerciseRestTimes[exercise] || 90;
+    if (!exerciseRestTimes[exercise]) {
+      if (goal.includes("fuerza")) baseDuration = 150;
+      else if (goal.includes("hipertrofia") || goal.includes("masa")) baseDuration = 90;
+      else if (goal.includes("resistencia")) baseDuration = 45;
+    }
+    if (rpe !== null) {
+      if (rpe >= 9) baseDuration = Math.max(baseDuration, 150);
+      else if (rpe >= 8) baseDuration = Math.max(baseDuration, 90);
+      else if (rpe <= 6) baseDuration = Math.min(baseDuration, 60);
+    }
+    setRestDuration(baseDuration);
     setRestExercise(exercise);
     setRestKey((k) => k + 1);
     // Auto-navigate to superset partner
@@ -500,10 +520,16 @@ export default function WorkoutPage() {
                       <span style={{ fontSize: 12, color: workoutTypeTheme.accent }}>{first?.group} · {first?.muscle}</span>
                       <VolumeSparkline data={volumeHistory} />
                     </div>
-                    {first?.lastWeight && (
+                    {(first?.lastWeight != null && first?.lastWeight !== '') && (
                       <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 3 }}>
                         <span style={{ fontSize: 11, color: "var(--muted)" }}>
-                          Último: <b style={{ color: "var(--text)" }}>{first.lastWeight}kg × {first.lastReps}</b>
+                          {first?.equipment === "Peso corporal" ? (
+                            <>Último: <b style={{ color: "var(--text)" }}>
+                              {Number(first.lastWeight) > 0 ? `PC +${first.lastWeight}kg` : "PC"} × {first.lastReps}
+                            </b></>
+                          ) : (
+                            <>Último: <b style={{ color: "var(--text)" }}>{first.lastWeight}kg × {first.lastReps}</b></>
+                          )}
                         </span>
                         <ProgressiveOverloadChip sets={sets} lastWeight={first.lastWeight} />
                       </div>
@@ -602,7 +628,9 @@ export default function WorkoutPage() {
                               clearTimeout(undoTimerRef.current);
                               undoTimerRef.current = setTimeout(() => setDeletedSet(null), 5000);
                             }}
-                            onStartRest={() => handleSetComplete(exercise)}
+                            onStartRest={(rpe) => handleSetComplete(exercise, rpe)}
+                            isBodyweight={first?.equipment === "Peso corporal"}
+                            bodyWeight={latestBodyWeight}
                             prData={prData}
                             coachSuggestion={(() => {
                               const w = Number(setItem.weight);
@@ -1118,7 +1146,7 @@ export default function WorkoutPage() {
         <RestTimer
           key={restKey}
           active
-          duration={exerciseRestTimes[restExercise] || 90}
+          duration={restDuration}
           soundEnabled={soundEnabled}
           onSkip={handleSkipRest}
           onComplete={handleRestComplete}
