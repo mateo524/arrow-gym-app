@@ -86,6 +86,7 @@ export const createWorkoutSlice = (set, get) => ({
   savedTemplates: [],
   weeklyChallenge: null,
   activePlanAdjustment: null,
+  completedPlans: [],
 
   getExerciseStats: (exercise) => getExerciseStats(get().workouts, exercise),
 
@@ -277,6 +278,17 @@ export const createWorkoutSlice = (set, get) => ({
         newPrsList.push({ exercise: s.exercise, weight: w, reps: r, type: w > maxWeight ? "weight" : "reps", date: clean.date });
       }
     });
+    // Auto-expire plan if it has passed its end date
+    const planExpiry = get().activePlanAdjustment;
+    const planUpdate = {};
+    if (planExpiry && !planExpiry.declined && planExpiry.expiresAt && new Date(planExpiry.expiresAt) < new Date()) {
+      const workoutsDuringPlan = (get().workouts || []).filter(w => (w.date || "") >= (planExpiry.acceptedAt || ""));
+      planUpdate.activePlanAdjustment = null;
+      planUpdate.completedPlans = [
+        { type: planExpiry.type, acceptedAt: planExpiry.acceptedAt, completedAt: today(), workoutCount: workoutsDuringPlan.length + 1 },
+        ...(get().completedPlans || []).slice(0, 19),
+      ];
+    }
     set((state) => ({
       workouts: [clean, ...state.workouts.filter((item) => item.id !== clean.id)],
       coachReports: [report, ...state.coachReports.filter((item) => item.workoutId !== clean.id)],
@@ -285,6 +297,7 @@ export const createWorkoutSlice = (set, get) => ({
       currentPage: "coach",
       coachBadge: true,
       prs: [...newPrsList, ...existingPrs].slice(0, 20),
+      ...planUpdate,
     }));
     // Achievement check
     try {
@@ -373,7 +386,24 @@ export const createWorkoutSlice = (set, get) => ({
     }
   },
   clearPlanAdjustment: () => {
-    set({ activePlanAdjustment: null });
+    const plan = get().activePlanAdjustment;
+    // If plan was accepted (not declined) and at least 1 workout happened during the plan → mark completed
+    if (plan && !plan.declined && plan.acceptedAt) {
+      const workoutsDuringPlan = (get().workouts || []).filter(w => (w.date || "") >= plan.acceptedAt);
+      if (workoutsDuringPlan.length > 0) {
+        set(s => ({
+          activePlanAdjustment: null,
+          completedPlans: [
+            { type: plan.type, acceptedAt: plan.acceptedAt, completedAt: today(), workoutCount: workoutsDuringPlan.length },
+            ...(s.completedPlans || []).slice(0, 19),
+          ],
+        }));
+      } else {
+        set({ activePlanAdjustment: null });
+      }
+    } else {
+      set({ activePlanAdjustment: null });
+    }
     const uid = getAuthUserId();
     if (uid) {
       import("../../lib/supabase.js").then(({ supabase }) => {

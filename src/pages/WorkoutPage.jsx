@@ -486,26 +486,6 @@ export default function WorkoutPage() {
               {/* Exercise header */}
               <div style={{ padding: "12px 16px 6px", flexShrink: 0 }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 2 }}>
-                  {/* Illustration thumbnail — always visible, tap to expand */}
-                  {(() => {
-                    const exMeta = findExerciseMeta(exercise);
-                    const isOpen = illustrationExercise === exercise;
-                    return (
-                      <button
-                        onClick={() => setIllustrationExercise(isOpen ? null : exercise)}
-                        style={{ flexShrink: 0, width: 64, height: 80, background: isOpen ? "rgba(168,85,247,.12)" : "rgba(255,255,255,.04)", border: `1.5px solid ${isOpen ? "rgba(168,85,247,.4)" : "rgba(255,255,255,.12)"}`, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 2, overflow: "hidden" }}
-                        aria-label="Ver ejecución del ejercicio"
-                      >
-                        <ExerciseIllustration
-                          name={exercise}
-                          pattern={exMeta?.pattern || first?.pattern}
-                          muscle={exMeta?.muscle || first?.muscle}
-                          equipment={exMeta?.equipment || first?.equipment}
-                          size={54}
-                        />
-                      </button>
-                    );
-                  })()}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                       <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, lineHeight: 1.2 }}>{exercise}</h2>
@@ -539,39 +519,13 @@ export default function WorkoutPage() {
                 </div>
               </div>
 
-              {/* Illustration panel */}
-              {illustrationExercise === exercise && (() => {
-                const exMeta = findExerciseMeta(exercise);
+              {/* Live Coach — per exercise, below header */}
+              {(() => {
+                const filteredHints = (liveHints || []).filter(h => !['balance','pr','ready'].includes(h.type));
+                if (!filteredHints.length && !volStatus) return null;
                 return (
-                  <div style={{ margin: "0 16px 8px", background: "rgba(168,85,247,.06)", border: "1px solid rgba(168,85,247,.15)", borderRadius: 14, padding: "12px 16px", display: "flex", alignItems: "center", gap: 16, overflow: "hidden" }}>
-                    <div style={{ flexShrink: 0 }}>
-                      <ExerciseIllustration
-                        name={exercise}
-                        pattern={exMeta?.pattern || first?.pattern}
-                        muscle={exMeta?.muscle || first?.muscle}
-                        equipment={exMeta?.equipment || first?.equipment}
-                        size={120}
-                      />
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ margin: "0 0 5px", fontSize: 11, fontWeight: 700, color: "#a855f7", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                        {exMeta?.group || first?.group}
-                      </p>
-                      <p style={{ margin: "0 0 3px", fontSize: 13, color: "var(--text)", fontWeight: 700, lineHeight: 1.3 }}>
-                        {exMeta?.muscle || first?.muscle}
-                      </p>
-                      {(exMeta?.equipment || first?.equipment) && (
-                        <p style={{ margin: "0 0 3px", fontSize: 11, color: "var(--muted)" }}>
-                          {exMeta?.equipment || first.equipment}
-                        </p>
-                      )}
-                      {exMeta?.muscles?.length > 1 && (
-                        <p style={{ margin: "0 0 4px", fontSize: 11, color: "var(--muted)", lineHeight: 1.4 }}>
-                          + {exMeta.muscles.slice(1, 3).join(" · ")}
-                        </p>
-                      )}
-                      <p style={{ margin: 0, fontSize: 10, color: "rgba(168,85,247,.6)", fontStyle: "italic" }}>Tocá la figura para cerrar</p>
-                    </div>
+                  <div style={{ margin: "0 16px 8px" }}>
+                    <LiveCoachPanel hints={filteredHints} volStatus={volStatus} compact />
                   </div>
                 );
               })()}
@@ -718,12 +672,19 @@ export default function WorkoutPage() {
               }}>
                 {/* Left actions */}
                 <div style={{ display: "flex", gap: 4 }}>
+                  {/* Illustration flip button */}
+                  <button onClick={() => setIllustrationExercise(exercise)}
+                    style={{ background: "var(--panel2)", border: "none", borderRadius: 10, width: 38, height: 38, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)" }}
+                    title="Ver movimiento">
+                    <Icon name="Eye" size={17} strokeWidth={1.8} />
+                  </button>
+
                   {/* Tip */}
                   <button onClick={() => setTipExercise(tipExercise === exercise ? null : exercise)}
                     style={{ background: "var(--panel2)", border: "none", borderRadius: 10, width: 38, height: 38, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)" }}>
                     <Icon name="HelpCircle" size={17} strokeWidth={1.8} />
                   </button>
-            
+
                   {/* Swap exercise */}
                   <button onClick={() => setSwapTarget(exercise)}
                     style={{ background: "var(--panel2)", border: "none", borderRadius: 10, width: 38, height: 38, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)" }}
@@ -789,24 +750,33 @@ export default function WorkoutPage() {
 
       {/* ── ⋮ MENU (bottom sheet) ─────────────────────────────────────────── */}
       {showMenu && (
+        <>
+        <style>{`
+          @keyframes sheet-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        `}</style>
         <div className="modal-overlay" onClick={() => setShowMenu(false)}>
           <div
             onClick={e => e.stopPropagation()}
-            onTouchStart={e => { e._menuSwipeY = e.touches[0].clientY; }}
-            onTouchEnd={e => { if (e.changedTouches[0].clientY - (e._menuSwipeY || 0) > 60) setShowMenu(false); }}
+            onTouchStart={e => { e.currentTarget._swipeStartY = e.touches[0].clientY; }}
+            onTouchMove={e => {
+              const dy = e.touches[0].clientY - (e.currentTarget._swipeStartY || 0);
+              if (dy > 0) e.currentTarget.style.transform = `translateY(${dy}px)`;
+            }}
+            onTouchEnd={e => {
+              const dy = e.changedTouches[0].clientY - (e.currentTarget._swipeStartY || 0);
+              if (dy > 80) { setShowMenu(false); }
+              else { e.currentTarget.style.transform = ""; }
+            }}
             style={{
               position: "absolute", bottom: 0, left: 0, right: 0,
               background: "var(--bg)", borderRadius: "20px 20px 0 0",
               padding: "20px 16px 28px", maxHeight: "85vh", overflowY: "auto",
+              animation: "sheet-up .28s cubic-bezier(.32,1,.36,1) both",
+              willChange: "transform",
             }}>
             {/* Handle */}
             <div style={{ width: 36, height: 4, background: "rgba(255,255,255,.15)", borderRadius: 2, margin: "0 auto 18px" }} />
 
-            {/* Live Coach — filtered: no balance, pr, ready hints */}
-            <LiveCoachPanel
-              hints={(liveHints || []).filter(h => !['balance','pr','ready'].includes(h.type))}
-              volStatus={volStatus}
-            />
 
             {/* Add exercise */}
             <button
@@ -869,6 +839,7 @@ export default function WorkoutPage() {
             </button>
           </div>
         </div>
+        </>
       )}
 
       {/* ── ADD EXERCISE PICKER ───────────────────────────────────────────── */}
@@ -1090,6 +1061,52 @@ export default function WorkoutPage() {
       </div>
     )}
 
+
+    {/* ── ILLUSTRATION FULL-SCREEN OVERLAY ─────────────────────────────── */}
+    {illustrationExercise && (() => {
+      const exMeta = findExerciseMeta(illustrationExercise);
+      const exSets = (active?.sets || []).filter(s => s.exercise === illustrationExercise);
+      const meta = exMeta || exSets[0] || {};
+      return (
+        <>
+        <style>{`
+          @keyframes card-flip-in {
+            from { transform: perspective(900px) rotateY(90deg) scale(.92); opacity: 0; }
+            to   { transform: perspective(900px) rotateY(0deg) scale(1);   opacity: 1; }
+          }
+        `}</style>
+        <div
+          onClick={() => setIllustrationExercise(null)}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.88)", zIndex: 500, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: "var(--panel)", borderRadius: 24, padding: "28px 24px", maxWidth: 360, width: "100%", textAlign: "center", animation: "card-flip-in .38s cubic-bezier(.34,1.4,.64,1) both" }}>
+            <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 800, color: "var(--green)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+              {meta?.group || "Ejercicio"}
+            </p>
+            <h2 style={{ margin: "0 0 20px", fontSize: 18, fontWeight: 900 }}>{illustrationExercise}</h2>
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
+              <ExerciseIllustration
+                name={illustrationExercise}
+                pattern={meta?.pattern}
+                muscle={meta?.muscle}
+                equipment={meta?.equipment}
+                size={200}
+              />
+            </div>
+            <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginBottom: 20 }}>
+              {meta?.muscle && <span style={{ fontSize: 12, color: workoutTypeTheme.accent, background: "var(--panel2)", borderRadius: 8, padding: "3px 10px", fontWeight: 700 }}>{meta.muscle}</span>}
+              {meta?.equipment && <span style={{ fontSize: 12, color: "var(--muted)", background: "var(--panel2)", borderRadius: 8, padding: "3px 10px" }}>{meta.equipment}</span>}
+            </div>
+            <button onClick={() => setIllustrationExercise(null)}
+              style={{ width: "100%", background: "rgba(168,85,247,.12)", border: "1px solid rgba(168,85,247,.3)", borderRadius: 14, padding: "12px", cursor: "pointer", fontSize: 14, fontWeight: 700, color: "var(--green)" }}>
+              Cerrar
+            </button>
+          </div>
+        </div>
+        </>
+      );
+    })()}
 
     {/* ── REST TIMER OVERLAY ────────────────────────────────────────────── */}
     {restExercise && (
