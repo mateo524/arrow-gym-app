@@ -521,6 +521,13 @@ export function getLiveVolumeStatus(activeWorkout, allWorkouts = []) {
   return result;
 }
 
+// ── Tier 2: Session strain = Σ(RPE × reps) for all sets with RPE ──────────
+export function calcSessionStrain(activeWorkout) {
+  return (activeWorkout?.sets || [])
+    .filter(s => s.rpe && Number(s.reps) > 0)
+    .reduce((sum, s) => sum + (Number(s.rpe) * Number(s.reps)), 0);
+}
+
 export function buildLiveCoachHints(activeWorkout, allWorkouts = [], cardioHistory = []) {
   if (!activeWorkout) return [];
   const history = (allWorkouts || []).sort((a, b) => String(b.date).localeCompare(String(a.date)));
@@ -532,62 +539,90 @@ export function buildLiveCoachHints(activeWorkout, allWorkouts = [], cardioHisto
     byExercise[set.exercise].push(set);
   });
 
-  // ── Per-exercise analysis ────────────────────────────────────────
+  // ── Per-exercise analysis (90-second rule: only actionable per-set hints) ──
   Object.entries(byExercise).forEach(([exercise, sets]) => {
     const setsWithData = sets.filter((s) => Number(s.weight) > 0 && Number(s.reps) > 0);
     if (!setsWithData.length) return;
 
-    const maxWeight   = Math.max(...setsWithData.map((s) => Number(s.weight)));
-    const minWeight   = Math.min(...setsWithData.map((s) => Number(s.weight)));
-    const avgReps     = setsWithData.reduce((sum, s) => sum + Number(s.reps), 0) / setsWithData.length;
-    const lastSet     = setsWithData[setsWithData.length - 1];
+    const maxWeight = Math.max(...setsWithData.map((s) => Number(s.weight)));
+    const avgReps   = setsWithData.reduce((sum, s) => sum + Number(s.reps), 0) / setsWithData.length;
+    const lastSet   = setsWithData[setsWithData.length - 1];
+
+    // Tier 2: e1RM per set — track progression and detect drop
+    const setsWithORM = setsWithData.map(s => ({
+      ...s, orm: calc1RM(Number(s.weight), Number(s.reps))
+    })).filter(s => s.orm > 0);
+
+    let sessionMaxORM = 0;
+    if (setsWithORM.length > 0) {
+      sessionMaxORM = Math.max(...setsWithORM.map(s => s.orm));
+      const lastORM = setsWithORM[setsWithORM.length - 1].orm;
+      const dropPct = sessionMaxORM > 0 ? ((sessionMaxORM - lastORM) / sessionMaxORM) * 100 : 0;
+      // e1RM drop >5% on 2+ sets = meaningful fatigue signal
+      if (setsWithORM.length >= 2 && dropPct > 5) {
+        hints.push({
+          exercise, type: "fatigue",
+          msg: `${exercise}: 1RM cayó ${Math.round(dropPct)}% (${sessionMaxORM}→${lastORM}kg est.). Considerá parar o bajar el peso.`,
+          priority: 2,
+        });
+      }
+    }
 
     // Get last N sessions for this exercise
     const sessionHistory = history
       .map(w => (w.sets || []).filter(s => s.exercise === exercise && hasData(s)))
       .filter(ss => ss.length > 0)
-      .slice(0, 5); // last 5 sessions with this exercise
+      .slice(0, 5);
 
     const prevMaxWeights = sessionHistory.map(ss => Math.max(...ss.map(s => Number(s.weight) || 0)));
     const prevMaxWeight  = prevMaxWeights.length ? prevMaxWeights[0] : null;
 
     // PR detection
     if (prevMaxWeight !== null && maxWeight > prevMaxWeight) {
-      hints.push({ exercise, type: "pr", msg: `🏆 ${exercise}: ¡nuevo record! ${maxWeight}kg (antes ${prevMaxWeight}kg)`, priority: 1 });
+      hints.push({ exercise, type: "pr", msg: `${exercise}: ¡nuevo record! ${maxWeight}kg (antes ${prevMaxWeight}kg)`, priority: 1 });
     }
-    // Ready to progress (reps high, same weight)
+    // Ready to progress
     else if (prevMaxWeight !== null && avgReps >= 12 && maxWeight <= prevMaxWeight) {
       const suggestion = Math.round((maxWeight + 2.5) * 2) / 2;
-      hints.push({ exercise, type: "ready", msg: `↑ ${exercise}: ${Math.round(avgReps)} reps con ${maxWeight}kg → subí a ${suggestion}kg`, priority: 2 });
+      hints.push({ exercise, type: "ready", msg: `${exercise}: ${Math.round(avgReps)} reps con ${maxWeight}kg → subí a ${suggestion}kg`, priority: 2 });
     }
 
-    // Plateau detection: last 3 sessions same weight or less
+    // Plateau detection
     if (prevMaxWeights.length >= 3) {
       const stagnant = prevMaxWeights.slice(0, 3).every(w => w >= maxWeight);
       if (stagnant && maxWeight > 0) {
-        hints.push({ exercise, type: "plateau", msg: `⚠ ${exercise}: sin progreso en 3 sesiones (${maxWeight}kg). Probá una técnica diferente o un deload.`, priority: 3 });
+        hints.push({ exercise, type: "plateau", msg: `${exercise}: sin progreso en 3 sesiones (${maxWeight}kg). Probá pausa, drop set o deload.`, priority: 3 });
       }
     }
 
-    // Intra-session fatigue: weight dropped >15% between first and last set
-    if (setsWithData.length >= 3 && maxWeight > 0) {
-      const dropPct = ((maxWeight - Number(lastSet.weight)) / maxWeight) * 100;
-      if (dropPct > 15) {
-        hints.push({ exercise, type: "fatigue", msg: `⚡ ${exercise}: el peso bajó ${Math.round(dropPct)}% entre series. Descansá 2-3 min más o reducí 1 serie.`, priority: 3 });
-      }
-    }
-
-    // Low reps (heavy) — form warning
+    // Low reps — form warning
     if (avgReps < 4 && setsWithData.length >= 2) {
-      hints.push({ exercise, type: "form", msg: `⚠ ${exercise}: menos de 4 reps — asegurate de tener un spotter o usar el rack de seguridad.`, priority: 4 });
+      hints.push({ exercise, type: "form", msg: `${exercise}: menos de 4 reps — tené un spotter o usá el rack de seguridad.`, priority: 4 });
     }
   });
 
-  // Remove fatigue hints when there's already a positive progression hint for that exercise
+  // Remove fatigue hints when there's a positive progression hint for the same exercise
   const posExercises = new Set(hints.filter(h => h.type === 'pr' || h.type === 'ready').map(h => h.exercise));
   hints.splice(0, hints.length, ...hints.filter(h => !(h.type === 'fatigue' && posExercises.has(h.exercise))));
 
-  // ── Push/Pull balance (session level) ───────────────────────────
+  // ── Tier 3: ACWR — surfaces real injury-risk signal ─────────────
+  const fatigue = getWeeklyFatigueScore(allWorkouts);
+  if (fatigue.acwr !== null && fatigue.acwr > 1.5) {
+    hints.push({
+      exercise: null, type: "overreach",
+      msg: `ACWR ${fatigue.acwr.toFixed(2)} — carga aguda muy por encima de la crónica. Alto riesgo de lesión. Bajá el volumen hoy.`,
+      priority: 1,
+    });
+  } else if (fatigue.acwr !== null && fatigue.acwr > 1.3) {
+    hints.push({
+      exercise: null, type: "recovery",
+      msg: `ACWR ${fatigue.acwr.toFixed(2)} — carga semanal elevada. Priorizá recuperación y buen sueño.`,
+      priority: 3,
+    });
+  }
+
+  // ── Session-level hints (90-second rule: only show critical ones live) ───
+  // Push/pull imbalance — only if strongly unbalanced (useful to act on this session)
   const PUSH_GROUPS = new Set(["Pecho", "Hombros", "Tríceps", "Chest", "Shoulders"]);
   const PULL_GROUPS = new Set(["Espalda", "Bíceps", "Back", "Arms"]);
   let pushSets = 0, pullSets = 0;
@@ -597,48 +632,42 @@ export function buildLiveCoachHints(activeWorkout, allWorkouts = [], cardioHisto
     else if (PULL_GROUPS.has(g)) pullSets++;
   });
   if (pushSets >= 6 && pushSets > pullSets * 2) {
-    hints.push({ exercise: null, type: "balance", msg: `⚖ Push/Pull: ${pushSets} series de empuje vs ${pullSets} de tirón. Considerá agregar remo o jalón.`, priority: 4, exercise: null });
-  } else if (pullSets >= 6 && pullSets > pushSets * 2) {
-    hints.push({ exercise: null, type: "balance", msg: `⚖ Push/Pull: ${pullSets} series de tirón vs ${pushSets} de empuje. Sesión orientada a espalda — OK si es intencional.`, priority: 5, exercise: null });
+    hints.push({ exercise: null, type: "balance", msg: `Push/Pull: ${pushSets} vs ${pullSets} series. Considerá agregar remo o jalón.`, priority: 4 });
   }
 
-  // ── Volume landmarks (MEV/MAV/MRV) per muscle group ─────────────
+  // Volume landmarks — only show over_mrv (actionable: stop this exercise NOW)
   const volStatus = getLiveVolumeStatus(activeWorkout, allWorkouts);
   Object.entries(volStatus).forEach(([group, data]) => {
     if (data.status === "over_mrv") {
-      hints.push({ exercise: null, type: "overreach", msg: `🔴 ${group}: ${data.weekTotal} series semanales — sobre el MRV (${data.landmark.mrv}). Riesgo de lesión, pará aquí.`, priority: 2 });
+      hints.push({ exercise: null, type: "overreach", msg: `${group}: ${data.weekTotal}/${data.landmark.mrv} series semanales — por encima del MRV. Pará aquí.`, priority: 2 });
     } else if (data.status === "approaching_mrv" && data.sessionSets > 0) {
-      hints.push({ exercise: null, type: "high_volume", msg: `🟡 ${group}: ${data.weekTotal}/${data.landmark.mrv} series esta semana. Cerca del límite.`, priority: 4 });
+      hints.push({ exercise: null, type: "high_volume", msg: `${group}: ${data.weekTotal}/${data.landmark.mrv} series esta semana. Cerca del límite.`, priority: 4 });
     } else if (data.status === "optimal" && data.sessionSets > 0) {
-      hints.push({ exercise: null, type: "volume_ok", msg: `✅ ${group}: ${data.weekTotal} series (MEV ${data.landmark.mev} → MAV ${data.landmark.mav}). Volumen óptimo esta semana.`, priority: 6 });
+      hints.push({ exercise: null, type: "volume_ok", msg: `${group}: ${data.weekTotal} series (MEV ${data.landmark.mev}–MAV ${data.landmark.mav}). Volumen óptimo.`, priority: 6 });
     } else if (data.status === "below_mev" && data.sessionSets > 0) {
-      hints.push({ exercise: null, type: "low_volume", msg: `📊 ${group}: ${data.weekTotal}/${data.landmark.mev} series — aún bajo el MEV. Añadí más series esta semana.`, priority: 5 });
+      hints.push({ exercise: null, type: "low_volume", msg: `${group}: ${data.weekTotal}/${data.landmark.mev} series — bajo MEV. Añadí más series esta semana.`, priority: 5 });
     }
   });
 
-  // ── Recovery from recent cardio ──────────────────────────────────
+  // Recovery from recent intense cardio
   if (cardioHistory && cardioHistory.length > 0) {
     const now = Date.now();
-    const yesterday = now - 86400000;
-    const recentCardio = (cardioHistory || []).filter(c => parseDate(c.date).getTime() >= yesterday);
-    const intenseCardio = recentCardio.filter(c => c.intensity === "alta" || (c.duration >= 3600));
+    const recentCardio = (cardioHistory || []).filter(c => parseDate(c.date).getTime() >= now - 86400000);
+    const intenseCardio = recentCardio.filter(c => c.intensity === "alta" || c.duration >= 3600);
     if (intenseCardio.length > 0) {
-      const sport = intenseCardio[0].sportName;
-      hints.push({ exercise: null, type: "recovery", msg: `💤 ${sport} intenso en las últimas 24h. Reducí el volumen un 10-15% y priorizá el descanso entre series.`, priority: 3, exercise: null });
+      hints.push({ exercise: null, type: "recovery", msg: `${intenseCardio[0].sportName || "Cardio"} intenso en las últimas 24h. Reducí el volumen un 10-15%.`, priority: 3 });
     }
   }
 
-  // ── Deload suggestion ────────────────────────────────────────────
-  const recent4 = history.slice(0, 28); // last 28 days
-  const highLoadWeeks = recent4.filter(w => getWorkoutVolume(w) > 5000).length;
-  if (highLoadWeeks >= 3 && !hints.some(h => h.type === "deload")) {
-    const totalSets = (activeWorkout.sets || []).filter(hasData).length;
-    if (totalSets >= 20) {
-      hints.push({ exercise: null, type: "deload", msg: `😴 3+ semanas de volumen alto. Esta semana es ideal para un deload (50-60% del volumen habitual).`, priority: 5, exercise: null });
-    }
-  }
-
-  return hints.sort((a, b) => a.priority - b.priority);
+  // ── Tier 3: Rate limiting — 1 hint per type for session-level hints ──────
+  const sorted = hints.sort((a, b) => a.priority - b.priority);
+  const seenSessionTypes = new Set();
+  return sorted.filter(h => {
+    if (h.exercise !== null) return true; // per-exercise hints always shown
+    if (seenSessionTypes.has(h.type)) return false;
+    seenSessionTypes.add(h.type);
+    return true;
+  });
 }
 
 // ── Coach v2: Periodization, Fatigue, Prescriptions, Skipped, Post-summary ──

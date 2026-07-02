@@ -1,7 +1,7 @@
 ﻿import { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import useStore from "../store/useStore.js";
 import useAuthStore from "../store/useAuthStore.js";
-import { hasData, formatDate, buildLiveCoachHints, getLiveVolumeStatus, getPostWorkoutSummary } from "../lib/analytics.js";
+import { hasData, formatDate, buildLiveCoachHints, getLiveVolumeStatus, getPostWorkoutSummary, calcSessionStrain } from "../lib/analytics.js";
 import LiveCoachPanel from "../components/LiveCoachPanel.jsx";
 import ExercisePicker from "../components/ExercisePicker.jsx";
 import WorkoutSetCard from "../components/WorkoutSetCard.jsx";
@@ -184,6 +184,7 @@ export default function WorkoutPage() {
   const groupedExercises = useMemo(() => groupSetsByExercise(active?.sets || []), [active?.sets]);
   const emptySetsCount = useMemo(() => (active?.sets || []).filter((s) => !s.weight || !s.reps).length, [active?.sets]);
   const liveHints = useMemo(() => { try { return buildLiveCoachHints(active, workouts, cardioHistory); } catch { return []; } }, [active?.sets, workouts, cardioHistory]);
+  const sessionStrain = useMemo(() => { try { return calcSessionStrain(active); } catch { return 0; } }, [active?.sets]);
   const volStatus  = useMemo(() => { try { return getLiveVolumeStatus(active, workouts); } catch { return {}; } }, [active?.sets, workouts]);
 
   const workoutTypeTheme = useMemo(() => {
@@ -483,7 +484,8 @@ export default function WorkoutPage() {
           const prData = prCache[exercise] || {};
           const isFlipped = flippedExercise === exercise;
           const isHistory = historyExercise === exercise;
-          const coachHint = liveHints.find(h => h.exercise === exercise || h.msg?.includes(exercise));
+          const PER_EXERCISE_TYPES = new Set(["pr","ready","plateau","fatigue","form"]);
+          const coachHint = liveHints.find(h => PER_EXERCISE_TYPES.has(h.type) && (h.exercise === exercise || h.msg?.startsWith(exercise)));
           const isSupersetted = sets.some(s => s.supersetGroup);
           const supersetGroupId = sets.find(s => s.supersetGroup)?.supersetGroup;
           const supersetPartner = supersetGroupId
@@ -546,6 +548,12 @@ export default function WorkoutPage() {
               </div>
 
               {/* Live Coach — per exercise, below header */}
+              {sessionStrain > 0 && (
+                <div style={{ margin: "0 16px 4px", display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", background: "rgba(168,85,247,.07)", border: "1px solid rgba(168,85,247,.2)", borderRadius: 8 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>Esfuerzo sesión</span>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: "var(--green)", marginLeft: "auto" }}>{sessionStrain} pts</span>
+                </div>
+              )}
               {(() => {
                 const filteredHints = (liveHints || []).filter(h => !['balance','pr','ready'].includes(h.type));
                 if (!filteredHints.length && !volStatus) return null;

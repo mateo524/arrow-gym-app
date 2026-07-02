@@ -1,6 +1,7 @@
 ﻿import { useState } from "react";
 import Icon from "./Icon.jsx";
 import useStore from "../store/useStore.js";
+import { calc1RM } from "../lib/analytics.js";
 
 function haptic(type = "tap") {
   if (!navigator.vibrate) return;
@@ -201,6 +202,19 @@ export default function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onR
           />
         </div>
       </div>
+
+      {/* e1RM estimate badge */}
+      {Number(setItem.weight) > 0 && Number(setItem.reps) > 0 && (() => {
+        const orm = calc1RM(Number(setItem.weight), Number(setItem.reps));
+        if (!orm || orm <= 0) return null;
+        return (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", marginBottom: 4 }}>
+            <span style={{ fontSize: 10, color: "var(--muted)", background: "var(--panel2)", borderRadius: 6, padding: "2px 7px", fontWeight: 700 }}>
+              1RM est. {Math.round(orm)}kg
+            </span>
+          </div>
+        );
+      })()}
 
       {/* RPE selector — show only when reps filled */}
       {setItem.reps && (
