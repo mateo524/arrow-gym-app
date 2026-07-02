@@ -106,7 +106,7 @@ export function normalizeSet(set) {
   const exercise = set.exercise || set.name || set.exerciseName || "Ejercicio";
   const group = resolveLegacyGroup(set, exercise);
   const muscle = resolveLegacyMuscle(set, exercise, group);
-  return {
+  const normalized = {
     id: set.id || uid("set"),
     exercise,
     set: set.set ?? set.setNumber ?? undefined,
@@ -116,6 +116,14 @@ export function normalizeSet(set) {
     muscle,
     equipment: set.equipment || findExerciseMeta(exercise)?.equipment || "",
   };
+  // Preserve effort tracking and set metadata — never discard these
+  if (set.rir !== undefined && set.rir !== "") normalized.rir = set.rir;
+  if (set.rpe !== undefined && set.rpe !== null && set.rpe !== "") normalized.rpe = set.rpe;
+  if (set.notes) normalized.notes = set.notes;
+  if (set.supersetGroup) normalized.supersetGroup = set.supersetGroup;
+  if (set.isDropset) normalized.isDropset = set.isDropset;
+  if (set.planReps) normalized.planReps = set.planReps;
+  return normalized;
 }
 
 export function normalizeWorkout(workout) {
@@ -133,18 +141,23 @@ export function normalizeWorkout(workout) {
 }
 
 export function loadInitialWorkouts() {
-  if (typeof localStorage === "undefined") return SEED_WORKOUTS.map(normalizeWorkout);
+  if (typeof localStorage === "undefined") return [];
 
   const found = [];
   OLD_KEYS.forEach((key) => extractWorkouts(readJSON(key)).forEach((workout) => found.push(normalizeWorkout(workout))));
 
-  // Primero datos reales guardados, después seed original como respaldo.
-  // Deduplicamos por id y, si no hay id confiable, por fecha+tipo+cantidad de series.
-  const byKey = new Map();
-  [...found, ...SEED_WORKOUTS.map(normalizeWorkout)].forEach((workout) => {
-    const key = workout.id || `${workout.date}-${workout.type}-${workout.sets?.length || 0}`;
-    if (!byKey.has(key)) byKey.set(key, workout);
-  });
+  // Only inject seed workouts when there is no real user data to show (new install with no migration).
+  // Once a user has real workouts, seeds are never added — they pollute PRs, streaks and analytics.
+  if (found.length > 0) {
+    const byKey = new Map();
+    found.forEach((workout) => {
+      const key = workout.id || `${workout.date}-${workout.type}-${workout.sets?.length || 0}`;
+      if (!byKey.has(key)) byKey.set(key, workout);
+    });
+    return Array.from(byKey.values()).sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  }
 
-  return Array.from(byKey.values()).sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  // No legacy data found — return empty so the app starts clean.
+  // Seed workouts (demo data) are no longer injected into real user state.
+  return [];
 }

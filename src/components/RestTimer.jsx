@@ -49,6 +49,7 @@ export default function RestTimer({ duration = 90, onComplete, onSkip, onChangeD
   }
 
   useEffect(() => {
+    stopTimer();
     setSelectedDuration(duration);
     setRemaining(duration);
     setRunning(false);

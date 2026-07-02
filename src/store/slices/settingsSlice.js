@@ -22,7 +22,8 @@ export const createSettingsSlice = (set, get) => ({
     if (page === "coach") {
       set({ currentPage: page, coachBadge: false });
     } else {
-      set({ currentPage: page });
+      const state = get();
+      set({ currentPage: page, coachBadge: (state.coachReports?.length || 0) > 0 });
     }
   },
 

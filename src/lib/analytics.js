@@ -186,8 +186,13 @@ export function buildCoachReport(workout, allWorkouts = [], userProfile = null) 
   // Push/pull balance
   const pushCount = history.slice(0, 14).filter((w) => ["Push", "Full Body"].includes(w.type)).length;
   const pullCount = history.slice(0, 14).filter((w) => ["Pull", "Full Body"].includes(w.type)).length;
-  const pushSets = (totals.Pecho?.sets || 0) + (totals.Hombros?.sets || 0) + (totals.Brazos?.sets || 0);
-  const pullSets = totals.Espalda?.sets || 0;
+  // Split Brazos: Tríceps → push, Bíceps → pull (Brazos group counts 50/50 as fallback)
+  const brazosCount = totals.Brazos?.sets || 0;
+  const tricesSets = hydratedWorkout.sets.filter(s => s.muscle === "Tríceps" || s.muscle === "Triceps").length;
+  const bicepsSets = hydratedWorkout.sets.filter(s => s.muscle === "Bíceps" || s.muscle === "Biceps").length;
+  const armsSplit = tricesSets + bicepsSets > 0 ? { push: tricesSets, pull: bicepsSets } : { push: Math.floor(brazosCount / 2), pull: Math.ceil(brazosCount / 2) };
+  const pushSets = (totals.Pecho?.sets || 0) + (totals.Hombros?.sets || 0) + armsSplit.push;
+  const pullSets = (totals.Espalda?.sets || 0) + armsSplit.pull;
 
   // Frequency: days since last same-type session
   const lastSameType = sameTypePrev[0];
@@ -479,17 +484,35 @@ const GROUP_TO_LANDMARK = {
   "Core": "Core", "Abdominales": "Core",
 };
 
-function muscleToLandmark(muscle, group) {
-  return MUSCLE_TO_LANDMARK[muscle] || GROUP_TO_LANDMARK[group] || null;
+// Strip accents for accent-insensitive muscle name lookup
+function stripAccents(str) {
+  return String(str || "").normalize("NFD").replace(/[̀-ͯ]/g, "");
 }
 
-function countSetTowardMuscles(raw, bucket) {
+// Normalized lookup cache (built once)
+const MUSCLE_TO_LANDMARK_NORM = Object.fromEntries(
+  Object.entries(MUSCLE_TO_LANDMARK).map(([k, v]) => [stripAccents(k).toLowerCase(), v])
+);
+
+function muscleToLandmark(muscle, group) {
+  if (!muscle) return GROUP_TO_LANDMARK[group] || null;
+  // Try exact match first, then accent-normalized
+  return MUSCLE_TO_LANDMARK[muscle]
+    || MUSCLE_TO_LANDMARK_NORM[stripAccents(muscle).toLowerCase()]
+    || GROUP_TO_LANDMARK[group]
+    || null;
+}
+
+function countSetTowardMuscles(raw, bucket, primaryMuscle) {
   const s = hydrateSet(raw);
-  // All muscles this exercise works (primary + secondary from DB)
-  const allMuscles = s.muscles && s.muscles.length > 0 ? s.muscles : [s.muscle];
+  // Primary muscle counts as 1.0; secondary muscles count as 0.5 (RP/Israetel model)
+  const primary = primaryMuscle || s.muscle;
+  const allMuscles = s.muscles && s.muscles.length > 0 ? s.muscles : [primary];
   allMuscles.forEach(m => {
     const key = muscleToLandmark(m, s.group);
-    if (key) bucket[key] = (bucket[key] || 0) + 1;
+    if (!key) return;
+    const contribution = m === primary ? 1 : 0.5;
+    bucket[key] = (bucket[key] || 0) + contribution;
   });
 }
 
@@ -811,7 +834,8 @@ export function getWeeklyFatigueScore(workouts) {
   // Optimal zone: 0.8–1.3 | >1.5 = high injury risk
   const week2 = Math.round(sumLoad(workouts.filter(w => { const t = parseDate(w.date).getTime(); return t >= now - 3 * msWeek && t < now - 2 * msWeek; })));
   const week3 = Math.round(sumLoad(workouts.filter(w => { const t = parseDate(w.date).getTime(); return t >= now - 4 * msWeek && t < now - 3 * msWeek; })));
-  const chronicLoad = (thisWeek + lastWeek + week2 + week3) / 4;
+  // Uncoupled ACWR: chronic = average of weeks 2-4 only (excludes acute week to avoid coupling bias)
+  const chronicLoad = (lastWeek + week2 + week3) / 3;
   const acwr = chronicLoad > 0 ? Math.round((thisWeek / chronicLoad) * 100) / 100 : null;
 
   return {

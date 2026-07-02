@@ -58,7 +58,10 @@ export async function fetchWorkoutsFromDB(userId) {
 export async function syncAllWorkoutsUp(workouts, userId) {
   if (!userId || !workouts?.length) return;
   try {
-    const rows = workouts.map((w) => ({
+    // Never upload seed/demo workouts — they have no place in a real user's DB
+    const real = workouts.filter(w => !w.isSeed);
+    if (!real.length) return;
+    const rows = real.map((w) => ({
       id: w.id,
       user_id: userId,
       type: w.type,

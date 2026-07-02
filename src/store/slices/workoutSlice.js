@@ -148,12 +148,6 @@ export const createWorkoutSlice = (set, get) => ({
 
   clearActiveWorkout: () => set({ activeWorkout: null }),
 
-  setPage: (page) => {
-    const state = get();
-    if (page === "coach") set({ currentPage: page, coachBadge: false });
-    else set({ currentPage: page, coachBadge: (state.coachReports?.length || 0) > 0 });
-  },
-
   openWorkout: (id) => set({ selectedWorkoutId: id, currentPage: "workoutDetail" }),
 
   startWorkout: (type) => {
@@ -318,7 +312,7 @@ export const createWorkoutSlice = (set, get) => ({
       }, 0);
       if (currentORM > prevBestORM) {
         prByExercise.add(s.exercise);
-        newPrsList.push({ exercise: s.exercise, weight: w, reps: r, orm: Math.round(currentORM), type: w > maxWeight ? "weight" : "orm", date: clean.date });
+        newPrsList.push({ exercise: s.exercise, weight: w, reps: r, orm: Math.round(currentORM), type: w > maxWeight ? "weight" : "orm", date: clean.date, group: s.group, muscle: s.muscle });
       }
     });
     // Auto-expire plan if it has passed its end date
@@ -339,7 +333,7 @@ export const createWorkoutSlice = (set, get) => ({
       activeWorkout: null,
       currentPage: "coach",
       coachBadge: true,
-      prs: [...newPrsList, ...existingPrs].slice(0, 20),
+      prs: [...newPrsList, ...existingPrs].slice(0, 200),
       ...planUpdate,
     }));
     // Achievement check
@@ -475,7 +469,13 @@ export const createWorkoutSlice = (set, get) => ({
     const existing = get().weeklyChallenge;
     if (!force && existing) {
       const thisWeek = (workouts || []).filter((w) => w.date && new Date(w.date) >= monday);
-      set({ weeklyChallenge: { ...existing, doneCount: thisWeek.length } });
+      // Compute the correct metric for the existing challenge type instead of always using session count
+      let doneCount = thisWeek.length;
+      const t = existing.text || "";
+      if (t.includes("piernas")) doneCount = thisWeek.filter((w) => (w.sets || []).some((s) => (s.group || "") === "Piernas")).length;
+      else if (t.includes("series en grupos")) doneCount = thisWeek.reduce((a, w) => a + (w.sets || []).filter((s) => ["Pecho", "Espalda", "Piernas"].includes(s.group)).length, 0);
+      else if (t.includes("kg de volumen")) doneCount = Math.round(thisWeek.reduce((a, w) => a + (w.sets || []).reduce((b, s) => b + ((Number(s.weight) || 0) * (Number(s.reps) || 0)), 0), 0));
+      set({ weeklyChallenge: { ...existing, doneCount } });
       return;
     }
     const thisWeek = (workouts || []).filter((w) => w.date && new Date(w.date) >= monday);

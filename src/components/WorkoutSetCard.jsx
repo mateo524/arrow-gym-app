@@ -179,7 +179,7 @@ export default function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onR
             inputMode="decimal"
             value={setItem.weight}
             placeholder={setItem.lastWeight || "0"}
-            onChange={(e) => { haptic(); onUpdate({ weight: sanitizeWeight(e.target.value) }); }}
+            onChange={(e) => { haptic(); setDone(false); onUpdate({ weight: sanitizeWeight(e.target.value) }); }}
             onFocus={(e) => e.target.select()}
             style={{ width: "100%", textAlign: "center", fontSize: 26, fontWeight: 800, borderColor: setItem.weight ? "rgba(168,85,247,.5)" : undefined, transition: "border-color .2s" }}
           />
@@ -196,7 +196,7 @@ export default function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onR
             inputMode="numeric"
             value={setItem.reps}
             placeholder={setItem.planReps || setItem.lastReps || "—"}
-            onChange={(e) => { haptic(); onUpdate({ reps: sanitizeReps(e.target.value) }); }}
+            onChange={(e) => { haptic(); setDone(false); onUpdate({ reps: sanitizeReps(e.target.value) }); }}
             onFocus={(e) => e.target.select()}
             style={{ width: "100%", textAlign: "center", fontSize: 26, fontWeight: 800, borderColor: setItem.reps ? "rgba(168,85,247,.5)" : undefined, transition: "border-color .2s" }}
           />
@@ -258,6 +258,7 @@ export default function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onR
           className="ghost set-action-sm"
           onClick={() => {
             haptic();
+            setDone(true);
             // Convert RIR to effective RPE for smart timer: RIR 0 = RPE 10, RIR 1 = RPE 9, etc.
             const effectiveRpe = setItem.rir !== undefined && setItem.rir !== ""
               ? Math.max(6, 10 - Number(setItem.rir))
