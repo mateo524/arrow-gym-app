@@ -10,29 +10,15 @@ export default defineConfig({
     react(),
     // PWA solo en builds web (no nativo)
     !isNative && VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
       registerType: "autoUpdate",
-      // El plugin genera el SW automáticamente con precache de todos los assets
-      workbox: {
-        // Precachea todos los assets del build
+      injectManifest: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
-        // SPA: cualquier ruta que no sea un asset cae en index.html
-        navigateFallback: "/index.html",
-        navigateFallbackDenylist: [/^\/api\//],
-        skipWaiting: true,
-        clientsClaim: true,
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-            handler: "CacheFirst",
-            options: { cacheName: "google-fonts" },
-          },
-        ],
-        // Limpia caches viejas automáticamente
         cleanupOutdatedCaches: true,
       },
-      // Usa el manifest.json que ya existe en /public
       manifest: false,
-      // No inyectar el manifest en el HTML (ya está como link en index.html)
       injectRegister: "auto",
     }),
   ].filter(Boolean),

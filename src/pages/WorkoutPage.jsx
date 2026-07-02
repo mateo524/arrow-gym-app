@@ -702,6 +702,8 @@ export default function WorkoutPage() {
                             coachSuggestion={(() => {
                               const w = Number(setItem.weight);
                               const r = Number(setItem.reps);
+                              const rir = setItem.rir !== undefined && setItem.rir !== "" ? Number(setItem.rir) : null;
+
                               // Proactive: show prescription before the athlete enters data
                               if (!w || !r) {
                                 const prescription = weightPrescriptions.find(p => p.exercise === exercise);
@@ -712,6 +714,22 @@ export default function WorkoutPage() {
                                 }
                                 return null;
                               }
+
+                              // RIR-based next set suggestion (highest priority — most precise signal)
+                              if (rir !== null) {
+                                if (rir === 0) {
+                                  const next = Math.max(Math.round((w - 2.5) * 2) / 2, 0);
+                                  return { dir: "down", weight: next, reason: `Fuiste al fallo → próxima serie: ${next}kg` };
+                                }
+                                if (rir >= 3) {
+                                  const next = Math.round((w + 2.5) * 2) / 2;
+                                  return { dir: "up", weight: next, reason: `Te quedaron ${rir} reps → próxima serie: ${next}kg` };
+                                }
+                                // RIR 1-2: zona óptima
+                                return { dir: null, weight: w, reason: `RIR ${rir} — zona óptima, mantené ${w}kg` };
+                              }
+
+                              // Rep-range based suggestions (fallback when no RIR)
                               const goal = (userGoal || profile?.goal || "").toLowerCase();
                               let lowThresh = 8, highThresh = 12;
                               let restSec = 90;
@@ -719,11 +737,20 @@ export default function WorkoutPage() {
                               else if (goal.includes("hipertrofia") || goal.includes("masa")) { lowThresh = 6; highThresh = 12; restSec = 90; }
                               else if (goal.includes("resistencia")) { lowThresh = 15; highThresh = 25; restSec = 45; }
                               else if (goal.includes("definicion")) { restSec = 60; }
-                              // Check if same weight for 3+ sets with reps at top of range (double progression signal)
+
                               const sameW = sets.filter(s => Number(s.weight) === w && Number(s.reps) >= highThresh - 1).length;
-                              if (sameW >= 3) return { dir: "up", weight: Math.round((w + 2.5) * 2) / 2, reason: `3+ series en ${w}kg — doble progresión: subí a ${Math.round((w + 2.5) * 2) / 2}kg`, rest: restSec };
-                              if (r > highThresh) return { dir: "up", weight: Math.round((w + 2.5) * 2) / 2, reason: "Muchas reps — subí peso", rest: restSec };
-                              if (r < lowThresh)  return { dir: "down", weight: Math.max(Math.round((w - 2.5) * 2) / 2, 0), reason: "Pocas reps — bajá peso", rest: restSec };
+                              if (sameW >= 3) {
+                                const next = Math.round((w + 2.5) * 2) / 2;
+                                return { dir: "up", weight: next, reason: `3+ series en ${w}kg → subí a ${next}kg`, rest: restSec };
+                              }
+                              if (r > highThresh) {
+                                const next = Math.round((w + 2.5) * 2) / 2;
+                                return { dir: "up", weight: next, reason: `${r} reps — subí a ${next}kg`, rest: restSec };
+                              }
+                              if (r < lowThresh) {
+                                const next = Math.max(Math.round((w - 2.5) * 2) / 2, 0);
+                                return { dir: "down", weight: next, reason: `${r} reps (pocas) — bajá a ${next}kg`, rest: restSec };
+                              }
                               return { dir: null, weight: w, reason: `Buen rango — dejá 1-3 reps en reserva`, rest: restSec };
                             })()}
                           />

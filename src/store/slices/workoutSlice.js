@@ -358,6 +358,18 @@ export const createWorkoutSlice = (set, get) => ({
 
   cancelWorkout: () => set({ activeWorkout: null, currentPage: "start" }),
 
+  importWorkouts: (incoming) => {
+    const existing = get().workouts || [];
+    // Dedup by date+type+sets-count (avoid double-import)
+    const existingKeys = new Set(existing.map(w => `${w.date}_${w.type}_${(w.sets||[]).length}`));
+    const fresh = (incoming || []).filter(w => !existingKeys.has(`${w.date}_${w.type}_${(w.sets||[]).length}`));
+    if (!fresh.length) return 0;
+    const merged = [...fresh, ...existing].sort((a, b) => String(b.date).localeCompare(String(a.date)));
+    set({ workouts: merged });
+    setTimeout(() => get().syncGymStateToDB(), 1500);
+    return fresh.length;
+  },
+
   saveTemplate: (name, exercises) => {
     const template = { id: uid("tpl"), name, exercises, createdAt: today() };
     set((s) => ({ savedTemplates: [template, ...(s.savedTemplates || [])] }));

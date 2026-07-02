@@ -3,6 +3,21 @@ import { playDone, primeAudio } from "../lib/sound.js";
 
 const CIRCUMFERENCE = 2 * Math.PI * 28;
 
+function swPost(msg) {
+  try {
+    if (navigator.serviceWorker?.controller) {
+      navigator.serviceWorker.controller.postMessage(msg);
+    }
+  } catch {}
+}
+
+async function requestNotifPermission() {
+  if (typeof Notification === 'undefined') return;
+  if (Notification.permission === 'default') {
+    await Notification.requestPermission().catch(() => {});
+  }
+}
+
 export default function RestTimer({ duration = 90, onComplete, onSkip, onChangeDuration, active, soundEnabled = true, nextLabel }) {
   const [selectedDuration, setSelectedDuration] = useState(duration);
   const [remaining, setRemaining] = useState(duration);
@@ -17,6 +32,7 @@ export default function RestTimer({ duration = 90, onComplete, onSkip, onChangeD
   function stopTimer() {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
     startTimeRef.current = null;
+    swPost({ type: 'CANCEL_TIMER', id: 'rest-timer' });
   }
 
   function startTimer(dur) {
@@ -26,6 +42,10 @@ export default function RestTimer({ duration = 90, onComplete, onSkip, onChangeD
     setRunning(true);
     startTimeRef.current = Date.now();
     setRemaining(d);
+    // Schedule SW notification as fallback for background/locked screen
+    requestNotifPermission().then(() => {
+      swPost({ type: 'SCHEDULE_TIMER', id: 'rest-timer', delayMs: d * 1000, label: nextLabel || '' });
+    });
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
       const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
@@ -44,6 +64,7 @@ export default function RestTimer({ duration = 90, onComplete, onSkip, onChangeD
         }
         try { if (soundEnabled) playDone(); } catch {}
         onCompleteRef.current?.();
+        swPost({ type: 'CANCEL_TIMER', id: 'rest-timer' });
       }
     }, 200);
   }

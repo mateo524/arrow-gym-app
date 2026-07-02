@@ -1,9 +1,10 @@
-﻿import { useState } from "react";
+﻿import { useState, useRef } from "react";
 import useStore from "../store/useStore.js";
 import useAuthStore from "../store/useAuthStore.js";
 import { supabase } from "../lib/supabase.js";
 import { todayLocal } from "../lib/dates.js";
 import Icon from "../components/Icon.jsx";
+import { parseImportFile } from "../lib/importCSV.js";
 
 const GOALS = [
   { id: "volumen",       label: "Ganar músculo",  icon: "💪" },
@@ -67,6 +68,34 @@ export default function ProfilePage() {
   const [pwdMsg, setPwdMsg] = useState("");
   const [savingPwd, setSavingPwd] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  // Importer state
+  const importWorkouts = useStore(s => s.importWorkouts);
+  const fileInputRef = useRef(null);
+  const [importPreview, setImportPreview] = useState(null); // { workouts, format, totalWorkouts, totalSets, totalExercises }
+  const [importError, setImportError] = useState("");
+  const [importDone, setImportDone] = useState(null); // number of imported workouts
+
+  function handleImportFile(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportError(""); setImportPreview(null); setImportDone(null);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const result = parseImportFile(ev.target.result);
+      if (result.error) { setImportError(result.error); return; }
+      setImportPreview(result);
+    };
+    reader.readAsText(file, "utf-8");
+    e.target.value = "";
+  }
+
+  function confirmImport() {
+    if (!importPreview) return;
+    const count = importWorkouts(importPreview.workouts);
+    setImportDone(count);
+    setImportPreview(null);
+  }
   const [editName, setEditName] = useState(false);
   const [newName, setNewName] = useState("");
   const [nameMsg, setNameMsg] = useState("");
@@ -335,6 +364,74 @@ export default function ProfilePage() {
               a.click();
               URL.revokeObjectURL(url);
             }}>Exportar</button>
+          </div>
+        </div>
+
+        {/* ── Importador CSV ─────────────────────────────────────────────── */}
+        <div className="settings-section" style={{ marginTop: 20 }}>
+          <p className="settings-label">Importar historial</p>
+          <div style={{ background: "var(--panel2)", borderRadius: 14, padding: "14px 16px" }}>
+            <p style={{ margin: "0 0 10px", fontSize: 13, color: "var(--muted)", lineHeight: 1.5 }}>
+              Traé tus entrenamientos desde <b style={{ color: "var(--text)" }}>Strong</b> o <b style={{ color: "var(--text)" }}>Hevy</b>.<br />
+              Exportá el CSV desde la app y subilo acá.
+            </p>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv"
+              onChange={handleImportFile}
+              style={{ display: "none" }}
+            />
+            <button
+              className="ghost"
+              style={{ width: "100%", padding: "11px", border: "1.5px dashed rgba(168,85,247,.4)", borderRadius: 12, color: "var(--green)", fontWeight: 700, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+              onClick={() => { setImportError(""); setImportPreview(null); setImportDone(null); fileInputRef.current?.click(); }}
+            >
+              <Icon name="Upload" size={16} /> Subir CSV
+            </button>
+
+            {importError && (
+              <p style={{ margin: "8px 0 0", fontSize: 12, color: "var(--danger)" }}>{importError}</p>
+            )}
+
+            {importDone !== null && (
+              <div style={{ marginTop: 10, background: "rgba(52,211,153,.1)", border: "1px solid rgba(52,211,153,.3)", borderRadius: 10, padding: "10px 14px" }}>
+                <p style={{ margin: 0, fontSize: 13, color: "#34d399", fontWeight: 700 }}>
+                  ✓ {importDone === 0 ? "No había entrenamientos nuevos (ya estaban importados)" : `${importDone} entrenamientos importados`}
+                </p>
+              </div>
+            )}
+
+            {importPreview && (
+              <div style={{ marginTop: 10, background: "rgba(168,85,247,.07)", border: "1px solid rgba(168,85,247,.25)", borderRadius: 12, padding: "12px 14px" }}>
+                <p style={{ margin: "0 0 4px", fontSize: 12, fontWeight: 700, color: "var(--green)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  Vista previa · {importPreview.format === "strong" ? "Strong" : "Hevy"}
+                </p>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, margin: "8px 0 12px" }}>
+                  {[
+                    { label: "Entrenamientos", value: importPreview.totalWorkouts },
+                    { label: "Series", value: importPreview.totalSets },
+                    { label: "Ejercicios", value: importPreview.totalExercises },
+                  ].map(({ label, value }) => (
+                    <div key={label} style={{ background: "var(--panel)", borderRadius: 10, padding: "8px 6px", textAlign: "center" }}>
+                      <div style={{ fontSize: 18, fontWeight: 900, color: "var(--text)" }}>{value}</div>
+                      <div style={{ fontSize: 9, color: "var(--muted)", marginTop: 2, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</div>
+                    </div>
+                  ))}
+                </div>
+                <p style={{ margin: "0 0 10px", fontSize: 11, color: "var(--muted)" }}>
+                  Los entrenamientos que ya existían en Loop no se duplican.
+                </p>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button className="ghost" style={{ flex: 1, fontSize: 13, padding: "9px 0" }} onClick={() => setImportPreview(null)}>
+                    Cancelar
+                  </button>
+                  <button className="primary" style={{ flex: 2, fontSize: 13, padding: "9px 0" }} onClick={confirmImport}>
+                    Importar {importPreview.totalWorkouts} entrenamientos
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
