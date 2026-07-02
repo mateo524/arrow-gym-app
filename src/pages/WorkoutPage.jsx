@@ -420,9 +420,9 @@ export default function WorkoutPage() {
       {/* ── PLAN ADJUSTMENT BANNER ──────────────────────────────────────────── */}
       {activePlanAdjustment && new Date(activePlanAdjustment.expiresAt) >= new Date() && (
         <div style={{ borderBottom: '1px solid rgba(245,158,11,.25)', background: 'rgba(245,158,11,.06)', padding: '7px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
-          {activePlanAdjustment.type === 'deload' && <><span>🔄</span><span style={{ fontSize: 13, color: '#f59e0b' }}>Deload — pesos al {Math.round(activePlanAdjustment.factor * 100)}% · hasta {new Date(activePlanAdjustment.expiresAt).toLocaleDateString('es-AR', { day:'numeric', month:'short' })}</span></>}
-          {activePlanAdjustment.type === 'volume_up' && <><span>📈</span><span style={{ fontSize: 13, color: '#f59e0b' }}>Semana de volumen según el plan</span></>}
-          {activePlanAdjustment.type === 'intensity_up' && <><span>⚡</span><span style={{ fontSize: 13, color: '#f59e0b' }}>Semana de intensidad según el plan</span></>}
+          {activePlanAdjustment.type === 'deload' && <><svg width={13} height={13} viewBox="0 0 16 16" fill="none"><path d="M8 2a6 6 0 1 0 4.24 1.76" stroke="#f59e0b" strokeWidth="1.8" strokeLinecap="round" fill="none"/><path d="M12 2v3h-3" stroke="#f59e0b" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg><span style={{ fontSize: 13, color: '#f59e0b' }}>Deload — pesos al {Math.round(activePlanAdjustment.factor * 100)}% · hasta {new Date(activePlanAdjustment.expiresAt).toLocaleDateString('es-AR', { day:'numeric', month:'short' })}</span></>}
+          {activePlanAdjustment.type === 'volume_up' && <><svg width={13} height={13} viewBox="0 0 16 16" fill="none"><path d="M2 12l4-5 3 3 5-7" stroke="#f59e0b" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg><span style={{ fontSize: 13, color: '#f59e0b' }}>Semana de volumen según el plan</span></>}
+          {activePlanAdjustment.type === 'intensity_up' && <><svg width={13} height={13} viewBox="0 0 16 16" fill="none"><path d="M9 1L4 9h5l-2 6 7-8H9l2-6H9z" fill="#f59e0b"/></svg><span style={{ fontSize: 13, color: '#f59e0b' }}>Semana de intensidad según el plan</span></>}
         </div>
       )}
 
@@ -510,7 +510,7 @@ export default function WorkoutPage() {
                     )}
                     {coachHint && (
                       <div style={{ marginTop: 6, display: "flex", alignItems: "flex-start", gap: 6, background: "rgba(245,158,11,.08)", borderRadius: 8, padding: "5px 10px", border: "1px solid rgba(245,158,11,.2)" }}>
-                        <span style={{ fontSize: 11 }}>⚡</span>
+                        <svg width={10} height={10} viewBox="0 0 16 16" fill="none" style={{flexShrink:0,marginTop:1}}><path d="M9 1L4 9h5l-2 6 7-8H9l2-6H9z" fill="#f59e0b"/></svg>
                         <span style={{ fontSize: 11, color: "var(--text)", lineHeight: 1.35 }}>{coachHint.msg}</span>
                       </div>
                     )}
@@ -845,8 +845,8 @@ export default function WorkoutPage() {
       {/* ── ADD EXERCISE PICKER ───────────────────────────────────────────── */}
       {showPicker && (
         <div style={{ position: "fixed", inset: 0, background: "var(--bg)", zIndex: 300, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-          <div style={{ display: "flex", alignItems: "center", padding: "16px 16px 10px", borderBottom: "1px solid var(--line)", flexShrink: 0, gap: 10 }}>
-            <button onClick={() => setShowPicker(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--green)", fontWeight: 700, fontSize: 20, padding: "0 4px", flexShrink: 0 }}>←</button>
+          <div style={{ display: "flex", alignItems: "center", paddingTop: "max(16px, env(safe-area-inset-top, 16px))", paddingBottom: 10, paddingLeft: 12, paddingRight: 16, borderBottom: "1px solid var(--line)", flexShrink: 0, gap: 8 }}>
+            <button onClick={() => setShowPicker(false)} style={{ background: "var(--panel2)", border: "none", cursor: "pointer", color: "var(--green)", fontWeight: 800, fontSize: 18, width: 36, height: 36, borderRadius: 10, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>←</button>
             <h2 style={{ margin: 0, fontSize: 17, flex: 1 }}>Agregar ejercicio</h2>
           </div>
           <div style={{ flex: 1, overflow: "auto", padding: "12px 16px 24px" }}>
@@ -880,9 +880,9 @@ export default function WorkoutPage() {
       {/* ── SWAP EXERCISE ─────────────────────────────────────────────────── */}
       {swapTarget && (
         <div style={{ position: "fixed", inset: 0, background: "var(--bg)", zIndex: 300, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-          <div style={{ padding: "16px 16px 10px", borderBottom: "1px solid var(--line)", flexShrink: 0 }}>
-            <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-              <button onClick={() => setSwapTarget(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--green)", fontWeight: 700, fontSize: 20, padding: "0 4px", flexShrink: 0, marginTop: 2 }}>←</button>
+          <div style={{ paddingTop: "max(16px, env(safe-area-inset-top, 16px))", paddingBottom: 10, paddingLeft: 12, paddingRight: 16, borderBottom: "1px solid var(--line)", flexShrink: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <button onClick={() => setSwapTarget(null)} style={{ background: "var(--panel2)", border: "none", cursor: "pointer", color: "var(--green)", fontWeight: 800, fontSize: 18, width: 36, height: 36, borderRadius: 10, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>←</button>
               <div>
                 <p style={{ margin: 0, fontSize: 12, color: workoutTypeTheme.accent, fontWeight: 700, textTransform: "uppercase" }}>Cambiar ejercicio</p>
                 <h2 style={{ margin: "2px 0 0", fontSize: 16 }}>Reemplazar: <span style={{ color: "var(--green)" }}>{swapTarget}</span></h2>
@@ -1092,6 +1092,7 @@ export default function WorkoutPage() {
                 muscle={meta?.muscle}
                 equipment={meta?.equipment}
                 size={200}
+                animated={true}
               />
             </div>
             <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginBottom: 20 }}>
@@ -1218,7 +1219,12 @@ export default function WorkoutPage() {
       <div className="modal-overlay" onClick={() => setShowSummary(false)}>
         <div className="modal-card" onClick={e => e.stopPropagation()} style={{ maxWidth: 340 }}>
           <div style={{ textAlign: "center", marginBottom: 20 }}>
-            <div style={{ fontSize: 44, marginBottom: 8 }}>{summaryData.newPRs > 0 ? "🏆" : "💪"}</div>
+            <div style={{ marginBottom: 8, display:"flex", justifyContent:"center" }}>
+              {summaryData.newPRs > 0
+                ? <svg width={48} height={48} viewBox="0 0 48 48" fill="none"><path d="M16 6h16v14a8 8 0 0 1-16 0V6z" fill="#a855f7"/><path d="M6 8h8v8a3 3 0 0 1-6 0V8zM34 8h8v8a3 3 0 0 1-6 0V8z" fill="#a855f7" opacity=".5"/><rect x="20" y="28" width="8" height="8" rx="1.5" fill="#a855f7"/><rect x="12" y="36" width="24" height="6" rx="2" fill="#a855f7"/></svg>
+                : <svg width={48} height={48} viewBox="0 0 48 48" fill="none"><path d="M24 6c-4 0-7 2-9 5l-3 8 3 2 2-4v16h14V17l2 4 3-2-3-8c-2-3-5-5-9-5z" fill="#7bacc4"/><path d="M15 22v10a3 3 0 0 0 3 3h12a3 3 0 0 0 3-3V22" stroke="#7bacc4" strokeWidth="2" fill="none"/></svg>
+              }
+            </div>
             <h2 style={{ margin: "0 0 4px", fontSize: 20 }}>
               {summaryData.newPRs > 0 ? `¡${summaryData.newPRs} récord${summaryData.newPRs > 1 ? "s" : ""}!` : "¡Entreno completado!"}
             </h2>
@@ -1244,11 +1250,12 @@ export default function WorkoutPage() {
               const mins = String(Math.floor(elapsed/60)).padStart(2,"0");
               const secs = String(elapsed%60).padStart(2,"0");
               const vol  = summaryData.totalVolume;
-              const text = `💪 Entreno completado en Loop\n⏱ ${mins}:${secs} · 📦 ${vol}kg · 🔁 ${summaryData.totalSets} series${summaryData.newPRs > 0 ? ` · 🏆 ${summaryData.newPRs} PRs!` : ""}\n\nhttps://loop-gym.vercel.app`;
+              const text = `Entreno completado en Loop\n${mins}:${secs} · ${vol}kg · ${summaryData.totalSets} series${summaryData.newPRs > 0 ? ` · ${summaryData.newPRs} PR${summaryData.newPRs > 1 ? "s" : ""}!` : ""}\n\nhttps://loop-gym.vercel.app`;
               if (navigator.share) navigator.share({ title: "Mi entrenamiento", text });
               else { navigator.clipboard?.writeText(text); setShareMsg("¡Copiado!"); setTimeout(() => setShareMsg(""), 2000); }
             }}>
-            📤 Compartir resumen
+            <svg width={14} height={14} viewBox="0 0 16 16" fill="none"><path d="M10 2l4 4-4 4V7H6a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            Compartir resumen
           </button>
           {shareMsg && <div style={{ textAlign: "center", fontSize: 12, color: "var(--green)", marginBottom: 6, fontWeight: 700 }}>{shareMsg}</div>}
           <button className="primary" style={{ width: "100%" }} onClick={() => {

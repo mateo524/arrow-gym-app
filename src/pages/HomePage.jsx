@@ -163,8 +163,11 @@ export default function HomePage() {
               return (
                 <div style={{ background: isMilestone ? "linear-gradient(135deg,rgba(245,158,11,.18),rgba(251,191,36,.08))" : "var(--panel)", border: isMilestone ? "1px solid rgba(245,158,11,.4)" : "1px solid var(--line)", borderRadius:16, padding:"14px 12px", display:"flex", alignItems:"center", gap:10, position:"relative", overflow:"hidden" }}>
                   {isMilestone && <div style={{ position:"absolute", inset:0, background:"radial-gradient(circle at 30% 50%, rgba(245,158,11,.08), transparent 70%)", pointerEvents:"none" }} />}
-                  <span style={{ fontSize: streak >= 7 ? 32 : 26, animation: isMilestone ? "pulse 1s ease-in-out 3" : "none" }}>
-                    {streak === 0 ? "💤" : streak >= 30 ? "🔥" : streak >= 7 ? "🔥" : "🔥"}
+                  <span style={{ display:"flex", alignItems:"center", animation: isMilestone ? "pulse 1s ease-in-out 3" : "none" }}>
+                    {streak === 0
+                      ? <svg width={streak>=7?30:24} height={streak>=7?30:24} viewBox="0 0 24 24" fill="none"><path d="M12 3C10 7 8 9 8 12a4 4 0 0 0 8 0c0-3-2-5-4-9z" fill="#60a5fa" opacity=".5"/><path d="M9 16.5V19a3 3 0 0 0 6 0v-2.5" stroke="#60a5fa" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                      : <svg width={streak>=7?30:24} height={streak>=7?30:24} viewBox="0 0 24 24" fill="none"><path d="M12 2C9 7 6 10 6 14a6 6 0 0 0 12 0c0-4-3-7-6-12z" fill={streak>=30?"#ef4444":streak>=7?"#f97316":"#f59e0b"}/><path d="M10 16c0 2 1 3 2 3s2-1 2-3c0-1.5-1-2.5-2-4-1 1.5-2 2.5-2 4z" fill="#fef08a"/></svg>
+                    }
                   </span>
                   <div>
                     <div style={{ fontSize: streak >= 7 ? 26 : 22, fontWeight:900, color:"#f59e0b", lineHeight:1 }}>{streak}</div>

@@ -1,17 +1,29 @@
 ﻿import { useState, useEffect, useRef } from "react";
 import { VOLUME_LANDMARKS } from "../lib/analytics.js";
 
+// Inline SVG icons — no emoji
+const IcoTrophy  = () => <svg width={13} height={13} viewBox="0 0 16 16" fill="none"><path d="M5 1h6v5a3 3 0 0 1-6 0V1z" fill="#a855f7"/><path d="M2 2h2v3a1 1 0 0 1-2 0V2zM12 2h2v3a1 1 0 0 1-2 0V2z" fill="#a855f7" opacity=".6"/><rect x="6.5" y="9" width="3" height="3" rx=".5" fill="#a855f7"/><rect x="4" y="12" width="8" height="2" rx="1" fill="#a855f7"/></svg>;
+const IcoArrowUp = () => <svg width={13} height={13} viewBox="0 0 16 16" fill="none"><path d="M8 3l5 6H3l5-6z" fill="#a855f7"/><rect x="6.5" y="9" width="3" height="5" rx="1" fill="#a855f7"/></svg>;
+const IcoWarn    = () => <svg width={13} height={13} viewBox="0 0 16 16" fill="none"><path d="M8 1L1 14h14L8 1z" stroke="#f59e0b" strokeWidth="1.5" fill="none"/><rect x="7.25" y="6" width="1.5" height="4.5" rx=".75" fill="#f59e0b"/><circle cx="8" cy="12" r=".75" fill="#f59e0b"/></svg>;
+const IcoZap     = () => <svg width={13} height={13} viewBox="0 0 16 16" fill="none"><path d="M9 1L4 9h5l-2 6 7-8H9l2-6H9z" fill="#f59e0b"/></svg>;
+const IcoAlert   = () => <svg width={13} height={13} viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#f87171" strokeWidth="1.5" fill="none"/><rect x="7.25" y="5" width="1.5" height="4.5" rx=".75" fill="#f87171"/><circle cx="8" cy="11.5" r=".75" fill="#f87171"/></svg>;
+const IcoBar     = () => <svg width={13} height={13} viewBox="0 0 16 16" fill="none"><rect x="2" y="10" width="3" height="4" rx=".5" fill="#f59e0b"/><rect x="6.5" y="6" width="3" height="8" rx=".5" fill="#f59e0b" opacity=".8"/><rect x="11" y="3" width="3" height="11" rx=".5" fill="#f59e0b" opacity=".6"/></svg>;
+const IcoScale   = () => <svg width={13} height={13} viewBox="0 0 16 16" fill="none"><path d="M8 2v12M2 14h12" stroke="#a78bfa" strokeWidth="1.5" strokeLinecap="round"/><path d="M2 7l3-4 3 4" stroke="#a78bfa" strokeWidth="1.5" fill="none"/><path d="M8 7l3-4 3 4" stroke="#a78bfa" strokeWidth="1.5" fill="none"/></svg>;
+const IcoMoon    = () => <svg width={13} height={13} viewBox="0 0 16 16" fill="none"><path d="M13 10A6 6 0 0 1 6 3a6 6 0 1 0 7 7z" fill="#60a5fa"/></svg>;
+const IcoBed     = () => <svg width={13} height={13} viewBox="0 0 16 16" fill="none"><rect x="1" y="8" width="14" height="5" rx="1" fill="#94a3b8"/><rect x="1" y="6" width="6" height="3" rx=".5" fill="#94a3b8" opacity=".7"/><rect x="1" y="3" width="1.5" height="8" rx=".5" fill="#94a3b8"/></svg>;
+const IcoRobot   = () => <svg width={15} height={15} viewBox="0 0 16 16" fill="none"><rect x="3" y="5" width="10" height="8" rx="2" fill="#a855f7" opacity=".9"/><rect x="5" y="7" width="2" height="2" rx=".5" fill="#fff"/><rect x="9" y="7" width="2" height="2" rx=".5" fill="#fff"/><rect x="6" y="10" width="4" height="1.5" rx=".5" fill="#fff" opacity=".8"/><rect x="7" y="2" width="2" height="3" rx="1" fill="#a855f7"/><circle cx="8" cy="2" r="1.2" fill="#a855f7"/></svg>;
+
 const TYPE_META = {
-  pr:          { icon: "🏆", color: "#a855f7", bg: "rgba(168,85,247,.1)",   label: "Record" },
-  ready:       { icon: "↑",  color: "#a855f7", bg: "rgba(168,85,247,.08)",  label: "Progresión" },
-  plateau:     { icon: "⚠",  color: "#f59e0b", bg: "rgba(245,158,11,.1)",   label: "Plateau" },
-  fatigue:     { icon: "⚡", color: "#f59e0b", bg: "rgba(245,158,11,.1)",   label: "Fatiga" },
-  form:        { icon: "⚠",  color: "#f87171", bg: "rgba(248,113,113,.1)",  label: "Técnica" },
-  overreach:   { icon: "🔴", color: "#f87171", bg: "rgba(248,113,113,.1)",  label: "Exceso" },
-  high_volume: { icon: "🟡", color: "#f59e0b", bg: "rgba(245,158,11,.08)",  label: "Volumen" },
-  balance:     { icon: "⚖",  color: "#a78bfa", bg: "rgba(167,139,250,.1)",  label: "Balance" },
-  recovery:    { icon: "💤", color: "#60a5fa", bg: "rgba(96,165,250,.1)",   label: "Recovery" },
-  deload:      { icon: "😴", color: "#94a3b8", bg: "rgba(148,163,184,.1)",  label: "Deload" },
+  pr:          { Icon: IcoTrophy,  color: "#a855f7", bg: "rgba(168,85,247,.1)",   label: "Record" },
+  ready:       { Icon: IcoArrowUp, color: "#a855f7", bg: "rgba(168,85,247,.08)",  label: "Progresión" },
+  plateau:     { Icon: IcoWarn,    color: "#f59e0b", bg: "rgba(245,158,11,.1)",   label: "Plateau" },
+  fatigue:     { Icon: IcoZap,     color: "#f59e0b", bg: "rgba(245,158,11,.1)",   label: "Fatiga" },
+  form:        { Icon: IcoAlert,   color: "#f87171", bg: "rgba(248,113,113,.1)",  label: "Técnica" },
+  overreach:   { Icon: IcoAlert,   color: "#f87171", bg: "rgba(248,113,113,.1)",  label: "Exceso" },
+  high_volume: { Icon: IcoBar,     color: "#f59e0b", bg: "rgba(245,158,11,.08)",  label: "Volumen" },
+  balance:     { Icon: IcoScale,   color: "#a78bfa", bg: "rgba(167,139,250,.1)",  label: "Balance" },
+  recovery:    { Icon: IcoMoon,    color: "#60a5fa", bg: "rgba(96,165,250,.1)",   label: "Recovery" },
+  deload:      { Icon: IcoBed,     color: "#94a3b8", bg: "rgba(148,163,184,.1)",  label: "Deload" },
 };
 
 const STATUS_COLOR = {
@@ -66,7 +78,7 @@ export default function LiveCoachPanel({ hints, volStatus }) {
           padding: "10px 14px", display: "flex", alignItems: "center", gap: 10,
         }}
       >
-        <span style={{ fontSize: 16 }}>🤖</span>
+        <span style={{ display:"flex", alignItems:"center" }}><IcoRobot/></span>
         <div style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <span style={{ fontSize: 12, fontWeight: 800, color: "var(--green)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
@@ -165,7 +177,7 @@ export default function LiveCoachPanel({ hints, volStatus }) {
                     padding: "8px 12px",
                     display: "flex", gap: 8, alignItems: "flex-start",
                   }}>
-                    <span style={{ fontSize: 14, marginTop: 1 }}>{meta.icon}</span>
+                    <span style={{ display:"flex", alignItems:"center", marginTop: 2, flexShrink:0 }}><meta.Icon/></span>
                     <div style={{ flex: 1 }}>
                       <span style={{ fontSize: 9, fontWeight: 800, color: meta.color, textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 1 }}>{meta.label}</span>
                       <p style={{ margin: 0, fontSize: 12, color: "var(--text)", lineHeight: 1.4 }}>{h.msg}</p>

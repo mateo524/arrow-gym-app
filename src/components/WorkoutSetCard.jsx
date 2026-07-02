@@ -68,7 +68,7 @@ export default function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onR
         </span>
         <div style={{ flex:1, minWidth:0 }}>
           {Number(setItem.weight) > 0 && prData?.bestWeight && Number(setItem.weight) > prData.bestWeight && (
-            <span style={{ background:"var(--green)", color:"#fff", fontSize:9, fontWeight:900, padding:"2px 6px", borderRadius:6, marginRight:4 }}>PR 🔥</span>
+            <span style={{ background:"var(--green)", color:"#fff", fontSize:9, fontWeight:900, padding:"2px 6px", borderRadius:6, marginRight:4 }}>PR</span>
           )}
           {setItem.lastWeight ? (
             <small style={{ color: "var(--muted)", fontSize:13 }}>ant. {setItem.lastWeight}kg × {setItem.lastReps || "—"}</small>
