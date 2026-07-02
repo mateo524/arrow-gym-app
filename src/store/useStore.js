@@ -4,6 +4,7 @@ import { createWorkoutSlice, ROUTINES } from "./slices/workoutSlice.js";
 import { createSettingsSlice } from "./slices/settingsSlice.js";
 import { createHealthSlice } from "./slices/healthSlice.js";
 import { createExerciseSlice } from "./slices/exerciseSlice.js";
+import { createCoachSlice } from "./slices/coachSlice.js";
 
 const useStore = create(
   persist(
@@ -12,6 +13,7 @@ const useStore = create(
       ...createSettingsSlice(...a),
       ...createHealthSlice(...a),
       ...createExerciseSlice(...a),
+      ...createCoachSlice(...a),
     }),
     {
       name: "loop-gym-v4",

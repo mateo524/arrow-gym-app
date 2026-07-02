@@ -2,6 +2,7 @@
 import useStore from "../store/useStore.js";
 import useAuthStore from "../store/useAuthStore.js";
 import { hasData, formatDate, buildLiveCoachHints, getLiveVolumeStatus, getPostWorkoutSummary, calcSessionStrain } from "../lib/analytics.js";
+import { todayLocal } from "../lib/dates.js";
 import LiveCoachPanel from "../components/LiveCoachPanel.jsx";
 import ExercisePicker from "../components/ExercisePicker.jsx";
 import WorkoutSetCard from "../components/WorkoutSetCard.jsx";
@@ -141,6 +142,14 @@ export default function WorkoutPage() {
   const cardioHistory = useStore(s => s.cardioHistory) || [];
   const activePlanAdjustment = useStore(s => s.activePlanAdjustment);
 
+  // Coach state
+  const readiness = useStore(s => s.readiness);
+  const hintFeedback = useStore(s => s.hintFeedback) || {};
+  const progressionTargets = useStore(s => s.progressionTargets) || {};
+  const setReadiness = useStore(s => s.setReadiness);
+  const dismissHint = useStore(s => s.dismissHint);
+  const recordSuggestion = useStore(s => s.recordSuggestion);
+
   // Slider navigation
   const sliderRef = useRef(null);
   const [currentExIndex, setCurrentExIndex] = useState(0);
@@ -177,13 +186,23 @@ export default function WorkoutPage() {
 
   const [illustrationExercise, setIllustrationExercise] = useState(null);
   const [restDone, setRestDone] = useState(false);
+  const [showReadiness, setShowReadiness] = useState(false);
   const pendingFinishRef = useRef(null);
   const undoTimerRef = useRef(null);
 
   // Derived
   const groupedExercises = useMemo(() => groupSetsByExercise(active?.sets || []), [active?.sets]);
   const emptySetsCount = useMemo(() => (active?.sets || []).filter((s) => !s.weight || !s.reps).length, [active?.sets]);
-  const liveHints = useMemo(() => { try { return buildLiveCoachHints(active, workouts, cardioHistory); } catch { return []; } }, [active?.sets, workouts, cardioHistory]);
+  const todayReadiness = readiness?.date === todayLocal() ? readiness.score : null;
+  const liveHints = useMemo(() => {
+    try {
+      return buildLiveCoachHints(active, workouts, cardioHistory, {
+        hintFeedback,
+        readinessScore: todayReadiness,
+        progressionTargets,
+      });
+    } catch { return []; }
+  }, [active?.sets, workouts, cardioHistory, hintFeedback, todayReadiness, progressionTargets]);
   const sessionStrain = useMemo(() => { try { return calcSessionStrain(active); } catch { return 0; } }, [active?.sets]);
   const volStatus  = useMemo(() => { try { return getLiveVolumeStatus(active, workouts); } catch { return {}; } }, [active?.sets, workouts]);
 
@@ -218,6 +237,22 @@ export default function WorkoutPage() {
       document.removeEventListener("visibilitychange", onVisible);
     };
   }, [active?.id]);
+
+  // Show readiness modal when a new workout starts and readiness for today isn't set
+  useEffect(() => {
+    if (active && (!readiness || readiness.date !== todayLocal())) {
+      setShowReadiness(true);
+    }
+  }, [active?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Record "ready to progress" suggestions so loop closure works next session
+  useEffect(() => {
+    liveHints.forEach(h => {
+      if (h.type === 'ready' && h.exercise && h.suggestedWeight) {
+        recordSuggestion(h.exercise, h.suggestedWeight);
+      }
+    });
+  }, [liveHints]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-save draft
   useEffect(() => {
@@ -484,7 +519,7 @@ export default function WorkoutPage() {
           const prData = prCache[exercise] || {};
           const isFlipped = flippedExercise === exercise;
           const isHistory = historyExercise === exercise;
-          const PER_EXERCISE_TYPES = new Set(["pr","ready","plateau","fatigue","form"]);
+          const PER_EXERCISE_TYPES = new Set(["pr","ready","plateau","fatigue","form","loop"]);
           const coachHint = liveHints.find(h => PER_EXERCISE_TYPES.has(h.type) && (h.exercise === exercise || h.msg?.startsWith(exercise)));
           const isSupersetted = sets.some(s => s.supersetGroup);
           const supersetGroupId = sets.find(s => s.supersetGroup)?.supersetGroup;
@@ -536,22 +571,45 @@ export default function WorkoutPage() {
                         <ProgressiveOverloadChip sets={sets} lastWeight={first.lastWeight} />
                       </div>
                     )}
-                    {coachHint && (
-                      <div style={{ marginTop: 6, display: "flex", alignItems: "flex-start", gap: 6, background: "rgba(245,158,11,.08)", borderRadius: 8, padding: "5px 10px", border: "1px solid rgba(245,158,11,.2)" }}>
-                        <svg width={10} height={10} viewBox="0 0 16 16" fill="none" style={{flexShrink:0,marginTop:1}}><path d="M9 1L4 9h5l-2 6 7-8H9l2-6H9z" fill="#f59e0b"/></svg>
-                        <span style={{ fontSize: 11, color: "var(--text)", lineHeight: 1.35 }}>{coachHint.msg}</span>
-                      </div>
-                    )}
+                    {coachHint && (() => {
+                      const isLoop = coachHint.type === 'loop';
+                      const isPR   = coachHint.type === 'pr';
+                      const bg     = isLoop || isPR ? "rgba(52,211,153,.08)" : "rgba(245,158,11,.08)";
+                      const border = isLoop || isPR ? "1px solid rgba(52,211,153,.2)" : "1px solid rgba(245,158,11,.2)";
+                      const iconColor = isLoop || isPR ? "#34d399" : "#f59e0b";
+                      return (
+                        <div style={{ marginTop: 6, display: "flex", alignItems: "flex-start", gap: 6, background: bg, borderRadius: 8, padding: "5px 10px", border }}>
+                          <svg width={10} height={10} viewBox="0 0 16 16" fill="none" style={{flexShrink:0,marginTop:1}}><path d="M9 1L4 9h5l-2 6 7-8H9l2-6H9z" fill={iconColor}/></svg>
+                          <span style={{ fontSize: 11, color: "var(--text)", lineHeight: 1.35, flex: 1 }}>{coachHint.msg}</span>
+                          <button
+                            onClick={() => dismissHint(coachHint.type)}
+                            style={{ background:"none", border:"none", cursor:"pointer", color:"var(--muted)", fontSize:11, padding:"0 2px", flexShrink:0 }}
+                            title="No mostrar más">
+                            ×
+                          </button>
+                        </div>
+                      );
+                    })()}
 
                   </div>
                 </div>
               </div>
 
               {/* Live Coach — per exercise, below header */}
-              {sessionStrain > 0 && (
-                <div style={{ margin: "0 16px 4px", display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", background: "rgba(168,85,247,.07)", border: "1px solid rgba(168,85,247,.2)", borderRadius: 8 }}>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>Esfuerzo sesión</span>
-                  <span style={{ fontSize: 13, fontWeight: 800, color: "var(--green)", marginLeft: "auto" }}>{sessionStrain} pts</span>
+              {(sessionStrain > 0 || todayReadiness) && (
+                <div style={{ margin: "0 16px 4px", display: "flex", alignItems: "center", gap: 8, padding: "4px 10px", background: "rgba(168,85,247,.07)", border: "1px solid rgba(168,85,247,.2)", borderRadius: 8 }}>
+                  {todayReadiness && (
+                    <span style={{ fontSize: 11, color: "var(--muted)" }}>
+                      {["😴","😩","😐","💪","🔥"][todayReadiness - 1]}
+                      <span style={{ marginLeft: 3, fontSize: 10 }}>{todayReadiness}/5</span>
+                    </span>
+                  )}
+                  {sessionStrain > 0 && (
+                    <>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>Esfuerzo</span>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: "var(--green)", marginLeft: "auto" }}>{sessionStrain} pts</span>
+                    </>
+                  )}
                 </div>
               )}
               {(() => {
@@ -1300,6 +1358,47 @@ export default function WorkoutPage() {
             else doFinish(sessionNotes, workoutRPE);
           }}>
             Guardar y terminar
+          </button>
+        </div>
+      </div>
+    )}
+    {/* ── READINESS MODAL ─────────────────────────────────────────────────── */}
+    {showReadiness && (
+      <div style={{
+        position: "fixed", inset: 0, background: "rgba(0,0,0,.88)",
+        zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 24,
+      }}>
+        <div style={{ background: "var(--panel)", borderRadius: 20, padding: "28px 24px", maxWidth: 340, width: "100%" }}>
+          <h2 style={{ margin: "0 0 6px", fontSize: 20, fontWeight: 800, textAlign: "center" }}>¿Cómo arrancás hoy?</h2>
+          <p style={{ margin: "0 0 20px", fontSize: 13, color: "var(--muted)", textAlign: "center" }}>
+            El coach ajusta los consejos al día que tenés
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {[
+              { score: 1, emoji: "😴", label: "Muy cansado / sin energía" },
+              { score: 2, emoji: "😩", label: "Por debajo del promedio" },
+              { score: 3, emoji: "😐", label: "Normal" },
+              { score: 4, emoji: "💪", label: "Con energía" },
+              { score: 5, emoji: "🔥", label: "En mi mejor momento" },
+            ].map(({ score, emoji, label }) => (
+              <button
+                key={score}
+                onClick={() => { setReadiness(score); setShowReadiness(false); }}
+                style={{
+                  display: "flex", alignItems: "center", gap: 12,
+                  background: "var(--panel2)", border: "1px solid rgba(255,255,255,.08)",
+                  borderRadius: 12, padding: "12px 16px", cursor: "pointer",
+                }}
+              >
+                <span style={{ fontSize: 24 }}>{emoji}</span>
+                <span style={{ fontSize: 14, color: "var(--text)", fontWeight: 600 }}>{label}</span>
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => setShowReadiness(false)}
+            style={{ marginTop: 16, width: "100%", background: "none", border: "none", color: "var(--muted)", fontSize: 13, cursor: "pointer", padding: "8px 0" }}>
+            Saltear por ahora
           </button>
         </div>
       </div>

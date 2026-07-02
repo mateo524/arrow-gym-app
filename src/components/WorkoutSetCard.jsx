@@ -203,9 +203,11 @@ export default function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onR
         </div>
       </div>
 
-      {/* e1RM estimate badge */}
-      {Number(setItem.weight) > 0 && Number(setItem.reps) > 0 && (() => {
-        const orm = calc1RM(Number(setItem.weight), Number(setItem.reps));
+      {/* e1RM estimate badge — only shown for reliable rep ranges (≤ 10 reps) */}
+      {Number(setItem.weight) > 0 && Number(setItem.reps) > 0 && Number(setItem.reps) <= 10 && (() => {
+        const rir = setItem.rir !== undefined && setItem.rir !== "" ? Number(setItem.rir) : 0;
+        const effectiveReps = Math.min(Number(setItem.reps) + rir, 30);
+        const orm = calc1RM(Number(setItem.weight), effectiveReps);
         if (!orm || orm <= 0) return null;
         return (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", marginBottom: 4 }}>
@@ -216,31 +218,52 @@ export default function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onR
         );
       })()}
 
-      {/* RPE selector — show only when reps filled */}
+      {/* RIR selector (Reps In Reserve) — shows when reps filled */}
       {setItem.reps && (
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-          <span style={{ fontSize: 10, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px", flexShrink: 0 }}>RPE</span>
-          <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
-            {[6,7,8,9,10].map(r => (
-              <button key={r}
-                onClick={() => onUpdate({ rpe: setItem.rpe === r ? null : r })}
-                style={{
-                  width: 28, height: 24, borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: "pointer", border: "none",
-                  background: setItem.rpe === r ? (r >= 9 ? "var(--danger)" : r >= 7 ? "#f59e0b" : "var(--green)") : "var(--panel2)",
-                  color: setItem.rpe === r ? "#fff" : "var(--muted)",
-                }}>
-                {r}
-              </button>
-            ))}
+          <span style={{ fontSize: 10, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px", flexShrink: 0 }}>RIR</span>
+          <div style={{ display: "flex", gap: 3 }}>
+            {[
+              { val: 0, label: "0", tip: "Al fallo" },
+              { val: 1, label: "1", tip: "1 en reserva" },
+              { val: 2, label: "2", tip: "2 en reserva" },
+              { val: 3, label: "3+", tip: "Fácil" },
+            ].map(({ val, label, tip }) => {
+              const selected = setItem.rir === val;
+              const bg = selected ? (val === 0 ? "var(--danger)" : val === 1 ? "#f59e0b" : "var(--green)") : "var(--panel2)";
+              return (
+                <button key={val}
+                  onClick={() => onUpdate({ rir: selected ? undefined : val, rpe: selected ? null : Math.max(6, 10 - val) })}
+                  title={tip}
+                  style={{
+                    minWidth: 28, height: 24, borderRadius: 6, fontSize: 11, fontWeight: 700,
+                    cursor: "pointer", border: "none", background: bg,
+                    color: selected ? "#fff" : "var(--muted)", padding: "0 5px",
+                  }}>
+                  {label}
+                </button>
+              );
+            })}
           </div>
-          {setItem.rpe && <span style={{ fontSize: 10, color: "var(--muted)" }}>{setItem.rpe >= 9 ? "Máximo esfuerzo" : setItem.rpe >= 7 ? "Muy difícil" : "Moderado"}</span>}
+          {setItem.rir !== undefined && setItem.rir !== "" && (
+            <span style={{ fontSize: 10, color: "var(--muted)" }}>
+              {setItem.rir === 0 ? "Al fallo" : setItem.rir === 1 ? "1 rep en reserva" : setItem.rir === 2 ? "2 reps en reserva" : "Fácil (3+)"}
+            </span>
+          )}
         </div>
       )}
 
       <div className="set-actions">
         <button
           className="ghost set-action-sm"
-          onClick={() => { haptic(); onStartRest(setItem.rpe); }}
+          onClick={() => {
+            haptic();
+            // Convert RIR to effective RPE for smart timer: RIR 0 = RPE 10, RIR 1 = RPE 9, etc.
+            const effectiveRpe = setItem.rir !== undefined && setItem.rir !== ""
+              ? Math.max(6, 10 - Number(setItem.rir))
+              : setItem.rpe;
+            onStartRest(effectiveRpe);
+          }}
           title="Descanso"
           style={{ display:"flex", alignItems:"center", gap:5, border:"1.5px dashed var(--cyan)", color:"var(--cyan)", background:"rgba(117,217,255,.06)" }}
         >

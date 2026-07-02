@@ -463,7 +463,7 @@ const MUSCLE_TO_LANDMARK = {
   "Isquios": "Isquiotibiales", "Isquiotibiales": "Isquiotibiales",
   "Glúteos": "Glúteos",
   "Gemelos": "Gemelos", "Sóleo": "Gemelos",
-  "Aductores": "Core", "Abductores": "Core",
+  "Aductores": "Cuádriceps", "Abductores": "Cuádriceps",
   // Core
   "Recto abdominal": "Core", "Oblicuos": "Core",
   "Transverso abdominal": "Core", "Flexores de cadera": "Core",
@@ -521,96 +521,150 @@ export function getLiveVolumeStatus(activeWorkout, allWorkouts = []) {
   return result;
 }
 
-// ── Tier 2: Session strain = Σ(RPE × reps) for all sets with RPE ──────────
-export function calcSessionStrain(activeWorkout) {
-  return (activeWorkout?.sets || [])
-    .filter(s => s.rpe && Number(s.reps) > 0)
-    .reduce((sum, s) => sum + (Number(s.rpe) * Number(s.reps)), 0);
+// Effective 1RM using RIR — reps_efectivas = reps + rir before Epley (Zourdos scale)
+export function calcEffective1RM(weight, reps, rir = 0) {
+  const effectiveReps = Math.min(Number(reps) + Number(rir || 0), 30);
+  return calc1RM(weight, effectiveReps);
 }
 
-export function buildLiveCoachHints(activeWorkout, allWorkouts = [], cardioHistory = []) {
-  if (!activeWorkout) return [];
-  const history = (allWorkouts || []).sort((a, b) => String(b.date).localeCompare(String(a.date)));
+// Session strain: Σ(effort × reps). Prefers RIR (RIR 0 = effort 10), fallback RPE.
+export function calcSessionStrain(activeWorkout) {
+  return (activeWorkout?.sets || [])
+    .filter(s => Number(s.reps) > 0 && (s.rir !== undefined && s.rir !== "" || s.rpe))
+    .reduce((sum, s) => {
+      const effort = (s.rir !== undefined && s.rir !== "")
+        ? Math.max(7, 10 - Number(s.rir))
+        : Number(s.rpe);
+      return sum + effort * Number(s.reps);
+    }, 0);
+}
+
+// Auto-suppression: should this hint type be hidden for this user?
+function shouldSuppress(type, hintFeedback = {}) {
+  const fb = hintFeedback[type];
+  if (!fb || fb.count < 3) return false;
+  const daysSince = fb.lastDismissed
+    ? (Date.now() - new Date(fb.lastDismissed).getTime()) / 86400000
+    : 999;
+  return daysSince < 14;
+}
+
+// ── Rule producers — pure (ctx) => Hint[] ─────────────────────────────────
+
+function rulePerExercise(ctx) {
+  const { byExercise, history, progressionTargets, activeWorkout } = ctx;
   const hints = [];
 
-  const byExercise = {};
-  (activeWorkout.sets || []).forEach((set) => {
-    if (!byExercise[set.exercise]) byExercise[set.exercise] = [];
-    byExercise[set.exercise].push(set);
-  });
-
-  // ── Per-exercise analysis (90-second rule: only actionable per-set hints) ──
   Object.entries(byExercise).forEach(([exercise, sets]) => {
-    const setsWithData = sets.filter((s) => Number(s.weight) > 0 && Number(s.reps) > 0);
+    const setsWithData = sets.filter(s => Number(s.weight) > 0 && Number(s.reps) > 0);
     if (!setsWithData.length) return;
 
-    const maxWeight = Math.max(...setsWithData.map((s) => Number(s.weight)));
+    const maxWeight = Math.max(...setsWithData.map(s => Number(s.weight)));
     const avgReps   = setsWithData.reduce((sum, s) => sum + Number(s.reps), 0) / setsWithData.length;
+    const firstSet  = setsWithData[0];
     const lastSet   = setsWithData[setsWithData.length - 1];
+    const lastRIR   = lastSet.rir !== undefined && lastSet.rir !== "" ? Number(lastSet.rir) : null;
 
-    // Tier 2: e1RM per set — track progression and detect drop
-    const setsWithORM = setsWithData.map(s => ({
-      ...s, orm: calc1RM(Number(s.weight), Number(s.reps))
-    })).filter(s => s.orm > 0);
+    // e1RM per set using RIR-adjusted effective reps
+    const setsWithORM = setsWithData.map(s => {
+      const rir = s.rir !== undefined && s.rir !== "" ? Number(s.rir) : 0;
+      const orm = calcEffective1RM(Number(s.weight), Number(s.reps), rir);
+      return { ...s, orm };
+    }).filter(s => s.orm > 0);
 
-    let sessionMaxORM = 0;
-    if (setsWithORM.length > 0) {
-      sessionMaxORM = Math.max(...setsWithORM.map(s => s.orm));
-      const lastORM = setsWithORM[setsWithORM.length - 1].orm;
-      const dropPct = sessionMaxORM > 0 ? ((sessionMaxORM - lastORM) / sessionMaxORM) * 100 : 0;
-      // e1RM drop >5% on 2+ sets = meaningful fatigue signal
-      if (setsWithORM.length >= 2 && dropPct > 5) {
-        hints.push({
-          exercise, type: "fatigue",
-          msg: `${exercise}: 1RM cayó ${Math.round(dropPct)}% (${sessionMaxORM}→${lastORM}kg est.). Considerá parar o bajar el peso.`,
-          priority: 2,
-        });
+    // Tier 2: intra-session e1RM drop — only on reliable sets (reps ≤ 10 OR rir known)
+    if (setsWithORM.length >= 2) {
+      const reliableSets = setsWithORM.filter(s => Number(s.reps) <= 10 || (s.rir !== undefined && s.rir !== ""));
+      if (reliableSets.length >= 2) {
+        const sessionMaxORM = Math.max(...reliableSets.map(s => s.orm));
+        const lastORM = reliableSets[reliableSets.length - 1].orm;
+        const dropPct = sessionMaxORM > 0 ? ((sessionMaxORM - lastORM) / sessionMaxORM) * 100 : 0;
+        // Suppress if planned backoff: first set heavier AND more reps than last set
+        const isPlannedBackoff = Number(firstSet.weight) >= Number(lastSet.weight) * 1.05
+                              && Number(firstSet.reps) > Number(lastSet.reps);
+        // RIR gate: only fire if last set was at/near failure (RIR 0) or drop > 8% without RIR
+        const rirGatePassed = lastRIR === 0 || (lastRIR === null && dropPct > 8);
+        if (!isPlannedBackoff && rirGatePassed && dropPct > 5) {
+          hints.push({
+            exercise, type: "fatigue",
+            msg: `${exercise}: 1RM cayó ${Math.round(dropPct)}% en sesión. Considerá parar o reducir el peso.`,
+            priority: 2,
+          });
+        }
       }
     }
 
-    // Get last N sessions for this exercise
+    // Session history for this exercise
     const sessionHistory = history
       .map(w => (w.sets || []).filter(s => s.exercise === exercise && hasData(s)))
       .filter(ss => ss.length > 0)
       .slice(0, 5);
 
     const prevMaxWeights = sessionHistory.map(ss => Math.max(...ss.map(s => Number(s.weight) || 0)));
-    const prevMaxWeight  = prevMaxWeights.length ? prevMaxWeights[0] : null;
+    const prevMaxRepsPerSession = sessionHistory.map(ss => Math.max(...ss.map(s => Number(s.reps) || 0)));
+    const prevMaxWeight = prevMaxWeights.length ? prevMaxWeights[0] : null;
 
     // PR detection
     if (prevMaxWeight !== null && maxWeight > prevMaxWeight) {
       hints.push({ exercise, type: "pr", msg: `${exercise}: ¡nuevo record! ${maxWeight}kg (antes ${prevMaxWeight}kg)`, priority: 1 });
     }
-    // Ready to progress
+    // Ready to progress — RIR gate: only suggest if last set had RIR ≥ 1 (or unknown)
     else if (prevMaxWeight !== null && avgReps >= 12 && maxWeight <= prevMaxWeight) {
-      const suggestion = Math.round((maxWeight + 2.5) * 2) / 2;
-      hints.push({ exercise, type: "ready", msg: `${exercise}: ${Math.round(avgReps)} reps con ${maxWeight}kg → subí a ${suggestion}kg`, priority: 2 });
-    }
-
-    // Plateau detection
-    if (prevMaxWeights.length >= 3) {
-      const stagnant = prevMaxWeights.slice(0, 3).every(w => w >= maxWeight);
-      if (stagnant && maxWeight > 0) {
-        hints.push({ exercise, type: "plateau", msg: `${exercise}: sin progreso en 3 sesiones (${maxWeight}kg). Probá pausa, drop set o deload.`, priority: 3 });
+      const rirOk = lastRIR === null || lastRIR >= 1;
+      if (rirOk) {
+        const suggestion = Math.round((maxWeight + 2.5) * 2) / 2;
+        hints.push({
+          exercise, type: "ready",
+          msg: `${exercise}: ${Math.round(avgReps)} reps con ${maxWeight}kg → subí a ${suggestion}kg`,
+          priority: 2,
+          suggestedWeight: suggestion,
+        });
       }
     }
 
-    // Low reps — form warning
+    // Plateau: double progression — stall in BOTH weight AND reps across 3 sessions
+    if (prevMaxWeights.length >= 3 && prevMaxRepsPerSession.length >= 3) {
+      const weightStagnant = prevMaxWeights.slice(0, 3).every(w => w >= maxWeight);
+      const repsStagnant   = prevMaxRepsPerSession.slice(0, 3).every(r => r >= Math.round(avgReps));
+      if (weightStagnant && repsStagnant && maxWeight > 0) {
+        hints.push({
+          exercise, type: "plateau",
+          msg: `${exercise}: sin progreso (peso ni reps) en 3 sesiones. Hacé 1 semana de deload y recargá.`,
+          priority: 3,
+        });
+      }
+    }
+
+    // Low reps — safety warning
     if (avgReps < 4 && setsWithData.length >= 2) {
       hints.push({ exercise, type: "form", msg: `${exercise}: menos de 4 reps — tené un spotter o usá el rack de seguridad.`, priority: 4 });
     }
+
+    // Loop closure: last session I suggested X → you hit Y today
+    const target = progressionTargets[exercise];
+    if (target?.lastSuggested && target.lastSuggested.date !== (activeWorkout.date || "")) {
+      if (maxWeight >= target.lastSuggested.weight) {
+        hints.push({
+          exercise, type: "loop",
+          msg: `${exercise}: sugerí ${target.lastSuggested.weight}kg → hoy llegaste a ${maxWeight}kg. ¡Cumplido!`,
+          priority: 1,
+        });
+      }
+    }
   });
 
-  // Remove fatigue hints when there's a positive progression hint for the same exercise
-  const posExercises = new Set(hints.filter(h => h.type === 'pr' || h.type === 'ready').map(h => h.exercise));
-  hints.splice(0, hints.length, ...hints.filter(h => !(h.type === 'fatigue' && posExercises.has(h.exercise))));
+  // Remove fatigue hints when exercise has a positive hint (pr/ready/loop)
+  const posExercises = new Set(hints.filter(h => h.type === 'pr' || h.type === 'ready' || h.type === 'loop').map(h => h.exercise));
+  return hints.filter(h => !(h.type === 'fatigue' && posExercises.has(h.exercise)));
+}
 
-  // ── Tier 3: ACWR — surfaces real injury-risk signal ─────────────
-  const fatigue = getWeeklyFatigueScore(allWorkouts);
+function ruleACWR(ctx) {
+  const hints = [];
+  const fatigue = getWeeklyFatigueScore(ctx.allWorkouts);
   if (fatigue.acwr !== null && fatigue.acwr > 1.5) {
     hints.push({
       exercise: null, type: "overreach",
-      msg: `ACWR ${fatigue.acwr.toFixed(2)} — carga aguda muy por encima de la crónica. Alto riesgo de lesión. Bajá el volumen hoy.`,
+      msg: `ACWR ${fatigue.acwr.toFixed(2)} — carga aguda muy alta. Riesgo de lesión. Bajá el volumen hoy.`,
       priority: 1,
     });
   } else if (fatigue.acwr !== null && fatigue.acwr > 1.3) {
@@ -620,50 +674,95 @@ export function buildLiveCoachHints(activeWorkout, allWorkouts = [], cardioHisto
       priority: 3,
     });
   }
+  return hints;
+}
 
-  // ── Session-level hints (90-second rule: only show critical ones live) ───
-  // Push/pull imbalance — only if strongly unbalanced (useful to act on this session)
-  const PUSH_GROUPS = new Set(["Pecho", "Hombros", "Tríceps", "Chest", "Shoulders"]);
-  const PULL_GROUPS = new Set(["Espalda", "Bíceps", "Back", "Arms"]);
-  let pushSets = 0, pullSets = 0;
-  (activeWorkout.sets || []).filter(hasData).forEach(s => {
-    const g = s.group || "";
-    if (PUSH_GROUPS.has(g)) pushSets++;
-    else if (PULL_GROUPS.has(g)) pullSets++;
-  });
-  if (pushSets >= 6 && pushSets > pullSets * 2) {
-    hints.push({ exercise: null, type: "balance", msg: `Push/Pull: ${pushSets} vs ${pullSets} series. Considerá agregar remo o jalón.`, priority: 4 });
+function ruleReadiness(ctx) {
+  if (ctx.readinessScore === null || ctx.readinessScore === undefined) return [];
+  if (ctx.readinessScore <= 2) {
+    return [{
+      exercise: null, type: "readiness",
+      msg: `Readiness ${ctx.readinessScore}/5 — día difícil. Considerá bajar el volumen un 10% y descansar entre series.`,
+      priority: 2,
+    }];
   }
+  return [];
+}
 
-  // Volume landmarks — only show over_mrv (actionable: stop this exercise NOW)
-  const volStatus = getLiveVolumeStatus(activeWorkout, allWorkouts);
+function rulePushPull(ctx) {
+  const PUSH = new Set(["Pecho", "Hombros", "Tríceps", "Chest", "Shoulders"]);
+  const PULL = new Set(["Espalda", "Bíceps", "Back", "Arms"]);
+  let push = 0, pull = 0;
+  (ctx.activeWorkout.sets || []).filter(hasData).forEach(s => {
+    const g = s.group || "";
+    if (PUSH.has(g)) push++;
+    else if (PULL.has(g)) pull++;
+  });
+  if (push >= 6 && push > pull * 2) {
+    return [{ exercise: null, type: "balance", msg: `Push/Pull: ${push} vs ${pull} series. Considerá agregar remo o jalón.`, priority: 4 }];
+  }
+  return [];
+}
+
+function ruleVolumeLandmarks(ctx) {
+  const hints = [];
+  const volStatus = getLiveVolumeStatus(ctx.activeWorkout, ctx.allWorkouts);
   Object.entries(volStatus).forEach(([group, data]) => {
     if (data.status === "over_mrv") {
-      hints.push({ exercise: null, type: "overreach", msg: `${group}: ${data.weekTotal}/${data.landmark.mrv} series semanales — por encima del MRV. Pará aquí.`, priority: 2 });
+      hints.push({ exercise: null, type: "overreach", msg: `${group}: ${data.weekTotal}/${data.landmark.mrv} series semanales — sobre el MRV. Pará aquí.`, priority: 2 });
     } else if (data.status === "approaching_mrv" && data.sessionSets > 0) {
       hints.push({ exercise: null, type: "high_volume", msg: `${group}: ${data.weekTotal}/${data.landmark.mrv} series esta semana. Cerca del límite.`, priority: 4 });
-    } else if (data.status === "optimal" && data.sessionSets > 0) {
-      hints.push({ exercise: null, type: "volume_ok", msg: `${group}: ${data.weekTotal} series (MEV ${data.landmark.mev}–MAV ${data.landmark.mav}). Volumen óptimo.`, priority: 6 });
-    } else if (data.status === "below_mev" && data.sessionSets > 0) {
-      hints.push({ exercise: null, type: "low_volume", msg: `${group}: ${data.weekTotal}/${data.landmark.mev} series — bajo MEV. Añadí más series esta semana.`, priority: 5 });
     }
+    // volume_ok and low_volume removed from live coach — post-session only
+  });
+  return hints;
+}
+
+function ruleCardioRecovery(ctx) {
+  if (!ctx.cardioHistory?.length) return [];
+  const now = Date.now();
+  const recentIntense = ctx.cardioHistory.filter(c =>
+    parseDate(c.date).getTime() >= now - 86400000 &&
+    (c.intensity === "alta" || c.duration >= 3600)
+  );
+  if (!recentIntense.length) return [];
+  return [{
+    exercise: null, type: "recovery",
+    msg: `${recentIntense[0].sportName || "Cardio"} intenso en las últimas 24h. Reducí el volumen un 10-15%.`,
+    priority: 3,
+  }];
+}
+
+// ── Main coach function ───────────────────────────────────────────────────────
+// opts: { hintFeedback, readinessScore, progressionTargets }
+export function buildLiveCoachHints(activeWorkout, allWorkouts = [], cardioHistory = [], opts = {}) {
+  if (!activeWorkout) return [];
+  const { hintFeedback = {}, readinessScore = null, progressionTargets = {} } = opts;
+
+  const history = (allWorkouts || []).sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  const byExercise = {};
+  (activeWorkout.sets || []).forEach(set => {
+    if (!byExercise[set.exercise]) byExercise[set.exercise] = [];
+    byExercise[set.exercise].push(set);
   });
 
-  // Recovery from recent intense cardio
-  if (cardioHistory && cardioHistory.length > 0) {
-    const now = Date.now();
-    const recentCardio = (cardioHistory || []).filter(c => parseDate(c.date).getTime() >= now - 86400000);
-    const intenseCardio = recentCardio.filter(c => c.intensity === "alta" || c.duration >= 3600);
-    if (intenseCardio.length > 0) {
-      hints.push({ exercise: null, type: "recovery", msg: `${intenseCardio[0].sportName || "Cardio"} intenso en las últimas 24h. Reducí el volumen un 10-15%.`, priority: 3 });
-    }
-  }
+  const ctx = { activeWorkout, allWorkouts, cardioHistory, history, byExercise, hintFeedback, readinessScore, progressionTargets };
 
-  // ── Tier 3: Rate limiting — 1 hint per type for session-level hints ──────
-  const sorted = hints.sort((a, b) => a.priority - b.priority);
+  // Collect all hints from pure rule producers
+  const allHints = [
+    ...rulePerExercise(ctx),
+    ...ruleACWR(ctx),
+    ...ruleReadiness(ctx),
+    ...rulePushPull(ctx),
+    ...ruleVolumeLandmarks(ctx),
+    ...ruleCardioRecovery(ctx),
+  ].filter(h => !shouldSuppress(h.type, hintFeedback));
+
+  // Sort by priority, then rate-limit session-level hints (max 1 per type)
+  const sorted = allHints.sort((a, b) => a.priority - b.priority);
   const seenSessionTypes = new Set();
   return sorted.filter(h => {
-    if (h.exercise !== null) return true; // per-exercise hints always shown
+    if (h.exercise !== null) return true;
     if (seenSessionTypes.has(h.type)) return false;
     seenSessionTypes.add(h.type);
     return true;
