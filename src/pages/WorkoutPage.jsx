@@ -1,7 +1,7 @@
 ﻿import { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import useStore from "../store/useStore.js";
 import useAuthStore from "../store/useAuthStore.js";
-import { hasData, formatDate, buildLiveCoachHints, getLiveVolumeStatus, getPostWorkoutSummary, calcSessionStrain } from "../lib/analytics.js";
+import { hasData, formatDate, buildLiveCoachHints, getLiveVolumeStatus, getPostWorkoutSummary, calcSessionStrain, getWeightPrescriptions } from "../lib/analytics.js";
 import { todayLocal } from "../lib/dates.js";
 import LiveCoachPanel from "../components/LiveCoachPanel.jsx";
 import ExercisePicker from "../components/ExercisePicker.jsx";
@@ -205,6 +205,7 @@ export default function WorkoutPage() {
   }, [active?.sets, workouts, cardioHistory, hintFeedback, todayReadiness, progressionTargets]);
   const sessionStrain = useMemo(() => { try { return calcSessionStrain(active); } catch { return 0; } }, [active?.sets]);
   const volStatus  = useMemo(() => { try { return getLiveVolumeStatus(active, workouts); } catch { return {}; } }, [active?.sets, workouts]);
+  const weightPrescriptions = useMemo(() => { try { return getWeightPrescriptions(workouts); } catch { return []; } }, [workouts]);
 
   const workoutTypeTheme = useMemo(() => {
     const t = (active?.type || "").toLowerCase();
@@ -701,7 +702,16 @@ export default function WorkoutPage() {
                             coachSuggestion={(() => {
                               const w = Number(setItem.weight);
                               const r = Number(setItem.reps);
-                              if (!w || !r) return null;
+                              // Proactive: show prescription before the athlete enters data
+                              if (!w || !r) {
+                                const prescription = weightPrescriptions.find(p => p.exercise === exercise);
+                                if (prescription) {
+                                  const dir = prescription.suggestedWeight > prescription.lastWeight ? "up"
+                                            : prescription.suggestedWeight < prescription.lastWeight ? "down" : null;
+                                  return { dir, weight: prescription.suggestedWeight, reason: prescription.reason };
+                                }
+                                return null;
+                              }
                               const goal = (userGoal || profile?.goal || "").toLowerCase();
                               let lowThresh = 8, highThresh = 12;
                               let restSec = 90;

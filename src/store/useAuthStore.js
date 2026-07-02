@@ -103,6 +103,7 @@ const useAuthStore = create((set, get) => ({
           await useStore.getState().syncWorkoutsFromDB(user.id);
           useStore.getState().syncAllToSupabase(user.id);
           try { await useStore.getState().loadHealthFromDB(); } catch {}
+          try { await useStore.getState().loadGymStateFromDB(); } catch {}
         } catch {}
       } else {
         // Supabase returned an error — fall back to cached profile so the app never hangs

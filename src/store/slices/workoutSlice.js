@@ -1,7 +1,8 @@
 import { ROUTINES } from "../../data/seedData.js";
-import { buildCoachReport, hydrateSet } from "../../lib/analytics.js";
+import { buildCoachReport, hydrateSet, calcEffective1RM } from "../../lib/analytics.js";
 import { loadInitialWorkouts, normalizeSet } from "../../lib/storageMigration.js";
 import { syncWorkoutUp, syncAllWorkoutsUp, fetchWorkoutsFromDB, mergeWorkouts } from "../../lib/workoutSync.js";
+import { supabase } from "../../lib/supabase.js";
 import { getAuthUserId, getAuthProfile } from "../../lib/authBridge.js";
 import { EXERCISE_DATABASE, findExerciseMeta, resolveExerciseGroup, resolveExerciseMuscle } from "../../data/exerciseDatabase.js";
 import { todayLocal } from "../../lib/dates.js";
@@ -108,6 +109,41 @@ export const createWorkoutSlice = (set, get) => ({
 
   syncAllToSupabase: async (userId) => {
     await syncAllWorkoutsUp(get().workouts || [], userId);
+  },
+
+  syncGymStateToDB: async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user?.id) return;
+      const s = get();
+      const payload = {
+        prs: s.prs || [],
+        achievements: s.achievements || [],
+        savedTemplates: s.savedTemplates || [],
+        weeklyChallenge: s.weeklyChallenge || null,
+        completedPlans: (s.completedPlans || []).slice(0, 50),
+      };
+      await supabase.from("profiles").update({ gym_data: payload }).eq("id", session.user.id);
+    } catch {}
+  },
+
+  loadGymStateFromDB: async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user?.id) return;
+      const { data } = await supabase.from("profiles").select("gym_data").eq("id", session.user.id).single();
+      if (!data?.gym_data) return;
+      const gd = data.gym_data;
+      const local = get();
+      // Merge: keep local if it has more items (local-first)
+      const mergedPrs = (local.prs?.length || 0) >= (gd.prs?.length || 0) ? local.prs : gd.prs;
+      set({
+        prs: mergedPrs || [],
+        achievements: gd.achievements?.length > (local.achievements?.length || 0) ? gd.achievements : local.achievements,
+        savedTemplates: gd.savedTemplates?.length > (local.savedTemplates?.length || 0) ? gd.savedTemplates : local.savedTemplates,
+        completedPlans: gd.completedPlans?.length > (local.completedPlans?.length || 0) ? gd.completedPlans : local.completedPlans,
+      });
+    } catch {}
   },
 
   clearActiveWorkout: () => set({ activeWorkout: null }),
@@ -268,14 +304,21 @@ export const createWorkoutSlice = (set, get) => ({
     const existingPrs = get().prs || [];
     const history = get().workouts || [];
     const newPrsList = [];
+    const prByExercise = new Set();
     clean.sets.forEach((s) => {
       const w = Number(s.weight) || 0, r = Number(s.reps) || 0;
-      if (!w || !r) return;
+      if (!w || !r || prByExercise.has(s.exercise)) return;
+      const rir = Number(s.rir) || 0;
+      const currentORM = calcEffective1RM(w, r, rir);
+      if (currentORM <= 0) return;
       const prev = history.flatMap((wk) => wk.sets || []).filter((ps) => ps.exercise === s.exercise);
       const maxWeight = Math.max(...prev.map((ps) => Number(ps.weight) || 0), 0);
-      const maxReps   = Math.max(...prev.map((ps) => Number(ps.reps)   || 0), 0);
-      if (w > maxWeight || (r > maxReps && w >= maxWeight)) {
-        newPrsList.push({ exercise: s.exercise, weight: w, reps: r, type: w > maxWeight ? "weight" : "reps", date: clean.date });
+      const prevBestORM = prev.reduce((best, ps) => {
+        return Math.max(best, calcEffective1RM(Number(ps.weight) || 0, Number(ps.reps) || 0, Number(ps.rir) || 0));
+      }, 0);
+      if (currentORM > prevBestORM) {
+        prByExercise.add(s.exercise);
+        newPrsList.push({ exercise: s.exercise, weight: w, reps: r, orm: Math.round(currentORM), type: w > maxWeight ? "weight" : "orm", date: clean.date });
       }
     });
     // Auto-expire plan if it has passed its end date
@@ -315,6 +358,8 @@ export const createWorkoutSlice = (set, get) => ({
     } catch (err) { console.warn("achievement check failed", err); }
     const userId = getAuthUserId();
     if (userId) syncWorkoutUp(clean, userId);
+    // Backup PRs, achievements, templates to Supabase after state settles
+    setTimeout(() => get().syncGymStateToDB(), 1500);
   },
 
   cancelWorkout: () => set({ activeWorkout: null, currentPage: "start" }),
