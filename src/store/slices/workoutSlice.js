@@ -50,6 +50,20 @@ function makePrefilledSet(exercise, workouts) {
   return makeSet(exercise, stats.lastWeight || "", stats.lastReps || "", workouts);
 }
 
+function getExerciseSetAtIndex(workouts, exercise, setIndex) {
+  const ordered = [...(workouts || [])].sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
+  for (const workout of ordered) {
+    const sets = (workout.sets || []).filter((s) => sameExercise(s.exercise, exercise));
+    if (sets.length > setIndex) {
+      return { weight: sets[setIndex].weight ?? "", reps: sets[setIndex].reps ?? "" };
+    } else if (sets.length > 0) {
+      const last = sets[sets.length - 1];
+      return { weight: last.weight ?? "", reps: last.reps ?? "" };
+    }
+  }
+  return { weight: "", reps: "" };
+}
+
 function scaleRepsForDeload(lastReps) {
   if (!lastReps) return "12-15";
   const n = Number(lastReps);
@@ -170,12 +184,14 @@ export const createWorkoutSlice = (set, get) => ({
     }));
   },
 
-  addSeriesToExercise: (exercise, copyLast = true) => {
+  addSeriesToExercise: (exercise) => {
     const active = get().activeWorkout;
     if (!active) return;
     const same = (active.sets || []).filter((s) => sameExercise(s.exercise, exercise));
-    const source = same[same.length - 1];
-    const next = makeSet(exercise, copyLast && source ? source.weight : "", copyLast && source ? source.reps : "", get().workouts || []);
+    const newSetIndex = same.length;
+    const prevData = getExerciseSetAtIndex(get().workouts || [], exercise, newSetIndex);
+    const base = makeSet(exercise, "", "", get().workouts || []);
+    const next = { ...base, lastWeight: prevData.weight || base.lastWeight, lastReps: prevData.reps || base.lastReps };
     set({ activeWorkout: { ...active, sets: [...active.sets, next] } });
   },
 

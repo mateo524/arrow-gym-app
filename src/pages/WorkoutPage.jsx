@@ -143,7 +143,7 @@ export default function WorkoutPage() {
   // Modals & panels
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
-  const [coachExpanded, setCoachExpanded] = useState(false);
+
   const [showPicker, setShowPicker] = useState(false);
   const [swapTarget, setSwapTarget] = useState(null);
   const [supersetTarget, setSupersetTarget] = useState(null);
@@ -168,7 +168,7 @@ export default function WorkoutPage() {
   const [savingRoutine, setSavingRoutine] = useState(false);
   const [saveRoutineError, setSaveRoutineError] = useState("");
   const [shareMsg, setShareMsg] = useState("");
-  const [prToast, setPrToast] = useState(null);
+
   const [illustrationExercise, setIllustrationExercise] = useState(null);
   const [restDone, setRestDone] = useState(false);
   const pendingFinishRef = useRef(null);
@@ -220,22 +220,6 @@ export default function WorkoutPage() {
     return () => clearInterval(interval);
   }, [active, saveWorkoutDraft]);
 
-  // Detect new PR
-  useEffect(() => {
-    if (!active?.sets?.length) return;
-    const sets = active.sets.filter(s => Number(s.weight) > 0 && Number(s.reps) > 0);
-    for (const s of sets) {
-      const exercisePRs = prs?.filter(p => p.exercise === s.exercise) || [];
-      const maxPR = Math.max(0, ...exercisePRs.map(p => Number(p.weight)));
-      if (Number(s.weight) > maxPR && maxPR > 0) {
-        setPrToast(s.exercise);
-        // Strong haptic pattern for PR
-        if (navigator.vibrate) navigator.vibrate([80, 40, 80, 40, 120]);
-        const t = setTimeout(() => setPrToast(null), 3500);
-        return () => clearTimeout(t);
-      }
-    }
-  }, [active?.sets, prs]);
 
   // Scroll to new exercise when added
   const prevExCountRef = useRef(0);
@@ -433,47 +417,14 @@ export default function WorkoutPage() {
         })()}
       </div>
 
-      {/* ── COACH EN VIVO ───────────────────────────────────────────────────── */}
-      {(() => {
-        const hasAdj = activePlanAdjustment && new Date(activePlanAdjustment.expiresAt) >= new Date();
-        const hints = liveHints || [];
-        if (!hasAdj && hints.length === 0) return null;
-
-        const messages = [];
-        if (hasAdj) {
-          const typeMap = {
-            deload:       { icon: '🔄', text: `Semana de deload — pesos al ${Math.round(activePlanAdjustment.factor * 100)}% del habitual · hasta el ${new Date(activePlanAdjustment.expiresAt).toLocaleDateString('es-AR', { day:'numeric', month:'short' })}` },
-            volume_up:    { icon: '📈', text: 'Semana de volumen — series aumentadas según el plan' },
-            intensity_up: { icon: '⚡', text: 'Semana de intensidad — pesos incrementados según el plan' },
-          };
-          const t = typeMap[activePlanAdjustment.type] || { icon: '🏋️', text: 'Ajuste del coach activo' };
-          messages.push(t);
-        }
-        hints.forEach(h => messages.push({ icon: '⚡', text: h.msg }));
-
-        const firstMsg = messages[0];
-        return (
-          <div style={{ borderBottom: '1px solid rgba(245,158,11,.25)', background: 'rgba(245,158,11,.06)' }}>
-            <button
-              onClick={() => setCoachExpanded(e => !e)}
-              style={{ width: '100%', background: 'none', border: 'none', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', textAlign: 'left' }}>
-              <span style={{ fontSize: 12, fontWeight: 800, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '.08em', flexShrink: 0 }}>Coach en vivo</span>
-              <span style={{ flex: 1, fontSize: 14, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{firstMsg.icon} {firstMsg.text}</span>
-              <span style={{ fontSize: 12, color: 'var(--muted)', flexShrink: 0 }}>{coachExpanded ? '▲' : '▼'} {messages.length}</span>
-            </button>
-            {coachExpanded && (
-              <div style={{ padding: '0 16px 10px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {messages.map((m, i) => (
-                  <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', background: 'rgba(245,158,11,.06)', border: '1px solid rgba(245,158,11,.15)', borderRadius: 8, padding: '7px 10px' }}>
-                    <span style={{ flexShrink: 0 }}>{m.icon}</span>
-                    <span style={{ fontSize: 14, lineHeight: 1.4, color: 'var(--text)' }}>{m.text}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        );
-      })()}
+      {/* ── PLAN ADJUSTMENT BANNER ──────────────────────────────────────────── */}
+      {activePlanAdjustment && new Date(activePlanAdjustment.expiresAt) >= new Date() && (
+        <div style={{ borderBottom: '1px solid rgba(245,158,11,.25)', background: 'rgba(245,158,11,.06)', padding: '7px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+          {activePlanAdjustment.type === 'deload' && <><span>🔄</span><span style={{ fontSize: 13, color: '#f59e0b' }}>Deload — pesos al {Math.round(activePlanAdjustment.factor * 100)}% · hasta {new Date(activePlanAdjustment.expiresAt).toLocaleDateString('es-AR', { day:'numeric', month:'short' })}</span></>}
+          {activePlanAdjustment.type === 'volume_up' && <><span>📈</span><span style={{ fontSize: 13, color: '#f59e0b' }}>Semana de volumen según el plan</span></>}
+          {activePlanAdjustment.type === 'intensity_up' && <><span>⚡</span><span style={{ fontSize: 13, color: '#f59e0b' }}>Semana de intensidad según el plan</span></>}
+        </div>
+      )}
 
       {/* ── HORIZONTAL EXERCISE SLIDER ──────────────────────────────────────── */}
       <div
@@ -713,14 +664,26 @@ export default function WorkoutPage() {
                               // Check if same weight for 3+ sets with reps at top of range (double progression signal)
                               const sameW = sets.filter(s => Number(s.weight) === w && Number(s.reps) >= highThresh - 1).length;
                               if (sameW >= 3) return { dir: "up", weight: Math.round((w + 2.5) * 2) / 2, reason: `3+ series en ${w}kg — doble progresión: subí a ${Math.round((w + 2.5) * 2) / 2}kg`, rest: restSec };
-                              if (r >= highThresh) return { dir: "up", weight: Math.round((w + 2.5) * 2) / 2, reason: "Muchas reps — subí peso", rest: restSec };
-                              if (r <= lowThresh)  return { dir: "down", weight: Math.max(Math.round((w - 2.5) * 2) / 2, 0), reason: "Pocas reps — bajá peso", rest: restSec };
+                              if (r > highThresh) return { dir: "up", weight: Math.round((w + 2.5) * 2) / 2, reason: "Muchas reps — subí peso", rest: restSec };
+                              if (r < lowThresh)  return { dir: "down", weight: Math.max(Math.round((w - 2.5) * 2) / 2, 0), reason: "Pocas reps — bajá peso", rest: restSec };
                               return { dir: null, weight: w, reason: `Buen rango — dejá 1-3 reps en reserva`, rest: restSec };
                             })()}
                           />
                         </div>
                       );
                     })}
+
+                    {/* Add set */}
+                    <button
+                      onClick={() => addSeriesToExercise(exercise)}
+                      style={{
+                        width: "100%", marginTop: 8, padding: "12px",
+                        background: "rgba(168,85,247,.08)", border: "1px dashed rgba(168,85,247,.35)",
+                        borderRadius: 12, cursor: "pointer", fontSize: 14, fontWeight: 700, color: "var(--green)",
+                        display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                      }}>
+                      + Agregar serie
+                    </button>
 
                     {/* Dropset / Superset */}
                     <div style={{ display: "flex", gap: 8, padding: "6px 0 4px" }}>
@@ -729,18 +692,6 @@ export default function WorkoutPage() {
                       <button className="ghost" style={{ flex: 1, fontSize: 12, padding: "7px 0", color: "#a78bfa", border: "1px solid rgba(167,139,250,.3)", borderRadius: 10 }}
                         onClick={() => setSupersetTarget(exercise)}>⇄ Super Serie</button>
                     </div>
-
-                    {/* Add set */}
-                    <button
-                      onClick={() => addSeriesToExercise(exercise, true)}
-                      style={{
-                        width: "100%", marginTop: 6, padding: "12px",
-                        background: "rgba(168,85,247,.08)", border: "1px dashed rgba(168,85,247,.35)",
-                        borderRadius: 12, cursor: "pointer", fontSize: 14, fontWeight: 700, color: "var(--green)",
-                        display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                      }}>
-                      + Agregar serie
-                    </button>
                   </div>
                 )}
 
@@ -839,16 +790,23 @@ export default function WorkoutPage() {
       {/* ── ⋮ MENU (bottom sheet) ─────────────────────────────────────────── */}
       {showMenu && (
         <div className="modal-overlay" onClick={() => setShowMenu(false)}>
-          <div onClick={e => e.stopPropagation()} style={{
-            position: "absolute", bottom: 0, left: 0, right: 0,
-            background: "var(--bg)", borderRadius: "20px 20px 0 0",
-            padding: "20px 16px 28px", maxHeight: "85vh", overflowY: "auto",
-          }}>
+          <div
+            onClick={e => e.stopPropagation()}
+            onTouchStart={e => { e._menuSwipeY = e.touches[0].clientY; }}
+            onTouchEnd={e => { if (e.changedTouches[0].clientY - (e._menuSwipeY || 0) > 60) setShowMenu(false); }}
+            style={{
+              position: "absolute", bottom: 0, left: 0, right: 0,
+              background: "var(--bg)", borderRadius: "20px 20px 0 0",
+              padding: "20px 16px 28px", maxHeight: "85vh", overflowY: "auto",
+            }}>
             {/* Handle */}
             <div style={{ width: 36, height: 4, background: "rgba(255,255,255,.15)", borderRadius: 2, margin: "0 auto 18px" }} />
 
-            {/* Live Coach */}
-            <LiveCoachPanel hints={liveHints} volStatus={volStatus} />
+            {/* Live Coach — filtered: no balance, pr, ready hints */}
+            <LiveCoachPanel
+              hints={(liveHints || []).filter(h => !['balance','pr','ready'].includes(h.type))}
+              volStatus={volStatus}
+            />
 
             {/* Add exercise */}
             <button
@@ -916,9 +874,9 @@ export default function WorkoutPage() {
       {/* ── ADD EXERCISE PICKER ───────────────────────────────────────────── */}
       {showPicker && (
         <div style={{ position: "fixed", inset: 0, background: "var(--bg)", zIndex: 300, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 16px 10px", borderBottom: "1px solid var(--line)", flexShrink: 0 }}>
-            <h2 style={{ margin: 0, fontSize: 17 }}>Agregar ejercicio</h2>
-            <button className="ghost" onClick={() => setShowPicker(false)} style={{ padding: "6px 12px" }}>✕</button>
+          <div style={{ display: "flex", alignItems: "center", padding: "16px 16px 10px", borderBottom: "1px solid var(--line)", flexShrink: 0, gap: 10 }}>
+            <button onClick={() => setShowPicker(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--green)", fontWeight: 700, fontSize: 20, padding: "0 4px", flexShrink: 0 }}>←</button>
+            <h2 style={{ margin: 0, fontSize: 17, flex: 1 }}>Agregar ejercicio</h2>
           </div>
           <div style={{ flex: 1, overflow: "auto", padding: "12px 16px 24px" }}>
             {/* Quick-add: last 5 unique exercises from recent workouts */}
@@ -952,12 +910,12 @@ export default function WorkoutPage() {
       {swapTarget && (
         <div style={{ position: "fixed", inset: 0, background: "var(--bg)", zIndex: 300, display: "flex", flexDirection: "column", overflow: "hidden" }}>
           <div style={{ padding: "16px 16px 10px", borderBottom: "1px solid var(--line)", flexShrink: 0 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+              <button onClick={() => setSwapTarget(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--green)", fontWeight: 700, fontSize: 20, padding: "0 4px", flexShrink: 0, marginTop: 2 }}>←</button>
               <div>
                 <p style={{ margin: 0, fontSize: 12, color: workoutTypeTheme.accent, fontWeight: 700, textTransform: "uppercase" }}>Cambiar ejercicio</p>
                 <h2 style={{ margin: "2px 0 0", fontSize: 16 }}>Reemplazar: <span style={{ color: "var(--green)" }}>{swapTarget}</span></h2>
               </div>
-              <button className="ghost" onClick={() => setSwapTarget(null)} style={{ padding: "6px 12px" }}>✕</button>
             </div>
             <p style={{ fontSize: 12, color: "var(--muted)", margin: "6px 0 0" }}>Los pesos y reps se mantienen.</p>
           </div>
@@ -980,7 +938,7 @@ export default function WorkoutPage() {
                 <p style={{ margin: 0, fontSize: 15, fontWeight: 800 }}>Elegí el segundo ejercicio</p>
                 <p style={{ margin: 0, fontSize: 12, color: "var(--muted)" }}>Parear con: <b style={{ color: "var(--green)" }}>{supersetTarget}</b></p>
               </div>
-              <button className="ghost" onClick={() => setSupersetTarget(null)} style={{ padding: "6px 12px" }}>✕</button>
+              <button onClick={() => setSupersetTarget(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--green)", fontWeight: 700, fontSize: 20, padding: "0 4px" }}>←</button>
             </div>
             <ExercisePicker compact onPick={(exercise) => { linkSuperset(supersetTarget, exercise); setSupersetTarget(null); }} />
           </div>
@@ -1132,31 +1090,6 @@ export default function WorkoutPage() {
       </div>
     )}
 
-    {/* ── PR TOAST + CONFETTI ───────────────────────────────────────────── */}
-    {prToast && (
-      <>
-        <style>{`
-          @keyframes pr-pop { 0%{transform:translateX(-50%) scale(.7);opacity:0} 60%{transform:translateX(-50%) scale(1.08)} 100%{transform:translateX(-50%) scale(1);opacity:1} }
-          @keyframes confetti-fall { 0%{transform:translateY(-10px) rotate(0deg);opacity:1} 100%{transform:translateY(90vh) rotate(720deg);opacity:0} }
-          .pr-confetti-piece { position:fixed; top:60px; width:8px; height:8px; border-radius:2px; z-index:9998; pointer-events:none; animation:confetti-fall 1.8s ease-in forwards; }
-        `}</style>
-        {/* 32 confetti particles */}
-        {Array.from({length:32}).map((_,i) => (
-          <div key={i} className="pr-confetti-piece" style={{
-            left: `${5 + (i * 2.9) % 90}%`,
-            background: ["#a855f7","#c084fc","#f0abfc","#fff","#e879f9","#f59e0b","#34d399","#60a5fa"][i%8],
-            animationDelay: `${i * 0.04}s`,
-            animationDuration: `${1.2 + (i % 5) * 0.2}s`,
-            width: i%4===0 ? 12 : i%3===0 ? 8 : 6,
-            height: i%4===0 ? 7 : i%3===0 ? 5 : 9,
-            borderRadius: i%5===0 ? "50%" : 2,
-          }} />
-        ))}
-        <div style={{ position:"fixed", top:70, left:"50%", transform:"translateX(-50%)", zIndex:9999, background:"linear-gradient(135deg,#a855f7,#c084fc)", color:"#fff", borderRadius:16, padding:"12px 22px", fontSize:15, fontWeight:900, boxShadow:"0 4px 24px rgba(168,85,247,.5)", whiteSpace:"nowrap", animation:"pr-pop .4s cubic-bezier(.34,1.56,.64,1) both"}}>
-          🏆 ¡Nuevo PR en {prToast}!
-        </div>
-      </>
-    )}
 
     {/* ── REST TIMER OVERLAY ────────────────────────────────────────────── */}
     {restExercise && (

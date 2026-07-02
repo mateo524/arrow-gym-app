@@ -49,10 +49,25 @@ export default function HomePage() {
   const isTrainer = role === "trainer";
   const isEmpty = workouts.length === 0;
 
+  // Derive weekly goal from profile frequency preference, or fallback to historical average
+  const adaptedWeeklyGoal = useMemo(() => {
+    const freq = profile?.weeklyFrequency || profile?.frequency;
+    if (freq && Number(freq) > 0) return Number(freq);
+    if (weeklyGoal && weeklyGoal !== 4) return weeklyGoal;
+    // Estimate from last 4 weeks
+    const now = new Date();
+    const fourWeeksAgo = new Date(now); fourWeeksAgo.setDate(now.getDate() - 28);
+    const fourWeeksStr = fourWeeksAgo.toISOString().slice(0,10);
+    const recentCount = (workouts || []).filter(w => (w.date || "") >= fourWeeksStr).length;
+    const estimated = Math.round(recentCount / 4);
+    return Math.max(2, Math.min(7, estimated || weeklyGoal || 4));
+  }, [profile, weeklyGoal, workouts]);
+
   const streak = useMemo(() => {
     const allDays = new Set([
       ...(workouts || []).map(w => w.date),
       ...(restDays || []).map(r => r.date),
+      ...(cardioHistory || []).map(c => c.date?.slice(0,10)).filter(Boolean),
     ]);
     let count = 0;
     const d = new Date();
@@ -89,19 +104,19 @@ export default function HomePage() {
 
   const weekCalendar = useMemo(() => {
     const workoutDates = new Set((workouts || []).map(w => w.date?.slice(0,10)).filter(Boolean));
+    const cardioDates = new Set((cardioHistory || []).map(c => c.date?.slice(0,10)).filter(Boolean));
     const today = new Date();
     const todayStr = today.toISOString().slice(0,10);
     const DAY_NAMES = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
-    // Always start on Monday of the current week (ISO week)
-    const dayOfWeek = today.getDay(); // 0=Sun
+    const dayOfWeek = today.getDay();
     const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
     return Array.from({ length: 7 }, (_, i) => {
       const d = new Date(today);
       d.setDate(today.getDate() + mondayOffset + i);
       const key = d.toISOString().slice(0,10);
-      return { key, dayName: DAY_NAMES[d.getDay()], dayNum: d.getDate(), trained: workoutDates.has(key), isToday: key === todayStr };
+      return { key, dayName: DAY_NAMES[d.getDay()], dayNum: d.getDate(), trained: workoutDates.has(key), cardio: cardioDates.has(key) && !workoutDates.has(key), isToday: key === todayStr };
     });
-  }, [workouts]);
+  }, [workouts, cardioHistory]);
 
   return (
     <section className="page">
@@ -162,8 +177,8 @@ export default function HomePage() {
             })()}
             {/* Objetivo semanal */}
             {(() => {
-              const goal = weeklyGoal;
-              const done = weekCalendar.filter(d => d.trained).length;
+              const goal = adaptedWeeklyGoal;
+              const done = weekCalendar.filter(d => d.trained || d.cardio).length;
               const pct = Math.min(1, done / goal);
               const R = 20, C = 2 * Math.PI * R;
               return (
@@ -263,14 +278,15 @@ export default function HomePage() {
 
           {/* Weekly calendar strip */}
           <div className="week-calendar">
-            {weekCalendar.map(({ key, dayName, dayNum, trained, isToday }) => {
+            {weekCalendar.map(({ key, dayName, dayNum, trained, cardio, isToday }) => {
               const isRest = (restDays||[]).some(r => r.date === key);
               return (
-              <div key={key} className={`week-cal-day${trained ? " trained" : ""}${isToday ? " today" : ""}${isRest && !trained ? " rest" : ""}`}
-                style={isRest && !trained ? { background:"rgba(6,182,212,.15)", border:"1.5px solid rgba(6,182,212,.5)" } : {}}>
-                <span className="week-cal-name" style={isRest&&!trained?{color:"#06b6d4"}:{}}>{dayName}</span>
-                <span className="week-cal-num" style={isRest&&!trained?{color:"#06b6d4"}:{}}>{dayNum}</span>
-                {isRest && !trained && <span style={{ fontSize:8, marginTop:1, color:"#06b6d4" }}>💤</span>}
+              <div key={key} className={`week-cal-day${trained ? " trained" : ""}${isToday ? " today" : ""}${isRest && !trained && !cardio ? " rest" : ""}`}
+                style={cardio ? { background:"rgba(52,211,153,.1)", border:"1.5px solid rgba(52,211,153,.4)" } : isRest && !trained ? { background:"rgba(6,182,212,.15)", border:"1.5px solid rgba(6,182,212,.5)" } : {}}>
+                <span className="week-cal-name" style={cardio?{color:"#34d399"}:isRest&&!trained?{color:"#06b6d4"}:{}}>{dayName}</span>
+                <span className="week-cal-num" style={cardio?{color:"#34d399"}:isRest&&!trained?{color:"#06b6d4"}:{}}>{dayNum}</span>
+                {isRest && !trained && !cardio && <span style={{ fontSize:8, marginTop:1, color:"#06b6d4" }}>💤</span>}
+                {cardio && <span style={{ fontSize:8, marginTop:1, color:"#34d399" }}>🏃</span>}
                 {trained && <span className="week-cal-dot" />}
               </div>
               );

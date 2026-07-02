@@ -145,6 +145,7 @@ export default function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onR
             value={setItem.weight}
             placeholder={setItem.lastWeight || "—"}
             onChange={(e) => { haptic(); onUpdate({ weight: sanitizeWeight(e.target.value) }); }}
+            onFocus={(e) => e.target.select()}
             style={{ width: "100%", textAlign: "center", fontSize: 26, fontWeight: 800, borderColor: setItem.weight ? "rgba(168,85,247,.5)" : undefined, transition: "border-color .2s" }}
           />
         </div>
@@ -161,6 +162,7 @@ export default function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onR
             value={setItem.reps}
             placeholder={setItem.planReps || setItem.lastReps || "—"}
             onChange={(e) => { haptic(); onUpdate({ reps: sanitizeReps(e.target.value) }); }}
+            onFocus={(e) => e.target.select()}
             style={{ width: "100%", textAlign: "center", fontSize: 26, fontWeight: 800, borderColor: setItem.reps ? "rgba(168,85,247,.5)" : undefined, transition: "border-color .2s" }}
           />
         </div>
