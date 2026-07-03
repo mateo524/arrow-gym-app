@@ -369,7 +369,6 @@ export default function WorkoutPage() {
       setPostSummary({ ...summary, rpe });
     } else {
       finish(notes);
-      setPage("home");
     }
   }
 
