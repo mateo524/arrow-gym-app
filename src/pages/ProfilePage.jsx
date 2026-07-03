@@ -9,8 +9,8 @@ import { parseImportFile } from "../lib/importCSV.js";
 const GOALS = [
   { id: "volumen",       label: "Ganar músculo",  icon: "💪" },
   { id: "definicion",    label: "Definición",     icon: "🔥" },
-  { id: "mantenimiento", label: "Mantenimiento",  icon: "⚖" },
-  { id: "rendimiento",   label: "Rendimiento",    icon: "⚡" },
+  { id: "mantenimiento", label: "Salud general",  icon: "⚖" },
+  { id: "rendimiento",   label: "Fuerza",         icon: "⚡" },
 ];
 const LEVELS = [
   { id: "principiante", label: "Principiante",  icon: "🌱" },

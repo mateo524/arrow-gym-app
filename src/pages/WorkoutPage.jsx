@@ -734,14 +734,29 @@ export default function WorkoutPage() {
                                 return { dir: null, weight: w, reason: `RIR ${rir} — zona óptima, mantené ${w}kg` };
                               }
 
-                              // Rep-range based suggestions (fallback when no RIR)
-                              const goal = (userGoal || profile?.goal || "").toLowerCase();
-                              let lowThresh = 8, highThresh = 12;
-                              let restSec = 90;
-                              if (goal.includes("fuerza")) { lowThresh = 1; highThresh = 6; restSec = 150; }
-                              else if (goal.includes("hipertrofia") || goal.includes("masa")) { lowThresh = 6; highThresh = 12; restSec = 90; }
-                              else if (goal.includes("resistencia")) { lowThresh = 15; highThresh = 25; restSec = 45; }
-                              else if (goal.includes("definicion")) { restSec = 60; }
+                              // Rep-range based suggestions — goal × fitness_level
+                              const goal = (userGoal || profile?.goal || "volumen").toLowerCase();
+                              const lvl = (profile?.fitness_level || "intermedio").toLowerCase();
+                              let lowThresh = 6, highThresh = 12, restSec = 90;
+                              if (goal === "rendimiento") {
+                                // Fuerza: reps bajas, descansos largos
+                                lowThresh = lvl === "principiante" ? 4 : 2;
+                                highThresh = lvl === "principiante" ? 6 : lvl === "intermedio" ? 5 : 4;
+                                restSec = lvl === "principiante" ? 150 : 180;
+                              } else if (goal === "volumen") {
+                                // Hipertrofia: 6-12 reps, más volumen a mayor nivel
+                                lowThresh = 6;
+                                highThresh = lvl === "principiante" ? 12 : lvl === "intermedio" ? 10 : 8;
+                                restSec = lvl === "avanzado" ? 120 : 90;
+                              } else if (goal === "definicion") {
+                                // Densidad: reps moderadas-altas, descansos cortos
+                                lowThresh = lvl === "principiante" ? 12 : 10;
+                                highThresh = lvl === "principiante" ? 18 : 15;
+                                restSec = lvl === "avanzado" ? 45 : 60;
+                              } else if (goal === "mantenimiento") {
+                                // Salud general: rango amplio, moderado
+                                lowThresh = 8; highThresh = 15; restSec = 75;
+                              }
 
                               const sameW = sets.filter(s => Number(s.weight) === w && Number(s.reps) >= highThresh - 1).length;
                               if (sameW >= 3) {

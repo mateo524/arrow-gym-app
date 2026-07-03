@@ -6,8 +6,8 @@ import { supabase } from "../lib/supabase.js";
 const GOALS = [
   { id: "volumen",       label: "Ganar músculo",  icon: "💪", desc: "Aumentar masa muscular y fuerza" },
   { id: "definicion",    label: "Definición",     icon: "🔥", desc: "Bajar grasa manteniendo músculo" },
-  { id: "mantenimiento", label: "Mantenimiento",  icon: "⚖️",  desc: "Mantener el físico actual" },
-  { id: "rendimiento",   label: "Rendimiento",    icon: "⚡", desc: "Mejorar fuerza y resistencia" },
+  { id: "mantenimiento", label: "Salud general",  icon: "⚖️",  desc: "Mantener el físico y bienestar general" },
+  { id: "rendimiento",   label: "Fuerza",         icon: "⚡", desc: "Desarrollar fuerza máxima" },
 ];
 
 const LEVELS = [
