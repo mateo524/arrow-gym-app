@@ -246,11 +246,18 @@ export default function WorkoutPage() {
     }
   }, [active?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Record "ready to progress" suggestions so loop closure works next session
+  // Record "ready to progress" suggestions — tracked in a ref to avoid
+  // feedback loop: recordSuggestion mutates progressionTargets → liveHints
+  // recalculates → effect fires again → infinite loop.
+  const recordedSuggestionsRef = useRef(new Set());
   useEffect(() => {
     liveHints.forEach(h => {
       if (h.type === 'ready' && h.exercise && h.suggestedWeight) {
-        recordSuggestion(h.exercise, h.suggestedWeight);
+        const key = `${h.exercise}:${h.suggestedWeight}`;
+        if (!recordedSuggestionsRef.current.has(key)) {
+          recordedSuggestionsRef.current.add(key);
+          recordSuggestion(h.exercise, h.suggestedWeight);
+        }
       }
     });
   }, [liveHints]); // eslint-disable-line react-hooks/exhaustive-deps
