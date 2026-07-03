@@ -825,8 +825,8 @@ export function getWeeklyFatigueScore(workouts) {
   const msWeek = 7 * 86400000;
   const sumLoad = ws => ws.reduce((sum, w) => sum + (w.sets || []).filter(hasData).reduce((s, set) => s + (Number(set.weight) || 0) * (Number(set.reps) || 0), 0), 0);
 
-  const thisWeek = Math.round(sumLoad(workouts.filter(w => parseDate(w.date).getTime() >= now - msWeek)));
-  const lastWeek = Math.round(sumLoad(workouts.filter(w => { const t = parseDate(w.date).getTime(); return t >= now - 2 * msWeek && t < now - msWeek; })));
+  const thisWeek = Math.round(sumLoad(workouts.filter(w => { try { return parseDate(w.date).getTime() >= now - msWeek; } catch { return false; } })));
+  const lastWeek = Math.round(sumLoad(workouts.filter(w => { try { const t = parseDate(w.date).getTime(); return t >= now - 2 * msWeek && t < now - msWeek; } catch { return false; } })));
   const pctChange = lastWeek > 0 ? Math.round(((thisWeek - lastWeek) / lastWeek) * 100) : 0;
 
   // Acute:Chronic Workload Ratio (ACWR) — standard sports science metric

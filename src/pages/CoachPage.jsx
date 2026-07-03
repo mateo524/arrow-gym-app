@@ -853,7 +853,7 @@ export default function CoachPage() {
                       color: fatigueScore.overreaching ? "var(--danger)" : fatigueScore.pctChange > 0 ? "var(--green)" : "var(--muted)",
                       border: `1px solid ${fatigueScore.overreaching ? "rgba(239,68,68,.25)" : fatigueScore.pctChange > 0 ? "rgba(168,85,247,.2)" : "var(--line)"}`,
                     }}>
-                      {fatigueScore.pctChange > 0 ? "↑" : fatigueScore.pctChange < 0 ? "↓" : "="} {Math.abs(fatigueScore.pctChange)}%
+                      {fatigueScore.pctChange > 0 ? "↑" : fatigueScore.pctChange < 0 ? "↓" : "="} {Math.abs(fatigueScore.pctChange || 0)}%
                     </span>
                   </div>
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
@@ -1457,7 +1457,7 @@ export default function CoachPage() {
               <div>
                 <p style={{ margin:"0 0 3px", fontSize:14, fontWeight:700, color:"var(--text)" }}>Sobrecarga detectada</p>
                 <p style={{ margin:0, fontSize:13, color:"var(--muted)", lineHeight:1.5 }}>
-                  Tu volumen subió un {fatigueScore.pctChange}% de golpe. Riesgo de sobreentrenamiento — priorizá descanso esta semana.
+                  Tu volumen subió un {fatigueScore.pctChange || 0}% de golpe. Riesgo de sobreentrenamiento — priorizá descanso esta semana.
                 </p>
               </div>
             </div>
