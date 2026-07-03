@@ -16,7 +16,6 @@ export default defineConfig({
       registerType: "autoUpdate",
       injectManifest: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
-        cleanupOutdatedCaches: true,
       },
       manifest: false,
       injectRegister: "auto",
