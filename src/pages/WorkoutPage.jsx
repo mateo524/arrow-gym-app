@@ -365,10 +365,9 @@ export default function WorkoutPage() {
 
   function _commitFinish(notes, rpe, summary) {
     clearWorkoutDraft();
+    finish(notes);
     if (summary) {
       setPostSummary({ ...summary, rpe });
-    } else {
-      finish(notes);
     }
   }
 
