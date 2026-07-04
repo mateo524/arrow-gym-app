@@ -89,6 +89,54 @@ export default function HomePage() {
   const nextWorkout = useMemo(() => getNextWorkoutSuggestion(workouts), [workouts]);
   const deload = useMemo(() => getDeloadSuggestion(workouts), [workouts]);
 
+  // Feature 1: Comeback mechanic
+  const comebackDays = useMemo(() => {
+    if (!workouts.length) return null;
+    const lastDate = workouts[0].date?.slice(0, 10);
+    if (!lastDate) return null;
+    const today = todayLocal().slice(0, 10);
+    const diff = Math.floor((new Date(today + "T12:00:00") - new Date(lastDate + "T12:00:00")) / 86400000);
+    return diff >= 5 ? diff : null;
+  }, [workouts]);
+
+  // Feature 3: Monthly volume
+  const monthlyVolume = useMemo(() => {
+    const currentMonth = todayLocal().slice(0, 7);
+    const d = new Date(currentMonth + "-01");
+    d.setMonth(d.getMonth() - 1);
+    const prevMonth = d.toISOString().slice(0, 7);
+    const calcVol = prefix => (workouts || [])
+      .filter(w => (w.date || "").startsWith(prefix))
+      .reduce((s, w) => s + (w.sets || []).reduce((sv, set) => sv + (Number(set.weight) || 0) * (Number(set.reps) || 0), 0), 0);
+    return { current: calcVol(currentMonth), prev: calcVol(prevMonth) };
+  }, [workouts]);
+
+  // Feature 4: Split prediction
+  const nextSplitPrediction = useMemo(() => {
+    if (workouts.length < 3) return null;
+    const normalize = t => {
+      const l = (t || "").toLowerCase();
+      if (/push|pecho|chest|hombro|trícep|tricep/.test(l)) return "Push";
+      if (/pull|espalda|back|bícep|bicep/.test(l)) return "Pull";
+      if (/leg|pierna|cuádric|isquio|sentadilla/.test(l)) return "Legs";
+      if (/upper|superior/.test(l)) return "Upper";
+      if (/lower|inferior/.test(l)) return "Lower";
+      if (/full|completo/.test(l)) return "Full Body";
+      return null;
+    };
+    const cats = workouts.slice(0, 6).map(w => normalize(w.type)).filter(Boolean);
+    if (cats.length < 3) return null;
+    const checkCycle = cycle => {
+      const idx = cycle.indexOf(cats[0]);
+      if (idx === -1) return null;
+      for (let i = 0; i < cats.length; i++) {
+        if (cats[i] !== cycle[(idx - i + cycle.length * 10) % cycle.length]) return null;
+      }
+      return cycle[(idx + 1) % cycle.length];
+    };
+    return checkCycle(["Push", "Pull", "Legs"]) || checkCycle(["Upper", "Lower"]) || null;
+  }, [workouts]);
+
   // Weekly summary — last Mon→Sun
   const monthDays = useMemo(() => {
     const prefix = todayLocal().slice(0,7);
@@ -117,6 +165,13 @@ export default function HomePage() {
       return { key, dayName: DAY_NAMES[d.getDay()], dayNum: d.getDate(), trained: workoutDates.has(key), cardio: cardioDates.has(key) && !workoutDates.has(key), isToday: key === todayStr };
     });
   }, [workouts, cardioHistory]);
+
+  // Feature 2: "Casi llegás" — exactly 1 workout away from weekly goal
+  const almostThere = useMemo(() => {
+    const goal = adaptedWeeklyGoal;
+    const done = weekCalendar.filter(d => d.trained || d.cardio).length;
+    return goal - done === 1;
+  }, [adaptedWeeklyGoal, weekCalendar]);
 
   return (
     <section className="page">
@@ -154,6 +209,19 @@ export default function HomePage() {
         </div>
       ) : (
         <>
+          {/* Feature 1: Comeback mechanic */}
+          {comebackDays !== null && (
+            <div style={{ background: "rgba(96,165,250,.08)", border: "1px solid rgba(96,165,250,.3)", borderRadius: 16, padding: "16px 16px", marginBottom: 14 }}>
+              <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 6 }}>Bienvenido de vuelta 👋</div>
+              <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 12 }}>
+                Llevas <b style={{ color: "var(--text)" }}>{comebackDays} días</b> sin entrenar. Sin presión — empezá con algo corto.
+              </div>
+              <button className="primary" style={{ fontSize: 13, padding: "8px 16px" }} onClick={() => setPage("start")}>
+                Empezar entreno corto
+              </button>
+            </div>
+          )}
+
           {/* ── Top metrics row: racha + objetivo semanal ── */}
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginTop:14, marginBottom:14 }}>
             {/* Racha */}
@@ -219,11 +287,29 @@ export default function HomePage() {
             );
           })()}
 
+          {/* Feature 2: "Casi llegás" */}
+          {almostThere && (
+            <div style={{ background: "rgba(168,85,247,.08)", border: "1px solid rgba(168,85,247,.25)", borderRadius: 14, padding: "10px 14px", marginBottom: 12, display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ fontSize: 20 }}>🎯</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>1 entreno más para completar tu semana</div>
+              </div>
+              <button className="primary" style={{ fontSize: 12, padding: "6px 12px", flexShrink: 0 }} onClick={() => setPage("start")}>
+                Entrenar ahora
+              </button>
+            </div>
+          )}
+
           {/* CTA */}
           <div style={{ marginBottom:14 }}>
             {nextWorkout && (
               <div style={{ fontSize:12, color:"var(--muted)", marginBottom:8 }}>
                 Recomendado hoy: <b style={{ color:"var(--green)" }}>{nextWorkout}</b>
+              </div>
+            )}
+            {nextSplitPrediction && !nextWorkout && (
+              <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 8 }}>
+                Próximo: <b style={{ color: "var(--green)" }}>{nextSplitPrediction}</b>
               </div>
             )}
             {deload && (
@@ -275,6 +361,30 @@ export default function HomePage() {
                     })}
                   </div>
                 </div>
+              </div>
+            );
+          })()}
+
+          {/* Feature 3: Volumen acumulado del mes */}
+          {monthlyVolume.current > 0 && (() => {
+            const vol = monthlyVolume.current;
+            const prev = monthlyVolume.prev;
+            const volStr = vol >= 10000 ? `${(vol / 1000).toFixed(1)} t` : `${vol.toLocaleString("es-AR")} kg`;
+            let comparison = null;
+            if (prev > 0) {
+              const pct = Math.round(((vol - prev) / prev) * 100);
+              comparison = pct >= 0 ? `+${pct}% vs mes pasado` : `${pct}% vs mes pasado`;
+            } else {
+              comparison = "primer mes 🎉";
+            }
+            return (
+              <div style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 16, padding: "14px 16px", marginBottom: 14 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>Volumen del mes</div>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                  <div style={{ fontSize: 28, fontWeight: 900, color: "var(--green)", lineHeight: 1 }}>{volStr}</div>
+                  <div style={{ fontSize: 12, color: "var(--muted)" }}>levantaste este mes</div>
+                </div>
+                <div style={{ fontSize: 12, color: prev > 0 && vol >= prev ? "#34d399" : "var(--muted)", marginTop: 4 }}>{comparison}</div>
               </div>
             );
           })()}
