@@ -869,7 +869,7 @@ export default function CoachPage() {
                   {fatigueScore.overreaching && (
                     <div style={{ marginTop:10, paddingTop:10, borderTop:"1px solid rgba(239,68,68,.2)", display:"flex", gap:8, alignItems:"flex-start" }}>
                       <p style={{ margin:0, fontSize:12, color:"var(--danger)", lineHeight:1.5 }}>
-                        Subida de +{fatigueScore.pctChange}% en una semana. Riesgo de sobreentrenamiento — priorizá sueño y descanso activo.
+                        Subida de +{fatigueScore.pctChange || 0}% en una semana. Riesgo de sobreentrenamiento — priorizá sueño y descanso activo.
                       </p>
                     </div>
                   )}
@@ -1222,7 +1222,7 @@ export default function CoachPage() {
                   insights.push({ icon:ok ? "😴" : "🌙", text:`Sueño: ${sleepAvg}h promedio${ok ? " — óptimo" : " — ideal ≥7h"}`, color:ok ? "var(--green)" : "#f59e0b" });
                 }
                 // Volume trend
-                if (volTrend !== null) {
+                if (volTrend !== null && !isNaN(volTrend)) {
                   const dir = volTrend > 0 ? "↑" : "↓";
                   insights.push({ icon:"📦", text:`Volumen ${dir} ${Math.abs(volTrend)}% vs semana pasada`, color:volTrend > 0 ? "var(--green)" : "var(--muted)" });
                 }
@@ -2918,7 +2918,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
 
       <div style={{ background:"rgba(168,85,247,.06)", border:"1px solid rgba(168,85,247,.2)", borderRadius:12, padding:"12px 16px", marginBottom:16 }}>
         <p style={{ margin:0, fontSize:12, color:"var(--muted)", lineHeight:1.6 }}>
-          {lbm !== null ? `Katch-McArdle · LBM ${Math.round(lbm)}kg (${Math.round(bodyFatPct)}% grasa)` : "Mifflin-St Jeor"} · {weight}kg · {height}cm · {age} años · {sex === "M" ? "Masculino" : "Femenino"}<br/>
+          {lbm !== null ? `Katch-McArdle · LBM ${Math.round(lbm)}kg${bodyFatPct !== null ? ` (${Math.round(bodyFatPct)}% grasa)` : ""}` : "Mifflin-St Jeor"} · {weight}kg · {height}cm · {age} años · {sex === "M" ? "Masculino" : "Femenino"}<br/>
           Para mayor precisión actualizá tu peso en <b>Mediciones</b> regularmente.
         </p>
       </div>
