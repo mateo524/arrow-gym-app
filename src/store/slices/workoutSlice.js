@@ -112,17 +112,21 @@ export const createWorkoutSlice = (set, get) => ({
   },
 
   syncGymStateToDB: async () => {
+    const s = get();
+    const payload = {
+      prs: s.prs || [],
+      achievements: s.achievements || [],
+      savedTemplates: s.savedTemplates || [],
+      weeklyChallenge: s.weeklyChallenge || null,
+      completedPlans: (s.completedPlans || []).slice(0, 50),
+    };
+    if (!navigator.onLine) {
+      s.queueSync?.("gym", payload);
+      return;
+    }
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user?.id) return;
-      const s = get();
-      const payload = {
-        prs: s.prs || [],
-        achievements: s.achievements || [],
-        savedTemplates: s.savedTemplates || [],
-        weeklyChallenge: s.weeklyChallenge || null,
-        completedPlans: (s.completedPlans || []).slice(0, 50),
-      };
       await supabase.from("profiles").update({ gym_data: payload }).eq("id", session.user.id);
     } catch {}
   },

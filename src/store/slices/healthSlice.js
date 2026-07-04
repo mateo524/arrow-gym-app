@@ -45,12 +45,33 @@ async function syncHealthToDB(state) {
 }
 
 let healthSyncQueued = false;
-function queueHealthSync(getState) {
+function queueHealthSync(get) {
   if (healthSyncQueued) return;
   healthSyncQueued = true;
   setTimeout(() => {
     healthSyncQueued = false;
-    syncHealthToDB(getState());
+    const state = get();
+    if (!navigator.onLine) {
+      // Build payload and enqueue for later
+      const payload = {
+        weight_log: state.weightLog || [],
+        meal_log: state.mealLog || [],
+        sleep_log: state.sleepLog || [],
+        water_log: state.waterLog || [],
+        water_goal: state.waterGoal || 8,
+        rest_days: state.restDays || [],
+        cardio_history: state.cardioHistory || [],
+        saved_meal_combos: state.savedMealCombos || [],
+        nutrition_plan: state.nutritionPlan,
+        active_challenges: state.activeChallenges || [],
+        progress_photos: state.progressPhotos || [],
+        competition_date: state.competitionDate,
+        competition_name: state.competitionName,
+      };
+      state.queueSync("health", payload);
+    } else {
+      syncHealthToDB(state);
+    }
   }, 800);
 }
 
@@ -68,6 +89,33 @@ export const createHealthSlice = (set, get) => ({
   competitionDate: null,
   competitionName: "",
   activeChallenges: [],
+  pendingSyncs: [],
+
+  queueSync: (type, payload) => {
+    set(s => ({
+      pendingSyncs: [...(s.pendingSyncs || []), { type, payload, timestamp: Date.now() }].slice(-50),
+    }));
+  },
+
+  flushPendingSyncs: async () => {
+    const pending = get().pendingSyncs || [];
+    if (!pending.length || !navigator.onLine) return;
+    const failed = [];
+    for (const item of pending) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user?.id) { failed.push(item); continue; }
+        if (item.type === "health") {
+          await supabase.from("profiles").update({ health_data: item.payload }).eq("id", session.user.id);
+        } else if (item.type === "gym") {
+          await supabase.from("profiles").update({ gym_data: item.payload }).eq("id", session.user.id);
+        }
+      } catch {
+        failed.push(item);
+      }
+    }
+    set({ pendingSyncs: failed });
+  },
 
   loadHealthFromDB: async () => {
     try {

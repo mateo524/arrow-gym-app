@@ -125,6 +125,7 @@ function AppContent() {
   const [isIOS, setIsIOS] = useState(false);
   const [swUpdateReady, setSwUpdateReady] = useState(false);
   const [draftRecovered, setDraftRecovered] = useState(false);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   const { user, profile, loading, init } = useAuthStore();
   // These three hooks MUST live before any early return to satisfy React Rules of Hooks
@@ -192,6 +193,21 @@ function AppContent() {
     };
     window.addEventListener("online", handleOnline);
     return () => window.removeEventListener("online", handleOnline);
+  }, []);
+
+  // Online/offline banner state + flush pending Zustand syncs on reconnect
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      useStore.getState().flushPendingSyncs?.();
+    };
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
   }, []);
 
   // Show password change modal when redirected from forgot-password email
@@ -386,6 +402,11 @@ function AppContent() {
 
   return (
     <ErrorBoundary resetKey={currentPage}>
+      {!isOnline && (
+        <div style={{ position:"fixed", top:0, left:0, right:0, zIndex:9999, background:"rgba(245,158,11,.9)", color:"#000", fontSize:12, fontWeight:700, textAlign:"center", padding:"6px", backdropFilter:"blur(8px)" }}>
+          Sin conexión — tus datos se guardan localmente
+        </div>
+      )}
       {inner}
 
       {/* ── FIRST LOGIN / PASSWORD RECOVERY MODAL ──────────────────────── */}
