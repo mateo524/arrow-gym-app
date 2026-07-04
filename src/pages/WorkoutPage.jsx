@@ -11,6 +11,7 @@ import VolumeSparkline from "../components/VolumeSparkline.jsx";
 import Icon from "../components/Icon.jsx";
 import ExerciseIllustration from "../components/ExerciseIllustration.jsx";
 import { findExerciseMeta } from "../data/exerciseDatabase.js";
+import ShareWorkoutCard from "../components/ShareWorkoutCard.jsx";
 
 function groupSetsByExercise(sets) {
   const map = new Map();
@@ -339,9 +340,32 @@ export default function WorkoutPage() {
 
   function doFinish(notes, rpe) {
     setShowSummary(false);
-    const summary = getPostWorkoutSummary(active, workouts);
+    const baseSummary = getPostWorkoutSummary(active, workouts);
+    const allSets = (active?.sets || []).filter(s => s.weight && s.reps);
     const exerciseNames = (active?.sets || []).map(s => s.exercise).filter(Boolean);
     const uniqueExercises = [...new Set(exerciseNames)];
+    // Count new PRs the same way summaryData does
+    const seenPR = new Set();
+    let newPRsCount = 0;
+    for (const s of allSets) {
+      const key = s.exercise;
+      if (!seenPR.has(key)) {
+        const prev = (workouts || []).flatMap(w => (w.sets || []).filter(ps => ps.exercise === key && ps.weight && ps.reps));
+        const bestPrev = prev.reduce((m, ps) => Math.max(m, Number(ps.weight) * Number(ps.reps)), 0);
+        if (Number(s.weight) * Number(s.reps) > bestPrev) newPRsCount++;
+        seenPR.add(key);
+      }
+    }
+    const summary = baseSummary
+      ? {
+          ...baseSummary,
+          type:      active?.type  ?? null,
+          date:      active?.date  ?? null,
+          totalSets: allSets.length,
+          exercises: uniqueExercises.length,
+          newPRs:    newPRsCount,
+        }
+      : null;
     pendingFinishRef.current = { notes, rpe, summary };
     const userId = profile?.id || useAuthStore.getState().profile?.id;
     if (!userId || uniqueExercises.length === 0) {
@@ -1155,7 +1179,8 @@ export default function WorkoutPage() {
              postSummary.overallPct < -10 ? "Volumen debajo del promedio — si fue intencional, perfecto." :
              "Sesión dentro de tu promedio. Constancia es la clave."}
           </p>
-          <button className="primary" style={{ width: "100%" }} onClick={() => {
+          <ShareWorkoutCard summary={postSummary} />
+          <button className="primary" style={{ width: "100%", marginTop: 10 }} onClick={() => {
             const { notes } = pendingFinishRef.current || {};
             setPostSummary(null);
             finish(notes);
