@@ -3029,23 +3029,23 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
             rir:"1-3 RIR. Alta proteína (3.1g/kg LBM, Helms 2014) es lo más crítico para preservar músculo en déficit.",
             overload:"Mantené las cargas o intentá progresar — la pérdida de fuerza en déficit indica pérdida muscular.",
             freq:"Mantené o aumentá frecuencia para preservar músculo. Cardio adicional va separado del pesas o post-entreno." },
-          resistencia:  { icon:"⚡", color:"#34d399", label:"Resistencia",
-            reps:"15-25 reps con carga moderada.",
-            rest:"30-60 s para mantener densidad metabólica alta.",
-            exercises:"Circuitos y supersets aumentan el gasto calórico y la capacidad cardiovascular.",
-            rir:"Podés llegar más cerca del fallo muscular en series largas — la fatiga sistémica es menor.",
-            overload:"Progresión por densidad: más trabajo en el mismo tiempo, o menor descanso manteniendo volumen.",
-            freq:"Alta frecuencia (3-4x/semana por grupo) con cargas bajas — la recuperación es más rápida." },
-          mantenimiento: { icon:"⚖️", color:"#94a3b8", label:"Mantenimiento",
-            reps:"8-12 reps (rango clásico hipertrofia/fuerza mixto).",
+          rendimiento:  { icon:"⚡", color:"#34d399", label:"Fuerza",
+            reps:"2-6 reps al 80-95% 1RM. Series pesadas con técnica impecable.",
+            rest:"3-5 min entre series — la recuperación completa del fosfágeno es clave para fuerza máxima.",
+            exercises:"Priorizá los Big 4: sentadilla, press banca, peso muerto, press militar. Aislamiento secundario.",
+            rir:"0-2 RIR en los trabajos principales. Dejá más RIR en ejercicios auxiliares para no acumular fatiga.",
+            overload:"Progresión lineal o por bloques (ondulada). Subí peso apenas completás todas las series en el tope del rango.",
+            freq:"2-3x/semana por patrón de movimiento. Necesitás frecuencia para práctica del gesto técnico." },
+          mantenimiento: { icon:"⚖️", color:"#94a3b8", label:"Salud general",
+            reps:"8-15 reps (rango versátil, bajo estrés articular, buena respuesta hipertrófica).",
             rest:"60-90 s.",
             exercises:"Balance entre compuestos e isolation. Priorizá los ejercicios donde tenés más margen de progresión.",
             rir:"1-3 RIR — entrenamiento productivo sin acumular fatiga innecesaria.",
             overload:"Si no podés progresar en reps ni peso por 3+ sesiones consecutivas → revisá sueño, calorías o agregá deload.",
-            freq:"2x/semana por grupo muscular. Revisar deload cada 4-8 semanas (encuesta 2024: cada 5.6±2.3 semanas)." },
+            freq:"2x/semana por grupo muscular. Revisar deload cada 4-8 semanas." },
         };
-        const key = Object.keys(gMap).find(k => (userGoal||"mantenimiento").toLowerCase().includes(k)) || "mantenimiento";
-        const g = gMap[key];
+        const key = (userGoal || "mantenimiento").toLowerCase();
+        const g = gMap[key] || gMap.mantenimiento;
         return (
           <div style={{ background:"var(--panel)", borderRadius:16, padding:"16px", marginBottom:12 }}>
             <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12 }}>
