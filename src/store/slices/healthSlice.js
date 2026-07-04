@@ -96,7 +96,9 @@ export const createHealthSlice = (set, get) => ({
   },
 
   logWeight: (kg) => {
-    const entry = { date: today(), kg: Number(kg) };
+    const parsed = Number(String(kg || "").replace(/,/g, "."));
+    if (!parsed || isNaN(parsed)) return;
+    const entry = { date: today(), kg: parsed };
     set((s) => ({
       weightLog: [entry, ...(s.weightLog || []).filter((e) => e.date !== entry.date)].slice(0, 90),
     }));

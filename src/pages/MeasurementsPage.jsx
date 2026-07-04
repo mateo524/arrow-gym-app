@@ -79,31 +79,32 @@ function WeightSparkline({ data }) {
 
 function WeightChart({ data }) {
   if (!data || data.length < 2) return null;
-  const pts = [...data].reverse().slice(-30); // last 30 entries, chronological
+  const pts = [...data].reverse().slice(-30).filter(p => Number(p.kg) > 0);
+  if (pts.length < 2) return null;
   const vals = pts.map(p => Number(p.kg));
-  const min = Math.floor(Math.min(...vals) - 1);
-  const max = Math.ceil(Math.max(...vals) + 1);
+  const minVal = Math.min(...vals);
+  const maxVal = Math.max(...vals);
+  const min = Math.floor(minVal - 1);
+  const max = Math.ceil(maxVal + 1);
   const range = max - min || 1;
   const W = 300, H = 120, PAD = { l: 36, r: 8, t: 8, b: 28 };
   const iW = W - PAD.l - PAD.r;
   const iH = H - PAD.t - PAD.b;
 
-  const cx = (i) => PAD.l + (i / (pts.length - 1)) * iW;
+  const cx = (i) => PAD.l + (pts.length > 1 ? (i / (pts.length - 1)) * iW : iW / 2);
   const cy = (v) => PAD.t + iH - ((v - min) / range) * iH;
 
-  const linePoints = pts.map((p, i) => `${cx(i)},${cy(p.kg)}`).join(" ");
+  const linePoints = pts.map((p, i) => `${cx(i)},${cy(Number(p.kg))}`).join(" ");
   const areaPoints = `${cx(0)},${PAD.t + iH} ${linePoints} ${cx(pts.length-1)},${PAD.t + iH}`;
 
-  // Y axis ticks
   const yTicks = [min, min + Math.round(range/2), max];
-  // X axis labels: first, middle, last
   const xLabels = [0, Math.floor((pts.length-1)/2), pts.length-1].map(i => ({
     x: cx(i), label: pts[i]?.date?.slice(5) || "",
   }));
 
   const latest = vals[vals.length - 1];
   const oldest = vals[0];
-  const diff = latest - oldest;
+  const diff = isNaN(latest - oldest) ? 0 : latest - oldest;
 
   return (
     <div style={{ marginTop: 12 }}>
