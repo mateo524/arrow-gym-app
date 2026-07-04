@@ -3,7 +3,7 @@ import useStore from "../store/useStore.js";
 import useAuthStore from "../store/useAuthStore.js";
 import Icon from "../components/Icon.jsx";
 import { shareWorkout } from "../lib/shareWorkout.js";
-import { buildCoachReport, formatDate, getPeriodizationPhase, getWeeklyFatigueScore, getWeightPrescriptions, getSkippedGroups, getOneRMHistory, getCycleComparison, getMuscleBalance, getWeekComparison, getWorkoutVolume, VOLUME_LANDMARKS } from "../lib/analytics.js";
+import { buildCoachReport, formatDate, getPeriodizationPhase, getWeeklyFatigueScore, getWeightPrescriptions, getSkippedGroups, getOneRMHistory, getCycleComparison, getMuscleBalance, getWeekComparison, getWorkoutVolume, VOLUME_LANDMARKS, getStagnantExercises, getWeeklyActionableFeedback } from "../lib/analytics.js";
 function MuscleRadarChart({ data }) {
   const cx = 95, cy = 95, r = 62;
   const n = data.length;
@@ -431,6 +431,12 @@ export default function CoachPage() {
     });
     return alerts;
   }, [workouts]);
+
+  // ── Stagnant exercises ───────────────────────────────────────────────────────
+  const stagnantExercises = useMemo(() => getStagnantExercises(workouts), [workouts]);
+
+  // ── Weekly actionable feedback ───────────────────────────────────────────────
+  const weeklyFeedback = useMemo(() => getWeeklyActionableFeedback(workouts), [workouts]);
 
   // ── Readiness score ──────────────────────────────────────────────────────────
   const readiness = useMemo(() => {
@@ -1479,6 +1485,42 @@ export default function CoachPage() {
                   {alert.type === "stall" ? "Estancamiento de peso" : alert.type === "volume" ? "Caída de volumen" : alert.type === "rest" ? "Sin días de descanso" : alert.type === "neglect" ? "Piernas abandonadas" : alert.type === "frequency" ? "Frecuencia baja" : alert.type === "bodyfat_high" ? "% Grasa elevado" : alert.type === "bodyfat_low" ? "% Grasa muy bajo" : "Desbalance muscular"}
                 </p>
                 <p style={{ margin:0, fontSize:13, color:"var(--muted)", lineHeight:1.5 }}>{alert.msg}</p>
+              </div>
+            </div>
+          ))}
+
+          {/* Stagnant exercise cards */}
+          {stagnantExercises.map((item, i) => (
+            <div key={i} style={{
+              display:"flex", gap:10, alignItems:"flex-start",
+              background:"rgba(245,158,11,.08)",
+              border:"1px solid rgba(245,158,11,.3)",
+              borderRadius:14, padding:"14px 16px", marginBottom:10
+            }}>
+              <span style={{ fontSize:20, flexShrink:0 }}>🔁</span>
+              <div>
+                <p style={{ margin:"0 0 3px", fontSize:14, fontWeight:700, color:"var(--text)" }}>
+                  Estancamiento: {item.exercise}
+                </p>
+                <p style={{ margin:"0 0 4px", fontSize:12, color:"var(--muted)" }}>
+                  {item.weeks} semana{item.weeks !== 1 ? "s" : ""} sin progreso · Mejor peso: {item.bestWeight}kg · Volumen prom: {item.avgVolume}kg
+                </p>
+                <p style={{ margin:0, fontSize:13, color:"var(--muted)", lineHeight:1.5 }}>{item.suggestion}</p>
+              </div>
+            </div>
+          ))}
+
+          {/* Weekly actionable feedback */}
+          {weeklyFeedback.map((msg, i) => (
+            <div key={i} style={{
+              display:"flex", gap:10, alignItems:"flex-start",
+              background:"rgba(168,85,247,.07)",
+              border:"1px solid rgba(168,85,247,.25)",
+              borderRadius:14, padding:"14px 16px", marginBottom:10
+            }}>
+              <span style={{ fontSize:20, flexShrink:0 }}>⚡</span>
+              <div>
+                <p style={{ margin:0, fontSize:13, color:"var(--muted)", lineHeight:1.5 }}>{msg}</p>
               </div>
             </div>
           ))}

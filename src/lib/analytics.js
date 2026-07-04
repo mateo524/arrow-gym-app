@@ -1362,6 +1362,175 @@ export function getWeekComparison(workouts) {
 }
 
 /**
+ * Detects exercises stagnant in both max weight AND volume for the last 3 weeks
+ * compared to the 2 weeks prior (requires at least 3 sessions in the last 5 weeks).
+ * Returns array of { exercise, weeks, bestWeight, avgVolume, suggestion }.
+ */
+export function getStagnantExercises(workouts) {
+  if (!workouts || workouts.length < 3) return [];
+
+  const now = Date.now();
+  const msWeek = 7 * 86400000;
+
+  // Bucket workouts into weeks: 0 = most recent week, 4 = oldest
+  const getWeekBucket = (dateStr) => {
+    const t = parseDate(dateStr).getTime();
+    for (let w = 0; w < 5; w++) {
+      const start = now - (w + 1) * msWeek;
+      const end   = now - w * msWeek;
+      if (t >= start && t < end) return w; // 0 = current, 4 = oldest
+    }
+    return null;
+  };
+
+  // Collect per-exercise data grouped by week bucket
+  const exerciseWeeks = {}; // exercise -> { [weekBucket]: [sets] }
+  workouts.forEach(w => {
+    const bucket = getWeekBucket(w.date);
+    if (bucket === null) return;
+    (w.sets || []).filter(hasData).forEach(s => {
+      if (!exerciseWeeks[s.exercise]) exerciseWeeks[s.exercise] = {};
+      if (!exerciseWeeks[s.exercise][bucket]) exerciseWeeks[s.exercise][bucket] = [];
+      exerciseWeeks[s.exercise][bucket].push(s);
+    });
+  });
+
+  const result = [];
+
+  Object.entries(exerciseWeeks).forEach(([exercise, byBucket]) => {
+    const buckets = Object.keys(byBucket).map(Number);
+    // Need at least 3 sessions total across the 5 weeks
+    const totalSessions = buckets.length;
+    if (totalSessions < 3) return;
+
+    // Recent = buckets 0,1,2 (last 3 weeks); prior = buckets 3,4 (2 weeks before)
+    const recentBuckets = buckets.filter(b => b <= 2);
+    const priorBuckets  = buckets.filter(b => b >= 3);
+
+    if (recentBuckets.length < 1 || priorBuckets.length < 1) return;
+
+    const setsByBucket = (bs) => bs.flatMap(b => byBucket[b] || []);
+
+    const recentSets = setsByBucket(recentBuckets);
+    const priorSets  = setsByBucket(priorBuckets);
+
+    if (!recentSets.length || !priorSets.length) return;
+
+    const maxWeight = (sets) => Math.max(...sets.map(s => Number(s.weight) || 0));
+    const totalVol  = (sets) => sets.reduce((sum, s) => sum + (Number(s.weight) || 0) * (Number(s.reps) || 0), 0);
+
+    const recentMaxWeight = maxWeight(recentSets);
+    const priorMaxWeight  = maxWeight(priorSets);
+    const recentVol = totalVol(recentSets);
+    const priorVol  = totalVol(priorSets);
+
+    // Stagnant = no improvement in weight AND no improvement in volume (within 2%)
+    const weightStagnant = recentMaxWeight <= priorMaxWeight * 1.02;
+    const volStagnant    = recentVol <= priorVol * 1.02;
+    if (!weightStagnant || !volStagnant) return;
+
+    // Typical reps = average across recent sets
+    const avgReps = recentSets.reduce((sum, s) => sum + (Number(s.reps) || 0), 0) / recentSets.length;
+    const avgVolume = Math.round(recentVol / recentBuckets.length);
+
+    // Build suggestion
+    let suggestion;
+    if (avgReps < 8) {
+      suggestion = "Probá 3×10-12 reps con menos peso para acumular más volumen";
+    } else if (avgReps <= 12) {
+      suggestion = "Subí la intensidad: 4×6 con más carga";
+    } else {
+      suggestion = "Agregá carga y bajá a 8-10 reps";
+    }
+
+    // Append exercise variant suggestion
+    const lc = exercise.toLowerCase();
+    let variant = "";
+    if (/press banca|bench press/.test(lc))       variant = "Press banca inclinado o con mancuernas";
+    else if (/sentadilla|squat/.test(lc))          variant = "Sentadilla búlgara o hack squat";
+    else if (/peso muerto|deadlift/.test(lc))      variant = "Peso muerto rumano o sumo";
+    else if (/remo|row/.test(lc))                  variant = "Remo con mancuerna o en máquina";
+    else if (/jalón|lat pulldown/.test(lc))        variant = "Dominadas o jalón en polea baja";
+    else if (/curl|bicep/.test(lc))                variant = "Curl martillo o curl en banco inclinado";
+    else if (/extensión|tricep|press francés/.test(lc)) variant = "Fondos o extensión en polea";
+    else if (/press hombro|shoulder press|press militar/.test(lc)) variant = "Press Arnold o press con mancuernas sentado";
+    else if (/elevación|lateral raise/.test(lc))   variant = "Elevación con cable o mancuerna inclinada";
+    else if (/hip thrust/.test(lc))                variant = "Peso muerto de pierna recta o extensión de glúteo";
+    else variant = `${exercise} con variante de agarre o equipamiento diferente`;
+
+    suggestion += `. Variante sugerida: ${variant}`;
+
+    result.push({
+      exercise,
+      weeks: recentBuckets.length,
+      bestWeight: recentMaxWeight,
+      avgVolume,
+      suggestion,
+    });
+  });
+
+  return result;
+}
+
+/**
+ * Analyzes the current week (Monday to today) and returns up to 3 actionable
+ * feedback strings, ordered by impact.
+ */
+export function getWeeklyActionableFeedback(workouts) {
+  if (!workouts || !workouts.length) return [];
+
+  const weekStart = getStartOfWeek().getTime();
+  const thisWeek = workouts.filter(w => parseDate(w.date).getTime() >= weekStart);
+
+  const feedback = [];
+
+  // 1. Leg frequency
+  const LEGS_KEYWORDS = /pierna|leg|sentadilla|squat|peso muerto|deadlift|hip thrust|zancada|lunge|estocada|step.up|extensión de cuádriceps|curl femoral/i;
+  const legDays = thisWeek.filter(w =>
+    (w.type && /leg|pierna/i.test(w.type)) ||
+    (w.sets || []).some(s => LEGS_KEYWORDS.test(s.exercise))
+  ).length;
+  if (legDays === 1) {
+    feedback.push({ impact: 1, msg: "Entrenaste piernas solo 1 vez esta semana — agregá una sesión para mayor frecuencia" });
+  } else if (legDays === 0 && thisWeek.length >= 3) {
+    feedback.push({ impact: 1, msg: "No entrenaste piernas esta semana — es el grupo muscular más grande y el que más contribuye al metabolismo" });
+  }
+
+  // 2. Rest days
+  const uniqueDays = new Set(thisWeek.map(w => w.date)).size;
+  const daysSinceMonday = Math.floor((Date.now() - weekStart) / 86400000);
+  if (daysSinceMonday >= 3 && uniqueDays >= daysSinceMonday) {
+    feedback.push({ impact: 2, msg: "Sin día de descanso esta semana — el músculo crece en recuperación" });
+  }
+
+  // 3. Compound exercises
+  const COMPOUND_RE = /sentadilla|squat|peso muerto|deadlift|press|remo|row|jalón|pull.up|chin.up|dominada|hip thrust|lunge|zancada|estocada|step.up/i;
+  const allSets = thisWeek.flatMap(w => (w.sets || []).filter(hasData));
+  const compoundSets = allSets.filter(s => COMPOUND_RE.test(s.exercise)).length;
+  if (allSets.length >= 6 && compoundSets < 3) {
+    feedback.push({ impact: 3, msg: `Solo ${compoundSets} ejercicio${compoundSets === 1 ? "" : "s"} compuesto${compoundSets === 1 ? "" : "s"} esta semana — agregá sentadilla, press o remo para más estímulo` });
+  }
+
+  // 4. Low overall volume this week vs last week
+  const lastWeekStart = weekStart - 7 * 86400000;
+  const lastWeek = workouts.filter(w => {
+    const t = parseDate(w.date).getTime();
+    return t >= lastWeekStart && t < weekStart;
+  });
+  const thisVol = thisWeek.reduce((s, w) => s + (w.sets || []).filter(hasData).reduce((v, set) => v + (Number(set.weight) || 0) * (Number(set.reps) || 0), 0), 0);
+  const lastVol = lastWeek.reduce((s, w) => s + (w.sets || []).filter(hasData).reduce((v, set) => v + (Number(set.weight) || 0) * (Number(set.reps) || 0), 0), 0);
+  if (lastVol > 0 && thisVol < lastVol * 0.6 && thisWeek.length > 0) {
+    feedback.push({ impact: 4, msg: `Volumen esta semana muy por debajo de la semana anterior (${Math.round(thisVol/1000)}k vs ${Math.round(lastVol/1000)}k kg) — aún hay margen para agregar intensidad` });
+  }
+
+  // Sort by impact (lower = higher priority) and return top 3
+  return feedback
+    .sort((a, b) => a.impact - b.impact)
+    .slice(0, 3)
+    .map(f => f.msg);
+}
+
+/**
  * Looks at workouts from last N days. For each muscle group in VOLUME_LANDMARKS,
  * computes total sets. Returns { groupName: { sets, status } }.
  * status: "overtrained" | "optimal" | "undertrained" | "untouched"
