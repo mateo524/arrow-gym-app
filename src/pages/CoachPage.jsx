@@ -2905,6 +2905,19 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
             </button>
           ))}
         </div>
+        {(userGoal === "volumen" || userGoal === "definicion") && (
+          <div style={{
+            background: userGoal === "volumen" ? "rgba(168,85,247,.08)" : "rgba(239,68,68,.08)",
+            border: `1px solid ${userGoal === "volumen" ? "rgba(168,85,247,.3)" : "rgba(239,68,68,.3)"}`,
+            borderRadius: 10, padding: "10px 12px", marginBottom: 14,
+          }}>
+            <p style={{ margin: 0, fontSize: 12, color: userGoal === "volumen" ? "#c084fc" : "#f87171", lineHeight: 1.5 }}>
+              {userGoal === "volumen"
+                ? `Con superávit de +${surplusTarget} kcal. Ajustá tu actividad según tus días de entreno.`
+                : `Con déficit de -${deficitTarget} kcal. Mayor actividad = más calorías permitidas.`}
+            </p>
+          </div>
+        )}
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
           <div style={{ background:"var(--panel2)", borderRadius:12, padding:"12px", textAlign:"center" }}>
             <div style={{ fontSize:10, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em" }}>TDEE (mantenimiento)</div>
