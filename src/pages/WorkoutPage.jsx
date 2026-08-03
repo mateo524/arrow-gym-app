@@ -134,7 +134,7 @@ export default function WorkoutPage() {
   const latestBodyWeight = useMemo(() => {
     if (!weightLog.length) return 0;
     const sorted = [...weightLog].sort((a,b) => (b.date||"") > (a.date||"") ? 1 : -1);
-    return Number(sorted[0]?.weight || 0);
+    return Number(sorted[0]?.kg || 0);
   }, [weightLog]);
   const profile = useAuthStore((state) => state.profile);
   const prs = useStore(s => s.prs) || [];
@@ -396,9 +396,11 @@ export default function WorkoutPage() {
 
   function _commitFinish(notes, rpe, summary) {
     clearWorkoutDraft();
-    finish(notes);
     if (summary) {
+      // Show post-workout coach summary first; the "Listo" button will call finish()
       setPostSummary({ ...summary, rpe });
+    } else {
+      finish(notes);
     }
   }
 
@@ -1160,9 +1162,9 @@ export default function WorkoutPage() {
                 : `Volumen total: ${postSummary.thisVol}kg`}
             </p>
           </div>
-          {postSummary.volumeChanges.length > 0 && (
+          {(postSummary.volumeChanges || []).length > 0 && (
             <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
-              {postSummary.volumeChanges.map(({ group, pct }) => (
+              {(postSummary.volumeChanges || []).map(({ group, pct }) => (
                 <div key={group} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "var(--panel2)", borderRadius: 10, padding: "8px 12px" }}>
                   <span style={{ fontSize: 13, fontWeight: 600 }}>{group}</span>
                   <span style={{ fontSize: 13, fontWeight: 700, color: pct > 5 ? "var(--green)" : pct < -5 ? "var(--danger)" : "var(--muted)" }}>
