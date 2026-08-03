@@ -96,9 +96,12 @@ export default function CoachPage() {
     generateWeeklyChallenge();
   }, [workouts.length]);
 
-  const computed = reports.length ? reports : workouts.slice(0, 12).flatMap((workout) => {
-    try { return [buildCoachReport(workout, workouts)]; } catch { return []; }
-  });
+  const computed = useMemo(
+    () => reports.length ? reports : workouts.slice(0, 12).flatMap((workout) => {
+      try { return [buildCoachReport(workout, workouts)]; } catch { return []; }
+    }),
+    [reports, workouts]
+  );
   const latest = computed[0];
   const latestPrs = latest ? prs.filter((p) => p.date === latest.date) : [];
 
@@ -241,7 +244,7 @@ export default function CoachPage() {
     }
 
     return alerts;
-  }, [workouts, bodyFatPct]);
+  }, [workouts, bodyFatPct, profile]);
 
   const periodization = useMemo(() => getPeriodizationPhase(workouts), [workouts]);
   const fatigueScore  = useMemo(() => getWeeklyFatigueScore(workouts), [workouts]);

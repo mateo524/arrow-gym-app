@@ -88,6 +88,7 @@ export const createWorkoutSlice = (set, get) => ({
   weeklyChallenge: null,
   activePlanAdjustment: null,
   completedPlans: [],
+  progressionTargets: {},
 
   getExerciseStats: (exercise) => getExerciseStats(get().workouts, exercise),
 
@@ -139,13 +140,25 @@ export const createWorkoutSlice = (set, get) => ({
       if (!data?.gym_data) return;
       const gd = data.gym_data;
       const local = get();
-      // Merge: keep local if it has more items (local-first)
+      // Merge arrays that have unique ids by most-recent updatedAt (local-first on tie)
+      function mergeByUpdatedAt(localArr = [], remoteArr = []) {
+        const map = new Map();
+        [...remoteArr, ...localArr].forEach(item => {
+          const existing = map.get(item.id);
+          if (!existing || (item.updatedAt || 0) > (existing.updatedAt || 0)) {
+            map.set(item.id, item);
+          }
+        });
+        return Array.from(map.values());
+      }
+      // prs and achievements lack a reliable unique id — fall back to longest array
       const mergedPrs = (local.prs?.length || 0) >= (gd.prs?.length || 0) ? local.prs : gd.prs;
+      const mergedAchievements = (gd.achievements?.length || 0) > (local.achievements?.length || 0) ? gd.achievements : local.achievements;
       set({
         prs: mergedPrs || [],
-        achievements: gd.achievements?.length > (local.achievements?.length || 0) ? gd.achievements : local.achievements,
-        savedTemplates: gd.savedTemplates?.length > (local.savedTemplates?.length || 0) ? gd.savedTemplates : local.savedTemplates,
-        completedPlans: gd.completedPlans?.length > (local.completedPlans?.length || 0) ? gd.completedPlans : local.completedPlans,
+        achievements: mergedAchievements || [],
+        savedTemplates: mergeByUpdatedAt(local.savedTemplates, gd.savedTemplates),
+        completedPlans: mergeByUpdatedAt(local.completedPlans, gd.completedPlans),
       });
     } catch {}
   },
@@ -293,6 +306,7 @@ export const createWorkoutSlice = (set, get) => ({
     const durationMin = active.startedAt ? Math.max(1, Math.round((Date.now() - active.startedAt) / 60000)) : 45;
     const clean = {
       ...active,
+      startedAt: active.startedAt || (Date.now() - (durationMin * 60000)),
       durationMin,
       notes: notes || "",
       sets: active.sets
@@ -509,6 +523,10 @@ export const createWorkoutSlice = (set, get) => ({
     const pick = CHALLENGES[Math.floor(Math.random() * CHALLENGES.length)];
     set({ weeklyChallenge: { ...pick, isoWeek: null } });
   },
+
+  setProgressionTarget: (exerciseId, targetWeight) => set((s) => ({
+    progressionTargets: { ...(s.progressionTargets || {}), [exerciseId]: targetWeight },
+  })),
 
   repeatLastWorkout: () => {
     const state = get();

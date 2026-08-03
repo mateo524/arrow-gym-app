@@ -1,6 +1,6 @@
 import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
 import { registerRoute, NavigationRoute } from 'workbox-routing';
-import { NetworkFirst } from 'workbox-strategies';
+import { StaleWhileRevalidate } from 'workbox-strategies';
 
 cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST);
@@ -8,7 +8,7 @@ precacheAndRoute(self.__WB_MANIFEST);
 // SPA fallback
 registerRoute(
   new NavigationRoute(
-    new NetworkFirst({ networkTimeoutSeconds: 3, cacheName: 'navigation' }),
+    new StaleWhileRevalidate({ cacheName: 'navigation' }),
     { denylist: [/^\/api\//] }
   )
 );
@@ -52,8 +52,28 @@ self.addEventListener('notificationclick', event => {
   event.notification.close();
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
-      for (const c of list) if (c.focus) return c.focus();
-      if (clients.openWindow) return clients.openWindow('/');
+      for (const c of list) {
+        if (c.url.includes(self.location.origin) && 'focus' in c) return c.focus();
+      }
+      return clients.openWindow(event.notification.data?.url || '/');
+    })
+  );
+});
+
+// ── Web Push handler (background / locked screen) ──────────────────────────
+// El servidor (Supabase Edge Function) envía el push; el browser push service
+// (FCM / APNs) reactiva este SW aunque esté muerto.
+self.addEventListener('push', event => {
+  const data = event.data?.json() ?? {};
+  event.waitUntil(
+    self.registration.showNotification(data.title || 'Loop', {
+      body: data.body || 'Es hora de la próxima serie',
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
+      tag: data.tag || 'loop-notification',
+      renotify: true,
+      vibrate: [200, 100, 200],
+      data: { url: data.url || '/' }
     })
   );
 });

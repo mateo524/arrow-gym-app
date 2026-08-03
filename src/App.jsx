@@ -390,7 +390,7 @@ function AppContent() {
           </div>
         )}
         <main className="app-main">
-          <Suspense fallback={<div style={{ display:"flex", alignItems:"center", justifyContent:"center", minHeight:"60vh" }}><div className="spin" style={{ width:32, height:32, border:"3px solid var(--line)", borderTopColor:"var(--green)", borderRadius:"50%" }} /></div>}>
+          <Suspense fallback={<div style={{ display:"flex", alignItems:"center", justifyContent:"center", minHeight:"60vh", color:"var(--text-muted)" }}>Cargando...</div>}>
             <PageComponent />
           </Suspense>
         </main>

@@ -3,24 +3,12 @@ import { useShallow } from "zustand/react/shallow";
 import useStore from "../store/useStore.js";
 import useAuthStore from "../store/useAuthStore.js";
 import { todayLocal } from "../lib/dates.js";
-import { getWorkoutVolume, formatDate, getMuscleIntensity, filterCurrentWeek, getNextWorkoutSuggestion, getDeloadSuggestion } from "../lib/analytics.js";
+import { getWorkoutVolume, formatDate, getMuscleIntensity, filterCurrentWeek, getNextWorkoutSuggestion, getDeloadSuggestion, ACHIEVEMENTS_DEF } from "../lib/analytics.js";
 import AdvancedMuscleDiagram from "../components/AdvancedMuscleDiagram.jsx";
 import Icon from "../components/Icon.jsx";
 
-const ACH_DEFS = {
-  first_workout: { label: "Primera vez", icon: "🏋️" },
-  workouts_10: { label: "10 entrenos", icon: "💪" },
-  workouts_25: { label: "25 entrenos", icon: "🔥" },
-  workouts_50: { label: "50 entrenos", icon: "⚡" },
-  workouts_100: { label: "100 entrenos", icon: "🏆" },
-  first_pr: { label: "Primer récord", icon: "🥇" },
-  prs_10: { label: "10 récords", icon: "🎯" },
-  streak_3: { label: "Racha 3 días", icon: "🔥" },
-  streak_7: { label: "Semana completa", icon: "🌟" },
-};
-
 export default function HomePage() {
-  const { workouts, restDays, setPage, activeWorkout, achievements, prs, cardioHistory, weeklyGoal } = useStore(
+  const { workouts, restDays, setPage, activeWorkout, achievements, prs, cardioHistory, weeklyGoal, logRestDay } = useStore(
     useShallow(s => ({
       workouts: s.workouts,
       restDays: s.restDays || [],
@@ -30,10 +18,12 @@ export default function HomePage() {
       prs: s.prs || [],
       cardioHistory: s.cardioHistory || [],
       weeklyGoal: s.weeklyGoal || 4,
+      logRestDay: s.logRestDay,
     }))
   );
   const profile = useAuthStore((s) => s.profile);
   const [activeMuscle, setActiveMuscle] = useState(null);
+  const achMap = useMemo(() => new Map(ACHIEVEMENTS_DEF.map(d => [d.id, d])), []);
   const last = workouts[0];
   const totalSets = workouts.reduce((sum, w) => sum + (w.sets?.length || 0), 0);
   const intensity = useMemo(() => {
@@ -211,13 +201,20 @@ export default function HomePage() {
         <>
           {/* Feature 1: Comeback mechanic */}
           {comebackDays !== null && (
-            <div style={{ background: "rgba(96,165,250,.08)", border: "1px solid rgba(96,165,250,.3)", borderRadius: 16, padding: "16px 16px", marginBottom: 14 }}>
-              <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 6 }}>Bienvenido de vuelta 👋</div>
+            <div style={{ background: "rgba(239,68,68,.07)", border: "1px solid rgba(239,68,68,.3)", borderRadius: 16, padding: "16px 16px", marginBottom: 14 }}>
+              <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 6 }}>
+                {comebackDays >= 7 ? "⚠️ Tu progreso está en riesgo" : comebackDays >= 4 ? "⏰ La adaptación muscular se frena" : "🔥 Tu racha te espera"}
+              </div>
               <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 12 }}>
-                Llevas <b style={{ color: "var(--text)" }}>{comebackDays} días</b> sin entrenar. Sin presión — empezá con algo corto.
+                {comebackDays >= 7
+                  ? <><b style={{ color: "var(--text)" }}>{comebackDays} días</b> inactivo. Tu progreso está en riesgo — una sesión hoy detiene el retroceso.</>
+                  : comebackDays >= 4
+                  ? <><b style={{ color: "var(--text)" }}>{comebackDays} días</b> sin entrenar. La masa muscular empieza a perder adaptación después de 5-7 días.</>
+                  : <><b style={{ color: "var(--text)" }}>{comebackDays} días</b> sin entrenar. Tu racha espera — hoy la reiniciás.</>
+                }
               </div>
               <button className="primary" style={{ fontSize: 13, padding: "8px 16px" }} onClick={() => setPage("start")}>
-                Empezar entreno corto
+                Entrenar ahora
               </button>
             </div>
           )}
@@ -228,21 +225,36 @@ export default function HomePage() {
             {(() => {
               const isMilestone = streak > 0 && [3,7,14,21,30,60,90,100,365].includes(streak);
               const milestoneMsg = streak >= 365 ? "¡Leyenda! 🐐" : streak >= 100 ? "¡Centenario! 💎" : streak >= 60 ? "¡Imparable!" : streak >= 30 ? "¡Un mes! 🥇" : streak >= 21 ? "¡3 semanas!" : streak >= 14 ? "¡2 semanas!" : streak >= 7 ? "¡Una semana!" : "¡3 días! 💪";
+              const todayStr2 = new Date().toISOString().slice(0,10);
+              const isRestToday = (restDays || []).some(r => r.date === todayStr2);
               return (
-                <div style={{ background: isMilestone ? "linear-gradient(135deg,rgba(245,158,11,.18),rgba(251,191,36,.08))" : "var(--panel)", border: isMilestone ? "1px solid rgba(245,158,11,.4)" : "1px solid var(--line)", borderRadius:16, padding:"14px 12px", display:"flex", alignItems:"center", gap:10, position:"relative", overflow:"hidden" }}>
+                <div style={{ background: isMilestone ? "linear-gradient(135deg,rgba(245,158,11,.18),rgba(251,191,36,.08))" : "var(--panel)", border: isMilestone ? "1px solid rgba(245,158,11,.4)" : "1px solid var(--line)", borderRadius:16, padding:"12px 12px 10px", display:"flex", flexDirection:"column", gap:6, position:"relative", overflow:"hidden" }}>
                   {isMilestone && <div style={{ position:"absolute", inset:0, background:"radial-gradient(circle at 30% 50%, rgba(245,158,11,.08), transparent 70%)", pointerEvents:"none" }} />}
-                  <span style={{ display:"flex", alignItems:"center", animation: isMilestone ? "pulse 1s ease-in-out 3" : "none" }}>
-                    {streak === 0
-                      ? <svg width={streak>=7?30:24} height={streak>=7?30:24} viewBox="0 0 24 24" fill="none"><path d="M12 3C10 7 8 9 8 12a4 4 0 0 0 8 0c0-3-2-5-4-9z" fill="#60a5fa" opacity=".5"/><path d="M9 16.5V19a3 3 0 0 0 6 0v-2.5" stroke="#60a5fa" strokeWidth="1.5" strokeLinecap="round"/></svg>
-                      : <svg width={streak>=7?30:24} height={streak>=7?30:24} viewBox="0 0 24 24" fill="none"><path d="M12 2C9 7 6 10 6 14a6 6 0 0 0 12 0c0-4-3-7-6-12z" fill={streak>=30?"#ef4444":streak>=7?"#f97316":"#f59e0b"}/><path d="M10 16c0 2 1 3 2 3s2-1 2-3c0-1.5-1-2.5-2-4-1 1.5-2 2.5-2 4z" fill="#fef08a"/></svg>
-                    }
-                  </span>
-                  <div>
-                    <div style={{ fontSize: streak >= 7 ? 26 : 22, fontWeight:900, color:"#f59e0b", lineHeight:1 }}>{streak}</div>
-                    <div style={{ fontSize:11, color: isMilestone ? "#f59e0b" : "var(--muted)", marginTop:2, fontWeight: isMilestone ? 700 : 400 }}>
-                      {streak === 0 ? "sin racha" : isMilestone ? milestoneMsg : `día${streak !== 1 ? "s" : ""} de racha`}
+                  <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                    <span style={{ display:"flex", alignItems:"center", animation: isMilestone ? "pulse 1s ease-in-out 3" : "none" }}>
+                      {streak === 0
+                        ? <svg width={streak>=7?30:24} height={streak>=7?30:24} viewBox="0 0 24 24" fill="none"><path d="M12 3C10 7 8 9 8 12a4 4 0 0 0 8 0c0-3-2-5-4-9z" fill="#60a5fa" opacity=".5"/><path d="M9 16.5V19a3 3 0 0 0 6 0v-2.5" stroke="#60a5fa" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                        : <svg width={streak>=7?30:24} height={streak>=7?30:24} viewBox="0 0 24 24" fill="none"><path d="M12 2C9 7 6 10 6 14a6 6 0 0 0 12 0c0-4-3-7-6-12z" fill={streak>=30?"#ef4444":streak>=7?"#f97316":"#f59e0b"}/><path d="M10 16c0 2 1 3 2 3s2-1 2-3c0-1.5-1-2.5-2-4-1 1.5-2 2.5-2 4z" fill="#fef08a"/></svg>
+                      }
+                    </span>
+                    <div>
+                      <div style={{ fontSize: streak >= 7 ? 26 : 22, fontWeight:900, color:"#f59e0b", lineHeight:1 }}>{streak}</div>
+                      <div style={{ fontSize:11, color: isMilestone ? "#f59e0b" : "var(--muted)", marginTop:2, fontWeight: isMilestone ? 700 : 400 }}>
+                        {streak === 0 ? "sin racha" : isMilestone ? milestoneMsg : `día${streak !== 1 ? "s" : ""} de racha`}
+                      </div>
                     </div>
                   </div>
+                  {isRestToday
+                    ? <div style={{ display:"inline-flex", alignItems:"center", gap:4, background:"rgba(6,182,212,.15)", border:"1px solid rgba(6,182,212,.4)", borderRadius:8, padding:"3px 8px", fontSize:10, color:"#06b6d4", fontWeight:600, alignSelf:"flex-start" }}>
+                        💤 Descanso activo
+                      </div>
+                    : <button
+                        onClick={() => logRestDay && logRestDay()}
+                        style={{ background:"rgba(6,182,212,.1)", border:"1px solid rgba(6,182,212,.3)", borderRadius:8, padding:"3px 8px", fontSize:10, color:"#06b6d4", fontWeight:600, cursor:"pointer", alignSelf:"flex-start" }}
+                      >
+                        + Registrar día libre
+                      </button>
+                  }
                 </div>
               );
             })()}
@@ -412,12 +424,12 @@ export default function HomePage() {
               <p className="section-label">Logros recientes</p>
               <div style={{ display:"flex", gap:8, overflowX:"auto", scrollbarWidth:"none" }}>
                 {recentAch.map(a => {
-                  const def = ACH_DEFS[a.id];
+                  const def = achMap.get(a.id);
                   if (!def) return null;
                   return (
                     <div key={a.id} style={{ flexShrink:0, background:"var(--panel)", border:"1px solid rgba(34,211,120,.25)", borderRadius:14, padding:"10px 14px", textAlign:"center", minWidth:80 }}>
                       <div style={{ fontSize:24 }}>{def.icon}</div>
-                      <div style={{ fontSize:11, color:"var(--text)", fontWeight:600, marginTop:4 }}>{def.label}</div>
+                      <div style={{ fontSize:11, color:"var(--text)", fontWeight:600, marginTop:4 }}>{def.title}</div>
                     </div>
                   );
                 })}

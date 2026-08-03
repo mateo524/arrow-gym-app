@@ -188,8 +188,10 @@ export default function WorkoutPage() {
   const [illustrationExercise, setIllustrationExercise] = useState(null);
   const [restDone, setRestDone] = useState(false);
   const [showReadiness, setShowReadiness] = useState(false);
+  const [showBriefing, setShowBriefing] = useState(false);
   const pendingFinishRef = useRef(null);
   const undoTimerRef = useRef(null);
+  const wakeLockRef = useRef(null);
 
   // Derived
   const groupedExercises = useMemo(() => groupSetsByExercise(active?.sets || []), [active?.sets]);
@@ -271,6 +273,24 @@ export default function WorkoutPage() {
     return () => clearInterval(interval);
   }, [active, saveWorkoutDraft]);
 
+  // Wake lock cleanup on unmount
+  useEffect(() => {
+    return () => {
+      wakeLockRef.current?.release().catch(() => {});
+      wakeLockRef.current = null;
+    };
+  }, []);
+
+  // Pre-workout briefing modal
+  useEffect(() => {
+    if (!active) return;
+    const allSets = active.sets || [];
+    if (allSets.length > 0 && allSets.every(s => !s.completed && !s.reps)) {
+      const hasVol = Object.keys(volStatus || {}).length > 0;
+      if (hasVol) setShowBriefing(true);
+    }
+  }, [active?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
 
   // Scroll to new exercise when added
   const prevExCountRef = useRef(0);
@@ -320,6 +340,12 @@ export default function WorkoutPage() {
     setRestDuration(baseDuration);
     setRestExercise(exercise);
     setRestKey((k) => k + 1);
+    // Acquire wake lock during rest
+    (async () => {
+      try {
+        wakeLockRef.current = await navigator.wakeLock?.request('screen');
+      } catch(e) {}
+    })();
     // Auto-navigate to superset partner
     const activeSets = useStore.getState().activeWorkout?.sets || [];
     const thisSet = activeSets.find(s => s.exercise === exercise);
@@ -332,8 +358,16 @@ export default function WorkoutPage() {
     }
   }, [groupedExercises]);
 
-  const handleSkipRest = useCallback(() => { setRestExercise(null); setRestDone(false); }, []);
+  const handleSkipRest = useCallback(() => {
+    wakeLockRef.current?.release().catch(() => {});
+    wakeLockRef.current = null;
+    setRestExercise(null);
+    setRestDone(false);
+  }, []);
   const handleRestComplete = useCallback(() => {
+    wakeLockRef.current?.release().catch(() => {});
+    wakeLockRef.current = null;
+    navigator.vibrate?.([200, 100, 200, 100, 300]);
     setRestDone(true);
     setTimeout(() => { setRestDone(false); setRestExercise(null); }, 4000);
   }, []);
@@ -503,6 +537,13 @@ export default function WorkoutPage() {
             </span>
           );
         })()}
+        {/* Quick finish button */}
+        <button
+          className="ghost"
+          onClick={handleFinishClick}
+          style={{ flexShrink: 0, fontSize: 13, fontWeight: 700, color: "var(--green)", border: "1px solid rgba(168,85,247,.3)", borderRadius: 10, padding: "5px 10px", background: "rgba(168,85,247,.08)", cursor: "pointer" }}>
+          ✓ Listo
+        </button>
       </div>
 
       {/* ── PLAN ADJUSTMENT BANNER ──────────────────────────────────────────── */}
@@ -912,20 +953,32 @@ export default function WorkoutPage() {
 
       {/* ── NAVIGATION DOTS ─────────────────────────────────────────────────── */}
       {groupedExercises.length > 0 && (
-        <div style={{ padding: "8px 16px 10px", display: "flex", justifyContent: "center", alignItems: "center", gap: 6, flexShrink: 0 }}>
-          {[...Array(groupedExercises.length + 1)].map((_, i) => (
-            <button key={i} onClick={() => scrollToExercise(i)} style={{
-              width: i === currentExIndex ? 20 : 7,
-              height: 7,
-              borderRadius: 4,
-              background: i === currentExIndex ? "#fff" : i === groupedExercises.length ? "rgba(168,85,247,.4)" : "rgba(255,255,255,.2)",
-              border: "none",
-              cursor: "pointer",
-              transition: "all 0.25s ease",
-              padding: 0,
-              flexShrink: 0,
-            }} />
-          ))}
+        <div style={{ padding: "8px 16px 10px", display: "flex", flexDirection: "column", alignItems: "center", gap: 0, flexShrink: 0 }}>
+          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 6 }}>
+            {[...Array(groupedExercises.length + 1)].map((_, i) => (
+              <button key={i} onClick={() => scrollToExercise(i)} style={{
+                width: i === currentExIndex ? 20 : 7,
+                height: 7,
+                borderRadius: 4,
+                background: i === currentExIndex ? "#fff" : i === groupedExercises.length ? "rgba(168,85,247,.4)" : "rgba(255,255,255,.2)",
+                border: "none",
+                cursor: "pointer",
+                transition: "all 0.25s ease",
+                padding: 0,
+                flexShrink: 0,
+              }} />
+            ))}
+          </div>
+          {(() => {
+            const name = currentExIndex < groupedExercises.length ? groupedExercises[currentExIndex]?.exercise : null;
+            if (!name) return null;
+            const label = name.length > 24 ? name.slice(0, 21) + '...' : name;
+            return (
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', marginTop: 2 }}>
+                {label}
+              </div>
+            );
+          })()}
         </div>
       )}
 
@@ -1455,6 +1508,43 @@ export default function WorkoutPage() {
       </div>
     )}
     {/* ── READINESS MODAL ─────────────────────────────────────────────────── */}
+    {/* ── PRE-WORKOUT BRIEFING MODAL ──────────────────────────────────────── */}
+    {showBriefing && (
+      <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 200, display: 'flex', alignItems: 'flex-end' }}>
+        <div style={{ background: 'var(--surface, var(--bg))', borderRadius: '16px 16px 0 0', padding: '24px', width: '100%', maxHeight: '60vh', overflowY: 'auto' }}>
+          <h3 style={{ margin: '0 0 16px' }}>📋 Antes de empezar</h3>
+          {(() => {
+            const muscleGroups = [...new Set((active?.sets || []).map(s => s.group || s.muscle).filter(Boolean))];
+            const summary = muscleGroups.length > 0 ? muscleGroups.join(' · ') : null;
+            return (
+              <>
+                {summary && (
+                  <p style={{ fontSize: 14, color: 'var(--text)', margin: '0 0 12px', fontWeight: 600 }}>
+                    {summary}
+                  </p>
+                )}
+                {Object.keys(volStatus || {}).length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
+                    {Object.entries(volStatus).map(([group, status]) => (
+                      <div key={group} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--panel2)', borderRadius: 10, padding: '8px 12px' }}>
+                        <span style={{ fontSize: 13, fontWeight: 600 }}>{group}</span>
+                        <span style={{ fontSize: 12, color: status?.status === 'high' ? 'var(--green)' : status?.status === 'low' ? 'var(--danger)' : 'var(--muted)', fontWeight: 700 }}>
+                          {status?.label || status?.status || ''}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            );
+          })()}
+          <button className="btn-primary" style={{ width: '100%', marginTop: 16, background: 'var(--green)', border: 'none', borderRadius: 12, padding: '14px', fontSize: 15, fontWeight: 700, color: '#fff', cursor: 'pointer' }} onClick={() => setShowBriefing(false)}>
+            ¡Vamos! 💪
+          </button>
+        </div>
+      </div>
+    )}
+
     {showReadiness && (
       <div style={{
         position: "fixed", inset: 0, background: "rgba(0,0,0,.88)",

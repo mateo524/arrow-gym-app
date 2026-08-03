@@ -25,10 +25,14 @@ export default defineConfig({
     outDir: isNative ? "dist-native" : "dist",
     rollupOptions: {
       output: {
-        manualChunks: {
-          "vendor-react": ["react", "react-dom"],
-          "vendor-icons": ["lucide-react"],
-          "vendor-state": ["zustand"],
+        manualChunks: (id) => {
+          if (id.includes('node_modules')) {
+            if (id.includes('@supabase')) return 'vendor-supabase';
+            if (id.includes('react-dom') || id.includes('react/')) return 'vendor-react';
+            if (id.includes('zustand')) return 'vendor-zustand';
+            if (id.includes('recharts') || id.includes('d3-')) return 'vendor-charts';
+            if (id.includes('lucide-react')) return 'vendor-icons';
+          }
         },
       },
     },
