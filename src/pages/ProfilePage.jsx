@@ -1,10 +1,11 @@
-﻿import { useState, useRef } from "react";
+﻿import { useState, useRef, useEffect } from "react";
 import useStore from "../store/useStore.js";
 import useAuthStore from "../store/useAuthStore.js";
 import { supabase } from "../lib/supabase.js";
 import { todayLocal } from "../lib/dates.js";
 import Icon from "../components/Icon.jsx";
 import { parseImportFile } from "../lib/importCSV.js";
+import { subscribeToPush, requestPushPermission, isPushSupported, isIosNotInstalled } from "../lib/pushNotifications.js";
 
 const GOALS = [
   { id: "volumen",       label: "Ganar músculo",  icon: "💪" },
@@ -58,6 +59,51 @@ export default function ProfilePage() {
       useStore.setState({ reminderEnabled: false });
     }
   }
+  const [notifEnabled, setNotifEnabled] = useState(false);
+  const [notifLoading, setNotifLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isPushSupported()) return;
+    navigator.serviceWorker.ready.then(reg => {
+      reg.pushManager.getSubscription().then(sub => {
+        setNotifEnabled(!!sub);
+      });
+    });
+  }, []);
+
+  async function toggleNotifications() {
+    if (!isPushSupported()) return;
+    setNotifLoading(true);
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const existing = await reg.pushManager.getSubscription();
+      if (existing) {
+        await existing.unsubscribe();
+        localStorage.removeItem("pushSubscription");
+        const { data: { user: u } } = await supabase.auth.getUser();
+        if (u) {
+          await supabase.from("push_subscriptions").delete().eq("user_id", u.id);
+        }
+        setNotifEnabled(false);
+      } else {
+        const { permission } = await requestPushPermission();
+        if (permission === "granted") {
+          const { data: { user: u } } = await supabase.auth.getUser();
+          const sub = await subscribeToPush(u?.id, supabase);
+          if (sub) {
+            localStorage.setItem("pushSubscription", JSON.stringify(sub));
+            setNotifEnabled(true);
+          }
+        } else {
+          alert("Para activar las notificaciones, habilitá los permisos en la configuración del navegador.");
+        }
+      }
+    } catch (e) {
+      console.error("Toggle notifications error:", e);
+    }
+    setNotifLoading(false);
+  }
+
   const profile = useAuthStore((s) => s.profile);
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
@@ -224,6 +270,31 @@ export default function ProfilePage() {
             <div><label>Sonido descanso</label><small>Beep al terminar el temporizador</small></div>
             <button className={`toggle${soundEnabled ? " on" : ""}`} onClick={toggleSound} aria-pressed={soundEnabled} />
           </div>
+
+          {isPushSupported() && !isIosNotInstalled() && (
+            <div className="settings-row">
+              <div>
+                <label>Notificaciones push</label>
+                <small>{notifEnabled ? "Activas — te avisamos cuando termina el descanso" : "Desactivadas"}</small>
+              </div>
+              <button
+                onClick={toggleNotifications}
+                disabled={notifLoading}
+                aria-pressed={notifEnabled}
+                className={`toggle${notifEnabled ? " on" : ""}`}
+                style={{ opacity: notifLoading ? 0.6 : 1 }}
+              />
+            </div>
+          )}
+
+          {isIosNotInstalled() && (
+            <div className="settings-row">
+              <div>
+                <label>Notificaciones push</label>
+                <small>Para activarlas en iOS, instalá la app: tocá Compartir → "Añadir a inicio"</small>
+              </div>
+            </div>
+          )}
 
           <div className="settings-row" style={{ flexDirection: "column", alignItems: "flex-start", gap: 8 }}>
             <div><label>Objetivo</label><small>Define cómo el coach adapta sus consejos</small></div>
