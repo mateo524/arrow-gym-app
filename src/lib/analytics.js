@@ -668,7 +668,7 @@ function rulePerExercise(ctx) {
     if (target?.lastSuggested && target.lastSuggested.date !== (activeWorkout.date || "")) {
       if (maxWeight >= target.lastSuggested.weight) {
         hints.push({
-          exercise, type: "loop",
+          exercise, type: "loop", celebrate: true,
           msg: `${exercise}: sugerí ${target.lastSuggested.weight}kg → hoy llegaste a ${maxWeight}kg. ¡Cumplido!`,
           priority: 1,
         });
@@ -1583,6 +1583,81 @@ const MET_BY_INTENSITY = {
   vigorous: 6.0, // 6-9 reps
   maximal: 7.0,  // 1-5 reps, heavy compound
 };
+
+/**
+ * Returns a personalized weekly challenge based on gap analysis of the last 4 weeks.
+ * Falls back to a generic habit challenge for new users with fewer than 3 workouts.
+ */
+export function getPersonalizedChallenge(workouts) {
+  if (!workouts || workouts.length < 3) {
+    // Fallback para usuarios nuevos - challenge genérico de hábito
+    return { type: 'habit', title: 'Completá 3 entrenos esta semana', target: 3, unit: 'entrenos' };
+  }
+
+  const last4Weeks = workouts.filter(w => {
+    const wDate = new Date(w.finishedAt);
+    const fourWeeksAgo = new Date(Date.now() - 28 * 24 * 60 * 60 * 1000);
+    return wDate >= fourWeeksAgo;
+  });
+
+  // Calcular frecuencia por grupo muscular
+  const groupFreq = {};
+  last4Weeks.forEach(w => {
+    const groups = [...new Set((w.sets || []).map(s => s.group).filter(Boolean))];
+    groups.forEach(g => { groupFreq[g] = (groupFreq[g] || 0) + 1; });
+  });
+
+  // Grupos que casi no aparecen (oportunidad de mejora)
+  const allGroups = ['Pecho', 'Espalda', 'Piernas', 'Hombros', 'Bíceps', 'Tríceps', 'Glúteos'];
+  const lowGroups = allGroups.filter(g => (groupFreq[g] || 0) < 2);
+
+  // Calcular volumen semanal promedio
+  const avgWeeklyWorkouts = last4Weeks.length / 4;
+
+  // Elegir challenge según gaps
+  if (lowGroups.length > 0) {
+    const target = lowGroups[0];
+    return {
+      type: 'muscle_group',
+      title: `Entrenás ${target} menos de 2 veces por mes`,
+      challenge: `Agregá 1 sesión de ${target} esta semana`,
+      target: 1,
+      unit: `sesión de ${target}`,
+      group: target
+    };
+  }
+
+  if (avgWeeklyWorkouts < 3) {
+    const target = Math.min(Math.floor(avgWeeklyWorkouts) + 1, 5);
+    return {
+      type: 'frequency',
+      title: `Promedio: ${avgWeeklyWorkouts.toFixed(1)} entrenos/semana`,
+      challenge: `Llegar a ${target} entrenos esta semana`,
+      target,
+      unit: 'entrenos'
+    };
+  }
+
+  // Challenge de volumen: superar el mayor volumen semanal
+  const weeklyVols = [];
+  for (let i = 0; i < 4; i++) {
+    const start = new Date(Date.now() - (i + 1) * 7 * 24 * 60 * 60 * 1000);
+    const end = new Date(Date.now() - i * 7 * 24 * 60 * 60 * 1000);
+    const weekW = last4Weeks.filter(w => new Date(w.finishedAt) >= start && new Date(w.finishedAt) < end);
+    const vol = weekW.reduce((sum, w) => sum + (w.sets || []).filter(s => s.reps && s.weight).reduce((s2, s) => s2 + Number(s.reps) * Number(s.weight), 0), 0);
+    weeklyVols.push(vol);
+  }
+  const maxVol = Math.max(...weeklyVols);
+  const targetVol = Math.round(maxVol * 1.05 / 100) * 100; // +5%, redondeado a 100
+
+  return {
+    type: 'volume',
+    title: 'Superá tu récord de volumen semanal',
+    challenge: `Superar ${(targetVol/1000).toFixed(1)}k kg totales esta semana`,
+    target: targetVol,
+    unit: 'kg de volumen'
+  };
+}
 
 export function calcWorkoutCalories(workout, bodyWeightKg) {
   const sets = (workout.sets || []).filter(s => Number(s.reps) > 0 && Number(s.weight) > 0);

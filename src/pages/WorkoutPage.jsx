@@ -12,6 +12,7 @@ import Icon from "../components/Icon.jsx";
 import ExerciseIllustration from "../components/ExerciseIllustration.jsx";
 import { findExerciseMeta } from "../data/exerciseDatabase.js";
 import ShareWorkoutCard from "../components/ShareWorkoutCard.jsx";
+import { scheduleRestTimerPush } from '../lib/pushNotifications';
 
 function groupSetsByExercise(sets) {
   const map = new Map();
@@ -189,13 +190,16 @@ export default function WorkoutPage() {
   const [restDone, setRestDone] = useState(false);
   const [showReadiness, setShowReadiness] = useState(false);
   const [showBriefing, setShowBriefing] = useState(false);
+  const [prCelebration, setPrCelebration] = useState(null);
   const pendingFinishRef = useRef(null);
   const undoTimerRef = useRef(null);
   const wakeLockRef = useRef(null);
+  const hasShownReadinessRef = useRef(false);
 
   // Derived
   const groupedExercises = useMemo(() => groupSetsByExercise(active?.sets || []), [active?.sets]);
   const emptySetsCount = useMemo(() => (active?.sets || []).filter((s) => !s.weight || !s.reps).length, [active?.sets]);
+  const completedSetsCount = useMemo(() => (active?.sets || []).filter((s) => s.weight && s.reps).length, [active?.sets]);
   const todayReadiness = readiness?.date === todayLocal() ? readiness.score : null;
   const liveHints = useMemo(() => {
     try {
@@ -242,12 +246,15 @@ export default function WorkoutPage() {
     };
   }, [active?.id]);
 
-  // Show readiness modal when a new workout starts and readiness for today isn't set
+  // Show readiness modal after the first set is completed and readiness for today isn't set
   useEffect(() => {
-    if (active && (!readiness || readiness.date !== todayLocal())) {
+    if (!active) return;
+    const readinessNotSetToday = !readiness || readiness.date !== todayLocal();
+    if (completedSetsCount === 1 && !hasShownReadinessRef.current && readinessNotSetToday) {
+      hasShownReadinessRef.current = true;
       setShowReadiness(true);
     }
-  }, [active?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [completedSetsCount]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Record "ready to progress" suggestions — tracked in a ref to avoid
   // feedback loop: recordSuggestion mutates progressionTargets → liveHints
@@ -280,6 +287,13 @@ export default function WorkoutPage() {
       wakeLockRef.current = null;
     };
   }, []);
+
+  // Screen orientation lock during active workout
+  useEffect(() => {
+    if (!active) return;
+    screen.orientation?.lock?.('portrait-primary').catch(() => {});
+    return () => { screen.orientation?.unlock?.(); };
+  }, [active?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Pre-workout briefing modal
   useEffect(() => {
@@ -346,6 +360,24 @@ export default function WorkoutPage() {
         wakeLockRef.current = await navigator.wakeLock?.request('screen');
       } catch(e) {}
     })();
+    // Push notification for rest timer
+    const pushSub = localStorage.getItem('pushSubscription');
+    if (pushSub && baseDuration > 0) {
+      scheduleRestTimerPush(pushSub, baseDuration).catch(() => {});
+    }
+    // PR detection
+    const currentActiveSets = useStore.getState().activeWorkout?.sets || [];
+    const exerciseSetsForPR = currentActiveSets.filter(s => s.exercise === exercise && s.weight && s.reps);
+    const bestHistoricalPR = prs.filter(p => p.exercise === exercise).reduce((max, p) => Math.max(max, Number(p.weight)||0), 0);
+    if (exerciseSetsForPR.length > 0) {
+      const latestSet = exerciseSetsForPR[exerciseSetsForPR.length - 1];
+      const latestWeight = Number(latestSet.weight);
+      if (latestWeight > 0 && latestWeight > bestHistoricalPR) {
+        navigator.vibrate?.([50, 30, 100, 30, 200, 30, 400]);
+        setPrCelebration({ exercise, weight: latestWeight });
+        setTimeout(() => setPrCelebration(null), 2500);
+      }
+    }
     // Auto-navigate to superset partner
     const activeSets = useStore.getState().activeWorkout?.sets || [];
     const thisSet = activeSets.find(s => s.exercise === exercise);
@@ -1541,6 +1573,32 @@ export default function WorkoutPage() {
           <button className="btn-primary" style={{ width: '100%', marginTop: 16, background: 'var(--green)', border: 'none', borderRadius: 12, padding: '14px', fontSize: 15, fontWeight: 700, color: '#fff', cursor: 'pointer' }} onClick={() => setShowBriefing(false)}>
             ¡Vamos! 💪
           </button>
+        </div>
+      </div>
+    )}
+
+    {/* ── PR CELEBRATION OVERLAY ──────────────────────────────────────────── */}
+    {prCelebration && (
+      <div style={{
+        position: 'fixed', inset: 0, zIndex: 999,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: 'rgba(0,0,0,0.75)', pointerEvents: 'none'
+      }}>
+        <div style={{
+          textAlign: 'center', padding: '32px 40px',
+          background: 'var(--surface, var(--panel))', borderRadius: 20,
+          border: '2px solid var(--green)', boxShadow: '0 0 40px rgba(0,255,0,0.2)'
+        }}>
+          <div style={{ fontSize: 48, marginBottom: 8 }}>🔥</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--green)' }}>¡Nuevo PR!</div>
+          <div style={{ fontSize: 16, color: 'var(--muted)', marginTop: 4 }}>
+            {prCelebration.exercise}
+          </div>
+          {prCelebration.weight && (
+            <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8 }}>
+              {prCelebration.weight} kg
+            </div>
+          )}
         </div>
       </div>
     )}

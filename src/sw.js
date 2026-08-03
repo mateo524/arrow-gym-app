@@ -60,6 +60,20 @@ self.addEventListener('notificationclick', event => {
   );
 });
 
+// ── Background Sync handler ─────────────────────────────────────────────────
+// Fired by the browser when connectivity is restored (even if the app is closed).
+self.addEventListener('sync', event => {
+  if (event.tag === 'sync-gym-data') {
+    event.waitUntil(
+      self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
+        clients.forEach(client => {
+          client.postMessage({ type: 'BACKGROUND_SYNC_REQUESTED' });
+        });
+      })
+    );
+  }
+});
+
 // ── Web Push handler (background / locked screen) ──────────────────────────
 // El servidor (Supabase Edge Function) envía el push; el browser push service
 // (FCM / APNs) reactiva este SW aunque esté muerto.

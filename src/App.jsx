@@ -43,7 +43,7 @@ function InstallBanner({ onInstall, onDismiss, isIOS }) {
           </div>
         </div>
         <div style={{ fontSize:13, color:"var(--muted)", lineHeight:1.6 }}>
-          Tocá <b style={{ color:"var(--text)" }}>􀈂 Compartir</b> y después <b style={{ color:"var(--text)" }}>"Añadir a inicio"</b>
+          Para activar notificaciones, instalá la app: tocá <b style={{ color:"var(--text)" }}>􀈂 Compartir</b> y después <b style={{ color:"var(--text)" }}>"Añadir a inicio"</b>
         </div>
       </div>
     );
@@ -147,11 +147,12 @@ function AppContent() {
     // iOS detection — they don't have beforeinstallprompt, need manual instructions
     const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
     if (ios) {
-      // Show iOS instructions after 10s, only once per session
-      const shown = sessionStorage.getItem('install-shown');
-      if (!shown) {
+      // Show iOS instructions after 10s; suppress for 7 days after dismissal
+      const shownAt = localStorage.getItem('install-ios-shown-at');
+      const sevenDays = 7 * 24 * 60 * 60 * 1000;
+      const suppressed = shownAt && (Date.now() - Number(shownAt)) < sevenDays;
+      if (!suppressed) {
         setTimeout(() => { setIsIOS(true); setShowInstallBanner(true); }, 10000);
-        sessionStorage.setItem('install-shown', '1');
       }
       return;
     }
@@ -176,6 +177,18 @@ function AppContent() {
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       setSwUpdateReady(true);
     });
+  }, []);
+
+  // Background Sync: the SW notifies open tabs to flush pending gym data.
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+    const handler = (event) => {
+      if (event.data?.type === 'BACKGROUND_SYNC_REQUESTED') {
+        useStore.getState().syncGymStateToDB?.();
+      }
+    };
+    navigator.serviceWorker.addEventListener('message', handler);
+    return () => navigator.serviceWorker.removeEventListener('message', handler);
   }, []);
 
   // Flush offline queue when connectivity is restored
@@ -473,7 +486,10 @@ function AppContent() {
       {showInstallBanner && (
         <InstallBanner
           isIOS={isIOS}
-          onDismiss={() => setShowInstallBanner(false)}
+          onDismiss={() => {
+            setShowInstallBanner(false);
+            if (isIOS) localStorage.setItem('install-ios-shown-at', String(Date.now()));
+          }}
           onInstall={async () => {
             setShowInstallBanner(false);
             if (installPrompt) {

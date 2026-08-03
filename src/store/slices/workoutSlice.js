@@ -123,6 +123,11 @@ export const createWorkoutSlice = (set, get) => ({
     };
     if (!navigator.onLine) {
       s.queueSync?.("gym", payload);
+      if ('serviceWorker' in navigator && 'SyncManager' in window) {
+        navigator.serviceWorker.ready.then(reg => {
+          reg.sync.register('sync-gym-data').catch(() => {});
+        });
+      }
       return;
     }
     try {
