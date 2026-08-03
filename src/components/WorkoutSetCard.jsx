@@ -10,7 +10,7 @@ function haptic(type = "tap") {
   else if (type === "delete") navigator.vibrate([15, 20, 15]);
 }
 
-export default function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onRemove, onStartRest, prData, coachSuggestion, isBodyweight=false, bodyWeight=0 }) {
+export default function WorkoutSetCard({ setItem, index, onUpdate, onApplyToNext, onRepeat, onRemove, onStartRest, prData, coachSuggestion, isBodyweight=false, bodyWeight=0 }) {
   const [flipped, setFlipped] = useState(false);
   const [done, setDone] = useState(false);
   const hasData = (setItem.weight !== '' && setItem.weight !== null && setItem.weight !== undefined) &&
@@ -108,15 +108,17 @@ export default function WorkoutSetCard({ setItem, index, onUpdate, onRepeat, onR
 
       {/* Live coach weight suggestion */}
       {coachSuggestion && coachSuggestion.dir !== null && (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(168,85,247,.08)", border: "1px solid rgba(168,85,247,.25)", borderRadius: 10, padding: "6px 10px", marginBottom: 6 }}>
-          <span style={{ fontSize: 14, color: "var(--green)", fontWeight: 700 }}>
-            {coachSuggestion.dir === "up" ? "⬆ Subí a" : "⬇ Bajá a"} {coachSuggestion.weight}kg
+        <div style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(168,85,247,.08)", border: "1px solid rgba(168,85,247,.25)", borderRadius: 10, padding: "6px 10px", marginBottom: 6 }}>
+          <span style={{ fontSize: 14, color: "var(--green)", fontWeight: 700, flexShrink: 0 }}>
+            {coachSuggestion.dir === "up" ? "⬆" : "⬇"} {coachSuggestion.weight}kg
           </span>
-          <span style={{ fontSize: 13, color: "var(--muted)" }}>{coachSuggestion.reason}</span>
-          <button className="ghost" style={{ fontSize: 13, padding: "2px 8px", marginLeft: 6 }}
-            onClick={() => onUpdate({ weight: String(coachSuggestion.weight) })}>
-            Aplicar
-          </button>
+          <span style={{ fontSize: 12, color: "var(--muted)", flex: 1 }}>{coachSuggestion.reason}</span>
+          {onApplyToNext && (
+            <button className="ghost" style={{ fontSize: 12, padding: "3px 10px", flexShrink: 0, borderColor: "var(--green)", color: "var(--green)" }}
+              onClick={() => onApplyToNext(coachSuggestion.weight)}>
+              Aplicar al próximo
+            </button>
+          )}
         </div>
       )}
       {coachSuggestion && coachSuggestion.dir === null && (

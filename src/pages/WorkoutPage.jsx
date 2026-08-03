@@ -719,6 +719,14 @@ export default function WorkoutPage() {
                               try { navigator.vibrate?.([30]); } catch {}
                               update(setItem.id, patch);
                             }}
+                            onApplyToNext={(weight) => {
+                              // Find the next set for this exercise that has no weight yet
+                              const nextEmpty = sets.slice(index + 1).find(s => !s.weight && s.weight !== 0);
+                              if (nextEmpty) {
+                                update(nextEmpty.id, { weight: String(weight) });
+                                try { navigator.vibrate?.([20, 30, 20]); } catch {}
+                              }
+                            }}
                             onRepeat={() => repeat(setItem.id)}
                             onRemove={() => {
                               remove(setItem.id);
@@ -763,16 +771,16 @@ export default function WorkoutPage() {
                               // Rep-range based suggestions — goal × fitness_level
                               const goal = (userGoal || profile?.goal || "volumen").toLowerCase();
                               const lvl = (profile?.fitness_level || "intermedio").toLowerCase();
-                              let lowThresh = 6, highThresh = 12, restSec = 90;
+                              let lowThresh = 8, highThresh = 12, restSec = 90;
                               if (goal === "rendimiento") {
                                 // Fuerza: reps bajas, descansos largos
-                                lowThresh = lvl === "principiante" ? 4 : 2;
+                                lowThresh = lvl === "principiante" ? 3 : 1;
                                 highThresh = lvl === "principiante" ? 6 : lvl === "intermedio" ? 5 : 4;
                                 restSec = lvl === "principiante" ? 150 : 180;
                               } else if (goal === "volumen") {
-                                // Hipertrofia: 6-12 reps, más volumen a mayor nivel
-                                lowThresh = 6;
-                                highThresh = lvl === "principiante" ? 12 : lvl === "intermedio" ? 10 : 8;
+                                // Hipertrofia: 8-12 reps zona óptima
+                                lowThresh = 8;
+                                highThresh = 12;
                                 restSec = lvl === "avanzado" ? 120 : 90;
                               } else if (goal === "definicion") {
                                 // Densidad: reps moderadas-altas, descansos cortos
@@ -784,7 +792,7 @@ export default function WorkoutPage() {
                                 lowThresh = 8; highThresh = 15; restSec = 75;
                               }
 
-                              const sameW = sets.filter(s => Number(s.weight) === w && Number(s.reps) >= highThresh - 1).length;
+                              const sameW = sets.filter(s => Number(s.weight) === w && Number(s.reps) >= highThresh).length;
                               if (sameW >= 3) {
                                 const next = Math.round((w + 2.5) * 2) / 2;
                                 return { dir: "up", weight: next, reason: `3+ series en ${w}kg → subí a ${next}kg`, rest: restSec };
