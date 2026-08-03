@@ -2307,7 +2307,7 @@ p { color: #c4b8d8; }
 }
 
 /* ── EXERCISE RESULTS LIST (replaces react-window virtual) ── */
-.exercise-results-list { max-height: 380px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.exercise-results-list { overflow-y: visible; }
 
 /* ── COACH BANNER (live workout tips) ── */
 .coach-banner {

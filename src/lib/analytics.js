@@ -505,13 +505,13 @@ function muscleToLandmark(muscle, group) {
 
 function countSetTowardMuscles(raw, bucket, primaryMuscle) {
   const s = hydrateSet(raw);
-  // Primary muscle counts as 1.0; secondary muscles count as 0.5 (RP/Israetel model)
+  // RP/Israetel model: primary=1.0, secondary=0.5, tertiary=0.25
   const primary = primaryMuscle || s.muscle;
   const allMuscles = s.muscles && s.muscles.length > 0 ? s.muscles : [primary];
-  allMuscles.forEach(m => {
+  allMuscles.forEach((m, i) => {
     const key = muscleToLandmark(m, s.group);
     if (!key) return;
-    const contribution = m === primary ? 1 : 0.5;
+    const contribution = i === 0 ? 1 : i === 1 ? 0.5 : 0.25;
     bucket[key] = (bucket[key] || 0) + contribution;
   });
 }
@@ -1573,4 +1573,33 @@ export function getMuscleBalance(workouts, days = 7) {
   });
 
   return result;
+}
+
+// MET values for resistance training by estimated intensity
+// Formula: kcal = MET × weightKg × durationHours
+const MET_BY_INTENSITY = {
+  light: 3.5,   // high reps, light weight, e.g. 15+ reps
+  moderate: 5.0, // 10-14 reps
+  vigorous: 6.0, // 6-9 reps
+  maximal: 7.0,  // 1-5 reps, heavy compound
+};
+
+export function calcWorkoutCalories(workout, bodyWeightKg) {
+  const sets = (workout.sets || []).filter(s => Number(s.reps) > 0 && Number(s.weight) > 0);
+  const durationMin = workout.durationMin || 45;
+  const durationHours = durationMin / 60;
+  const weight = Number(bodyWeightKg) || 70;
+
+  // Estimate intensity from average reps across all sets
+  const avgReps = sets.length > 0
+    ? sets.reduce((sum, s) => sum + Number(s.reps), 0) / sets.length
+    : 10;
+
+  let met;
+  if (avgReps >= 15) met = MET_BY_INTENSITY.light;
+  else if (avgReps >= 10) met = MET_BY_INTENSITY.moderate;
+  else if (avgReps >= 6) met = MET_BY_INTENSITY.vigorous;
+  else met = MET_BY_INTENSITY.maximal;
+
+  return Math.round(met * weight * durationHours);
 }

@@ -290,8 +290,10 @@ export const createWorkoutSlice = (set, get) => ({
   finishWorkout: async (notes) => {
     const active = get().activeWorkout;
     if (!active) return;
+    const durationMin = active.startedAt ? Math.max(1, Math.round((Date.now() - active.startedAt) / 60000)) : 45;
     const clean = {
       ...active,
+      durationMin,
       notes: notes || "",
       sets: active.sets
         .filter((s) => s.exercise && (s.weight !== "" && s.weight !== null) && (s.reps !== "" && s.reps !== null) && Number(s.reps) > 0)

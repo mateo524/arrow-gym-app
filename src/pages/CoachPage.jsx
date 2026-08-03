@@ -3,7 +3,7 @@ import useStore from "../store/useStore.js";
 import useAuthStore from "../store/useAuthStore.js";
 import Icon from "../components/Icon.jsx";
 import { shareWorkout } from "../lib/shareWorkout.js";
-import { buildCoachReport, formatDate, getPeriodizationPhase, getWeeklyFatigueScore, getWeightPrescriptions, getSkippedGroups, getOneRMHistory, getCycleComparison, getMuscleBalance, getWeekComparison, getWorkoutVolume, VOLUME_LANDMARKS, getStagnantExercises, getWeeklyActionableFeedback } from "../lib/analytics.js";
+import { buildCoachReport, formatDate, getPeriodizationPhase, getWeeklyFatigueScore, getWeightPrescriptions, getSkippedGroups, getOneRMHistory, getCycleComparison, getMuscleBalance, getWeekComparison, getWorkoutVolume, VOLUME_LANDMARKS, getStagnantExercises, getWeeklyActionableFeedback, calcWorkoutCalories } from "../lib/analytics.js";
 function MuscleRadarChart({ data }) {
   const cx = 95, cy = 95, r = 62;
   const n = data.length;
@@ -2834,6 +2834,42 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
             <div style={{ height:4, background:"var(--panel2)", borderRadius:2, marginTop:8, overflow:"hidden" }}>
               <div style={{ height:"100%", width:`${Math.min(100, (weeklyBalance/weekTarget)*100)}%`, background:color, borderRadius:2, transition:"width .3s" }} />
             </div>
+          </div>
+        );
+      })()}
+
+      {/* ── Calorías quemadas por entreno ─────────────────────── */}
+      {(() => {
+        const recentWorkouts = (workouts || []).slice(0, 5);
+        if (!recentWorkouts.length) return null;
+        const bw = Number(profile?.weight_kg) || 70;
+        const totalBurned = recentWorkouts.reduce((s, w) => s + calcWorkoutCalories(w, bw), 0);
+        return (
+          <div style={{ background:"var(--panel)", borderRadius:14, padding:"12px 14px", marginBottom:14 }}>
+            <p style={{ margin:"0 0 10px", fontSize:11, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em" }}>Calorías quemadas — últimos entrenos</p>
+            <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+              {recentWorkouts.map(w => {
+                const kcal = calcWorkoutCalories(w, bw);
+                const dur = w.durationMin || 45;
+                const date = (w.date || "").slice(5).replace("-", "/");
+                return (
+                  <div key={w.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                    <div>
+                      <span style={{ fontSize:13, fontWeight:700, color:"var(--text)" }}>{w.type || "Entreno"}</span>
+                      <span style={{ fontSize:11, color:"var(--muted)", marginLeft:6 }}>{date} · {dur} min</span>
+                    </div>
+                    <span style={{ fontSize:14, fontWeight:900, color:"#f59e0b" }}>~{kcal} kcal</span>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ marginTop:10, paddingTop:8, borderTop:"1px solid var(--line)", display:"flex", justifyContent:"space-between", alignItems:"baseline" }}>
+              <span style={{ fontSize:11, color:"var(--muted)" }}>Total estos {recentWorkouts.length} entrenos</span>
+              <span style={{ fontSize:16, fontWeight:900, color:"#f59e0b" }}>~{totalBurned} kcal</span>
+            </div>
+            <p style={{ margin:"6px 0 0", fontSize:10, color:"var(--muted)", lineHeight:1.5 }}>
+              Estimado por MET × peso corporal × duración. Basado en intensidad media del entreno.
+            </p>
           </div>
         );
       })()}

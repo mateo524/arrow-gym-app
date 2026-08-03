@@ -117,7 +117,7 @@ export default function LiveCoachPanel({ hints, volStatus }) {
 
       {/* Expanded panel */}
       {expanded && (
-        <div style={{ borderTop: "1px solid var(--border)", padding: "12px 14px" }}>
+        <div style={{ borderTop: "1px solid var(--border)", padding: "12px 14px", maxHeight: "50vh", overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
           {/* Volume status per group */}
           {volGroups.length > 0 && (
             <div style={{ marginBottom: 14 }}>

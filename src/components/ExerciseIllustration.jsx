@@ -289,7 +289,7 @@ function FrontRaise({ mini=false, animated=false }) {
   </>;
 }
 
-function Shrug({ mini=false, animated=false }) {
+function Shrug({ mini=false, animated=false, barbell=false }) {
   return <>
     <Stand/>
     <Anim on={animated} dy="-5" dur="1.8s">
@@ -299,8 +299,9 @@ function Shrug({ mini=false, animated=false }) {
       <L x1={68} y1={32} x2={84} y2={62} w={10} c={B}/>
       <J cx={84} cy={62} r={4} c={B}/>
       <L x1={84} y1={62} x2={92} y2={94} w={9} c={B}/>
-      <DBV cx={24} cy={102}/>
-      <DBV cx={96} cy={102}/>
+      {barbell
+        ? <Barbell cx={60} cy={98} half={34}/>
+        : <><DBV cx={24} cy={102}/><DBV cx={96} cy={102}/></>}
     </Anim>
     <Arr x={60} y={20} dir="up" len={12} mini={mini}/>
   </>;
@@ -456,19 +457,23 @@ function BackExtension({ mini=false, animated=false }) {
 
 // ─── ARMS ─────────────────────────────────────────────────────────────────────
 
-function CurlStanding({ mini=false, animated=false }) {
+function CurlStanding({ mini=false, animated=false, barbell=false }) {
   return <>
     <Stand/>
     <Anim on={animated} dy="-7" dur="1.8s">
       <L x1={52} y1={38} x2={38} y2={64} w={10} c={B}/>
       <J cx={38} cy={64} r={4} c={B}/>
       <L x1={38} y1={64} x2={46} y2={40} w={9} c={B}/>
-      <DBV cx={44} cy={32}/>
+      {barbell
+        ? <Barbell cx={46} cy={34} half={24}/>
+        : <DBV cx={44} cy={32}/>}
     </Anim>
-    <L x1={68} y1={38} x2={84} y2={62} w={10} c={BD}/>
-    <J cx={84} cy={62} r={4} c={BD}/>
-    <L x1={84} y1={62} x2={90} y2={90} w={9} c={BD}/>
-    <DBV cx={90} cy={98}/>
+    {!barbell && <>
+      <L x1={68} y1={38} x2={84} y2={62} w={10} c={BD}/>
+      <J cx={84} cy={62} r={4} c={BD}/>
+      <L x1={84} y1={62} x2={90} y2={90} w={9} c={BD}/>
+      <DBV cx={90} cy={98}/>
+    </>}
     <Arr x={24} y={46} dir="up" len={20} mini={mini}/>
   </>;
 }
@@ -946,9 +951,12 @@ function norm(s) {
   return (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
 }
 
-function getKey(name, pattern, muscle) {
+function getKey(name, pattern, muscle, equipment) {
   const n = norm(name);
   const m = norm(muscle);
+  const eq = norm(equipment || "");
+  const isBarra = eq.includes("barra") || n.includes(" barra") || n.includes("barbell");
+  const isDB = eq.includes("mancuerna") || n.includes("mancuerna") || n.includes("dumbbell");
   const p = pattern||"";
 
   if (p==="core") {
@@ -966,12 +974,12 @@ function getKey(name, pattern, muscle) {
     const isTri = m.includes("tricep")||n.includes("tricep");
     if (isTri) {
       if (n.includes("polea")||n.includes("cable")||n.includes("pushdown")||n.includes("cuerda")||n.includes("barra v")) return "tricep-pushdown";
-      if (n.includes("cabeza")||n.includes("overhead")||n.includes("sobre la cabeza")||n.includes("mancuerna")) return "tricep-overhead";
+      if (n.includes("cabeza")||n.includes("overhead")||n.includes("sobre la cabeza")||(n.includes("mancuerna")&&!n.includes("frances"))) return "tricep-overhead";
       if (n.includes("frances")||n.includes("rompe")||n.includes("skull")||n.includes("jm press")||n.includes("tate")||n.includes("acostado")||n.includes("banco")) return "skull-crusher";
-      return "tricep-pushdown";
+      return isDB ? "tricep-overhead" : "tricep-pushdown";
     }
     if (n.includes("flexion")||n.includes("push-up")||n.includes("push up")||n.includes("lagartija")) return "pushup";
-    if (n.includes("fondo")&&(n.includes("paralela")||n.includes("barra"))) return "dip";
+    if (n.includes("fondo")&&(n.includes("paralela")||n.includes("barra")||n.includes("asistido"))) return "dip";
     if (n.includes("apertura")||n.includes("cruce")||n.includes("mariposa")||(m.includes("pectoral")&&(n.includes("polea")||n.includes("cable")||n.includes("trx")))) return "fly";
     if (m.includes("pectoral")||n.includes("pecho")||n.includes("banca")||n.includes("bench")||n.includes("press de pecho")) {
       if (n.includes("inclinado")||n.includes("incline")) return "bench-incline";
@@ -993,7 +1001,7 @@ function getKey(name, pattern, muscle) {
     if (n.includes("jalon")||n.includes("pulldown")||n.includes("pull down")||n.includes("pullover")) return "pulldown";
     if (n.includes("dominada")||n.includes("pull-up")||n.includes("pull up")||n.includes("chin-up")) return "pullup";
     if (n.includes("remo")||n.includes("row")) {
-      if (n.includes("cable")||n.includes("polea baja")||n.includes("sentado")||n.includes("maquina")||n.includes("pecho apoyado")) return "row-seated";
+      if (n.includes("cable")||n.includes("polea baja")||n.includes("sentado")||n.includes("maquina")||n.includes("pecho apoyado")||n.includes("polea")) return "row-seated";
       return "row-bent";
     }
     if (n.includes("peso muerto")) return "deadlift";
@@ -1060,7 +1068,10 @@ const FIGURES = {
 };
 
 export default function ExerciseIllustration({ name, pattern, muscle, equipment, size=100, animated=false }) {
-  const key = getKey(name, pattern, muscle);
+  const eq = norm(equipment || "");
+  const nm = norm(name || "");
+  const barbell = eq.includes("barra") || nm.includes(" barra") || nm.includes("barbell");
+  const key = getKey(name, pattern, muscle, equipment);
   const Figure = FIGURES[key] || Compound;
   const mini = size < 70;
   return (
@@ -1072,7 +1083,7 @@ export default function ExerciseIllustration({ name, pattern, muscle, equipment,
       aria-label={`Ilustración: ${name}`}
       role="img"
     >
-      <Figure mini={mini} animated={animated}/>
+      <Figure mini={mini} animated={animated} barbell={barbell}/>
     </svg>
   );
 }
