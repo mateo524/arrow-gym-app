@@ -27,6 +27,7 @@ import OnboardingModal from "./components/OnboardingModal.jsx";
 import useStore from "./store/useStore.js";
 import useAuthStore from "./store/useAuthStore.js";
 import { supabase } from "./lib/supabase.js";
+import { subscribeToPush, requestPushPermission, isPushSupported } from "./lib/pushNotifications.js";
 
 const APP_VERSION = "54";
 
@@ -227,6 +228,25 @@ function AppContent() {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") setShowPasswordModal(true);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Subscribe to push notifications once per login (SIGNED_IN only, not on every INITIAL_SESSION)
+  useEffect(() => {
+    if (!isPushSupported()) return;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event !== "SIGNED_IN") return;
+      const userId = session?.user?.id;
+      if (!userId) return;
+      requestPushPermission().then(({ permission }) => {
+        if (permission !== "granted") return;
+        subscribeToPush(userId, supabase).then((sub) => {
+          if (sub) {
+            localStorage.setItem("pushSubscription", JSON.stringify(sub));
+          }
+        });
+      }).catch(() => {});
     });
     return () => subscription.unsubscribe();
   }, []);
