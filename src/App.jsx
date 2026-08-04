@@ -412,7 +412,6 @@ function AppContent() {
             <PageComponent />
           </Suspense>
         </main>
-        <Nav role={role} />
         {showOnboarding && <OnboardingModal />}
       </div>
     );
@@ -426,6 +425,7 @@ function AppContent() {
         </div>
       )}
       {inner}
+      <Nav role={role} />
 
       {/* ── FIRST LOGIN / PASSWORD RECOVERY MODAL ──────────────────────── */}
       {(showPasswordModal || profile?.has_changed_password === false) && (
