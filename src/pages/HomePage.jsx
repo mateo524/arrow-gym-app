@@ -2,7 +2,7 @@
 import { useShallow } from "zustand/react/shallow";
 import useStore from "../store/useStore.js";
 import useAuthStore from "../store/useAuthStore.js";
-import { todayLocal } from "../lib/dates.js";
+import { todayLocal, dateToLocal } from "../lib/dates.js";
 import { getWorkoutVolume, formatDate, getMuscleIntensity, filterCurrentWeek, getNextWorkoutSuggestion, getDeloadSuggestion, ACHIEVEMENTS_DEF } from "../lib/analytics.js";
 import AdvancedMuscleDiagram from "../components/AdvancedMuscleDiagram.jsx";
 import Icon from "../components/Icon.jsx";
@@ -28,7 +28,7 @@ export default function HomePage() {
   const totalSets = workouts.reduce((sum, w) => sum + (w.sets?.length || 0), 0);
   const intensity = useMemo(() => {
     const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-    const weekStartStr = weekStart.toISOString().slice(0, 10);
+    const weekStartStr = dateToLocal(weekStart);
     const weekCardio = cardioHistory.filter(c => (c.date || "") >= weekStartStr);
     return getMuscleIntensity(filterCurrentWeek(workouts), weekCardio);
   }, [workouts, cardioHistory]);
@@ -47,7 +47,7 @@ export default function HomePage() {
     // Estimate from last 4 weeks
     const now = new Date();
     const fourWeeksAgo = new Date(now); fourWeeksAgo.setDate(now.getDate() - 28);
-    const fourWeeksStr = fourWeeksAgo.toISOString().slice(0,10);
+    const fourWeeksStr = dateToLocal(fourWeeksAgo);
     const recentCount = (workouts || []).filter(w => (w.date || "") >= fourWeeksStr).length;
     const estimated = Math.round(recentCount / 4);
     return Math.max(2, Math.min(7, estimated || weeklyGoal || 4));
@@ -61,14 +61,14 @@ export default function HomePage() {
     ]);
     let count = 0;
     const d = new Date();
-    const todayStr = d.toISOString().slice(0,10);
+    const todayStr = dateToLocal(d);
     const yest = new Date(d); yest.setDate(yest.getDate()-1);
-    const yesterdayStr = yest.toISOString().slice(0,10);
+    const yesterdayStr = dateToLocal(yest);
     if (!allDays.has(todayStr) && !allDays.has(yesterdayStr)) return 0;
     const start = allDays.has(todayStr) ? d : yest;
     const check = new Date(start);
     while (true) {
-      const s = check.toISOString().slice(0,10);
+      const s = dateToLocal(check);
       if (!allDays.has(s)) break;
       count++;
       check.setDate(check.getDate()-1);
@@ -94,7 +94,7 @@ export default function HomePage() {
     const currentMonth = todayLocal().slice(0, 7);
     const d = new Date(currentMonth + "-01");
     d.setMonth(d.getMonth() - 1);
-    const prevMonth = d.toISOString().slice(0, 7);
+    const prevMonth = dateToLocal(d).slice(0, 7);
     const calcVol = prefix => (workouts || [])
       .filter(w => (w.date || "").startsWith(prefix))
       .reduce((s, w) => s + (w.sets || []).reduce((sv, set) => sv + (Number(set.weight) || 0) * (Number(set.reps) || 0), 0), 0);
@@ -144,14 +144,14 @@ export default function HomePage() {
     const workoutDates = new Set((workouts || []).map(w => w.date?.slice(0,10)).filter(Boolean));
     const cardioDates = new Set((cardioHistory || []).map(c => c.date?.slice(0,10)).filter(Boolean));
     const today = new Date();
-    const todayStr = today.toISOString().slice(0,10);
+    const todayStr = dateToLocal(today);
     const DAY_NAMES = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
     const dayOfWeek = today.getDay();
     const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
     return Array.from({ length: 7 }, (_, i) => {
       const d = new Date(today);
       d.setDate(today.getDate() + mondayOffset + i);
-      const key = d.toISOString().slice(0,10);
+      const key = dateToLocal(d);
       return { key, dayName: DAY_NAMES[d.getDay()], dayNum: d.getDate(), trained: workoutDates.has(key), cardio: cardioDates.has(key) && !workoutDates.has(key), isToday: key === todayStr };
     });
   }, [workouts, cardioHistory]);
@@ -225,7 +225,7 @@ export default function HomePage() {
             {(() => {
               const isMilestone = streak > 0 && [3,7,14,21,30,60,90,100,365].includes(streak);
               const milestoneMsg = streak >= 365 ? "¡Leyenda! 🐐" : streak >= 100 ? "¡Centenario! 💎" : streak >= 60 ? "¡Imparable!" : streak >= 30 ? "¡Un mes! 🥇" : streak >= 21 ? "¡3 semanas!" : streak >= 14 ? "¡2 semanas!" : streak >= 7 ? "¡Una semana!" : "¡3 días! 💪";
-              const todayStr2 = new Date().toISOString().slice(0,10);
+              const todayStr2 = todayLocal();
               const isRestToday = (restDays || []).some(r => r.date === todayStr2);
               return (
                 <div style={{ background: isMilestone ? "linear-gradient(135deg,rgba(245,158,11,.18),rgba(251,191,36,.08))" : "var(--panel)", border: isMilestone ? "1px solid rgba(245,158,11,.4)" : "1px solid var(--line)", borderRadius:16, padding:"12px 12px 10px", display:"flex", flexDirection:"column", gap:6, position:"relative", overflow:"hidden" }}>
@@ -339,7 +339,7 @@ export default function HomePage() {
             const weekStart = new Date();
             const dow = weekStart.getDay(); const off = dow===0?-6:1-dow;
             weekStart.setDate(weekStart.getDate()+off); weekStart.setHours(0,0,0,0);
-            const weekWorkouts = workouts.filter(w => w.date >= weekStart.toISOString().slice(0,10));
+            const weekWorkouts = workouts.filter(w => w.date >= dateToLocal(weekStart));
             const weekVolume = weekWorkouts.reduce((s,w) => s+(w.sets||[]).reduce((sv,set)=>sv+(Number(set.weight)||0)*(Number(set.reps)||0),0),0);
             const todayStr = todayLocal();
             const mealLog = useStore.getState().mealLog || [];

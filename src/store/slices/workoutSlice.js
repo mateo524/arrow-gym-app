@@ -5,7 +5,7 @@ import { syncWorkoutUp, syncAllWorkoutsUp, fetchWorkoutsFromDB, mergeWorkouts } 
 import { supabase } from "../../lib/supabase.js";
 import { getAuthUserId, getAuthProfile } from "../../lib/authBridge.js";
 import { EXERCISE_DATABASE, findExerciseMeta, resolveExerciseGroup, resolveExerciseMuscle } from "../../data/exerciseDatabase.js";
-import { todayLocal } from "../../lib/dates.js";
+import { todayLocal, dateToLocal } from "../../lib/dates.js";
 
 function uid(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -47,8 +47,9 @@ function makeSet(exercise, weight = "", reps = "", workouts = []) {
 }
 
 function makePrefilledSet(exercise, workouts) {
-  const stats = getExerciseStats(workouts, exercise);
-  return makeSet(exercise, stats.lastWeight || "", stats.lastReps || "", workouts);
+  // Fix #8: do NOT pre-fill weight/reps — user must enter them manually.
+  // lastWeight/lastReps are stored as metadata in makeSet for display purposes only.
+  return makeSet(exercise, "", "", workouts);
 }
 
 function getExerciseSetAtIndex(workouts, exercise, setIndex) {
@@ -101,7 +102,8 @@ export const createWorkoutSlice = (set, get) => ({
     if (active?.sets?.length) {
       const updatedSets = active.sets.map((s) => {
         const stats = getExerciseStats(merged, s.exercise);
-        return { ...s, lastWeight: stats.lastWeight || s.lastWeight || "", lastReps: stats.lastReps || s.lastReps || "", weight: s.weight || stats.lastWeight || "", reps: s.reps || stats.lastReps || "" };
+        // Fix #8: only update metadata fields (lastWeight/lastReps), never auto-fill weight/reps the user hasn't entered.
+        return { ...s, lastWeight: stats.lastWeight || s.lastWeight || "", lastReps: stats.lastReps || s.lastReps || "" };
       });
       updatedActive = { ...active, sets: updatedSets };
     }
@@ -441,7 +443,7 @@ export const createWorkoutSlice = (set, get) => ({
   acceptPlanRecommendation: (type, factor = 1) => {
     const accepted = today();
     const d = new Date(accepted); d.setDate(d.getDate() + 7);
-    const planAdjustment = { type, factor, acceptedAt: accepted, expiresAt: d.toISOString().slice(0, 10) };
+    const planAdjustment = { type, factor, acceptedAt: accepted, expiresAt: dateToLocal(d) };
     set({ activePlanAdjustment: planAdjustment });
     const uid = getAuthUserId();
     if (uid) {
@@ -452,7 +454,7 @@ export const createWorkoutSlice = (set, get) => ({
   },
   declinePlanRecommendation: (type) => {
     const d = new Date(); d.setDate(d.getDate() + 7);
-    const planAdjustment = { type, declined: true, declinedAt: today(), expiresAt: d.toISOString().slice(0, 10) };
+    const planAdjustment = { type, declined: true, declinedAt: today(), expiresAt: dateToLocal(d) };
     set({ activePlanAdjustment: planAdjustment });
     const uid = getAuthUserId();
     if (uid) {

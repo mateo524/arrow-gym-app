@@ -180,7 +180,7 @@ export default function WorkoutSetCard({ setItem, index, onUpdate, onApplyToNext
             className="set-val"
             inputMode="decimal"
             value={setItem.weight}
-            placeholder={setItem.lastWeight || "0"}
+            placeholder={(!setItem.weight && coachSuggestion?.weight != null) ? String(coachSuggestion.weight) : (setItem.lastWeight || "")}
             onChange={(e) => { haptic(); setDone(false); onUpdate({ weight: sanitizeWeight(e.target.value) }); }}
             onFocus={(e) => e.target.select()}
             style={{ width: "100%", textAlign: "center", fontSize: 26, fontWeight: 800, borderColor: setItem.weight ? "rgba(168,85,247,.5)" : undefined, transition: "border-color .2s" }}
@@ -220,9 +220,9 @@ export default function WorkoutSetCard({ setItem, index, onUpdate, onApplyToNext
         );
       })()}
 
-      {/* RIR selector (Reps In Reserve) — shows when reps filled */}
+      {/* RIR selector (Reps In Reserve) — hidden per Fix #3 */}
       {setItem.reps && (
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+        <div style={{ display: "none" }}>
           <span style={{ fontSize: 10, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px", flexShrink: 0 }}>RIR</span>
           <div style={{ display: "flex", gap: 3 }}>
             {[

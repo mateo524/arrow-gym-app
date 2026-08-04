@@ -3,6 +3,7 @@ import useStore from "../store/useStore.js";
 import useAuthStore from "../store/useAuthStore.js";
 import Icon from "../components/Icon.jsx";
 import { shareWorkout } from "../lib/shareWorkout.js";
+import { todayLocal, dateToLocal } from "../lib/dates.js";
 import { buildCoachReport, formatDate, getPeriodizationPhase, getWeeklyFatigueScore, getWeightPrescriptions, getSkippedGroups, getOneRMHistory, getCycleComparison, getMuscleBalance, getWeekComparison, getWorkoutVolume, VOLUME_LANDMARKS, getStagnantExercises, getWeeklyActionableFeedback, calcWorkoutCalories } from "../lib/analytics.js";
 function MuscleRadarChart({ data }) {
   const cx = 95, cy = 95, r = 62;
@@ -345,7 +346,7 @@ export default function CoachPage() {
 
   // ── Today's macro totals from food log ──────────────────────────────────────
   const todayMacros = useMemo(() => {
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = todayLocal();
     const todayMeals = mealLog.filter((m) => m.date === todayStr);
     return {
       kcal:    todayMeals.reduce((s, m) => s + (Number(m.kcal)    || 0), 0),
@@ -443,7 +444,7 @@ export default function CoachPage() {
 
   // ── Readiness score ──────────────────────────────────────────────────────────
   const readiness = useMemo(() => {
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = todayLocal();
     const todaySleep = sleepLog.find(s => s.date === todayStr) || sleepLog[0];
     const todayWater = waterLog.find(w => w.date === todayStr);
 
@@ -488,7 +489,7 @@ export default function CoachPage() {
       else if (muscleRange === "3m") d.setMonth(d.getMonth() - 3);
       else if (muscleRange === "6m") d.setMonth(d.getMonth() - 6);
       else if (muscleRange === "1y") d.setFullYear(d.getFullYear() - 1);
-      return d.toISOString().slice(0,10);
+      return dateToLocal(d);
     })();
     const filtered = cutoff ? workouts.filter(w => w.date >= cutoff) : workouts;
     const groups = { Pecho:0, Espalda:0, Hombros:0, Brazos:0, Piernas:0, Core:0 };
@@ -1130,7 +1131,7 @@ export default function CoachPage() {
                 const volSpark = [6,5,4,3,2,1,0].map(i => {
                   const start = new Date(now); start.setDate(start.getDate() - start.getDay() - i*7 + 1);
                   const end = new Date(start); end.setDate(end.getDate() + 6);
-                  return workouts.filter(w => w.date && w.date >= start.toISOString().slice(0,10) && w.date <= end.toISOString().slice(0,10))
+                  return workouts.filter(w => w.date && w.date >= dateToLocal(start) && w.date <= dateToLocal(end))
                     .reduce((s,w) => s + getWorkoutVolume(w), 0);
                 });
                 const maxV = Math.max(...volSpark, 1);
@@ -1162,26 +1163,26 @@ export default function CoachPage() {
 
               {/* ── Coach insights adaptativos ── */}
               {(() => {
-                const hoy = new Date().toISOString().slice(0, 10);
+                const hoy = todayLocal();
                 const wDates = [...new Set((workouts||[]).map(w => w.date?.slice(0,10)).filter(Boolean))].sort().reverse();
                 // Streak
                 let racha = 0;
                 const d = new Date();
                 while (true) {
-                  const iso = d.toISOString().slice(0, 10);
+                  const iso = dateToLocal(d);
                   if (wDates.includes(iso)) { racha++; d.setDate(d.getDate() - 1); }
                   else break;
                 }
                 // Week days
                 const mon = new Date(); mon.setDate(mon.getDate() - ((mon.getDay() + 6) % 7));
-                const monStr = mon.toISOString().slice(0, 10);
+                const monStr = dateToLocal(mon);
                 const semana = wDates.filter(x => x >= monStr && x <= hoy).length;
                 // Avg days last 4 weeks
                 let totalD = 0, wkCnt = 0;
                 for (let w = 1; w <= 4; w++) {
                   const end = new Date(mon); end.setDate(end.getDate() - w * 7);
                   const start = new Date(end); start.setDate(start.getDate() - 6);
-                  const days = wDates.filter(x => x >= start.toISOString().slice(0,10) && x <= end.toISOString().slice(0,10)).length;
+                  const days = wDates.filter(x => x >= dateToLocal(start) && x <= dateToLocal(end)).length;
                   totalD += days; if (days > 0) wkCnt++;
                 }
                 const avgSem = wkCnt > 0 ? (totalD / wkCnt).toFixed(1) : "—";
@@ -1190,7 +1191,7 @@ export default function CoachPage() {
                 const recentWeight = weightEntries.filter(e => e.date >= monStr);
                 const lastMonthWeight = weightEntries.filter(e => {
                   const m = new Date(); m.setDate(m.getDate() - 30);
-                  return e.date >= m.toISOString().slice(0, 10);
+                  return e.date >= dateToLocal(m);
                 });
                 const wTrend = lastMonthWeight.length >= 2
                   ? (Number(lastMonthWeight[lastMonthWeight.length-1].kg) - Number(lastMonthWeight[0].kg)).toFixed(1)
@@ -1204,7 +1205,7 @@ export default function CoachPage() {
                 const lastWeekStart = new Date(mon); lastWeekStart.setDate(lastWeekStart.getDate() - 7);
                 const lastWeekEnd = new Date(mon); lastWeekEnd.setDate(lastWeekEnd.getDate() - 1);
                 const volThis = (workouts||[]).filter(w => w.date >= monStr && w.date <= hoy).reduce((s, w) => s + getWorkoutVolume(w), 0);
-                const volLast = (workouts||[]).filter(w => w.date >= lastWeekStart.toISOString().slice(0,10) && w.date <= lastWeekEnd.toISOString().slice(0,10)).reduce((s, w) => s + getWorkoutVolume(w), 0);
+                const volLast = (workouts||[]).filter(w => w.date >= dateToLocal(lastWeekStart) && w.date <= dateToLocal(lastWeekEnd)).reduce((s, w) => s + getWorkoutVolume(w), 0);
                 const volTrend = volLast > 0 ? Math.round((volThis - volLast) / volLast * 100) : null;
                 // Water compliance
                 const waterWeek = [...(waterLog||[])].filter(e => e.date >= monStr);
@@ -2350,7 +2351,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
   const [buildPlate, setBuildPlate] = useState(false);
   const [plateParts, setPlateParts] = useState([]);
   const [plateName, setPlateName] = useState("");
-  const [diaryDate, setDiaryDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [diaryDate, setDiaryDate] = useState(() => todayLocal());
   // Sub-page navigation
   const [subPage, setSubPage] = useState(null); // null | "diary" | "plan" | "wizard"
   const [expandedPlanDay, setExpandedPlanDay] = useState(null);
@@ -2370,7 +2371,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
   const saveNutritionPlan = useStore(s => s.saveNutritionPlan);
   const clearNutritionPlan = useStore(s => s.clearNutritionPlan);
 
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = todayLocal();
   const isToday = diaryDate === todayStr;
   const todayMeals = mealLog.filter(m => m.date === diaryDate);
   const todayOnlyMeals = mealLog.filter(m => m.date === todayStr);
@@ -2384,7 +2385,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
   function shiftDay(delta) {
     const d = new Date(diaryDate + "T12:00:00");
     d.setDate(d.getDate() + delta);
-    const next = d.toISOString().slice(0, 10);
+    const next = dateToLocal(d);
     if (next <= todayStr) setDiaryDate(next);
   }
 
@@ -2394,7 +2395,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
-      const dateStr = d.toISOString().slice(0, 10);
+      const dateStr = dateToLocal(d);
       const dayMeals = mealLog.filter(m => m.date === dateStr);
       result.push({
         date: dateStr,
@@ -2635,7 +2636,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
       { days: wizDays, mealsPerDay: wizMeals, goal: wizGoal, restrictions: wizRestrictions, likedCats: wizLikedCats, allergies: wizAllergies, cuisine: wizCuisine, prepTime: wizPrepTime, budget: wizBudget, seed: Math.floor(Math.random() * 999983) },
       tdee, targetCal, proteinG, carbG, fatG
     );
-    plan.planStartDate = new Date().toISOString().slice(0, 10);
+    plan.planStartDate = todayLocal();
     saveNutritionPlan(plan);
     setSubPage("plan");
     setWizStep(0);
@@ -3359,7 +3360,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
             const targetP = weightKg ? Math.round(weightKg * (userGoal==="definicion"?2.6:userGoal==="volumen"?2.2:1.8)) : null;
             if (!targetP || todayP === 0) return null;
             const pct = todayP / targetP;
-            const isToday2 = diaryDate === new Date().toISOString().slice(0,10);
+            const isToday2 = diaryDate === todayLocal();
             if (!isToday2 || pct >= 0.8) return null;
             return (
               <div style={{ background:"rgba(239,68,68,.07)", border:"1px solid rgba(239,68,68,.25)", borderRadius:12, padding:"10px 14px", marginBottom:10, fontSize:13 }}>

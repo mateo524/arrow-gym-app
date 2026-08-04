@@ -1,7 +1,7 @@
 ﻿import { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import useStore from "../store/useStore.js";
 import useAuthStore from "../store/useAuthStore.js";
-import { hasData, formatDate, buildLiveCoachHints, getLiveVolumeStatus, getPostWorkoutSummary, calcSessionStrain, getWeightPrescriptions } from "../lib/analytics.js";
+import { hasData, formatDate, buildLiveCoachHints, getLiveVolumeStatus, getPostWorkoutSummary, calcSessionStrain, getWeightPrescriptions, calcWorkoutCalories } from "../lib/analytics.js";
 import { todayLocal } from "../lib/dates.js";
 import LiveCoachPanel from "../components/LiveCoachPanel.jsx";
 import ExercisePicker from "../components/ExercisePicker.jsx";
@@ -12,6 +12,7 @@ import Icon from "../components/Icon.jsx";
 import ExerciseIllustration from "../components/ExerciseIllustration.jsx";
 import { findExerciseMeta } from "../data/exerciseDatabase.js";
 import ShareWorkoutCard from "../components/ShareWorkoutCard.jsx";
+import WorkoutPDF from "../components/WorkoutPDF.jsx";
 import { scheduleRestTimerPush } from '../lib/pushNotifications';
 
 function groupSetsByExercise(sets) {
@@ -185,6 +186,7 @@ export default function WorkoutPage() {
   const [savingRoutine, setSavingRoutine] = useState(false);
   const [saveRoutineError, setSaveRoutineError] = useState("");
   const [shareMsg, setShareMsg] = useState("");
+  const [showPDF, setShowPDF] = useState(false);
 
   const [illustrationExercise, setIllustrationExercise] = useState(null);
   const [restDone, setRestDone] = useState(false);
@@ -1055,6 +1057,13 @@ export default function WorkoutPage() {
               + Agregar ejercicio
             </button>
 
+            {/* PDF */}
+            <button
+              onClick={() => { setShowMenu(false); setShowPDF(true); }}
+              style={{ width: "100%", background: "var(--panel)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 12, padding: "13px", cursor: "pointer", fontSize: 14, fontWeight: 600, color: "var(--text)", marginBottom: 10, textAlign: "left" }}>
+              Ver rutina como PDF
+            </button>
+
             {/* Reorder */}
             {groupedExercises.length > 1 && (
               <div style={{ background: "var(--panel)", borderRadius: 14, padding: "12px 14px", marginBottom: 10 }}>
@@ -1267,6 +1276,19 @@ export default function WorkoutPage() {
               ))}
             </div>
           )}
+          {(() => {
+            const kcal = calcWorkoutCalories(
+              { ...active, durationMin: Math.round(elapsed / 60) },
+              latestBodyWeight
+            );
+            if (!kcal) return null;
+            return (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, background: "rgba(245,158,11,.08)", border: "1px solid rgba(245,158,11,.2)", borderRadius: 10, padding: "8px 14px", marginBottom: 12 }}>
+                <span style={{ fontSize: 18 }}>🔥</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: "#f59e0b" }}>~{kcal} kcal quemadas</span>
+              </div>
+            );
+          })()}
           <p style={{ fontSize: 12, color: "var(--muted)", textAlign: "center", margin: "0 0 14px", lineHeight: 1.5 }}>
             {postSummary.rpe >= 9 ? "RPE muy alto — tomá un día extra de descanso." :
              postSummary.rpe <= 3 ? "Sesión liviana — la próxima subí el peso o agregá series." :
@@ -1282,6 +1304,18 @@ export default function WorkoutPage() {
             if (window.__showToast) window.__showToast("✓ Entrenamiento guardado");
           }}>
             Listo
+          </button>
+          <button
+            className="ghost"
+            style={{ width: "100%", marginTop: 8, fontSize: 14 }}
+            onClick={() => {
+              const { notes } = pendingFinishRef.current || {};
+              setPostSummary(null);
+              finish(notes);
+              setPage("coach");
+            }}
+          >
+            📊 Ver análisis completo del entrenamiento
           </button>
         </div>
       </div>
@@ -1641,6 +1675,13 @@ export default function WorkoutPage() {
             Saltear por ahora
           </button>
         </div>
+      </div>
+    )}
+
+    {/* ── PDF VIEW ──────────────────────────────────────────────────────────── */}
+    {showPDF && (
+      <div style={{ position: "fixed", inset: 0, background: "var(--bg)", zIndex: 300, overflowY: "auto" }}>
+        <WorkoutPDF workout={active} onClose={() => setShowPDF(false)} />
       </div>
     )}
     </>

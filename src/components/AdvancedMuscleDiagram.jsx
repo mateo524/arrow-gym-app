@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { todayLocal, dateToLocal } from "../lib/dates.js";
 
 const MUSCLE_TO_KEY = {
   "Pectoral mayor":"pecho","Pectoral superior":"pecho","Pectoral inferior":"pecho","Serrato anterior":"pecho",
@@ -35,10 +36,10 @@ export default function AdvancedMuscleDiagram({ workouts = [], intensity = {}, o
       });
       return m;
     }
-    const todayStr = new Date().toISOString().slice(0,10);
+    const todayStr = todayLocal();
     const ws = new Date(); const dow = ws.getDay();
     ws.setDate(ws.getDate() + (dow===0?-6:1-dow)); ws.setHours(0,0,0,0);
-    const weekStr = ws.toISOString().slice(0,10);
+    const weekStr = dateToLocal(ws);
     const counts = {};
     workouts.forEach(wo => {
       if (wo.date < weekStr) return;

@@ -1,7 +1,7 @@
 ﻿import { useState, useMemo } from "react";
 import useStore from "../store/useStore.js";
 import { todayLocal } from "../lib/dates.js";
-import { getWorkoutVolume, formatDate } from "../lib/analytics.js";
+import { getWorkoutVolume, formatDate, calcWorkoutCalories } from "../lib/analytics.js";
 import ExerciseProgressChart from "../components/ExerciseProgressChart.jsx";
 import Icon from "../components/Icon.jsx";
 
@@ -109,6 +109,12 @@ export default function HistoryPage() {
   const cardioHistory = useStore(s => s.cardioHistory) || [];
   const setPage = useStore((state) => state.setPage);
   const openWorkout = useStore((state) => state.openWorkout);
+  const weightLog = useStore(s => s.weightLog) || [];
+  const latestBodyWeight = useMemo(() => {
+    if (!weightLog.length) return 70;
+    const sorted = [...weightLog].sort((a, b) => (b.date || "") > (a.date || "") ? 1 : -1);
+    return Number(sorted[0]?.kg || 70);
+  }, [weightLog]);
 
   const today = new Date();
   const [viewYear, setViewYear] = useState(today.getFullYear());
@@ -289,6 +295,7 @@ export default function HistoryPage() {
                     <div>
                       <b>{workout.type}</b>
                       <small>{formatDate(workout.date)}</small>
+                      <small style={{ color: "var(--muted)", fontSize: 11 }}>🔥 {calcWorkoutCalories(workout, latestBodyWeight)} kcal</small>
                     </div>
                     <div style={{ textAlign: "right" }}>
                       {best && <small style={{ display: "block", color: "var(--muted)", fontSize: 11 }}>{best.exercise} {best.weight}kg</small>}
@@ -384,6 +391,7 @@ export default function HistoryPage() {
                         <div>
                           <b>{workout.type}</b>
                           <small>{formatDate(workout.date)}</small>
+                          <small style={{ color: "var(--muted)", fontSize: 11 }}>🔥 {calcWorkoutCalories(workout, latestBodyWeight)} kcal</small>
                         </div>
                         <div style={{ textAlign: "right" }}>
                           {best && <small style={{ display: "block", color: "var(--muted)", fontSize: 11 }}>{best.exercise} {best.weight}kg</small>}
