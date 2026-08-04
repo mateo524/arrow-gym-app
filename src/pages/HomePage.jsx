@@ -45,7 +45,7 @@ export default function HomePage() {
     if (freq && Number(freq) > 0) return Number(freq);
     // Always respect the user's explicitly set weeklyGoal
     return weeklyGoal || 4;
-  }, [profile, weeklyGoal, workouts]);
+  }, [profile, weeklyGoal]);
 
   const streak = useMemo(() => {
     const allDays = new Set([
@@ -68,7 +68,7 @@ export default function HomePage() {
       check.setDate(check.getDate()-1);
     }
     return count;
-  }, [workouts, restDays]);
+  }, [workouts, restDays, cardioHistory]);
 
   const nextWorkout = useMemo(() => getNextWorkoutSuggestion(workouts), [workouts]);
   const deload = useMemo(() => getDeloadSuggestion(workouts), [workouts]);
@@ -150,12 +150,37 @@ export default function HomePage() {
     });
   }, [workouts, cardioHistory]);
 
-  // Feature 2: "Casi llegás" — exactly 1 workout away from weekly goal
+  // Feature 2: "Casi llegás" — 1 or 2 workouts away from weekly goal
   const almostThere = useMemo(() => {
     const goal = adaptedWeeklyGoal;
     const done = weekCalendar.filter(d => d.trained || d.cardio).length;
-    return goal - done === 1;
+    const remaining = goal - done;
+    if (remaining <= 0 || remaining > 2) return null;
+    return remaining; // 1 or 2
   }, [adaptedWeeklyGoal, weekCalendar]);
+
+  // Upcoming achievements — earned achievements with next tier within reach
+  const upcomingAchievements = useMemo(() => {
+    const achList = achievements || [];
+    const candidates = achList
+      .filter(a => a.level < 3 && Array.isArray(a.tiers))
+      .map(a => {
+        const nextTier = a.tiers[a.level]; // a.level is 1-based, tiers is 0-indexed
+        if (!nextTier) return null;
+        return {
+          icon: a.icon,
+          title: a.title,
+          progress: a.value,
+          required: nextTier.req,
+          desc: nextTier.desc,
+          ratio: a.value / nextTier.req,
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.ratio - a.ratio)
+      .slice(0, 2);
+    return candidates;
+  }, [achievements]);
 
   return (
     <section className="page">
@@ -195,13 +220,13 @@ export default function HomePage() {
         <>
           {/* Feature 1: Comeback mechanic */}
           {comebackDays !== null && (
-            <div style={{ background: "rgba(239,68,68,.07)", border: "1px solid rgba(239,68,68,.3)", borderRadius: 16, padding: "16px 16px", marginBottom: 14 }}>
+            <div style={{ background: comebackDays >= 7 ? "rgba(168,85,247,.07)" : "rgba(239,68,68,.07)", border: comebackDays >= 7 ? "1px solid rgba(168,85,247,.25)" : "1px solid rgba(239,68,68,.3)", borderRadius: 16, padding: "16px 16px", marginBottom: 14 }}>
               <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 6 }}>
-                {comebackDays >= 7 ? "⚠️ Tu progreso está en riesgo" : comebackDays >= 4 ? "⏰ La adaptación muscular se frena" : "🔥 Tu racha te espera"}
+                {comebackDays >= 7 ? "Bienvenido de vuelta" : comebackDays >= 4 ? "⏰ La adaptación muscular se frena" : "🔥 Tu racha te espera"}
               </div>
               <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 12 }}>
                 {comebackDays >= 7
-                  ? <><b style={{ color: "var(--text)" }}>{comebackDays} días</b> inactivo. Tu progreso está en riesgo — una sesión hoy detiene el retroceso.</>
+                  ? <>Retomá donde lo dejaste. <b style={{ color: "var(--text)" }}>Una sesión corta hoy cuenta igual.</b></>
                   : comebackDays >= 4
                   ? <><b style={{ color: "var(--text)" }}>{comebackDays} días</b> sin entrenar. La masa muscular empieza a perder adaptación después de 5-7 días.</>
                   : <><b style={{ color: "var(--text)" }}>{comebackDays} días</b> sin entrenar. Tu racha espera — hoy la reiniciás.</>
@@ -269,7 +294,12 @@ export default function HomePage() {
                   </svg>
                   <div>
                     <div style={{ fontSize:13, fontWeight:700, color:"var(--text)" }}>Objetivo semanal</div>
-                    <div style={{ fontSize:11, color:"var(--muted)", marginTop:2 }}>{goal - done > 0 ? `${goal - done} entrenos restantes` : "¡Meta cumplida! 🎉"}</div>
+                    <div style={{ fontSize:11, color:"var(--muted)", marginTop:2 }}>
+                      {goal - done > 0 ? `${goal - done} entrenos restantes` : "¡Meta cumplida! 🎉"}
+                    </div>
+                    {done > goal && (
+                      <div style={{ fontSize:10, color:"var(--green)", marginTop:2, fontWeight:600 }}>+{done - goal} entrenamiento{done - goal !== 1 ? "s" : ""} extra esta semana</div>
+                    )}
                   </div>
                 </div>
               );
@@ -294,11 +324,13 @@ export default function HomePage() {
           })()}
 
           {/* Feature 2: "Casi llegás" */}
-          {almostThere && (
+          {almostThere !== null && (
             <div style={{ background: "rgba(168,85,247,.08)", border: "1px solid rgba(168,85,247,.25)", borderRadius: 14, padding: "10px 14px", marginBottom: 12, display: "flex", alignItems: "center", gap: 10 }}>
               <span style={{ fontSize: 20 }}>🎯</span>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>1 entreno más para completar tu semana</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>
+                  {almostThere === 2 ? "Dos más para tu objetivo" : "¡Una más para completar tu semana!"}
+                </div>
               </div>
               <button className="primary" style={{ fontSize: 12, padding: "6px 12px", flexShrink: 0 }} onClick={() => setPage("start")}>
                 Entrenar ahora
@@ -424,6 +456,33 @@ export default function HomePage() {
                     <div key={a.id} style={{ flexShrink:0, background:"var(--panel)", border:"1px solid rgba(34,211,120,.25)", borderRadius:14, padding:"10px 14px", textAlign:"center", minWidth:80 }}>
                       <div style={{ fontSize:24 }}>{def.icon}</div>
                       <div style={{ fontSize:11, color:"var(--text)", fontWeight:600, marginTop:4 }}>{def.title}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Próximos logros — goal-gradient progress bars */}
+          {upcomingAchievements.length > 0 && (
+            <div style={{ marginBottom:14 }}>
+              <p className="section-label">Próximos logros</p>
+              <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                {upcomingAchievements.map((ach, i) => {
+                  const pct = Math.min(100, Math.round(ach.ratio * 100));
+                  return (
+                    <div key={i} style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:12, padding:"10px 12px" }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:6 }}>
+                        <span style={{ fontSize:18 }}>{ach.icon}</span>
+                        <div style={{ flex:1, minWidth:0 }}>
+                          <div style={{ fontSize:12, fontWeight:700, color:"var(--text)" }}>{ach.title}</div>
+                          <div style={{ fontSize:10, color:"var(--muted)", marginTop:1, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{ach.desc}</div>
+                        </div>
+                        <span style={{ fontSize:11, fontWeight:700, color:"var(--green)", flexShrink:0 }}>{ach.progress}/{ach.required}</span>
+                      </div>
+                      <div style={{ height:5, background:"rgba(255,255,255,.08)", borderRadius:4, overflow:"hidden" }}>
+                        <div style={{ width:`${pct}%`, height:"100%", background:"var(--green)", borderRadius:4, transition:"width 0.8s ease" }} />
+                      </div>
                     </div>
                   );
                 })}

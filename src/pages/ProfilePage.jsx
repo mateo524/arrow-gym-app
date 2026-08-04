@@ -177,7 +177,7 @@ export default function ProfilePage() {
   async function handleChangePwd(e) {
     e.preventDefault();
     if (newPwd !== confirmPwd) { setPwdMsg("Las contraseñas no coinciden."); return; }
-    if (newPwd.length < 6) { setPwdMsg("Mínimo 6 caracteres."); return; }
+    if (newPwd.length < 8) { setPwdMsg("Mínimo 8 caracteres."); return; }
     setSavingPwd(true);
     setPwdMsg("");
     const { error } = await supabase.auth.updateUser({ password: newPwd });
@@ -414,7 +414,7 @@ export default function ProfilePage() {
               <div className="field-group">
                 <label>Nueva contraseña</label>
                 <input type="password" value={newPwd} onChange={(e) => setNewPwd(e.target.value)}
-                  placeholder="Mínimo 6 caracteres" autoComplete="new-password" required minLength={6} />
+                  placeholder="Mínimo 8 caracteres" autoComplete="new-password" required minLength={8} />
               </div>
               <div className="field-group">
                 <label>Confirmar contraseña</label>

@@ -292,6 +292,21 @@ export default function WorkoutPage() {
     };
   }, []);
 
+  // Re-acquire wake lock when tab becomes visible again during rest
+  useEffect(() => {
+    const handleVisibility = async () => {
+      if (document.visibilityState === 'visible' && restExercise !== null) {
+        try {
+          if (wakeLockRef.current === null || wakeLockRef.current.released) {
+            wakeLockRef.current = await navigator.wakeLock?.request('screen');
+          }
+        } catch (e) { /* ignore */ }
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [restExercise]); // re-register when restExercise changes so the closure has fresh value
+
   // Screen orientation lock during active workout
   useEffect(() => {
     if (!active) return;
@@ -364,9 +379,9 @@ export default function WorkoutPage() {
         wakeLockRef.current = await navigator.wakeLock?.request('screen');
       } catch(e) {}
     })();
-    // Push notification for rest timer
+    // Push notification for rest timer — only needed when app is backgrounded
     const pushSub = localStorage.getItem('pushSubscription');
-    if (pushSub && baseDuration > 0) {
+    if (pushSub && baseDuration > 0 && document.visibilityState === 'hidden') {
       scheduleRestTimerPush(pushSub, baseDuration).catch(() => {});
     }
     // PR detection
@@ -394,19 +409,25 @@ export default function WorkoutPage() {
     }
   }, [groupedExercises]);
 
+  const cancelRestTimerPush = useCallback(() => {
+    navigator.serviceWorker?.controller?.postMessage({ type: 'CANCEL_TIMER' });
+  }, []);
+
   const handleSkipRest = useCallback(() => {
+    cancelRestTimerPush();
     wakeLockRef.current?.release().catch(() => {});
     wakeLockRef.current = null;
     setRestExercise(null);
     setRestDone(false);
-  }, []);
+  }, [cancelRestTimerPush]);
   const handleRestComplete = useCallback(() => {
+    cancelRestTimerPush();
     wakeLockRef.current?.release().catch(() => {});
     wakeLockRef.current = null;
     navigator.vibrate?.([200, 100, 200, 100, 300]);
     setRestDone(true);
     setTimeout(() => { setRestDone(false); setRestExercise(null); }, 4000);
-  }, []);
+  }, [cancelRestTimerPush]);
 
   function doFinish(notes, rpe) {
     setShowSummary(false);
@@ -503,6 +524,7 @@ export default function WorkoutPage() {
   }
 
   function handleFinishClick() {
+    cancelRestTimerPush();
     if (navigator.vibrate) navigator.vibrate(20);
     const allSets = active?.sets || [];
     const validSets = allSets.filter(s => s.weight && s.reps);

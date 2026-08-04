@@ -1,4 +1,4 @@
-import { BODY_GROUPS, MUSCLES_BY_GROUP, resolveExerciseGroup, resolveExerciseMuscle, findExerciseMeta } from "../data/exerciseDatabase.js";
+import { BODY_GROUPS, MUSCLES_BY_GROUP, resolveExerciseGroup, resolveExerciseMuscle, findExerciseMeta, EXERCISE_MAP } from "../data/exerciseDatabase.js";
 
 export function hasData(set) {
   return set && Number(set.weight) > 0 && Number(set.reps) > 0;

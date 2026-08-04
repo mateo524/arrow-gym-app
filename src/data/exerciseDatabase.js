@@ -285,9 +285,20 @@ export const EXERCISE_DATABASE = [
   ex("Suitcase carry", "Core", "Oblicuos", "Mancuernas", "compound", ["Transverso abdominal","Trapecio superior"]),
 ];
 
+// O(1) lookup map built once at module load
+export const EXERCISE_MAP = new Map();
+for (const ex of EXERCISE_DATABASE) {
+  EXERCISE_MAP.set(ex.name.toLowerCase(), ex);
+  if (Array.isArray(ex.aliases)) {
+    for (const alias of ex.aliases) {
+      EXERCISE_MAP.set(alias.toLowerCase(), ex);
+    }
+  }
+}
+
 export function findExerciseMeta(name) {
   const clean = String(name || "").toLowerCase().trim();
-  return EXERCISE_DATABASE.find((e) => e.name.toLowerCase() === clean) || null;
+  return EXERCISE_MAP.get(clean) || null;
 }
 
 export function resolveExerciseGroup(name, fallback = "Core") {

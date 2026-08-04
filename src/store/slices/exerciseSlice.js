@@ -4,7 +4,6 @@ export const createExerciseSlice = (set, get) => ({
   customExercises: [],
   recentExercises: [],
   favoriteExercises: [],
-  favorites: [],
   exerciseNotes: {},
 
   getCatalog: () => {
@@ -25,12 +24,6 @@ export const createExerciseSlice = (set, get) => ({
       return { favoriteExercises: exists ? s.favoriteExercises.filter((e) => e !== exerciseName) : [...(s.favoriteExercises || []), exerciseName] };
     });
   },
-
-  toggleFavoriteExercise: (name) => set((s) => ({
-    favorites: (s.favorites || []).includes(name)
-      ? (s.favorites || []).filter((f) => f !== name)
-      : [...(s.favorites || []), name],
-  })),
 
   setExerciseNote: (name, note) => set((s) => ({
     exerciseNotes: { ...(s.exerciseNotes || {}), [name]: note },

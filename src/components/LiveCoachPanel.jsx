@@ -47,6 +47,7 @@ export default function LiveCoachPanel({ hints: allHints, volStatus }) {
   const [newHintCount, setNewHintCount] = useState(0);
   const prevHintsRef = useRef(allHints);
   const pulseRef = useRef(false);
+  const autoOpenedRef = useRef(false);
 
   // Filter by muted types and per-session dismissals
   const hints = allHints.filter(h => !mutedHintTypes.includes(h.type) && !dismissed.has(h.msg));
@@ -62,6 +63,15 @@ export default function LiveCoachPanel({ hints: allHints, volStatus }) {
       setTimeout(() => { pulseRef.current = false; }, 2000);
     }
     prevHintsRef.current = hints;
+  }, [hints]);
+
+  // Auto-expand once when a positive (PR or loop-closure) hint appears
+  useEffect(() => {
+    const hasPositive = hints.some(h => h.type === 'pr' || h.type === 'loop');
+    if (hasPositive && !autoOpenedRef.current) {
+      setExpanded(true);
+      autoOpenedRef.current = true;
+    }
   }, [hints]);
 
   const topHint = hints[0];
@@ -107,7 +117,7 @@ export default function LiveCoachPanel({ hints: allHints, volStatus }) {
             )}
           </div>
           {!expanded && topHint && (
-            <p style={{ margin: 0, fontSize: 11, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "flex", alignItems: "center" }}>
+            <p style={{ margin: 0, fontSize: 11, color: (topHint.type === 'pr' || topHint.type === 'loop') ? "var(--green)" : "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "flex", alignItems: "center" }}>
               {hints.length > 0 && (
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: dotColor, display: 'inline-block', marginRight: 6, flexShrink: 0 }} />
               )}

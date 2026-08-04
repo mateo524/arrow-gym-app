@@ -1,14 +1,18 @@
 import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
 import { registerRoute, NavigationRoute } from 'workbox-routing';
-import { StaleWhileRevalidate } from 'workbox-strategies';
+import { NetworkFirst } from 'workbox-strategies';
 
 cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST);
 
-// SPA fallback
+// SPA fallback — NetworkFirst so stale index.html referencing purged JS chunks
+// doesn't cause white screens; falls back to cached shell when offline.
 registerRoute(
   new NavigationRoute(
-    new StaleWhileRevalidate({ cacheName: 'navigation' }),
+    new NetworkFirst({
+      cacheName: 'navigation',
+      networkTimeoutSeconds: 3,
+    }),
     { denylist: [/^\/api\//] }
   )
 );
@@ -26,19 +30,8 @@ self.addEventListener('message', event => {
   if (type === 'SKIP_WAITING') { self.skipWaiting(); return; }
 
   if (type === 'SCHEDULE_TIMER') {
-    if (pendingTimers.has(id)) clearTimeout(pendingTimers.get(id));
-    const tid = setTimeout(() => {
-      pendingTimers.delete(id);
-      self.registration.showNotification('Loop — Descanso terminado', {
-        body: label ? `Siguiente: ${label}` : 'Listo para la próxima serie.',
-        icon: '/icon-192.png',
-        badge: '/icon-192.png',
-        tag: 'rest-timer',
-        renotify: true,
-        vibrate: [200, 100, 200],
-      });
-    }, delayMs);
-    pendingTimers.set(id, tid);
+    // SW setTimeout is unreliable; rest timer pushes are handled by Supabase Edge Function
+    console.log('[SW] SCHEDULE_TIMER received but ignored — handled by Supabase Edge Function', { id, delayMs, label });
     return;
   }
 
@@ -90,4 +83,23 @@ self.addEventListener('push', event => {
       data: { url: data.url || '/' }
     })
   );
+});
+
+self.addEventListener('pushsubscriptionchange', async (event) => {
+  event.waitUntil((async () => {
+    try {
+      const reg = await self.registration;
+      const vapidKey = self.VAPID_PUBLIC_KEY || '';
+      // Re-subscribe with same key
+      const newSub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: vapidKey,
+      });
+      // Notify the client so it can update Supabase
+      const clients = await self.clients.matchAll({ type: 'window' });
+      clients.forEach(c => c.postMessage({ type: 'PUSH_SUBSCRIPTION_CHANGED', subscription: JSON.stringify(newSub) }));
+    } catch (e) {
+      console.warn('pushsubscriptionchange resubscribe failed:', e);
+    }
+  })());
 });

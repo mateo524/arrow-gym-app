@@ -232,24 +232,8 @@ function AppContent() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Subscribe to push notifications once per login (SIGNED_IN only, not on every INITIAL_SESSION)
-  useEffect(() => {
-    if (!isPushSupported()) return;
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event !== "SIGNED_IN") return;
-      const userId = session?.user?.id;
-      if (!userId) return;
-      requestPushPermission().then(({ permission }) => {
-        if (permission !== "granted") return;
-        subscribeToPush(userId, supabase).then((sub) => {
-          if (sub) {
-            localStorage.setItem("pushSubscription", JSON.stringify(sub));
-          }
-        });
-      }).catch(() => {});
-    });
-    return () => subscription.unsubscribe();
-  }, []);
+  // Push subscription is handled by the ProfilePage toggle (user gesture required on iOS).
+  // On re-auth, preserve any existing subscription stored in localStorage.
 
   // Init auth in background — the cached session already set user synchronously
   useEffect(() => {
@@ -287,12 +271,13 @@ function AppContent() {
         `${daysSince} días de descanso... ¿será que ya descansaste suficiente?`,
         `Tu racha está en pausa hace ${daysSince} días. ¡Volvé hoy!`,
       ];
-      new Notification("Loop Gym", {
+      const opts = {
         body: msgs[daysSince % msgs.length],
         icon: "/icon-192.png",
         badge: "/icon-192.png",
         tag: "inactivity",
-      });
+      };
+      navigator.serviceWorker.ready.then(r => r.showNotification("Loop Gym", opts)).catch(() => {});
       localStorage.setItem("loop-last-notif", String(Date.now()));
     };
     if (Notification.permission === "granted") {

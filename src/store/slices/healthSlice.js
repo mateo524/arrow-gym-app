@@ -8,37 +8,29 @@ function today() {
   return todayLocal();
 }
 
-let syncTimer = null;
-function debouncedSync(getState) {
-  if (syncTimer) clearTimeout(syncTimer);
-  syncTimer = setTimeout(() => {
-    syncTimer = null;
-    const s = getState();
-    const userId = supabase?.auth?.getSession()?.then?.() || null;
-    // We can't easily get userId here, so we use a different approach
-  }, 1000);
+function buildHealthPayload(state) {
+  return {
+    weight_log: state.weightLog || [],
+    meal_log: state.mealLog || [],
+    sleep_log: state.sleepLog || [],
+    water_log: state.waterLog || [],
+    water_goal: state.waterGoal || 8,
+    rest_days: state.restDays || [],
+    cardio_history: state.cardioHistory || [],
+    saved_meal_combos: state.savedMealCombos || [],
+    nutrition_plan: state.nutritionPlan,
+    active_challenges: state.activeChallenges || [],
+    progress_photos: state.progressPhotos || [],
+    competition_date: state.competitionDate,
+    competition_name: state.competitionName,
+  };
 }
 
 async function syncHealthToDB(state) {
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user?.id) return;
-    const payload = {
-      weight_log: state.weightLog || [],
-      meal_log: state.mealLog || [],
-      sleep_log: state.sleepLog || [],
-      water_log: state.waterLog || [],
-      water_goal: state.waterGoal || 8,
-      rest_days: state.restDays || [],
-      cardio_history: state.cardioHistory || [],
-      saved_meal_combos: state.savedMealCombos || [],
-      nutrition_plan: state.nutritionPlan,
-      active_challenges: state.activeChallenges || [],
-      progress_photos: state.progressPhotos || [],
-      competition_date: state.competitionDate,
-      competition_name: state.competitionName,
-    };
-    await supabase.from("profiles").update({ health_data: payload }).eq("id", session.user.id);
+    await supabase.from("profiles").update({ health_data: buildHealthPayload(state) }).eq("id", session.user.id);
   } catch (e) {
     // Silently fail — table or column may not exist yet
   }
@@ -52,23 +44,7 @@ function queueHealthSync(get) {
     healthSyncQueued = false;
     const state = get();
     if (!navigator.onLine) {
-      // Build payload and enqueue for later
-      const payload = {
-        weight_log: state.weightLog || [],
-        meal_log: state.mealLog || [],
-        sleep_log: state.sleepLog || [],
-        water_log: state.waterLog || [],
-        water_goal: state.waterGoal || 8,
-        rest_days: state.restDays || [],
-        cardio_history: state.cardioHistory || [],
-        saved_meal_combos: state.savedMealCombos || [],
-        nutrition_plan: state.nutritionPlan,
-        active_challenges: state.activeChallenges || [],
-        progress_photos: state.progressPhotos || [],
-        competition_date: state.competitionDate,
-        competition_name: state.competitionName,
-      };
-      state.queueSync("health", payload);
+      state.queueSync("health", buildHealthPayload(state));
     } else {
       syncHealthToDB(state);
     }

@@ -89,7 +89,6 @@ export const createWorkoutSlice = (set, get) => ({
   weeklyChallenge: null,
   activePlanAdjustment: null,
   completedPlans: [],
-  progressionTargets: {},
 
   getExerciseStats: (exercise) => getExerciseStats(get().workouts, exercise),
 
@@ -171,8 +170,6 @@ export const createWorkoutSlice = (set, get) => ({
   },
 
   clearActiveWorkout: () => set({ activeWorkout: null }),
-
-  openWorkout: (id) => set({ selectedWorkoutId: id, currentPage: "workoutDetail" }),
 
   startWorkout: (type) => {
     const routine = ROUTINES[type] || [];
