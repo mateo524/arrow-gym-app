@@ -305,32 +305,19 @@ export default function ProfilePage() {
             </div>
           )}
 
-          <div className="settings-row" style={{ flexDirection: "column", alignItems: "flex-start", gap: 8 }}>
-            <div><label>Alertas del coach</label><small>Desactivá los tipos de alertas que no querés ver</small></div>
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-              {[
-                { id: "plateau", label: "Plateau" },
-                { id: "fatigue", label: "Fatiga" },
-                { id: "ready", label: "Progresión" },
-                { id: "form", label: "Técnica" },
-                { id: "overreach", label: "Exceso" },
-                { id: "high_volume", label: "Volumen" },
-                { id: "recovery", label: "Recovery" },
-                { id: "deload", label: "Deload" },
-              ].map(({ id, label }) => {
-                const isMuted = mutedHintTypes.includes(id);
-                return (
-                  <button key={id} onClick={() => toggleMutedHintType(id)}
-                    style={{
-                      padding: "5px 10px", borderRadius: 8, border: "1px solid var(--line)", cursor: "pointer", fontSize: 12, fontWeight: 600,
-                      background: isMuted ? "rgba(255,255,255,.04)" : "rgba(168,85,247,.12)",
-                      color: isMuted ? "var(--muted)" : "var(--green)",
-                      textDecoration: isMuted ? "line-through" : "none",
-                    }}>{label}</button>
-                );
-              })}
+          {mutedHintTypes.length > 0 && (
+            <div className="settings-row" style={{ flexDirection: "column", alignItems: "flex-start", gap: 8 }}>
+              <div><label>Alertas silenciadas</label><small>Tocá para reactivar</small></div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {mutedHintTypes.map(type => (
+                  <button key={type} onClick={() => toggleMutedHintType(type)}
+                    style={{ padding: "4px 10px", borderRadius: 8, border: "1px solid var(--line)", cursor: "pointer", fontSize: 12, background:"rgba(255,255,255,.04)", color:"var(--muted)", textDecoration:"line-through" }}>
+                    {type}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="settings-row" style={{ flexDirection: "column", alignItems: "flex-start", gap: 8 }}>
             <div><label>Objetivo</label><small>Define cómo el coach adapta sus consejos</small></div>

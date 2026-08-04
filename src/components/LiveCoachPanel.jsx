@@ -197,11 +197,18 @@ export default function LiveCoachPanel({ hints: allHints, volStatus }) {
                       <span style={{ fontSize: 9, fontWeight: 800, color: meta.color, textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 1 }}>{meta.label}</span>
                       <p style={{ margin: 0, fontSize: 12, color: "var(--text)", lineHeight: 1.4 }}>{h.msg}</p>
                     </div>
-                    <button
-                      onClick={() => setDismissed(d => new Set([...d, h.msg]))}
-                      style={{ background:"none", border:"none", cursor:"pointer", color:"var(--muted)", fontSize:14, padding:"0 2px", lineHeight:1, flexShrink:0 }}
-                      title="Descartar"
-                    >×</button>
+                    <div style={{ display:"flex", flexDirection:"column", gap:4, alignItems:"flex-end", flexShrink:0 }}>
+                      <button
+                        onClick={() => setDismissed(d => new Set([...d, h.msg]))}
+                        style={{ background:"none", border:"none", cursor:"pointer", color:"var(--muted)", fontSize:14, padding:"0 2px", lineHeight:1 }}
+                        title="Descartar"
+                      >×</button>
+                      <button
+                        onClick={() => toggleMutedHintType(h.type)}
+                        style={{ background:"none", border:"none", cursor:"pointer", color:"var(--muted)", fontSize:9, padding:0, lineHeight:1.2, textDecoration:"underline", whiteSpace:"nowrap" }}
+                        title="No mostrar este tipo"
+                      >No mostrar más</button>
+                    </div>
                   </div>
                 );
               })}
