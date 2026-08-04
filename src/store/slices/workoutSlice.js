@@ -89,6 +89,9 @@ export const createWorkoutSlice = (set, get) => ({
   weeklyChallenge: null,
   activePlanAdjustment: null,
   completedPlans: [],
+  currentPRCard: null,
+
+  clearPRCard: () => set({ currentPRCard: null }),
 
   getExerciseStats: (exercise) => getExerciseStats(get().workouts, exercise),
 
@@ -365,11 +368,50 @@ export const createWorkoutSlice = (set, get) => ({
       import('posthog-js').then(({ default: ph }) => {
         ph.capture('workout_completed', {
           duration_mins: Math.round((clean.durationMin || 0)),
-          total_sets: (clean.sets || []).filter(s => s.completed).length,
-          prs_hit: 0, // placeholder
+          total_sets: (clean.sets || []).length,
+          prs_hit: newPrsList.length,
         });
       });
     } catch {}
+
+    // "El Grito": show PR card and notify trainer when a new PR is hit
+    if (newPrsList.length > 0) {
+      const firstPR = newPrsList[0];
+      // Find previous best weight for this exercise from history
+      const prevSetsForEx = history.flatMap((wk) => wk.sets || []).filter((ps) => ps.exercise === firstPR.exercise);
+      const previousWeight = prevSetsForEx.length > 0
+        ? Math.max(...prevSetsForEx.map((ps) => Number(ps.weight) || 0))
+        : 0;
+      // Calculate daysTraining: days since the oldest recorded workout
+      const allDates = [...history.map((w) => w.date), clean.date].filter(Boolean).sort();
+      const oldestDate = allDates[0];
+      const daysTraining = oldestDate
+        ? Math.floor((Date.now() - new Date(oldestDate).getTime()) / (1000 * 60 * 60 * 24))
+        : 0;
+      set({
+        currentPRCard: {
+          exercise: firstPR.exercise,
+          newWeight: firstPR.weight,
+          previousWeight,
+          daysTraining,
+          date: clean.date,
+        },
+      });
+      // Notify trainer if the student has one
+      try {
+        const profile = getAuthProfile();
+        const userId = getAuthUserId();
+        if (profile?.trainer_id && userId) {
+          supabase.from('trainer_notifications').insert({
+            trainer_id: profile.trainer_id,
+            student_id: userId,
+            type: 'pr',
+            message: `${profile.full_name || profile.name || 'Tu alumno'} logró un nuevo récord: ${firstPR.exercise} ${firstPR.weight}kg`,
+            created_at: new Date().toISOString(),
+          }).then(() => {}).catch(() => {});
+        }
+      } catch {}
+    }
 
     // Achievement check
     try {

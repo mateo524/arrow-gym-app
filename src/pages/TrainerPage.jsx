@@ -4,6 +4,57 @@ import useAuthStore from "../store/useAuthStore.js";
 import { EXERCISE_DATABASE } from "../data/exerciseDatabase.js";
 import Icon from "../components/Icon.jsx";
 import AssignRoutineModal from "../components/AssignRoutineModal.jsx";
+import { getGroupTotals, filterCurrentWeek } from "../lib/analytics.js";
+
+/*
+  SQL para crear la tabla invite_codes (ejecutar en Supabase SQL editor):
+
+  CREATE TABLE invite_codes (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    trainer_id UUID REFERENCES auth.users(id),
+    code TEXT UNIQUE NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT now()
+  );
+  ALTER TABLE invite_codes ENABLE ROW LEVEL SECURITY;
+  CREATE POLICY "Trainers can manage their own codes" ON invite_codes FOR ALL USING (trainer_id = auth.uid());
+  CREATE POLICY "Anyone can read codes" ON invite_codes FOR SELECT USING (true);
+*/
+
+/** Genera un código alfanumérico de 8 caracteres */
+function generateShortCode() {
+  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+  let code = "";
+  for (let i = 0; i < 8; i++) {
+    code += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return code;
+}
+
+/** Detecta ejercicios en plateau (sin mejora en las últimas 3 sesiones) */
+function detectPlateaus(workouts) {
+  const exerciseSessions = {};
+  const sorted = [...workouts].sort((a, b) => b.date.localeCompare(a.date));
+  sorted.forEach((w) => {
+    (w.sets || []).forEach((s) => {
+      if (!s.exercise || !Number(s.weight) || !Number(s.reps)) return;
+      if (!exerciseSessions[s.exercise]) exerciseSessions[s.exercise] = [];
+      exerciseSessions[s.exercise].push({ weight: Number(s.weight), reps: Number(s.reps), date: w.date });
+    });
+  });
+  const plateaus = [];
+  Object.entries(exerciseSessions).forEach(([exercise, sets]) => {
+    const byDate = {};
+    sets.forEach((s) => {
+      if (!byDate[s.date] || s.weight > byDate[s.date].weight) byDate[s.date] = s;
+    });
+    const sessions = Object.values(byDate).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 4);
+    if (sessions.length < 3) return;
+    const maxWeights = sessions.map((s) => s.weight);
+    const allSame = maxWeights.slice(0, 3).every((w) => Math.abs(w - maxWeights[0]) / Math.max(1, maxWeights[0]) < 0.03);
+    if (allSame) plateaus.push({ exercise, weight: maxWeights[0], sessions: sessions.length });
+  });
+  return plateaus;
+}
 
 export default function TrainerPage() {
   const profile = useAuthStore((s) => s.profile);
@@ -19,6 +70,15 @@ export default function TrainerPage() {
   const [showAssign, setShowAssign] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
 
+  // Invite code state
+  const [inviteCode, setInviteCode] = useState(null);
+  const [inviteCopied, setInviteCopied] = useState(false);
+  const [inviteLoading, setInviteLoading] = useState(false);
+
+  // Analytics state for selected client
+  const [clientWorkouts, setClientWorkouts] = useState([]);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+
   const [deleteRoutineTarget, setDeleteRoutineTarget] = useState(null);
   const [editingRoutine, setEditingRoutine] = useState(null);
   const [routineName, setRoutineName] = useState("");
@@ -29,7 +89,47 @@ export default function TrainerPage() {
 
   const catalogNames = EXERCISE_DATABASE.map((e) => e.name);
 
-  useEffect(() => { loadClients(); }, []);
+  useEffect(() => {
+    loadClients();
+    loadInviteCode();
+  }, []);
+
+  async function loadInviteCode() {
+    if (!profile?.id) return;
+    const { data } = await supabase
+      .from("invite_codes")
+      .select("code")
+      .eq("trainer_id", profile.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (data?.code) setInviteCode(data.code);
+  }
+
+  async function generateInviteCode() {
+    if (!profile?.id) return;
+    setInviteLoading(true);
+    const code = generateShortCode();
+    const { error } = await supabase
+      .from("invite_codes")
+      .insert({ trainer_id: profile.id, code });
+    if (!error) {
+      setInviteCode(code);
+    }
+    setInviteLoading(false);
+  }
+
+  async function copyInviteLink() {
+    if (!inviteCode) return;
+    const link = `https://loop.app/join/${inviteCode}`;
+    try {
+      await navigator.clipboard.writeText(link);
+      setInviteCopied(true);
+      setTimeout(() => setInviteCopied(false), 2000);
+    } catch {
+      // fallback: select text manually
+    }
+  }
 
   async function loadClients() {
     if (!profile?.id) { setLoading(false); return; }
@@ -106,12 +206,32 @@ export default function TrainerPage() {
   async function selectClient(client) {
     setSelectedClient(client);
     setEditingRoutine(null);
-    const { data } = await supabase
-      .from("routines")
-      .select("*")
-      .eq("user_id", client.id)
-      .order("day_index", { ascending: true, nullsFirst: false });
-    setClientRoutines(data || []);
+    setClientWorkouts([]);
+
+    const [routinesResult] = await Promise.all([
+      supabase
+        .from("routines")
+        .select("*")
+        .eq("user_id", client.id)
+        .order("day_index", { ascending: true, nullsFirst: false }),
+      loadClientWorkoutsForAnalytics(client.id),
+    ]);
+    setClientRoutines(routinesResult.data || []);
+  }
+
+  async function loadClientWorkoutsForAnalytics(clientId) {
+    setAnalyticsLoading(true);
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const { data, error } = await supabase
+      .from("user_workouts")
+      .select("id, date, type, sets")
+      .eq("user_id", clientId)
+      .gte("date", thirtyDaysAgo.toISOString().slice(0, 10))
+      .order("date", { ascending: false });
+
+    if (!error) setClientWorkouts(data || []);
+    setAnalyticsLoading(false);
   }
 
   function openNewRoutine() {
@@ -260,6 +380,36 @@ export default function TrainerPage() {
 
       {!selectedClient ? (
         <>
+          {/* ── Invite section ── */}
+          <div className="card" style={{ marginBottom: 16, padding: "14px 16px" }}>
+            <p className="section-label" style={{ marginBottom: 10 }}>Invitar alumnos</p>
+            {inviteCode ? (
+              <div>
+                <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 8 }}>
+                  Compartí este link con tus alumnos para que se registren y queden vinculados a vos:
+                </p>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#0b1518", border: "1px solid #1b2d31", borderRadius: 10, padding: "8px 12px", marginBottom: 8 }}>
+                  <code style={{ flex: 1, fontSize: 12, color: "var(--cyan, #22d3ee)", wordBreak: "break-all" }}>
+                    https://loop.app/join/{inviteCode}
+                  </code>
+                  <button
+                    className="ghost icon-btn"
+                    title="Copiar link"
+                    onClick={copyInviteLink}
+                    style={{ flexShrink: 0 }}
+                  >
+                    <Icon name={inviteCopied ? "Check" : "Copy"} size={16} style={{ color: inviteCopied ? "var(--green)" : undefined }} />
+                  </button>
+                </div>
+                {inviteCopied && <p style={{ fontSize: 11, color: "var(--green)", margin: 0 }}>Link copiado al portapapeles</p>}
+              </div>
+            ) : (
+              <button className="ghost" style={{ width: "100%" }} disabled={inviteLoading} onClick={generateInviteCode}>
+                <Icon name="Link" size={14} /> {inviteLoading ? "Generando…" : "Generar link de invitación"}
+              </button>
+            )}
+          </div>
+
           {loading ? (
             <div className="loading-state"><Icon name="Loader" size={24} className="spin" /><p>Cargando…</p></div>
           ) : clients.length === 0 ? (

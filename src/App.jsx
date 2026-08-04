@@ -343,9 +343,11 @@ function AppContent() {
 
   // Access control
   const subStatus = profile?.subscription_status;
-  const hasAccess = !subStatus || subStatus === "active" || subStatus === "trialing";
   const role = profile?.role;
+  const isTrainer = role === "trainer";
   const isAdminRole = ["superadmin", "admin", "trainer"].includes(role);
+  // Trainers always have full access — no paywall, no trial expiry
+  const hasAccess = isTrainer || !subStatus || subStatus === "active" || subStatus === "trialing";
   const accountAgeMs = profile?.created_at ? Date.now() - new Date(profile.created_at).getTime() : 0;
   const trialExpired = !isAdminRole && accountAgeMs > 30 * 24 * 60 * 60 * 1000 && subStatus !== "active";
 
@@ -392,7 +394,7 @@ function AppContent() {
         <h2 style={{ margin:"0 0 8px" }}>Hola {profile?.name || profile?.email?.split("@")[0] || ""},</h2>
         <p style={{ color:"var(--muted)", fontSize:15, marginBottom:8 }}>Tu período de prueba terminó.</p>
         <p style={{ color:"var(--muted)", fontSize:14, marginBottom:24, lineHeight:1.6 }}>
-          Para seguir usando la app, suscribite por <b style={{ color:"var(--text)" }}>$25.000 ARS/mes</b>.
+          Activá tu suscripción para seguir entrenando con tu coach por <b style={{ color:"var(--text)" }}>$25.000 ARS/mes</b>.
         </p>
         <button className="primary" style={{ marginBottom:12, padding:"14px 28px", fontSize:15 }}
           onClick={() => window.open("https://mpago.la/placeholder", "_blank")}>

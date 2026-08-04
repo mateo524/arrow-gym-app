@@ -19,7 +19,7 @@ const useStore = create(
       name: "loop-gym-v4",
       version: 4,
       partialize: (state) => {
-        const { currentPage, selectedWorkoutId, progressPhotos, ...rest } = state;
+        const { currentPage, selectedWorkoutId, progressPhotos, currentPRCard, ...rest } = state;
         return rest;
       },
     }
