@@ -36,6 +36,8 @@ export default function ProfilePage() {
   const setWeeklyGoal = useStore((s) => s.setWeeklyGoal);
   const fontScale = useStore((s) => s.fontScale) || 1;
   const setFontScale = useStore((s) => s.setFontScale);
+  const mutedHintTypes = useStore((s) => s.mutedHintTypes || []);
+  const toggleMutedHintType = useStore((s) => s.toggleMutedHintType);
   const autoDarkMode = useStore((s) => s.autoDarkMode) || false;
   const setAutoDarkMode = useStore((s) => s.setAutoDarkMode);
   const competitionDate = useStore(s => s.competitionDate);
@@ -86,20 +88,27 @@ export default function ProfilePage() {
         }
         setNotifEnabled(false);
       } else {
-        const { permission } = await requestPushPermission();
-        if (permission === "granted") {
+        const { permission, supported } = await requestPushPermission();
+        if (!supported) {
+          alert("Tu navegador no soporta notificaciones push.");
+        } else if (permission === "granted") {
           const { data: { user: u } } = await supabase.auth.getUser();
           const sub = await subscribeToPush(u?.id, supabase);
           if (sub) {
             localStorage.setItem("pushSubscription", JSON.stringify(sub));
             setNotifEnabled(true);
+          } else {
+            alert("No se pudo activar. Verificá que la app esté instalada como PWA y volvé a intentar.");
           }
+        } else if (permission === "denied") {
+          alert("Notificaciones bloqueadas. Habilitá los permisos del navegador en Configuración del sistema.");
         } else {
-          alert("Para activar las notificaciones, habilitá los permisos en la configuración del navegador.");
+          alert("Permiso no otorgado. Tocá Permitir cuando el navegador te lo solicite.");
         }
       }
     } catch (e) {
       console.error("Toggle notifications error:", e);
+      alert("Error al activar notificaciones. Intentá de nuevo.");
     }
     setNotifLoading(false);
   }
@@ -295,6 +304,33 @@ export default function ProfilePage() {
               </div>
             </div>
           )}
+
+          <div className="settings-row" style={{ flexDirection: "column", alignItems: "flex-start", gap: 8 }}>
+            <div><label>Alertas del coach</label><small>Desactivá los tipos de alertas que no querés ver</small></div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {[
+                { id: "plateau", label: "Plateau" },
+                { id: "fatigue", label: "Fatiga" },
+                { id: "ready", label: "Progresión" },
+                { id: "form", label: "Técnica" },
+                { id: "overreach", label: "Exceso" },
+                { id: "high_volume", label: "Volumen" },
+                { id: "recovery", label: "Recovery" },
+                { id: "deload", label: "Deload" },
+              ].map(({ id, label }) => {
+                const isMuted = mutedHintTypes.includes(id);
+                return (
+                  <button key={id} onClick={() => toggleMutedHintType(id)}
+                    style={{
+                      padding: "5px 10px", borderRadius: 8, border: "1px solid var(--line)", cursor: "pointer", fontSize: 12, fontWeight: 600,
+                      background: isMuted ? "rgba(255,255,255,.04)" : "rgba(168,85,247,.12)",
+                      color: isMuted ? "var(--muted)" : "var(--green)",
+                      textDecoration: isMuted ? "line-through" : "none",
+                    }}>{label}</button>
+                );
+              })}
+            </div>
+          </div>
 
           <div className="settings-row" style={{ flexDirection: "column", alignItems: "flex-start", gap: 8 }}>
             <div><label>Objetivo</label><small>Define cómo el coach adapta sus consejos</small></div>

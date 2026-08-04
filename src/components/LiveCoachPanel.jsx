@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect, useRef } from "react";
 import { VOLUME_LANDMARKS } from "../lib/analytics.js";
+import useStore from "../store/useStore.js";
 
 // Inline SVG icons — no emoji
 const IcoTrophy  = () => <svg width={13} height={13} viewBox="0 0 16 16" fill="none"><path d="M5 1h6v5a3 3 0 0 1-6 0V1z" fill="#a855f7"/><path d="M2 2h2v3a1 1 0 0 1-2 0V2zM12 2h2v3a1 1 0 0 1-2 0V2z" fill="#a855f7" opacity=".6"/><rect x="6.5" y="9" width="3" height="3" rx=".5" fill="#a855f7"/><rect x="4" y="12" width="8" height="2" rx="1" fill="#a855f7"/></svg>;
@@ -39,11 +40,16 @@ const STATUS_LABEL = {
   over_mrv:       "Exceso",
 };
 
-export default function LiveCoachPanel({ hints, volStatus }) {
+export default function LiveCoachPanel({ hints: allHints, volStatus }) {
+  const mutedHintTypes = useStore(s => s.mutedHintTypes || []);
+  const [dismissed, setDismissed] = useState(new Set());
   const [expanded, setExpanded] = useState(false);
   const [newHintCount, setNewHintCount] = useState(0);
-  const prevHintsRef = useRef(hints);
+  const prevHintsRef = useRef(allHints);
   const pulseRef = useRef(false);
+
+  // Filter by muted types and per-session dismissals
+  const hints = allHints.filter(h => !mutedHintTypes.includes(h.type) && !dismissed.has(h.msg));
 
   // Detect new hints arriving
   useEffect(() => {
@@ -183,7 +189,7 @@ export default function LiveCoachPanel({ hints, volStatus }) {
                     background: meta.bg,
                     borderLeft: `3px solid ${meta.color}`,
                     borderRadius: "0 8px 8px 0",
-                    padding: "8px 12px",
+                    padding: "8px 10px",
                     display: "flex", gap: 8, alignItems: "flex-start",
                   }}>
                     <span style={{ display:"flex", alignItems:"center", marginTop: 2, flexShrink:0 }}><meta.Icon/></span>
@@ -191,6 +197,11 @@ export default function LiveCoachPanel({ hints, volStatus }) {
                       <span style={{ fontSize: 9, fontWeight: 800, color: meta.color, textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 1 }}>{meta.label}</span>
                       <p style={{ margin: 0, fontSize: 12, color: "var(--text)", lineHeight: 1.4 }}>{h.msg}</p>
                     </div>
+                    <button
+                      onClick={() => setDismissed(d => new Set([...d, h.msg]))}
+                      style={{ background:"none", border:"none", cursor:"pointer", color:"var(--muted)", fontSize:14, padding:"0 2px", lineHeight:1, flexShrink:0 }}
+                      title="Descartar"
+                    >×</button>
                   </div>
                 );
               })}

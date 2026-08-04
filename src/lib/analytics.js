@@ -645,14 +645,21 @@ function rulePerExercise(ctx) {
       }
     }
 
-    // Plateau: double progression — stall in BOTH weight AND reps across 3 sessions
-    if (prevMaxWeights.length >= 3 && prevMaxRepsPerSession.length >= 3) {
-      const weightStagnant = prevMaxWeights.slice(0, 3).every(w => w >= maxWeight);
-      const repsStagnant   = prevMaxRepsPerSession.slice(0, 3).every(r => r >= Math.round(avgReps));
-      if (weightStagnant && repsStagnant && maxWeight > 0) {
+    // Plateau: use e1RM so same-weight + more-reps counts as progress
+    if (sessionHistory.length >= 3 && maxWeight > 0) {
+      const calcE1RM = (ss) => {
+        const valid = ss.filter(s => Number(s.weight) > 0 && Number(s.reps) > 0);
+        if (!valid.length) return 0;
+        return Math.max(...valid.map(s => Number(s.weight) * (1 + Number(s.reps) / 30)));
+      };
+      const currentE1RM = calcE1RM(setsWithData);
+      const prevE1RMs = sessionHistory.slice(0, 3).map(calcE1RM);
+      // Stagnant if last 3 sessions ALL had e1RM within 2% of current (no net progress)
+      const e1rmStagnant = prevE1RMs.length >= 3 && prevE1RMs.every(e => e > 0 && e >= currentE1RM * 0.98);
+      if (e1rmStagnant) {
         hints.push({
           exercise, type: "plateau",
-          msg: `${exercise}: sin progreso (peso ni reps) en 3 sesiones. Hacé 1 semana de deload y recargá.`,
+          msg: `${exercise}: sin mejora de fuerza en 3 sesiones (mismo peso y reps). Probá más peso o más reps.`,
           priority: 3,
         });
       }

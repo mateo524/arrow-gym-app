@@ -43,14 +43,8 @@ export default function HomePage() {
   const adaptedWeeklyGoal = useMemo(() => {
     const freq = profile?.weeklyFrequency || profile?.frequency;
     if (freq && Number(freq) > 0) return Number(freq);
-    if (weeklyGoal && weeklyGoal !== 4) return weeklyGoal;
-    // Estimate from last 4 weeks
-    const now = new Date();
-    const fourWeeksAgo = new Date(now); fourWeeksAgo.setDate(now.getDate() - 28);
-    const fourWeeksStr = dateToLocal(fourWeeksAgo);
-    const recentCount = (workouts || []).filter(w => (w.date || "") >= fourWeeksStr).length;
-    const estimated = Math.round(recentCount / 4);
-    return Math.max(2, Math.min(7, estimated || weeklyGoal || 4));
+    // Always respect the user's explicitly set weeklyGoal
+    return weeklyGoal || 4;
   }, [profile, weeklyGoal, workouts]);
 
   const streak = useMemo(() => {

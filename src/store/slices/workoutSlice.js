@@ -453,8 +453,8 @@ export const createWorkoutSlice = (set, get) => ({
     }
   },
   declinePlanRecommendation: (type) => {
-    const d = new Date(); d.setDate(d.getDate() + 7);
-    const planAdjustment = { type, declined: true, declinedAt: today(), expiresAt: dateToLocal(d) };
+    // No expiry on decline — user explicitly rejected, don't show again
+    const planAdjustment = { type, declined: true, declinedAt: today(), expiresAt: null };
     set({ activePlanAdjustment: planAdjustment });
     const uid = getAuthUserId();
     if (uid) {

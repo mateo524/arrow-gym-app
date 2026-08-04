@@ -817,8 +817,8 @@ export default function CoachPage() {
                     {/* Active adjustment banner */}
                     {(() => {
                       const planType = isDeload ? "deload" : isAccum ? "volume_up" : "intensity_up";
-                      const isActive = activePlanAdjustment?.type === planType && !activePlanAdjustment?.declined && new Date(activePlanAdjustment?.expiresAt) >= new Date();
-                      const isDeclined = activePlanAdjustment?.type === planType && activePlanAdjustment?.declined && new Date(activePlanAdjustment?.expiresAt) >= new Date();
+                      const isActive = activePlanAdjustment?.type === planType && !activePlanAdjustment?.declined && (activePlanAdjustment?.expiresAt == null || new Date(activePlanAdjustment?.expiresAt) >= new Date());
+                      const isDeclined = activePlanAdjustment?.type === planType && activePlanAdjustment?.declined;
                       if (isActive) return (
                         <div style={{ background:"rgba(168,85,247,.1)", border:"1px solid rgba(168,85,247,.3)", borderRadius:10, padding:"8px 12px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
                           <span style={{ fontSize:12, color:"var(--green)", fontWeight:700 }}>✓ Ajuste activo hasta {activePlanAdjustment.expiresAt}</span>
@@ -826,7 +826,10 @@ export default function CoachPage() {
                         </div>
                       );
                       if (isDeclined) return (
-                        <p style={{ margin:0, fontSize:12, color:"var(--muted)" }}>Recomendación declinada — vuelve a mostrarse el {activePlanAdjustment.expiresAt}.</p>
+                        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                          <p style={{ margin:0, fontSize:12, color:"var(--muted)" }}>Recomendación declinada.</p>
+                          <button onClick={clearPlanAdjustment} style={{ background:"none", border:"none", color:"rgba(168,85,247,.7)", fontSize:11, cursor:"pointer", textDecoration:"underline" }}>Reactivar</button>
+                        </div>
                       );
                       return (
                         <div style={{ display:"flex", gap:8 }}>
@@ -1615,8 +1618,11 @@ export default function CoachPage() {
                   <span style={{ fontSize:12, color:"var(--green)", fontWeight:700 }}>✓ Deload activo — pesos reducidos al 60% hasta {activePlanAdjustment.expiresAt}</span>
                   <button onClick={clearPlanAdjustment} style={{ background:"none", border:"none", color:"var(--muted)", fontSize:11, cursor:"pointer" }}>Cancelar</button>
                 </div>
-              ) : activePlanAdjustment?.type === "deload" && activePlanAdjustment?.declined && new Date(activePlanAdjustment?.expiresAt) >= new Date() ? (
-                <p style={{ margin:0, fontSize:12, color:"var(--muted)" }}>Deload declinado — vuelve a mostrarse el {activePlanAdjustment.expiresAt}.</p>
+              ) : activePlanAdjustment?.type === "deload" && activePlanAdjustment?.declined ? (
+                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                  <p style={{ margin:0, fontSize:12, color:"var(--muted)" }}>Deload declinado.</p>
+                  <button onClick={clearPlanAdjustment} style={{ background:"none", border:"none", color:"rgba(245,158,11,.8)", fontSize:11, cursor:"pointer", textDecoration:"underline" }}>Reactivar</button>
+                </div>
               ) : (
                 <div style={{ display:"flex", gap:8 }}>
                   <button onClick={() => acceptPlanRecommendation("deload", 0.6)}

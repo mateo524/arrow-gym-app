@@ -17,6 +17,7 @@ export const createSettingsSlice = (set, get) => ({
   activityLevel: "moderado",
   exerciseRestTimes: {},
   weeklyGoal: 4,
+  mutedHintTypes: [],
 
   setPage: (page) => {
     if (page === "coach") {
@@ -34,6 +35,10 @@ export const createSettingsSlice = (set, get) => ({
   setUserGoal: (goal) => set({ userGoal: goal }),
   setActivityLevel: (level) => set({ activityLevel: level }),
   setWeeklyGoal: (n) => set({ weeklyGoal: Math.max(1, Math.min(7, Number(n))) }),
+  toggleMutedHintType: (type) => set((s) => {
+    const muted = s.mutedHintTypes || [];
+    return { mutedHintTypes: muted.includes(type) ? muted.filter(t => t !== type) : [...muted, type] };
+  }),
   markOnboardingSeen: () => set({ hasSeenOnboarding: true }),
   markVersionSeen: (v) => set({ lastSeenVersion: v }),
   setLastUserId: (userId) => set({ lastUserId: userId }),
