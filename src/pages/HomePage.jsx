@@ -50,7 +50,6 @@ export default function HomePage() {
   const streak = useMemo(() => {
     const allDays = new Set([
       ...(workouts || []).map(w => w.date),
-      ...(restDays || []).map(r => r.date),
       ...(cardioHistory || []).map(c => c.date?.slice(0,10)).filter(Boolean),
     ]);
     let count = 0;
@@ -68,7 +67,24 @@ export default function HomePage() {
       check.setDate(check.getDate()-1);
     }
     return count;
-  }, [workouts, restDays, cardioHistory]);
+  }, [workouts, cardioHistory]);
+
+  const consistencyScore = useMemo(() => {
+    if (!workouts?.length) return null;
+    const goal = adaptedWeeklyGoal;
+    const weeks = {};
+    workouts.forEach(w => {
+      const d = new Date(w.date + 'T12:00:00');
+      const monday = new Date(d);
+      monday.setDate(d.getDate() - (d.getDay() === 0 ? 6 : d.getDay() - 1));
+      const key = dateToLocal(monday).slice(0, 10);
+      weeks[key] = (weeks[key] || 0) + 1;
+    });
+    const weekKeys = Object.keys(weeks).sort().slice(-8); // últimas 8 semanas
+    if (weekKeys.length < 2) return null;
+    const achieved = weekKeys.filter(k => weeks[k] >= goal).length;
+    return Math.round((achieved / weekKeys.length) * 100);
+  }, [workouts, adaptedWeeklyGoal]);
 
   const nextWorkout = useMemo(() => getNextWorkoutSuggestion(workouts), [workouts]);
   const deload = useMemo(() => getDeloadSuggestion(workouts), [workouts]);
@@ -218,6 +234,32 @@ export default function HomePage() {
         </div>
       ) : (
         <>
+          {/* CTA principal — primer elemento visible */}
+          <div style={{ marginBottom: 16, marginTop: 4 }}>
+            <button
+              className="primary big"
+              style={{ width: "100%", padding: "16px", fontSize: 17, fontWeight: 800 }}
+              onClick={() => setPage(activeWorkout ? "workout" : "start")}
+            >
+              {activeWorkout ? "▶ Continuar entrenamiento" : "▶ Empezar entrenamiento"}
+            </button>
+            {deload && (
+              <div style={{ background:"rgba(245,158,11,.1)", border:"1px solid rgba(245,158,11,.3)", borderRadius:12, padding:"10px 12px", fontSize:13, marginTop:10 }}>
+                ⚠️ <b>Semana de descarga sugerida</b> — bajá los pesos al 60% esta semana.
+              </div>
+            )}
+            {nextWorkout && (
+              <div style={{ fontSize:12, color:"var(--muted)", marginTop:8, textAlign:"center" }}>
+                Recomendado hoy: <b style={{ color:"var(--green)" }}>{nextWorkout}</b>
+              </div>
+            )}
+            {nextSplitPrediction && !nextWorkout && (
+              <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 8, textAlign:"center" }}>
+                Próximo: <b style={{ color: "var(--green)" }}>{nextSplitPrediction}</b>
+              </div>
+            )}
+          </div>
+
           {/* Feature 1: Comeback mechanic */}
           {comebackDays !== null && (
             <div style={{ background: comebackDays >= 7 ? "rgba(168,85,247,.07)" : "rgba(239,68,68,.07)", border: comebackDays >= 7 ? "1px solid rgba(168,85,247,.25)" : "1px solid rgba(239,68,68,.3)", borderRadius: 16, padding: "16px 16px", marginBottom: 14 }}>
@@ -261,6 +303,11 @@ export default function HomePage() {
                       <div style={{ fontSize:11, color: isMilestone ? "#f59e0b" : "var(--muted)", marginTop:2, fontWeight: isMilestone ? 700 : 400 }}>
                         {streak === 0 ? "sin racha" : isMilestone ? milestoneMsg : `día${streak !== 1 ? "s" : ""} de racha`}
                       </div>
+                      {consistencyScore !== null && (
+                        <span style={{ fontSize: 10, color: 'var(--muted)', display: 'block' }}>
+                          {consistencyScore}% de semanas con objetivo cumplido
+                        </span>
+                      )}
                     </div>
                   </div>
                   {isRestToday
@@ -337,28 +384,6 @@ export default function HomePage() {
               </button>
             </div>
           )}
-
-          {/* CTA */}
-          <div style={{ marginBottom:14 }}>
-            {nextWorkout && (
-              <div style={{ fontSize:12, color:"var(--muted)", marginBottom:8 }}>
-                Recomendado hoy: <b style={{ color:"var(--green)" }}>{nextWorkout}</b>
-              </div>
-            )}
-            {nextSplitPrediction && !nextWorkout && (
-              <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 8 }}>
-                Próximo: <b style={{ color: "var(--green)" }}>{nextSplitPrediction}</b>
-              </div>
-            )}
-            {deload && (
-              <div style={{ background:"rgba(245,158,11,.1)", border:"1px solid rgba(245,158,11,.3)", borderRadius:12, padding:"10px 12px", fontSize:13, marginBottom:10 }}>
-                ⚠️ <b>Semana de descarga sugerida</b> — bajá los pesos al 60% esta semana.
-              </div>
-            )}
-            <button className="primary big" onClick={() => setPage(activeWorkout ? "workout" : "start")}>
-              {activeWorkout ? "▶ Continuar entrenamiento" : "▶ Empezar entrenamiento"}
-            </button>
-          </div>
 
           {/* Animated stats */}
           {(() => {

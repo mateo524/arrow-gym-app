@@ -2,6 +2,12 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.jsx";
 import "./styles.css";
+import posthog from 'posthog-js'
+posthog.init('phc_PLACEHOLDER_KEY', {
+  api_host: 'https://app.posthog.com',
+  autocapture: false,
+  capture_pageview: false,
+})
 
 // Si un chunk lazy falla al cargar (SW desactualizado, cache rota), recarga una vez.
 // Evita el "pantalla negra" en esos casos usando sessionStorage para no entrar en loop.

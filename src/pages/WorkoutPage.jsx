@@ -193,7 +193,6 @@ export default function WorkoutPage() {
   const [illustrationExercise, setIllustrationExercise] = useState(null);
   const [restDone, setRestDone] = useState(false);
   const [showReadiness, setShowReadiness] = useState(false);
-  const [showBriefing, setShowBriefing] = useState(false);
   const [prCelebration, setPrCelebration] = useState(null);
   const pendingFinishRef = useRef(null);
   const undoTimerRef = useRef(null);
@@ -314,15 +313,6 @@ export default function WorkoutPage() {
     return () => { screen.orientation?.unlock?.(); };
   }, [active?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Pre-workout briefing modal
-  useEffect(() => {
-    if (!active) return;
-    const allSets = active.sets || [];
-    if (allSets.length > 0 && allSets.every(s => !s.completed && !s.reps)) {
-      const hasVol = Object.keys(volStatus || {}).length > 0;
-      if (hasVol) setShowBriefing(true);
-    }
-  }, [active?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
 
   // Scroll to new exercise when added
@@ -1598,42 +1588,6 @@ export default function WorkoutPage() {
       </div>
     )}
     {/* ── READINESS MODAL ─────────────────────────────────────────────────── */}
-    {/* ── PRE-WORKOUT BRIEFING MODAL ──────────────────────────────────────── */}
-    {showBriefing && (
-      <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 200, display: 'flex', alignItems: 'flex-end' }}>
-        <div style={{ background: 'var(--surface, var(--bg))', borderRadius: '16px 16px 0 0', padding: '24px', width: '100%', maxHeight: '60vh', overflowY: 'auto' }}>
-          <h3 style={{ margin: '0 0 16px' }}>📋 Antes de empezar</h3>
-          {(() => {
-            const muscleGroups = [...new Set((active?.sets || []).map(s => s.group || s.muscle).filter(Boolean))];
-            const summary = muscleGroups.length > 0 ? muscleGroups.join(' · ') : null;
-            return (
-              <>
-                {summary && (
-                  <p style={{ fontSize: 14, color: 'var(--text)', margin: '0 0 12px', fontWeight: 600 }}>
-                    {summary}
-                  </p>
-                )}
-                {Object.keys(volStatus || {}).length > 0 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
-                    {Object.entries(volStatus).map(([group, status]) => (
-                      <div key={group} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--panel2)', borderRadius: 10, padding: '8px 12px' }}>
-                        <span style={{ fontSize: 13, fontWeight: 600 }}>{group}</span>
-                        <span style={{ fontSize: 12, color: status?.status === 'high' ? 'var(--green)' : status?.status === 'low' ? 'var(--danger)' : 'var(--muted)', fontWeight: 700 }}>
-                          {status?.label || status?.status || ''}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </>
-            );
-          })()}
-          <button className="btn-primary" style={{ width: '100%', marginTop: 16, background: 'var(--green)', border: 'none', borderRadius: 12, padding: '14px', fontSize: 15, fontWeight: 700, color: '#fff', cursor: 'pointer' }} onClick={() => setShowBriefing(false)}>
-            ¡Vamos! 💪
-          </button>
-        </div>
-      </div>
-    )}
 
     {/* ── PR CELEBRATION OVERLAY ──────────────────────────────────────────── */}
     {prCelebration && (

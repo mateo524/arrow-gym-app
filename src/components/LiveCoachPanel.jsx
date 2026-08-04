@@ -190,6 +190,11 @@ export default function LiveCoachPanel({ hints: allHints, volStatus }) {
             </div>
           )}
 
+          {/* Disclaimer */}
+          <p style={{ fontSize: 9, color: 'var(--muted)', margin: '0 0 8px', opacity: 0.7 }}>
+            Las sugerencias son orientativas. Consultá un profesional de salud ante cualquier dolor o lesión.
+          </p>
+
           {/* Hints list */}
           {hints.length > 0 ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>

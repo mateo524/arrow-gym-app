@@ -13,6 +13,8 @@ export default function TrainerPage() {
   const [selectedClient, setSelectedClient] = useState(null);
   const [clientRoutines, setClientRoutines] = useState([]);
   const [loading, setLoading] = useState(true);
+  // adherence: { [userId]: Set<'YYYY-MM-DD'> }
+  const [adherenceMap, setAdherenceMap] = useState({});
   const [saving, setSaving] = useState(false);
   const [showAssign, setShowAssign] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
@@ -36,8 +38,69 @@ export default function TrainerPage() {
       ? supabase.from("profiles").select("*").eq("role", "user")
       : supabase.from("profiles").select("*").eq("role", "user").eq("trainer_id", profile.id);
     const { data } = await query.order("name");
-    setClients(data || []);
+    const loadedClients = data || [];
+    setClients(loadedClients);
     setLoading(false);
+    if (loadedClients.length > 0) {
+      await loadAdherence(loadedClients.map((c) => c.id));
+    }
+  }
+
+  async function loadAdherence(clientIds) {
+    if (!clientIds || clientIds.length === 0) return;
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+    const sevenDaysAgoStr = sevenDaysAgo.toISOString().slice(0, 10);
+
+    // Query workouts logged by clients in the last 7 days
+    // Adjust table/column names if your schema differs
+    const { data, error } = await supabase
+      .from("user_workouts")
+      .select("user_id, date")
+      .in("user_id", clientIds)
+      .gte("date", sevenDaysAgoStr)
+      .order("date", { ascending: false });
+
+    if (error) {
+      // Table might not exist yet — silently skip adherence display
+      console.warn("adherence query failed:", error.message);
+      return;
+    }
+
+    // Build map: { userId -> Set<'YYYY-MM-DD'> }
+    const map = {};
+    (data || []).forEach(({ user_id, date }) => {
+      const d = date?.slice(0, 10);
+      if (!d) return;
+      if (!map[user_id]) map[user_id] = new Set();
+      map[user_id].add(d);
+    });
+    setAdherenceMap(map);
+  }
+
+  // Returns array of last 7 date strings ['YYYY-MM-DD', ...]
+  function getLast7Days() {
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      days.push(d.toISOString().slice(0, 10));
+    }
+    return days;
+  }
+
+  // Returns how many consecutive days (ending today) a client has NOT trained
+  function daysSinceLastWorkout(userId) {
+    const trained = adherenceMap[userId];
+    if (!trained || trained.size === 0) return 7; // no data = assume 7
+    let streak = 0;
+    for (let i = 0; i < 7; i++) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      if (trained.has(d.toISOString().slice(0, 10))) break;
+      streak++;
+    }
+    return streak;
   }
 
   async function selectClient(client) {
@@ -206,16 +269,69 @@ export default function TrainerPage() {
             </div>
           ) : (
             <div className="user-list">
-              {clients.map((c) => (
+              {clients.map((c) => {
+                const last7 = getLast7Days();
+                const trained = adherenceMap[c.id];
+                const dayLabels = ["L","M","X","J","V","S","D"];
+                const inactiveDays = daysSinceLastWorkout(c.id);
+                const hasAdherence = trained !== undefined;
+                return (
                 <button key={c.id} className="user-row as-button" onClick={() => selectClient(c)}>
                   <div className="user-avatar">{(c.name || c.email || "?")[0].toUpperCase()}</div>
-                  <div className="user-info">
-                    <strong>{c.name || "—"}</strong>
+                  <div className="user-info" style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                      <strong>{c.name || "—"}</strong>
+                      {hasAdherence && inactiveDays >= 3 && (
+                        <span style={{
+                          fontSize: 10,
+                          fontWeight: 600,
+                          padding: "1px 6px",
+                          borderRadius: 20,
+                          background: inactiveDays >= 5 ? "rgba(220,38,38,.18)" : "rgba(234,179,8,.18)",
+                          color: inactiveDays >= 5 ? "#f87171" : "#fbbf24",
+                          whiteSpace: "nowrap",
+                        }}>
+                          {inactiveDays}d sin entrenar
+                        </span>
+                      )}
+                    </div>
                     <small>{c.email}</small>
+                    {/* 7-day adherence circles */}
+                    <div style={{ display: "flex", gap: 4, marginTop: 5 }}>
+                      {last7.map((dateStr, idx) => {
+                        const didTrain = trained?.has(dateStr);
+                        // if no data at all, show grey
+                        const color = !hasAdherence
+                          ? "#2a3d42"
+                          : didTrain
+                            ? "#22c55e"
+                            : "#2a3d42";
+                        const border = !hasAdherence
+                          ? "1px solid #374748"
+                          : didTrain
+                            ? "1px solid #16a34a"
+                            : "1px solid #374748";
+                        return (
+                          <div key={dateStr} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                            <div style={{
+                              width: 10,
+                              height: 10,
+                              borderRadius: "50%",
+                              background: color,
+                              border,
+                            }} />
+                            <span style={{ fontSize: 8, color: "var(--muted)", lineHeight: 1 }}>
+                              {dayLabels[new Date(dateStr + "T12:00:00").getDay() === 0 ? 6 : new Date(dateStr + "T12:00:00").getDay() - 1]}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                   <Icon name="ChevronRight" size={18} />
                 </button>
-              ))}
+                );
+              })}
             </div>
           )}
         </>

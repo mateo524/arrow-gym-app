@@ -360,6 +360,17 @@ export const createWorkoutSlice = (set, get) => ({
       prs: [...newPrsList, ...existingPrs].slice(0, 200),
       ...planUpdate,
     }));
+    // PostHog: workout completed
+    try {
+      import('posthog-js').then(({ default: ph }) => {
+        ph.capture('workout_completed', {
+          duration_mins: Math.round((clean.durationMin || 0)),
+          total_sets: (clean.sets || []).filter(s => s.completed).length,
+          prs_hit: 0, // placeholder
+        });
+      });
+    } catch {}
+
     // Achievement check
     try {
       const { getAchievements } = await import("../../lib/analytics.js");

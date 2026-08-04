@@ -228,6 +228,11 @@ function AppContent() {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") setShowPasswordModal(true);
+      if (event === "SIGNED_IN") {
+        try {
+          import('posthog-js').then(({ default: ph }) => ph.capture('user_login'));
+        } catch {}
+      }
     });
     return () => subscription.unsubscribe();
   }, []);

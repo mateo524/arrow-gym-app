@@ -1556,6 +1556,11 @@ export default function CoachPage() {
             </div>
           )}
 
+          {/* Disclaimer */}
+          <p style={{ fontSize: 10, color: 'var(--muted)', margin: '0 0 12px', opacity: 0.7, textAlign: 'center' }}>
+            Las sugerencias son orientativas. Consultá un profesional de salud ante cualquier dolor o lesión.
+          </p>
+
           {/* Weekly volume per muscle group */}
           {workouts.length >= 1 && (() => {
             const entries = Object.entries(VOLUME_LANDMARKS).map(([group, { mev, mav, mrv }]) => {
