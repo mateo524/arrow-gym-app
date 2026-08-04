@@ -22,8 +22,10 @@ const BadgesPage         = lazy(() => import("./pages/BadgesPage.jsx"));
 const ChatPage           = lazy(() => import("./pages/ChatPage.jsx"));
 const HealthSyncPage     = lazy(() => import("./pages/HealthSyncPage.jsx"));
 const ChallengesPage     = lazy(() => import("./pages/ChallengesPage.jsx"));
+const ReferralPage       = lazy(() => import("./pages/ReferralPage.jsx"));
 import Nav from "./components/Nav.jsx";
 import OnboardingModal from "./components/OnboardingModal.jsx";
+import PRCard from "./components/PRCard.jsx";
 import useStore from "./store/useStore.js";
 import useAuthStore from "./store/useAuthStore.js";
 import { supabase } from "./lib/supabase.js";
@@ -111,6 +113,7 @@ const PAGE_MAP = {
   chat: ChatPage,
   healthsync: HealthSyncPage,
   challenges: ChallengesPage,
+  referral: ReferralPage,
 };
 
 function AppContent() {
@@ -119,6 +122,8 @@ function AppContent() {
   const activeWorkout = useStore((s) => s.activeWorkout);
   const amoled = useStore((s) => s.amoled);
   const setPage = useStore((s) => s.setPage);
+  const currentPRCard = useStore((s) => s.currentPRCard);
+  const clearPRCard = useStore((s) => s.clearPRCard);
   const lastSeenVersion = useStore((s) => s.lastSeenVersion);
   const markVersionSeen = useStore((s) => s.markVersionSeen);
   const [installPrompt, setInstallPrompt] = useState(null);   // Android: deferred prompt
@@ -354,6 +359,7 @@ function AppContent() {
   const PAGE_ROLE_GUARDS = {
     admin: ["admin", "superadmin"],
     trainer: ["trainer", "admin", "superadmin"],
+    referral: ["trainer", "admin", "superadmin"],
   };
   const requiredRoles = PAGE_ROLE_GUARDS[currentPage];
   const isAllowed = !requiredRoles || requiredRoles.includes(role);
@@ -433,6 +439,13 @@ function AppContent() {
       )}
       {inner}
       <Nav role={role} />
+      {currentPRCard && (
+        <PRCard
+          pr={{ exercise: currentPRCard.exercise, weight: currentPRCard.newWeight, reps: currentPRCard.reps, unit: "kg" }}
+          totalWorkouts={currentPRCard.daysTraining}
+          onClose={clearPRCard}
+        />
+      )}
 
       {/* ── FIRST LOGIN / PASSWORD RECOVERY MODAL ──────────────────────── */}
       {(showPasswordModal || profile?.has_changed_password === false) && (

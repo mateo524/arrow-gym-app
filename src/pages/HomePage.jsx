@@ -47,27 +47,44 @@ export default function HomePage() {
     return weeklyGoal || 4;
   }, [profile, weeklyGoal]);
 
+  // Weekly streak: consecutive weeks where weeklyGoal was met
+  // One "freeze" allowed every 4 weeks (missed by 1 workout)
   const streak = useMemo(() => {
-    const allDays = new Set([
-      ...(workouts || []).map(w => w.date),
-      ...(cardioHistory || []).map(c => c.date?.slice(0,10)).filter(Boolean),
-    ]);
-    let count = 0;
-    const d = new Date();
-    const todayStr = dateToLocal(d);
-    const yest = new Date(d); yest.setDate(yest.getDate()-1);
-    const yesterdayStr = dateToLocal(yest);
-    if (!allDays.has(todayStr) && !allDays.has(yesterdayStr)) return 0;
-    const start = allDays.has(todayStr) ? d : yest;
-    const check = new Date(start);
-    while (true) {
-      const s = dateToLocal(check);
-      if (!allDays.has(s)) break;
-      count++;
-      check.setDate(check.getDate()-1);
+    if (!workouts?.length) return 0;
+    const goal = adaptedWeeklyGoal;
+    // Count workouts per week (Mon–Sun)
+    const weekCounts = {};
+    [...(workouts || []), ...(cardioHistory || []).map(c => ({ date: c.date?.slice(0,10) }))].forEach(w => {
+      if (!w.date) return;
+      const d = new Date(w.date + 'T12:00:00');
+      const monday = new Date(d);
+      monday.setDate(d.getDate() - (d.getDay() === 0 ? 6 : d.getDay() - 1));
+      const key = dateToLocal(monday).slice(0, 10);
+      weekCounts[key] = (weekCounts[key] || 0) + 1;
+    });
+    // Get sorted week keys, excluding current (in-progress) week
+    const today = new Date();
+    const thisMonday = new Date(today);
+    thisMonday.setDate(today.getDate() - (today.getDay() === 0 ? 6 : today.getDay() - 1));
+    const thisMondayStr = dateToLocal(thisMonday).slice(0, 10);
+    const sortedWeeks = Object.keys(weekCounts).sort().reverse();
+    const pastWeeks = sortedWeeks.filter(k => k < thisMondayStr);
+    // Count consecutive weeks from most recent, with 1 freeze per 4 weeks
+    let count = 0; let freezeUsed = 0; let freezeWindow = 0;
+    for (const wk of pastWeeks) {
+      const met = weekCounts[wk] >= goal;
+      const almostMet = weekCounts[wk] === goal - 1;
+      if (met) {
+        count++; freezeWindow++;
+        if (freezeWindow >= 4) { freezeUsed = 0; freezeWindow = 0; }
+      } else if (almostMet && freezeUsed === 0) {
+        count++; freezeUsed++; freezeWindow++;
+      } else { break; }
     }
+    // Include current week if already met goal
+    if (weekCounts[thisMondayStr] >= goal) count++;
     return count;
-  }, [workouts, cardioHistory]);
+  }, [workouts, cardioHistory, adaptedWeeklyGoal]);
 
   const consistencyScore = useMemo(() => {
     if (!workouts?.length) return null;
@@ -301,7 +318,7 @@ export default function HomePage() {
                     <div>
                       <div style={{ fontSize: streak >= 7 ? 26 : 22, fontWeight:900, color:"#f59e0b", lineHeight:1 }}>{streak}</div>
                       <div style={{ fontSize:11, color: isMilestone ? "#f59e0b" : "var(--muted)", marginTop:2, fontWeight: isMilestone ? 700 : 400 }}>
-                        {streak === 0 ? "sin racha" : isMilestone ? milestoneMsg : `día${streak !== 1 ? "s" : ""} de racha`}
+                        {streak === 0 ? "sin racha" : isMilestone ? milestoneMsg : `semana${streak !== 1 ? "s" : ""} de racha`}
                       </div>
                       {consistencyScore !== null && (
                         <span style={{ fontSize: 10, color: 'var(--muted)', display: 'block' }}>

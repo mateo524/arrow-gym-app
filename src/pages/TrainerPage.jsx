@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabase.js";
 import useAuthStore from "../store/useAuthStore.js";
+import useStore from "../store/useStore.js";
 import { EXERCISE_DATABASE } from "../data/exerciseDatabase.js";
 import Icon from "../components/Icon.jsx";
 import AssignRoutineModal from "../components/AssignRoutineModal.jsx";
@@ -58,6 +59,7 @@ function detectPlateaus(workouts) {
 
 export default function TrainerPage() {
   const profile = useAuthStore((s) => s.profile);
+  const setPage = useStore((s) => s.setPage);
   const isAdmin = profile?.role === "superadmin";
 
   const [clients, setClients] = useState([]);
@@ -373,9 +375,17 @@ export default function TrainerPage() {
 
   return (<>
   <section className="page">
-      <div className="page-header">
-        <p className="eyebrow">{isAdmin ? "Admin" : "Entrenador"}</p>
-        <h1>Mis clientes</h1>
+      <div className="page-header" style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
+        <div>
+          <p className="eyebrow">{isAdmin ? "Admin" : "Entrenador"}</p>
+          <h1>Mis clientes</h1>
+        </div>
+        {!isAdmin && (
+          <button className="ghost" onClick={() => setPage("referral")}
+            style={{ fontSize: 13, gap: 6, display: "flex", alignItems: "center", marginBottom: 4 }}>
+            <Icon name="TrendingUp" size={14} /> Comisiones
+          </button>
+        )}
       </div>
 
       {!selectedClient ? (
