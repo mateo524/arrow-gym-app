@@ -21,7 +21,7 @@ export default function WorkoutPDF({ workout, onClose }) {
     window.print();
   }
 
-  const today = new Date().toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' });
+  const today = workout.finishedAt ? new Date(workout.finishedAt).toLocaleDateString('es-AR') : new Date().toLocaleDateString('es-AR');
 
   return (
     <div>
@@ -120,7 +120,7 @@ export default function WorkoutPDF({ workout, onClose }) {
 
         {/* Footer */}
         <div style={{ marginTop: 28, fontSize: 11, color: '#aaa', textAlign: 'center' }}>
-          Arrow Gym
+          Loop
         </div>
       </div>
 

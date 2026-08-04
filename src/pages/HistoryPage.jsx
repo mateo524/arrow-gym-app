@@ -425,7 +425,8 @@ export default function HistoryPage() {
       )}
 
       {/* ── Cardio history ── */}
-      {!isSearching && cardioHistory.length > 0 && (
+      {/* NOTE: cardio entries already appear in allEntries above — this duplicate section is disabled */}
+      {false && !isSearching && cardioHistory.length > 0 && (
         <div style={{ marginTop: 12 }}>
           <p style={{ fontSize:13, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.05em", margin:"0 0 8px" }}>Cardio</p>
           {cardioHistory.slice(0, 10).map(c => (

@@ -61,6 +61,12 @@ export default function LiveCoachPanel({ hints, volStatus }) {
   const topHint = hints[0];
   const volGroups = Object.entries(volStatus || {}).filter(([, d]) => d.sessionSets > 0);
 
+  // Urgency dot: computed from highest-severity hint
+  const maxPriority = hints.reduce((max, h) => Math.min(max, h.priority || 4), 4);
+  const hasUrgent = hints.some(h => h.priority === 1 || h.type === 'overreach' || h.type === 'fatigue');
+  const hasWarning = hints.some(h => h.priority === 2 || h.type === 'warning');
+  const dotColor = hasUrgent ? '#ff4444' : hasWarning ? '#ffaa00' : 'var(--green)';
+
   return (
     <div style={{
       background: "var(--panel)",
@@ -95,7 +101,10 @@ export default function LiveCoachPanel({ hints, volStatus }) {
             )}
           </div>
           {!expanded && topHint && (
-            <p style={{ margin: 0, fontSize: 11, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <p style={{ margin: 0, fontSize: 11, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "flex", alignItems: "center" }}>
+              {hints.length > 0 && (
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: dotColor, display: 'inline-block', marginRight: 6, flexShrink: 0 }} />
+              )}
               {topHint.msg}
             </p>
           )}

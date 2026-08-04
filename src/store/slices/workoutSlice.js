@@ -1,5 +1,5 @@
 import { ROUTINES } from "../../data/seedData.js";
-import { buildCoachReport, hydrateSet, calcEffective1RM } from "../../lib/analytics.js";
+import { buildCoachReport, hydrateSet, calcEffective1RM, getPersonalizedChallenge } from "../../lib/analytics.js";
 import { loadInitialWorkouts, normalizeSet } from "../../lib/storageMigration.js";
 import { syncWorkoutUp, syncAllWorkoutsUp, fetchWorkoutsFromDB, mergeWorkouts } from "../../lib/workoutSync.js";
 import { supabase } from "../../lib/supabase.js";
@@ -510,25 +510,28 @@ export const createWorkoutSlice = (set, get) => ({
       const thisWeek = (workouts || []).filter((w) => w.date && new Date(w.date) >= monday);
       // Compute the correct metric for the existing challenge type instead of always using session count
       let doneCount = thisWeek.length;
-      const t = existing.text || "";
-      if (t.includes("piernas")) doneCount = thisWeek.filter((w) => (w.sets || []).some((s) => (s.group || "") === "Piernas")).length;
-      else if (t.includes("series en grupos")) doneCount = thisWeek.reduce((a, w) => a + (w.sets || []).filter((s) => ["Pecho", "Espalda", "Piernas"].includes(s.group)).length, 0);
-      else if (t.includes("kg de volumen")) doneCount = Math.round(thisWeek.reduce((a, w) => a + (w.sets || []).reduce((b, s) => b + ((Number(s.weight) || 0) * (Number(s.reps) || 0)), 0), 0));
+      const t = existing.text || existing.challenge || "";
+      if (existing.type === 'muscle_group' || t.includes("piernas")) {
+        const g = existing.group || "Piernas";
+        doneCount = thisWeek.filter((w) => (w.sets || []).some((s) => (s.group || "") === g)).length;
+      } else if (t.includes("series en grupos")) {
+        doneCount = thisWeek.reduce((a, w) => a + (w.sets || []).filter((s) => ["Pecho", "Espalda", "Piernas"].includes(s.group)).length, 0);
+      } else if (existing.type === 'volume' || t.includes("kg de volumen")) {
+        doneCount = Math.round(thisWeek.reduce((a, w) => a + (w.sets || []).reduce((b, s) => b + ((Number(s.weight) || 0) * (Number(s.reps) || 0)), 0), 0));
+      }
       set({ weeklyChallenge: { ...existing, doneCount } });
       return;
     }
+    const challenge = getPersonalizedChallenge(workouts || []);
     const thisWeek = (workouts || []).filter((w) => w.date && new Date(w.date) >= monday);
-    const legW = thisWeek.filter((w) => (w.sets || []).some((s) => (s.group || "") === "Piernas"));
-    const CHALLENGES = [
-      { text: "Completá 4 entrenamientos esta semana", targetCount: 4, doneCount: thisWeek.length },
-      { text: "Entrenás piernas 2 veces esta semana", targetCount: 2, doneCount: legW.length },
-      { text: "Hacé 3 entrenamientos de 30+ minutos", targetCount: 3, doneCount: thisWeek.length },
-      { text: "5 días activos esta semana (entreno o descanso activo)", targetCount: 5, doneCount: thisWeek.length },
-      { text: "Alcanzá 10 series en grupos grandes (pecho/espalda/piernas)", targetCount: 10, doneCount: thisWeek.reduce((a, w) => a + (w.sets || []).filter((s) => ["Pecho", "Espalda", "Piernas"].includes(s.group)).length, 0) },
-      { text: "Superá 5000 kg de volumen total esta semana", targetCount: 5000, doneCount: Math.round(thisWeek.reduce((a, w) => a + (w.sets || []).reduce((b, s) => b + ((s.weight || 0) * (s.reps || 0)), 0), 0)) },
-    ];
-    const pick = CHALLENGES[Math.floor(Math.random() * CHALLENGES.length)];
-    set({ weeklyChallenge: { ...pick, isoWeek: null } });
+    let doneCount = thisWeek.length;
+    if (challenge.type === 'muscle_group') {
+      const g = challenge.group || "Piernas";
+      doneCount = thisWeek.filter((w) => (w.sets || []).some((s) => (s.group || "") === g)).length;
+    } else if (challenge.type === 'volume') {
+      doneCount = Math.round(thisWeek.reduce((a, w) => a + (w.sets || []).reduce((b, s) => b + ((Number(s.weight) || 0) * (Number(s.reps) || 0)), 0), 0));
+    }
+    set({ weeklyChallenge: { ...challenge, text: challenge.challenge || challenge.title, targetCount: challenge.target, doneCount, isoWeek: null } });
   },
 
   setProgressionTarget: (exerciseId, targetWeight) => set((s) => ({

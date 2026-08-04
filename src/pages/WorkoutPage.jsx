@@ -10,7 +10,7 @@ import RestTimer from "../components/RestTimer.jsx";
 import VolumeSparkline from "../components/VolumeSparkline.jsx";
 import Icon from "../components/Icon.jsx";
 import ExerciseIllustration from "../components/ExerciseIllustration.jsx";
-import { findExerciseMeta } from "../data/exerciseDatabase.js";
+import { findExerciseMeta, EXERCISE_DATABASE } from "../data/exerciseDatabase.js";
 import ShareWorkoutCard from "../components/ShareWorkoutCard.jsx";
 import WorkoutPDF from "../components/WorkoutPDF.jsx";
 import { scheduleRestTimerPush } from '../lib/pushNotifications';
@@ -104,6 +104,8 @@ const EXERCISE_TIPS = {
 
 function getTip(exerciseName) {
   if (!exerciseName) return null;
+  const ex = EXERCISE_DATABASE?.find?.(e => e.name?.toLowerCase() === exerciseName?.toLowerCase());
+  if (ex?.tip) return ex.tip;
   const direct = EXERCISE_TIPS[exerciseName];
   if (direct) return direct;
   const name = exerciseName.toLowerCase();
