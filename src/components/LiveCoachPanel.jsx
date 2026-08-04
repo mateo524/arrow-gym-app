@@ -42,6 +42,7 @@ const STATUS_LABEL = {
 
 export default function LiveCoachPanel({ hints: allHints, volStatus }) {
   const mutedHintTypes = useStore(s => s.mutedHintTypes || []);
+  const toggleMutedHintType = useStore(s => s.toggleMutedHintType);
   const [dismissed, setDismissed] = useState(new Set());
   const [expanded, setExpanded] = useState(false);
   const [newHintCount, setNewHintCount] = useState(0);
