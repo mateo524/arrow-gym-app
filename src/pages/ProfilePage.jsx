@@ -383,11 +383,6 @@ export default function ProfilePage() {
           </div>
 
           <div className="settings-row">
-            <div><label>🎯 Retos de 30 días</label><small>Desafíos para mantener el hábito</small></div>
-            <button className="ghost" style={{ padding:"8px 14px", fontSize:13 }} onClick={() => setPage("challenges")}>Ver retos</button>
-          </div>
-
-          <div className="settings-row">
             <div><label>📏 Mediciones corporales</label><small>Peso, pliegues, perímetros y más</small></div>
             <button className="ghost" style={{ padding: "8px 14px", fontSize: 13 }} onClick={() => setPage("measurements")}>
               Ver
