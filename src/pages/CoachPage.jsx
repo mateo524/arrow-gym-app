@@ -88,6 +88,12 @@ export default function CoachPage() {
   const [tab, setTab] = useState("resumen");
   const [planSubTab, setPlanSubTab] = useState("rendimiento"); // "rendimiento" | "nutricion"
 
+  // Calendario state
+  const now = new Date();
+  const [calYear, setCalYear] = useState(now.getFullYear());
+  const [calMonth, setCalMonth] = useState(now.getMonth()); // 0-indexed
+  const [calSelectedDay, setCalSelectedDay] = useState(null); // "YYYY-MM-DD"
+
   // Proactive coach notifications from daily cron
   const [coachNotif, setCoachNotif] = useState(null); // latest unread coach_insight notif
 
@@ -337,10 +343,11 @@ export default function CoachPage() {
   }, [workouts]);
 
   const TABS = [
-    { id: "resumen",  label: "Resumen"    },
-    { id: "plan",     label: "Plan"       },
-    { id: "progreso", label: "Progresión" },
-    { id: "alertas",  label: "Alertas"    },
+    { id: "resumen",    label: "Resumen"    },
+    { id: "plan",       label: "Plan"       },
+    { id: "progreso",   label: "Progresión" },
+    { id: "alertas",    label: "Alertas"    },
+    { id: "calendario", label: "📅"         },
   ];
 
   const PLAN_SUB_TABS = [
@@ -1769,6 +1776,156 @@ export default function CoachPage() {
           )}
         </div>
       )}
+      {/* ── TAB: CALENDARIO ─────────────────────────────────── */}
+      {tab === "calendario" && (() => {
+        const MONTH_NAMES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+        const DAY_LABELS = ["Lu","Ma","Mi","Ju","Vi","Sa","Do"];
+
+        // Build a set of dates that have workouts this month
+        const workoutsByDate = {};
+        (workouts || []).forEach(w => {
+          if (!w.date) return;
+          if (!workoutsByDate[w.date]) workoutsByDate[w.date] = [];
+          workoutsByDate[w.date].push(w);
+        });
+
+        // Calendar grid
+        const firstDay = new Date(calYear, calMonth, 1);
+        const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+        // Monday-first offset (getDay(): 0=Sun → index 6, 1=Mon → 0)
+        const startOffset = (firstDay.getDay() + 6) % 7;
+        const cells = [];
+        for (let i = 0; i < startOffset; i++) cells.push(null);
+        for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+        const todayStr = todayLocal();
+        const pad = n => String(n).padStart(2, "0");
+        const dayKey = d => `${calYear}-${pad(calMonth + 1)}-${pad(d)}`;
+
+        const selectedWorkouts = calSelectedDay ? (workoutsByDate[calSelectedDay] || []) : [];
+
+        // Streak and totals for this month
+        let monthCount = 0;
+        for (let d = 1; d <= daysInMonth; d++) {
+          if (workoutsByDate[dayKey(d)]) monthCount++;
+        }
+
+        return (
+          <div>
+            {/* Month nav */}
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 }}>
+              <button onClick={() => {
+                if (calMonth === 0) { setCalMonth(11); setCalYear(y => y - 1); }
+                else setCalMonth(m => m - 1);
+                setCalSelectedDay(null);
+              }} style={{ background:"var(--panel)", border:"none", borderRadius:10, padding:"8px 14px", cursor:"pointer", color:"var(--text)", fontSize:18 }}>‹</button>
+              <div style={{ textAlign:"center" }}>
+                <p style={{ margin:0, fontSize:16, fontWeight:800, color:"var(--text)" }}>{MONTH_NAMES[calMonth]} {calYear}</p>
+                <p style={{ margin:"2px 0 0", fontSize:11, color:"var(--muted)" }}>{monthCount} entreno{monthCount !== 1 ? "s" : ""} este mes</p>
+              </div>
+              <button onClick={() => {
+                if (calMonth === 11) { setCalMonth(0); setCalYear(y => y + 1); }
+                else setCalMonth(m => m + 1);
+                setCalSelectedDay(null);
+              }} style={{ background:"var(--panel)", border:"none", borderRadius:10, padding:"8px 14px", cursor:"pointer", color:"var(--text)", fontSize:18 }}>›</button>
+            </div>
+
+            {/* Day headers */}
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:2, marginBottom:4 }}>
+              {DAY_LABELS.map(l => (
+                <div key={l} style={{ textAlign:"center", fontSize:10, fontWeight:700, color:"var(--muted)", padding:"4px 0" }}>{l}</div>
+              ))}
+            </div>
+
+            {/* Day cells */}
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:3 }}>
+              {cells.map((day, i) => {
+                if (!day) return <div key={`e${i}`} />;
+                const key = dayKey(day);
+                const hasW = !!workoutsByDate[key];
+                const isToday = key === todayStr;
+                const isSelected = key === calSelectedDay;
+                const wCount = (workoutsByDate[key] || []).length;
+                return (
+                  <button key={key} onClick={() => setCalSelectedDay(isSelected ? null : key)}
+                    style={{
+                      aspectRatio:"1",
+                      borderRadius:10,
+                      border: isSelected ? "2px solid var(--green)" : isToday ? "2px solid rgba(168,85,247,.5)" : "2px solid transparent",
+                      background: hasW
+                        ? isSelected ? "var(--green)" : "rgba(34,197,94,.18)"
+                        : isToday ? "rgba(168,85,247,.1)" : "var(--panel)",
+                      cursor: "pointer",
+                      display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
+                      gap:1, padding:2,
+                      transition:"all .12s",
+                    }}>
+                    <span style={{ fontSize:13, fontWeight: isToday || hasW ? 800 : 400, color: isSelected ? "#fff" : hasW ? "var(--green)" : isToday ? "var(--accent,#a855f7)" : "var(--text)" }}>
+                      {day}
+                    </span>
+                    {hasW && wCount > 0 && (
+                      <span style={{ fontSize:7, color: isSelected ? "rgba(255,255,255,.8)" : "var(--green)", fontWeight:700, lineHeight:1 }}>
+                        {"●".repeat(Math.min(wCount, 3))}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Selected day detail */}
+            {calSelectedDay && (
+              <div style={{ marginTop:16 }}>
+                {selectedWorkouts.length === 0 ? (
+                  <div style={{ background:"var(--panel)", borderRadius:14, padding:"14px 16px", textAlign:"center" }}>
+                    <p style={{ margin:0, fontSize:13, color:"var(--muted)" }}>Sin entreno registrado este día.</p>
+                  </div>
+                ) : selectedWorkouts.map((w, wi) => {
+                  const exercises = [];
+                  const seen = new Set();
+                  (w.sets || []).forEach(s => { if (s.exercise && !seen.has(s.exercise)) { seen.add(s.exercise); exercises.push(s.exercise); } });
+                  const totalSets = (w.sets || []).filter(s => s.completed).length;
+                  const totalVol = (w.sets || []).reduce((sum, s) => sum + (Number(s.weight) || 0) * (Number(s.reps) || 0), 0);
+                  return (
+                    <div key={w.id || wi} style={{ background:"var(--panel)", borderRadius:14, padding:"14px 16px", marginBottom:10 }}>
+                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:10 }}>
+                        <div>
+                          <p style={{ margin:0, fontSize:14, fontWeight:800, color:"var(--text)" }}>{w.type || "Entreno libre"}</p>
+                          <p style={{ margin:"2px 0 0", fontSize:11, color:"var(--muted)" }}>
+                            {calSelectedDay} {w.startedAt ? `· ${Math.round((w.endedAt - w.startedAt) / 60000)} min` : ""}
+                          </p>
+                        </div>
+                        <div style={{ textAlign:"right" }}>
+                          <p style={{ margin:0, fontSize:12, color:"var(--green)", fontWeight:700 }}>{totalSets} series</p>
+                          {totalVol > 0 && <p style={{ margin:"2px 0 0", fontSize:11, color:"var(--muted)" }}>{totalVol.toLocaleString()} kg vol.</p>}
+                        </div>
+                      </div>
+                      {exercises.length > 0 && (
+                        <div style={{ display:"flex", flexWrap:"wrap", gap:5 }}>
+                          {exercises.map(ex => (
+                            <span key={ex} style={{ background:"rgba(168,85,247,.1)", border:"1px solid rgba(168,85,247,.2)", borderRadius:8, padding:"3px 8px", fontSize:11, color:"var(--text)" }}>
+                              {ex}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Empty state */}
+            {workouts.length === 0 && (
+              <div style={{ textAlign:"center", padding:"32px 0" }}>
+                <p style={{ fontSize:32, margin:"0 0 8px" }}>🏋️</p>
+                <p style={{ color:"var(--muted)", fontSize:13 }}>Completá tu primer entreno para verlo acá.</p>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
     </section>
   );
 }
