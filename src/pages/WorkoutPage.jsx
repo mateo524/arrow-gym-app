@@ -167,6 +167,7 @@ export default function WorkoutPage() {
     return Number(sorted[0]?.kg || 0);
   }, [weightLog]);
   const profile = useAuthStore((state) => state.profile);
+  const goal = (userGoal || profile?.goal || "volumen").toLowerCase();
   const prs = useStore(s => s.prs) || [];
   const saveWorkoutDraft = useStore(s => s.saveWorkoutDraft);
   const clearWorkoutDraft = useStore(s => s.clearWorkoutDraft);
@@ -374,12 +375,12 @@ export default function WorkoutPage() {
   const handleSetComplete = useCallback((exercise, rpe=null) => {
     if (navigator.vibrate) navigator.vibrate([30, 20, 60]);
     // Smart rest duration based on RPE and goal
-    const goal = (userGoal || profile?.goal || "").toLowerCase();
+    const currentGoal = (useStore.getState().userGoal || "").toLowerCase();
     let baseDuration = exerciseRestTimes[exercise] || 90;
     if (!exerciseRestTimes[exercise]) {
-      if (goal.includes("fuerza")) baseDuration = 150;
-      else if (goal.includes("hipertrofia") || goal.includes("masa")) baseDuration = 90;
-      else if (goal.includes("resistencia")) baseDuration = 45;
+      if (currentGoal.includes("rendimiento")) baseDuration = 150;
+      else if (currentGoal.includes("volumen")) baseDuration = 90;
+      else if (currentGoal.includes("definicion")) baseDuration = 60;
     }
     if (rpe !== null) {
       if (rpe >= 9) baseDuration = Math.max(baseDuration, 150);
@@ -898,29 +899,24 @@ export default function WorkoutPage() {
                               }
 
                               // Rep-range based suggestions — goal × fitness_level
-                              // Rule: lowThresh is the minimum INCLUSIVE of good range.
-                              // r < lowThresh → "bajá el peso". lowThresh MUST be ≤ 8 so that
-                              // 8 reps never triggers a "lower weight" suggestion.
-                              const goal = (userGoal || profile?.goal || "volumen").toLowerCase();
+                              // Read directly from store to avoid any stale-closure issue
+                              const g = (useStore.getState().userGoal || "volumen").toLowerCase();
                               const lvl = (profile?.fitness_level || "intermedio").toLowerCase();
                               let lowThresh = 8, highThresh = 12, restSec = 90;
-                              if (goal === "rendimiento") {
+                              if (g === "rendimiento") {
                                 // Fuerza: reps bajas, descansos largos
                                 lowThresh = lvl === "principiante" ? 3 : 1;
                                 highThresh = lvl === "principiante" ? 6 : lvl === "intermedio" ? 5 : 4;
                                 restSec = lvl === "principiante" ? 150 : 180;
-                              } else if (goal === "volumen") {
-                                // Hipertrofia: 8-12 reps zona óptima
+                              } else if (g === "volumen") {
                                 lowThresh = 8;
                                 highThresh = 12;
                                 restSec = lvl === "avanzado" ? 120 : 90;
-                              } else if (goal === "definicion") {
-                                // Definición: rango 10-15, pero nunca sugerir bajar con ≥8 reps
+                              } else if (g === "definicion") {
                                 lowThresh = 8;
                                 highThresh = lvl === "principiante" ? 18 : 15;
                                 restSec = lvl === "avanzado" ? 45 : 60;
-                              } else if (goal === "mantenimiento") {
-                                // Salud general: rango amplio
+                              } else if (g === "mantenimiento") {
                                 lowThresh = 8; highThresh = 15; restSec = 75;
                               }
 
@@ -931,19 +927,19 @@ export default function WorkoutPage() {
                               }
                               if (r > highThresh) {
                                 const next = Math.round((w + 2.5) * 2) / 2;
-                                const upReason = goal === "rendimiento"
+                                const upReason = g === "rendimiento"
                                   ? `${r} reps — peso liviano para fuerza, subí a ${next}kg`
                                   : `${r} reps — subí a ${next}kg`;
                                 return { dir: "up", weight: next, reason: upReason, rest: restSec };
                               }
                               if (r < lowThresh) {
                                 const next = Math.max(Math.round((w - 2.5) * 2) / 2, 0);
-                                const downReason = goal === "rendimiento"
+                                const downReason = g === "rendimiento"
                                   ? `${r} rep${r !== 1 ? "s" : ""} — muy pesado para controlar, bajá a ${next}kg`
                                   : `${r} reps — bajá a ${next}kg para trabajar en rango`;
                                 return { dir: "down", weight: next, reason: downReason, rest: restSec };
                               }
-                              const goodReason = goal === "rendimiento"
+                              const goodReason = g === "rendimiento"
                                 ? `${r} reps — rango de fuerza, dejá todo en la barra`
                                 : `Buen rango — dejá 1-3 reps en reserva`;
                               return { dir: null, weight: w, reason: goodReason, rest: restSec };

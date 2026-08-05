@@ -117,6 +117,26 @@ export default function ProfilePage() {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
 
+  // Referral state
+  const [referralCount, setReferralCount] = useState(null);
+  const [referralCopied, setReferralCopied] = useState(false);
+  useEffect(() => {
+    if (!profile?.id) return;
+    supabase.from("student_referrals").select("id, converted_at")
+      .eq("referrer_id", profile.id)
+      .then(({ data }) => setReferralCount(data || []));
+  }, [profile?.id]);
+
+  function copyReferralLink() {
+    const code = profile?.referral_code;
+    if (!code) return;
+    const url = `${window.location.origin}/#/invite/${code}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setReferralCopied(true);
+      setTimeout(() => setReferralCopied(false), 2000);
+    });
+  }
+
   const [showChangePwd, setShowChangePwd] = useState(false);
   const [newPwd, setNewPwd] = useState("");
   const [confirmPwd, setConfirmPwd] = useState("");
@@ -239,6 +259,54 @@ export default function ProfilePage() {
             <span className="role-badge">{role}</span>
           </div>
         </div>
+
+        {/* Referral card — only for students (not trainers/admins) */}
+        {role === "user" && profile?.referral_code && (() => {
+          const converted = (referralCount || []).filter(r => r.converted_at).length;
+          const pending   = (referralCount || []).filter(r => !r.converted_at).length;
+          const credits   = profile?.referral_credits || 0;
+          const progress  = Math.min(converted % 5, 5);
+          return (
+            <div className="card" style={{ background: "linear-gradient(135deg, rgba(168,85,247,.1) 0%, rgba(52,211,153,.08) 100%)", border: "1px solid rgba(168,85,247,.25)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                <span style={{ fontSize: 22 }}>🎁</span>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: 15 }}>Invitá amigos, ganá semanas gratis</h2>
+                  <p style={{ margin: 0, fontSize: 12, color: "var(--muted)" }}>Cada amigo que se suscribe = 1 semana gratis. 5 = mes gratis.</p>
+                </div>
+              </div>
+
+              {/* Progress bar toward free month */}
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--muted)", marginBottom: 5 }}>
+                  <span>{converted} amigo{converted !== 1 ? "s" : ""} se suscribieron</span>
+                  <span style={{ color: "var(--green)", fontWeight: 700 }}>{progress}/5 para mes gratis</span>
+                </div>
+                <div style={{ height: 7, background: "var(--panel2)", borderRadius: 4, overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: `${(progress / 5) * 100}%`, background: "var(--green)", borderRadius: 4, transition: "width .4s ease" }} />
+                </div>
+              </div>
+
+              {pending > 0 && (
+                <p style={{ fontSize: 11, color: "#fbbf24", margin: "0 0 10px" }}>
+                  ⏳ {pending} invitado{pending !== 1 ? "s" : ""} pendiente{pending !== 1 ? "s" : ""} de suscribirse
+                </p>
+              )}
+
+              {credits > 0 && (
+                <p style={{ fontSize: 12, color: "var(--green)", fontWeight: 700, margin: "0 0 10px" }}>
+                  ✓ {credits} semana{credits !== 1 ? "s" : ""} gratis ganada{credits !== 1 ? "s" : ""}
+                </p>
+              )}
+
+              <button
+                onClick={copyReferralLink}
+                style={{ width: "100%", padding: "12px", borderRadius: 12, background: referralCopied ? "rgba(52,211,153,.2)" : "rgba(168,85,247,.15)", border: `1px solid ${referralCopied ? "rgba(52,211,153,.5)" : "rgba(168,85,247,.4)"}`, color: referralCopied ? "#34d399" : "var(--green)", fontSize: 14, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                {referralCopied ? "✓ Link copiado!" : "📋 Copiar mi link de invitación"}
+              </button>
+            </div>
+          );
+        })()}
 
         {/* Settings */}
         <div className="card">

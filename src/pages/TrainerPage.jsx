@@ -740,6 +740,23 @@ export default function TrainerPage() {
                   </button>
                 </div>
                 {inviteCopied && <p style={{ fontSize: 11, color: "var(--green)", margin: 0 }}>Link copiado al portapapeles</p>}
+                {/* Landing page link */}
+                <div style={{ marginTop: 10, padding: "10px 12px", background: "rgba(168,85,247,.07)", border: "1px solid rgba(168,85,247,.2)", borderRadius: 10 }}>
+                  <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 700, color: "var(--green)" }}>Tu página pública</p>
+                  <p style={{ margin: "0 0 8px", fontSize: 11, color: "var(--muted)" }}>Compartí esta página para que tus potenciales alumnos vean tu perfil antes de registrarse.</p>
+                  <button
+                    className="ghost"
+                    style={{ width: "100%", fontSize: 12, padding: "8px", borderColor: "rgba(168,85,247,.4)", color: "var(--green)" }}
+                    onClick={() => {
+                      const url = `${window.location.origin}/#/t/${inviteCode}`;
+                      navigator.clipboard.writeText(url);
+                      setInviteCopied(true);
+                      setTimeout(() => setInviteCopied(false), 2000);
+                    }}
+                  >
+                    📋 Copiar link de landing ({window.location.origin}/#/t/{inviteCode})
+                  </button>
+                </div>
               </div>
             ) : (
               <button className="ghost" style={{ width: "100%" }} disabled={inviteLoading} onClick={generateInviteCode}>

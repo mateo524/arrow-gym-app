@@ -25,6 +25,7 @@ const ChallengesPage     = lazy(() => import("./pages/ChallengesPage.jsx"));
 const ReferralPage       = lazy(() => import("./pages/ReferralPage.jsx"));
 const TestamentoPage     = lazy(() => import("./pages/TestamentoPage.jsx"));
 const LeaguePage         = lazy(() => import("./pages/LeaguePage.jsx"));
+const TrainerLandingPage = lazy(() => import("./pages/TrainerLandingPage.jsx"));
 import Nav from "./components/Nav.jsx";
 import OnboardingModal from "./components/OnboardingModal.jsx";
 import PRCard from "./components/PRCard.jsx";
@@ -139,6 +140,9 @@ function AppContent() {
   const [subscribing, setSubscribing] = useState(false);
   const [trialBannerDismissed, setTrialBannerDismissed] = useState(
     () => localStorage.getItem("trial-banner-dismissed-day") === new Date().toDateString()
+  );
+  const [trainerLandingCode, setTrainerLandingCode] = useState(
+    () => localStorage.getItem("pending_trainer_landing") || null
   );
 
   async function startSubscription() {
@@ -371,13 +375,29 @@ function AppContent() {
     if (joinPath) {
       const code = joinPath.replace("join/", "").trim();
       if (code) localStorage.setItem("pending_invite_code", code);
-      setPage("home"); // will show login if not authenticated
+      setPage("home");
+      return;
+    }
+    // Student referral link: #/invite/REFERRAL_CODE
+    const invitePath = hashPath.startsWith("invite/") ? hashPath : pathnamePath.startsWith("invite/") ? pathnamePath : null;
+    if (invitePath) {
+      const code = invitePath.replace("invite/", "").trim();
+      if (code) localStorage.setItem("pending_referral_code", code);
+      setPage("home");
+      return;
+    }
+    // Trainer public landing: #/t/INVITE_CODE
+    const trainerPath = hashPath.startsWith("t/") ? hashPath : pathnamePath.startsWith("t/") ? pathnamePath : null;
+    if (trainerPath) {
+      const code = trainerPath.replace("t/", "").trim();
+      if (code) localStorage.setItem("pending_trainer_landing", code);
+      setPage("home");
       return;
     }
     if (PAGE_MAP[hashPath] && hashPath !== currentPage) setPage(hashPath);
   }, []); // eslint-disable-line
 
-  // After login: if there's a pending invite code, resolve it to referred_by on profile
+  // After login: resolve pending trainer invite code
   useEffect(() => {
     if (!user?.id) return;
     const code = localStorage.getItem("pending_invite_code");
@@ -387,6 +407,30 @@ function AppContent() {
       const { data } = await supabase.from("invite_codes").select("trainer_id").eq("code", code).maybeSingle();
       if (data?.trainer_id && data.trainer_id !== user.id) {
         await supabase.from("profiles").update({ referred_by: data.trainer_id }).eq("id", user.id);
+      }
+    })();
+  }, [user?.id]); // eslint-disable-line
+
+  // After login: resolve pending student referral code
+  useEffect(() => {
+    if (!user?.id) return;
+    const code = localStorage.getItem("pending_referral_code");
+    if (!code) return;
+    localStorage.removeItem("pending_referral_code");
+    (async () => {
+      const { data } = await supabase.from("profiles")
+        .select("id").eq("referral_code", code).maybeSingle();
+      if (data?.id && data.id !== user.id) {
+        // Set the referrer on current user's profile (only if not already set)
+        const { data: me } = await supabase.from("profiles")
+          .select("student_referrer_id").eq("id", user.id).maybeSingle();
+        if (!me?.student_referrer_id) {
+          await supabase.from("profiles")
+            .update({ student_referrer_id: data.id }).eq("id", user.id);
+          // Record as pending conversion in student_referrals
+          await supabase.from("student_referrals")
+            .upsert({ referrer_id: data.id, referee_id: user.id }, { onConflict: "referee_id" });
+        }
       }
     })();
   }, [user?.id]); // eslint-disable-line
@@ -443,6 +487,24 @@ function AppContent() {
           <span>Loop</span>
         </div>
       </div>
+    );
+  } else if (showLogin && trainerLandingCode) {
+    inner = (
+      <Suspense fallback={<div style={{ minHeight:"100dvh", background:"var(--bg)", display:"flex", alignItems:"center", justifyContent:"center", color:"var(--muted)", fontSize:14 }}>Cargando…</div>}>
+        <TrainerLandingPage
+          inviteCode={trainerLandingCode}
+          onJoin={() => {
+            // Preserve the invite code so onboarding step 5 picks it up
+            localStorage.setItem("pending_invite_code", trainerLandingCode);
+            localStorage.removeItem("pending_trainer_landing");
+            setTrainerLandingCode(null);
+          }}
+          onBack={() => {
+            localStorage.removeItem("pending_trainer_landing");
+            setTrainerLandingCode(null);
+          }}
+        />
+      </Suspense>
     );
   } else if (showLogin) {
     inner = <LoginPage />;
