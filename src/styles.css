@@ -918,7 +918,7 @@ p { color: #c4b8d8; }
   align-items: flex-end;
   justify-content: center;
   z-index: 200;
-  padding: 0 max(env(safe-area-inset-left), 8px) max(env(safe-area-inset-bottom), 8px);
+  padding: 0 max(env(safe-area-inset-left), 8px) calc(72px + max(env(safe-area-inset-bottom), 8px));
 }
 
 .plate-calc {
@@ -1354,7 +1354,7 @@ p { color: #c4b8d8; }
   align-items: flex-end;
   justify-content: center;
   z-index: 200;
-  padding: 0 0 env(safe-area-inset-bottom, 0);
+  padding: 0 0 calc(72px + env(safe-area-inset-bottom, 0px));
 }
 .modal-card {
   background: var(--panel);
