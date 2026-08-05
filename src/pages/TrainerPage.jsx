@@ -72,6 +72,8 @@ export default function TrainerPage() {
   const [lastWorkoutMap, setLastWorkoutMap] = useState({});
   // Filtro del banner de churn: mostrar sólo alumnos en riesgo/inactivos
   const [showChurnOnly, setShowChurnOnly] = useState(false);
+  // Tab principal: "alumnos" | "pagos"
+  const [trainerTab, setTrainerTab] = useState("alumnos");
   const [saving, setSaving] = useState(false);
   const [showAssign, setShowAssign] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
@@ -262,19 +264,41 @@ export default function TrainerPage() {
     return Math.floor((new Date() - new Date(last + "T12:00:00")) / (1000 * 60 * 60 * 24));
   }
 
-  // Semáforo de adherencia: verde ≤4d, amarillo 5-7d, rojo >7d (o nunca entrenó)
+  // Semáforo de adherencia: verde ≤3d, amarillo 4-5d, rojo >5d (o nunca entrenó)
   function adherenceStatus(userId) {
     const days = daysSinceLast(userId);
     if (days === null) {
       return { level: "red", emoji: "🔴", chip: "Inactivo", color: "#f87171", bg: "rgba(220,38,38,.18)", days: null };
     }
-    if (days <= 4) {
+    if (days <= 3) {
       return { level: "green", emoji: "🟢", chip: "Activo", color: "#4ade80", bg: "rgba(34,197,94,.18)", days };
     }
-    if (days <= 7) {
+    if (days <= 5) {
       return { level: "yellow", emoji: "🟡", chip: "En riesgo", color: "#fbbf24", bg: "rgba(234,179,8,.18)", days };
     }
     return { level: "red", emoji: "🔴", chip: "Inactivo", color: "#f87171", bg: "rgba(220,38,38,.18)", days };
+  }
+
+  // Payment helpers
+  function clientPaymentStatus(client) {
+    const sub = client.subscription_status;
+    const createdMs = client.created_at ? Date.now() - new Date(client.created_at).getTime() : 0;
+    const trialDaysLeft = Math.max(0, 30 - Math.floor(createdMs / (1000 * 60 * 60 * 24)));
+    if (sub === "active") return { label: "Al día", color: "#4ade80", bg: "rgba(34,197,94,.15)", urgent: false, trialDaysLeft: null };
+    if (!sub || sub === "trialing") {
+      if (trialDaysLeft <= 3) return { label: `Trial: ${trialDaysLeft}d`, color: "#f87171", bg: "rgba(220,38,38,.15)", urgent: true, trialDaysLeft };
+      if (trialDaysLeft <= 7) return { label: `Trial: ${trialDaysLeft}d`, color: "#fbbf24", bg: "rgba(234,179,8,.15)", urgent: false, trialDaysLeft };
+      return { label: `Trial: ${trialDaysLeft}d`, color: "#60a5fa", bg: "rgba(96,165,250,.12)", urgent: false, trialDaysLeft };
+    }
+    return { label: "Vencido", color: "#f87171", bg: "rgba(220,38,38,.15)", urgent: true, trialDaysLeft: null };
+  }
+
+  function paymentReminderMsg(client) {
+    const ps = clientPaymentStatus(client);
+    const name = client.name?.split(" ")[0] || "hola";
+    if (ps.label === "Vencido") return `Hola ${name}! 👋 Tu suscripción a Loop venció. Para seguir entrenando con tu rutina personalizada, renová acá: ${window.location.origin}/#/home`;
+    if (ps.trialDaysLeft !== null && ps.trialDaysLeft <= 7) return `Hola ${name}! ⏳ Te quedan ${ps.trialDaysLeft} días de prueba gratuita en Loop. Para seguir sin interrupciones, suscribite acá: ${window.location.origin}/#/home`;
+    return `Hola ${name}! Recordatorio de Loop: tu suscripción vence pronto. Renovala acá: ${window.location.origin}/#/home`;
   }
 
   // Etiqueta humana de tiempo desde último entrenamiento
@@ -295,10 +319,14 @@ export default function TrainerPage() {
     const total = clients.length;
     const trainedThisWeek = clients.filter((c) => (adherenceMap[c.id]?.size || 0) > 0).length;
     const adherencePct = total > 0 ? Math.round((trainedThisWeek / total) * 100) : 0;
-    const atRisk = clients.filter((c) => adherenceStatus(c.id).level === "red").length;
+    const atRisk = clients.filter((c) => {
+      const s = adherenceStatus(c.id);
+      return s.level === "red" || s.level === "yellow";
+    }).length;
     const activePaying = clients.filter((c) => c.subscription_status === "active").length;
     const revenue = activePaying * MONTHLY_FEE_ARS;
-    return { total, adherencePct, atRisk, revenue, trainedThisWeek };
+    const paymentUrgent = clients.filter((c) => clientPaymentStatus(c).urgent).length;
+    return { total, adherencePct, atRisk, revenue, trainedThisWeek, paymentUrgent };
   }
 
   // Returns array of last 7 date strings ['YYYY-MM-DD', ...]
@@ -588,10 +616,27 @@ export default function TrainerPage() {
         )}
       </div>
 
+      {/* ── Tabs principales (solo en vista de lista, no en detalle de alumno) ── */}
+      {!selectedClient && (
+        <div style={{ display: "flex", gap: 4, marginBottom: 16, background: "var(--panel)", borderRadius: 12, padding: 4 }}>
+          {[
+            { id: "alumnos", label: "Alumnos" },
+            { id: "pagos",   label: "Pagos 💳" },
+          ].map(t => (
+            <button key={t.id} onClick={() => setTrainerTab(t.id)} style={{
+              flex: 1, padding: "8px 0", borderRadius: 9, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 700,
+              background: trainerTab === t.id ? "var(--green)" : "transparent",
+              color: trainerTab === t.id ? "#000" : "var(--muted)",
+              transition: "all .15s",
+            }}>{t.label}</button>
+          ))}
+        </div>
+      )}
+
       {!selectedClient ? (
         <>
           {/* ── Mi negocio: alerta de churn + métricas ── */}
-          {!loading && clients.length > 0 && (() => {
+          {!loading && clients.length > 0 && trainerTab === "alumnos" && (() => {
             const m = businessMetrics();
             return (
               <>
@@ -603,7 +648,7 @@ export default function TrainerPage() {
                   }}>
                     <span style={{ fontSize: 20, flexShrink: 0 }}>⚠️</span>
                     <span style={{ flex: 1, minWidth: 160, fontSize: 13, color: "#fca5a5", fontWeight: 600 }}>
-                      {m.atRisk} {m.atRisk === 1 ? "alumno" : "alumnos"} sin entrenar hace más de 7 días
+                      {m.atRisk} {m.atRisk === 1 ? "alumno" : "alumnos"} sin entrenar hace más de 4 días
                     </span>
                     <button className="ghost" onClick={() => setShowChurnOnly((v) => !v)}
                       style={{ fontSize: 12, flexShrink: 0, borderColor: "rgba(220,38,38,.45)", color: "#fca5a5" }}>
@@ -636,7 +681,7 @@ export default function TrainerPage() {
           })()}
 
           {/* ── Mis Programas ── */}
-          {templates.length > 0 && (() => {
+          {trainerTab === "alumnos" && templates.length > 0 && (() => {
             // Group templates by program_name
             const groups = {};
             templates.forEach((t) => {
@@ -674,7 +719,7 @@ export default function TrainerPage() {
           })()}
 
           {/* ── Invite section ── */}
-          <div className="card" style={{ marginBottom: 16, padding: "14px 16px" }}>
+          {trainerTab === "alumnos" && <div className="card" style={{ marginBottom: 16, padding: "14px 16px" }}>
             <p className="section-label" style={{ marginBottom: 10 }}>Invitar alumnos</p>
             {inviteCode ? (
               <div>
@@ -701,9 +746,9 @@ export default function TrainerPage() {
                 <Icon name="Link" size={14} /> {inviteLoading ? "Generando…" : "Generar link de invitación"}
               </button>
             )}
-          </div>
+          </div>}
 
-          {loading ? (
+          {trainerTab === "alumnos" && (loading ? (
             <div className="loading-state"><Icon name="Loader" size={24} className="spin" /><p>Cargando…</p></div>
           ) : clients.length === 0 ? (
             <div className="empty-state">
@@ -713,7 +758,7 @@ export default function TrainerPage() {
           ) : (
             <div className="user-list">
               {clients
-                .filter((c) => !showChurnOnly || adherenceStatus(c.id).level === "red")
+                .filter((c) => !showChurnOnly || ["red","yellow"].includes(adherenceStatus(c.id).level))
                 .map((c) => {
                 const last7 = getLast7Days();
                 const trained = adherenceMap[c.id];
@@ -804,6 +849,77 @@ export default function TrainerPage() {
                 </button>
                 );
               })}
+            </div>
+          ))}
+
+          {/* ── TAB PAGOS ── */}
+          {trainerTab === "pagos" && (
+            <div>
+              {loading ? (
+                <div className="loading-state"><Icon name="Loader" size={24} className="spin" /><p>Cargando…</p></div>
+              ) : clients.length === 0 ? (
+                <div className="empty-state"><Icon name="Users" size={40} /><p>No tenés alumnos aún.</p></div>
+              ) : (() => {
+                const urgent = clients.filter(c => clientPaymentStatus(c).urgent);
+                const sorted = [...clients].sort((a, b) => {
+                  const pa = clientPaymentStatus(a);
+                  const pb = clientPaymentStatus(b);
+                  if (pa.urgent && !pb.urgent) return -1;
+                  if (!pa.urgent && pb.urgent) return 1;
+                  if (pa.trialDaysLeft !== null && pb.trialDaysLeft !== null) return pa.trialDaysLeft - pb.trialDaysLeft;
+                  return 0;
+                });
+                return (
+                  <>
+                    {urgent.length > 0 && (
+                      <div style={{ background: "rgba(239,68,68,.10)", border: "1px solid rgba(239,68,68,.3)", borderRadius: 12, padding: "10px 14px", marginBottom: 14, display: "flex", alignItems: "center", gap: 10 }}>
+                        <span style={{ fontSize: 18 }}>💳</span>
+                        <span style={{ fontSize: 13, color: "#fca5a5", fontWeight: 700 }}>
+                          {urgent.length} {urgent.length === 1 ? "alumno" : "alumnos"} con pago urgente
+                        </span>
+                      </div>
+                    )}
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {sorted.map(c => {
+                        const ps = clientPaymentStatus(c);
+                        return (
+                          <div key={c.id} style={{
+                            display: "flex", alignItems: "center", gap: 12,
+                            background: "var(--panel)", borderRadius: 14, padding: "12px 14px",
+                            border: `1px solid ${ps.urgent ? "rgba(239,68,68,.3)" : "var(--border)"}`,
+                          }}>
+                            <div className="user-avatar" style={{ flexShrink: 0 }}>
+                              {(c.name || c.email || "?")[0].toUpperCase()}
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 2 }}>{c.name || "—"}</div>
+                              <div style={{ fontSize: 11, color: "var(--muted)" }}>{c.email}</div>
+                            </div>
+                            <span style={{
+                              fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 20,
+                              background: ps.bg, color: ps.color, whiteSpace: "nowrap", flexShrink: 0,
+                            }}>{ps.label}</span>
+                            <button
+                              title="Mandar recordatorio por WhatsApp"
+                              onClick={() => {
+                                const msg = paymentReminderMsg(c);
+                                if (navigator.share) navigator.share({ text: msg });
+                                else { navigator.clipboard?.writeText(msg); setSaveMsg("Mensaje copiado"); setTimeout(() => setSaveMsg(""), 2000); }
+                              }}
+                              style={{
+                                background: "rgba(37,211,102,.12)", border: "1px solid rgba(37,211,102,.25)",
+                                color: "#25d366", borderRadius: 8, padding: "6px 8px", cursor: "pointer",
+                                fontSize: 16, lineHeight: 1, flexShrink: 0,
+                              }}
+                            >💬</button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {saveMsg && <p style={{ textAlign: "center", fontSize: 12, color: "var(--green)", marginTop: 10 }}>{saveMsg}</p>}
+                  </>
+                );
+              })()}
             </div>
           )}
         </>
