@@ -123,6 +123,10 @@ export default function ProfilePage() {
   const [pwdMsg, setPwdMsg] = useState("");
   const [savingPwd, setSavingPwd] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteStep, setDeleteStep] = useState(1);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   // Importer state
   const importWorkouts = useStore(s => s.importWorkouts);
@@ -522,7 +526,89 @@ export default function ProfilePage() {
           onClick={() => setShowLogoutConfirm(true)}>
           <Icon name="LogOut" size={16} /> Cerrar sesión
         </button>
+
+        {/* Delete account */}
+        <button
+          className="ghost"
+          style={{ width: "100%", marginTop: 8, color: "var(--muted)", fontSize: 12, opacity: 0.6 }}
+          onClick={() => { setShowDeleteConfirm(true); setDeleteStep(1); setDeleteError(""); }}
+        >
+          Eliminar mi cuenta
+        </button>
       </section>
+
+      {/* Delete account modal */}
+      {showDeleteConfirm && (
+        <div className="modal-overlay" onClick={() => { if (!deleting) { setShowDeleteConfirm(false); setDeleteStep(1); }}}>
+          <div className="modal-card confirm-modal" onClick={(e) => e.stopPropagation()}>
+            {deleteStep === 1 ? (
+              <>
+                <div style={{ textAlign: "center", padding: "8px 0 16px" }}>
+                  <div style={{ fontSize: 40, marginBottom: 8 }}>⚠️</div>
+                  <h2 style={{ margin: "0 0 6px", color: "var(--danger)" }}>Eliminar cuenta</h2>
+                  <p style={{ color: "var(--muted)", fontSize: 14, margin: 0, lineHeight: 1.6 }}>
+                    Se borrarán permanentemente todos tus entrenamientos, mediciones, PRs y datos. <b style={{ color: "var(--text)" }}>Esta acción no se puede deshacer.</b>
+                  </p>
+                </div>
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button className="ghost" style={{ flex: 1 }} onClick={() => setShowDeleteConfirm(false)}>
+                    Cancelar
+                  </button>
+                  <button
+                    style={{ flex: 1, background: "var(--danger)", color: "#fff", border: "none", borderRadius: 12, padding: "12px", fontWeight: 700, fontSize: 14, cursor: "pointer" }}
+                    onClick={() => setDeleteStep(2)}
+                  >
+                    Continuar
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ textAlign: "center", padding: "8px 0 16px" }}>
+                  <div style={{ fontSize: 40, marginBottom: 8 }}>🗑️</div>
+                  <h2 style={{ margin: "0 0 6px" }}>¿Estás seguro?</h2>
+                  <p style={{ color: "var(--muted)", fontSize: 14, margin: 0 }}>
+                    No hay vuelta atrás. Tu historial de entrenamiento se perderá para siempre.
+                  </p>
+                </div>
+                {deleteError && (
+                  <p style={{ color: "var(--danger)", fontSize: 12, textAlign: "center", margin: "0 0 10px" }}>{deleteError}</p>
+                )}
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button className="ghost" style={{ flex: 1 }} disabled={deleting} onClick={() => { setShowDeleteConfirm(false); setDeleteStep(1); }}>
+                    Cancelar
+                  </button>
+                  <button
+                    style={{ flex: 1, background: "var(--danger)", color: "#fff", border: "none", borderRadius: 12, padding: "12px", fontWeight: 700, fontSize: 14, cursor: "pointer", opacity: deleting ? 0.6 : 1 }}
+                    disabled={deleting}
+                    onClick={async () => {
+                      setDeleting(true);
+                      setDeleteError("");
+                      try {
+                        const { data, error } = await supabase.functions.invoke("delete-account");
+                        if (error || data?.error) {
+                          setDeleteError("Error al eliminar. Intentá de nuevo o contactá soporte.");
+                          setDeleting(false);
+                          return;
+                        }
+                        // Clear local state and log out
+                        useStore.getState().clearAllData?.();
+                        await supabase.auth.signOut();
+                        useAuthStore.getState().logout();
+                      } catch {
+                        setDeleteError("Error de conexión. Intentá de nuevo.");
+                        setDeleting(false);
+                      }
+                    }}
+                  >
+                    {deleting ? "Eliminando…" : "Sí, eliminar todo"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Logout confirm modal */}
       {showLogoutConfirm && (

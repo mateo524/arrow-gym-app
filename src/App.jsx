@@ -134,6 +134,27 @@ function AppContent() {
   const [swUpdateReady, setSwUpdateReady] = useState(false);
   const [draftRecovered, setDraftRecovered] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [subscribing, setSubscribing] = useState(false);
+
+  async function startSubscription() {
+    setSubscribing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("mp-create-subscription");
+      if (error || !data?.init_point) {
+        if (data?.error === "no_mp_token") {
+          alert("El sistema de pagos no está configurado aún. Contactá a tu entrenador.");
+        } else {
+          alert("No se pudo iniciar el pago. Intentá de nuevo.");
+        }
+        return;
+      }
+      window.open(data.init_point, "_blank");
+    } catch {
+      alert("Error de conexión. Verificá tu red e intentá de nuevo.");
+    } finally {
+      setSubscribing(false);
+    }
+  }
 
   const { user, profile, loading, init } = useAuthStore();
   // These three hooks MUST live before any early return to satisfy React Rules of Hooks
@@ -390,8 +411,8 @@ function AppContent() {
         <div style={{ fontSize:40, marginBottom:16 }}>🔒</div>
         <h2 style={{ margin:"0 0 8px" }}>Suscripción vencida</h2>
         <p style={{ color:"var(--muted)", fontSize:14, marginBottom:24 }}>Renová tu plan para seguir entrenando con la app.</p>
-        <button className="primary" style={{ marginBottom:12 }} onClick={() => window.open("https://mpago.la/placeholder", "_blank")}>
-          Renovar plan
+        <button className="primary" style={{ marginBottom:12 }} disabled={subscribing} onClick={startSubscription}>
+          {subscribing ? "Conectando…" : "Renovar plan"}
         </button>
         <button className="ghost" onClick={() => useAuthStore.getState().logout()}>Cerrar sesión</button>
       </div>
@@ -406,8 +427,8 @@ function AppContent() {
           Activá tu suscripción para seguir entrenando con tu coach por <b style={{ color:"var(--text)" }}>$25.000 ARS/mes</b>.
         </p>
         <button className="primary" style={{ marginBottom:12, padding:"14px 28px", fontSize:15 }}
-          onClick={() => window.open("https://mpago.la/placeholder", "_blank")}>
-          Suscribirme ahora
+          disabled={subscribing} onClick={startSubscription}>
+          {subscribing ? "Conectando…" : "Suscribirme ahora"}
         </button>
         <button className="ghost" style={{ color:"var(--muted)", fontSize:13 }} onClick={() => useAuthStore.getState().logout()}>
           Cerrar sesión
