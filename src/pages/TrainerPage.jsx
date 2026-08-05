@@ -381,10 +381,16 @@ export default function TrainerPage() {
           <h1>Mis clientes</h1>
         </div>
         {!isAdmin && (
-          <button className="ghost" onClick={() => setPage("referral")}
-            style={{ fontSize: 13, gap: 6, display: "flex", alignItems: "center", marginBottom: 4 }}>
-            <Icon name="TrendingUp" size={14} /> Comisiones
-          </button>
+          <div style={{ display: "flex", gap: 8, marginBottom: 4 }}>
+            <button className="ghost" onClick={() => setPage("referral")}
+              style={{ fontSize: 13, gap: 6, display: "flex", alignItems: "center" }}>
+              <Icon name="TrendingUp" size={14} /> Comisiones
+            </button>
+            <button className="ghost" onClick={() => setPage("testamento")}
+              style={{ fontSize: 13, gap: 6, display: "flex", alignItems: "center" }}>
+              <Icon name="BookOpen" size={14} /> Testamento
+            </button>
+          </div>
         )}
       </div>
 

@@ -301,10 +301,59 @@ export default function CoachPage() {
 
   const TABS = [
     { id: "resumen",  label: "Resumen"    },
+    { id: "ia",       label: "🤖 IA"      },
     { id: "plan",     label: "Plan"       },
     { id: "progreso", label: "Progresión" },
     { id: "alertas",  label: "Alertas"    },
   ];
+
+  // ── AI Coach state ───────────────────────────────────────────────────────
+  const [aiMessages, setAiMessages] = useState([]);
+  const [aiInput, setAiInput] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiInsights, setAiInsights] = useState(null);
+  const [insightsLoading, setInsightsLoading] = useState(false);
+  const [insightsError, setInsightsError] = useState(false);
+
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
+  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
+
+  async function loadInsights() {
+    if (!user?.id || insightsLoading) return;
+    setInsightsLoading(true);
+    setInsightsError(false);
+    try {
+      const res = await fetch(`${supabaseUrl}/functions/v1/ai-coach`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "apikey": anonKey },
+        body: JSON.stringify({ user_id: user.id, mode: "insights" }),
+      });
+      const data = await res.json();
+      if (data.insights) setAiInsights(data.insights);
+      else setInsightsError(true);
+    } catch { setInsightsError(true); }
+    setInsightsLoading(false);
+  }
+
+  async function sendAiMessage() {
+    if (!aiInput.trim() || aiLoading || !user?.id) return;
+    const msg = aiInput.trim();
+    setAiInput("");
+    setAiMessages(m => [...m, { role: "user", text: msg }]);
+    setAiLoading(true);
+    try {
+      const res = await fetch(`${supabaseUrl}/functions/v1/ai-coach`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "apikey": anonKey },
+        body: JSON.stringify({ user_id: user.id, question: msg, mode: "chat" }),
+      });
+      const data = await res.json();
+      setAiMessages(m => [...m, { role: "coach", text: data.reply || "Sin respuesta. Intentá de nuevo." }]);
+    } catch {
+      setAiMessages(m => [...m, { role: "coach", text: "Error de conexión. Verificá tu red." }]);
+    }
+    setAiLoading(false);
+  }
 
   const PLAN_SUB_TABS = [
     { id: "rendimiento", label: "Rendimiento" },
@@ -761,6 +810,144 @@ export default function CoachPage() {
             );
           })()}
           </>)}
+        </div>
+      )}
+
+      {/* ── TAB: IA ─────────────────────────────────────────── */}
+      {tab === "ia" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+
+          {/* AI Insights card */}
+          <div className="card">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <p className="section-label" style={{ margin: 0 }}>Análisis de tus datos</p>
+              <button className="ghost" style={{ fontSize: 12, padding: "4px 10px" }}
+                onClick={loadInsights} disabled={insightsLoading}>
+                {insightsLoading ? "Analizando…" : aiInsights ? "Actualizar" : "Generar"}
+              </button>
+            </div>
+
+            {!aiInsights && !insightsLoading && (
+              <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>
+                Tocá "Generar" para que la IA analice tus pesos, entrenamientos, mediciones y tendencias de las últimas 6 semanas.
+              </p>
+            )}
+            {insightsLoading && (
+              <div style={{ textAlign: "center", padding: 20 }}>
+                <Icon name="Loader" size={24} className="spin" />
+                <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 8 }}>Analizando tus datos reales…</p>
+              </div>
+            )}
+            {insightsError && (
+              <p style={{ fontSize: 13, color: "var(--danger)", margin: 0 }}>No se pudo conectar. Verificá tu conexión.</p>
+            )}
+            {aiInsights && !insightsLoading && (
+              <>
+                <p style={{ fontSize: 14, color: "var(--text)", margin: "0 0 12px", lineHeight: 1.6 }}>
+                  {aiInsights.summary}
+                </p>
+
+                {/* Predictions */}
+                {aiInsights.predictions?.length > 0 && (
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
+                    {aiInsights.predictions.map((p, i) => (
+                      <div key={i} style={{ background: "var(--panel2)", borderRadius: 10, padding: "10px 12px" }}>
+                        <div style={{ fontSize: 18, marginBottom: 4 }}>{p.icon || "📊"}</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>{p.value}</div>
+                        <div style={{ fontSize: 11, color: "var(--muted)" }}>{p.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Alerts */}
+                {aiInsights.alerts?.length > 0 && (
+                  <div style={{ marginBottom: 12 }}>
+                    {aiInsights.alerts.map((a, i) => (
+                      <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start", padding: "6px 0", borderBottom: "1px solid var(--border)" }}>
+                        <span style={{ color: "var(--accent, #a855f7)", marginTop: 1 }}>⚠</span>
+                        <p style={{ margin: 0, fontSize: 13, color: "var(--text)" }}>{a}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Recommendation */}
+                {aiInsights.recommendation && (
+                  <div style={{ background: "rgba(168,85,247,.08)", border: "1px solid rgba(168,85,247,.2)", borderRadius: 10, padding: "10px 12px" }}>
+                    <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "var(--accent, #a855f7)" }}>Esta semana:</p>
+                    <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--text)" }}>{aiInsights.recommendation}</p>
+                    {aiInsights.nextSession && (
+                      <p style={{ margin: "6px 0 0", fontSize: 12, color: "var(--muted)" }}>
+                        Próxima sesión: {aiInsights.nextSession}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* AI Chat */}
+          <div className="card" style={{ display: "flex", flexDirection: "column" }}>
+            <p className="section-label" style={{ marginBottom: 10 }}>Consultá al coach</p>
+            <p style={{ fontSize: 12, color: "var(--muted)", margin: "0 0 12px" }}>
+              Conoce tu historial real: pesos, PRs, volumen, tendencias.
+            </p>
+
+            {/* Messages */}
+            <div style={{ maxHeight: 300, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
+              {aiMessages.length === 0 && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {["¿En qué ejercicio me estanqué?", "¿Cuándo debería hacer deload?", "¿Estoy entrenando suficiente?", "¿Qué grupo muscular descuidé?"].map(q => (
+                    <button key={q} className="ghost" style={{ fontSize: 12, padding: "5px 10px", borderRadius: 20 }}
+                      onClick={() => { setAiInput(q); }}>
+                      {q}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {aiMessages.map((m, i) => (
+                <div key={i} style={{
+                  alignSelf: m.role === "user" ? "flex-end" : "flex-start",
+                  maxWidth: "85%",
+                  background: m.role === "user" ? "var(--accent, #a855f7)" : "var(--panel2)",
+                  color: m.role === "user" ? "#fff" : "var(--text)",
+                  borderRadius: m.role === "user" ? "14px 14px 4px 14px" : "14px 14px 14px 4px",
+                  padding: "10px 14px",
+                  fontSize: 13,
+                  lineHeight: 1.5,
+                }}>
+                  {m.text}
+                </div>
+              ))}
+              {aiLoading && (
+                <div style={{ alignSelf: "flex-start", background: "var(--panel2)", borderRadius: 14, padding: "10px 14px" }}>
+                  <Icon name="Loader" size={14} className="spin" />
+                </div>
+              )}
+            </div>
+
+            {/* Input */}
+            <div style={{ display: "flex", gap: 8 }}>
+              <input
+                value={aiInput}
+                onChange={e => setAiInput(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && sendAiMessage()}
+                placeholder="Preguntale algo sobre tu entrenamiento…"
+                style={{
+                  flex: 1, padding: "10px 12px", borderRadius: 10,
+                  border: "1px solid var(--border)", background: "var(--panel2)",
+                  color: "var(--text)", fontSize: 13,
+                }}
+                disabled={aiLoading}
+              />
+              <button className="btn-primary" onClick={sendAiMessage} disabled={aiLoading || !aiInput.trim()}
+                style={{ padding: "10px 14px" }}>
+                <Icon name="Send" size={16} />
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

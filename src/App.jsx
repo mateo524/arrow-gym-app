@@ -23,6 +23,7 @@ const ChatPage           = lazy(() => import("./pages/ChatPage.jsx"));
 const HealthSyncPage     = lazy(() => import("./pages/HealthSyncPage.jsx"));
 const ChallengesPage     = lazy(() => import("./pages/ChallengesPage.jsx"));
 const ReferralPage       = lazy(() => import("./pages/ReferralPage.jsx"));
+const TestamentoPage     = lazy(() => import("./pages/TestamentoPage.jsx"));
 import Nav from "./components/Nav.jsx";
 import OnboardingModal from "./components/OnboardingModal.jsx";
 import PRCard from "./components/PRCard.jsx";
@@ -114,6 +115,7 @@ const PAGE_MAP = {
   healthsync: HealthSyncPage,
   challenges: ChallengesPage,
   referral: ReferralPage,
+  testamento: TestamentoPage,
 };
 
 function AppContent() {
@@ -360,6 +362,7 @@ function AppContent() {
     admin: ["admin", "superadmin"],
     trainer: ["trainer", "admin", "superadmin"],
     referral: ["trainer", "admin", "superadmin"],
+    testamento: ["trainer", "admin", "superadmin"],
   };
   const requiredRoles = PAGE_ROLE_GUARDS[currentPage];
   const isAllowed = !requiredRoles || requiredRoles.includes(role);
