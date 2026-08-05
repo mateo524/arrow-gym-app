@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import useAuthStore from "../store/useAuthStore.js";
 import useStore from "../store/useStore.js";
-import { supabase } from "../lib/supabaseClient.js";
+import { supabase } from "../lib/supabase.js";
 import Icon from "../components/Icon.jsx";
 
 export default function ReferralPage() {

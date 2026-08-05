@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { supabase } from "../lib/supabaseClient.js";
+import { supabase } from "../lib/supabase.js";
 import useAuthStore from "../store/useAuthStore.js";
 import Icon from "./Icon.jsx";
 
