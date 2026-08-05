@@ -366,7 +366,7 @@ export default function CoachPage() {
   }
 
   const PLAN_SUB_TABS = [
-    { id: "rendimiento", label: "Rendimiento" },
+    { id: "rendimiento", label: "Fuerza" },
     { id: "nutricion",   label: "Nutrición"   },
   ];
 

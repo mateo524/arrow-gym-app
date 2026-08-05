@@ -893,13 +893,22 @@ export default function WorkoutPage() {
                               }
                               if (r > highThresh) {
                                 const next = Math.round((w + 2.5) * 2) / 2;
-                                return { dir: "up", weight: next, reason: `${r} reps — subí a ${next}kg`, rest: restSec };
+                                const upReason = goal === "rendimiento"
+                                  ? `${r} reps — peso liviano para fuerza, subí a ${next}kg`
+                                  : `${r} reps — subí a ${next}kg`;
+                                return { dir: "up", weight: next, reason: upReason, rest: restSec };
                               }
                               if (r < lowThresh) {
                                 const next = Math.max(Math.round((w - 2.5) * 2) / 2, 0);
-                                return { dir: "down", weight: next, reason: `${r} reps (pocas) — bajá a ${next}kg`, rest: restSec };
+                                const downReason = goal === "rendimiento"
+                                  ? `${r} rep${r !== 1 ? "s" : ""} — muy pesado para controlar, bajá a ${next}kg`
+                                  : `${r} reps — bajá a ${next}kg para trabajar en rango`;
+                                return { dir: "down", weight: next, reason: downReason, rest: restSec };
                               }
-                              return { dir: null, weight: w, reason: `Buen rango — dejá 1-3 reps en reserva`, rest: restSec };
+                              const goodReason = goal === "rendimiento"
+                                ? `${r} reps — rango de fuerza, dejá todo en la barra`
+                                : `Buen rango — dejá 1-3 reps en reserva`;
+                              return { dir: null, weight: w, reason: goodReason, rest: restSec };
                             })()}
                           />
                         </div>
