@@ -255,21 +255,6 @@ export default function HomePage() {
         </button>
       </div>
 
-      {/* Hero: racha destacada + status motivacional */}
-      {!isEmpty && (
-        <div style={{ display: "flex", alignItems: "center", gap: 14, margin: "4px 0 14px", padding: "14px 16px", borderRadius: 18, background: streak > 0 ? "linear-gradient(135deg, rgba(249,115,22,.16), rgba(245,158,11,.05) 60%, transparent)" : "var(--panel)", border: "1px solid var(--line)", position: "relative", overflow: "hidden" }}>
-          {streak > 0 && <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 12% 40%, rgba(249,115,22,.18), transparent 55%)", pointerEvents: "none" }} />}
-          <div style={{ display: "flex", alignItems: "baseline", gap: 6, position: "relative" }}>
-            <span style={{ fontSize: "clamp(28px, 8vw, 42px)", lineHeight: 1 }}>🔥</span>
-            <span style={{ fontWeight: 900, fontSize: "clamp(28px, 8vw, 42px)", lineHeight: 1, color: streak >= 30 ? "#ef4444" : streak >= 7 ? "#f97316" : "#f59e0b" }}>{streak}</span>
-          </div>
-          <div style={{ position: "relative", flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: "var(--text)" }}>{streak === 1 ? "semana de racha" : "semanas de racha"}</div>
-            <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>{statusLine}</div>
-          </div>
-        </div>
-      )}
-
       {/* Onboarding vacío */}
       {isEmpty ? (
         <div className="hero" style={{ marginTop: 16 }}>

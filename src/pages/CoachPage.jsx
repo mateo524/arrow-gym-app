@@ -307,9 +307,6 @@ export default function CoachPage() {
   ];
 
   // ── AI Coach state ───────────────────────────────────────────────────────
-  const [aiMessages, setAiMessages] = useState([]);
-  const [aiInput, setAiInput] = useState("");
-  const [aiLoading, setAiLoading] = useState(false);
   const [aiInsights, setAiInsights] = useState(null);
   const [insightsLoading, setInsightsLoading] = useState(false);
   const [insightsError, setInsightsError] = useState(false);
@@ -334,27 +331,6 @@ export default function CoachPage() {
       else { setInsightsError("Sin respuesta del servidor. Intentá de nuevo."); }
     } catch { setInsightsError("Sin conexión. Verificá tu red."); }
     setInsightsLoading(false);
-  }
-
-  async function sendAiMessage() {
-    if (!aiInput.trim() || aiLoading || !user?.id) return;
-    const msg = aiInput.trim();
-    setAiInput("");
-    setAiMessages(m => [...m, { role: "user", text: msg }]);
-    setAiLoading(true);
-    try {
-      const res = await fetch(`${supabaseUrl}/functions/v1/ai-coach`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "apikey": anonKey, "Authorization": `Bearer ${anonKey}` },
-        body: JSON.stringify({ user_id: user.id, question: msg, mode: "chat" }),
-      });
-      const data = await res.json();
-      const reply = data.reply || (data.error === "no_api_key" ? "El AI Coach necesita la GEMINI_API_KEY en Supabase secrets." : data.error === "ai_unavailable" ? "API key de Gemini inválida. Revisá aistudio.google.com/apikey." : "Sin respuesta. Intentá de nuevo.");
-      setAiMessages(m => [...m, { role: "coach", text: reply }]);
-    } catch {
-      setAiMessages(m => [...m, { role: "coach", text: "Sin conexión. Verificá tu red." }]);
-    }
-    setAiLoading(false);
   }
 
   const PLAN_SUB_TABS = [
@@ -867,46 +843,6 @@ export default function CoachPage() {
             )}
           </div>
 
-          {/* AI Chat inline */}
-          <div className="card">
-            <p className="section-label" style={{ marginBottom: 8 }}>Preguntale algo</p>
-            <div style={{ maxHeight: 240, overflowY: "auto", display: "flex", flexDirection: "column", gap: 6, marginBottom: 8 }}>
-              {aiMessages.length === 0 && (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-                  {["¿En qué me estanqué?", "¿Necesito deload?", "¿Entrené suficiente?", "¿Qué músculo descuidé?"].map(q => (
-                    <button key={q} className="ghost" style={{ fontSize: 11, padding: "4px 8px", borderRadius: 20 }}
-                      onClick={() => setAiInput(q)}>{q}</button>
-                  ))}
-                </div>
-              )}
-              {aiMessages.map((m, i) => (
-                <div key={i} style={{
-                  alignSelf: m.role === "user" ? "flex-end" : "flex-start",
-                  maxWidth: "85%",
-                  background: m.role === "user" ? "var(--accent, #a855f7)" : "var(--panel2)",
-                  color: m.role === "user" ? "#fff" : "var(--text)",
-                  borderRadius: m.role === "user" ? "12px 12px 3px 12px" : "12px 12px 12px 3px",
-                  padding: "8px 12px", fontSize: 13, lineHeight: 1.5,
-                }}>{m.text}</div>
-              ))}
-              {aiLoading && (
-                <div style={{ alignSelf: "flex-start", background: "var(--panel2)", borderRadius: 12, padding: "8px 12px" }}>
-                  <Icon name="Loader" size={13} className="spin" />
-                </div>
-              )}
-            </div>
-            <div style={{ display: "flex", gap: 6 }}>
-              <input value={aiInput} onChange={e => setAiInput(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && sendAiMessage()}
-                placeholder="Preguntá sobre tus datos…"
-                style={{ flex: 1, padding: "9px 12px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--panel2)", color: "var(--text)", fontSize: 13 }}
-                disabled={aiLoading} />
-              <button className="btn-primary" onClick={sendAiMessage}
-                disabled={aiLoading || !aiInput.trim()} style={{ padding: "9px 13px" }}>
-                <Icon name="Send" size={15} />
-              </button>
-            </div>
-          </div>
           </div>
         </div>
       )}
