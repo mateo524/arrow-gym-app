@@ -160,7 +160,7 @@ export default function TrainerPage() {
 
   async function copyInviteLink() {
     if (!inviteCode) return;
-    const link = `https://loop.app/join/${inviteCode}`;
+    const link = `${window.location.origin}/#/join/${inviteCode}`;
     try {
       await navigator.clipboard.writeText(link);
       setInviteCopied(true);

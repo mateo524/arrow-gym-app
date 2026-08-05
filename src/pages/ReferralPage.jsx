@@ -10,6 +10,7 @@ export default function ReferralPage() {
   const [inviteCode, setInviteCode] = useState(null);
   const [payingStudents, setPayingStudents] = useState([]);
   const [totalStudents, setTotalStudents] = useState(0);
+  const [conversions, setConversions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -32,14 +33,23 @@ export default function ReferralPage() {
     if (codeData?.code) setInviteCode(codeData.code);
 
     // Traer todos los alumnos vinculados
-    const { data: students } = await supabase
-      .from("profiles")
-      .select("id, name, email, created_at, subscription_status")
-      .eq("trainer_id", profile.id);
+    const [{ data: students }, { data: convData }] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("id, name, email, created_at, subscription_status")
+        .eq("trainer_id", profile.id),
+      supabase
+        .from("referral_conversions")
+        .select("id, converted_user_id, created_at, profiles:converted_user_id(name, email)")
+        .eq("trainer_id", profile.id)
+        .order("created_at", { ascending: false })
+        .limit(10),
+    ]);
 
     const all = students || [];
     setTotalStudents(all.length);
     setPayingStudents(all.filter(s => s.subscription_status === "active"));
+    setConversions(convData || []);
     setLoading(false);
   }, [profile?.id]);
 
@@ -57,7 +67,7 @@ export default function ReferralPage() {
   }
 
   async function copyLink() {
-    const link = `https://loop.app/join/${inviteCode}`;
+    const link = `${window.location.origin}/#/join/${inviteCode}`;
     try { await navigator.clipboard.writeText(link); } catch { }
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
@@ -108,7 +118,7 @@ export default function ReferralPage() {
                     borderRadius: 10, padding: "10px 12px", marginBottom: 8,
                   }}>
                     <code style={{ flex: 1, fontSize: 12, color: "var(--accent, #a855f7)", wordBreak: "break-all" }}>
-                      https://loop.app/join/{inviteCode}
+                      {window.location.origin}/#/join/{inviteCode}
                     </code>
                     <button className="ghost icon-btn" onClick={copyLink} title="Copiar">
                       <Icon name={copied ? "Check" : "Copy"} size={16} style={{ color: copied ? "var(--green)" : undefined }} />
@@ -194,6 +204,40 @@ export default function ReferralPage() {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* Conversiones via link de invitación */}
+            {conversions.length > 0 && (
+              <div className="card" style={{ marginBottom: 16 }}>
+                <p className="section-label" style={{ marginBottom: 10 }}>🎯 Conversiones via tu link</p>
+                {conversions.map(c => {
+                  const name = c.profiles?.name || c.profiles?.email?.split("@")[0] || "Alumno";
+                  const date = new Date(c.created_at).toLocaleDateString("es-AR", { day: "numeric", month: "short" });
+                  return (
+                    <div key={c.id} style={{
+                      display: "flex", alignItems: "center", gap: 10,
+                      padding: "8px 0", borderBottom: "1px solid var(--border)",
+                    }}>
+                      <div style={{
+                        width: 30, height: 30, borderRadius: "50%",
+                        background: "rgba(34,197,94,.15)", border: "1px solid rgba(34,197,94,.3)",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 13, fontWeight: 700, color: "var(--green)", flexShrink: 0,
+                      }}>
+                        {name[0].toUpperCase()}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600 }}>{name}</div>
+                        <div style={{ fontSize: 11, color: "var(--green)" }}>Suscripción activada ✓</div>
+                      </div>
+                      <div style={{ fontSize: 11, color: "var(--muted)", flexShrink: 0 }}>{date}</div>
+                    </div>
+                  );
+                })}
+                <p style={{ margin: "8px 0 0", fontSize: 12, color: "var(--muted)" }}>
+                  {conversions.length} alumno{conversions.length !== 1 ? "s" : ""} se suscribieron via tu link
+                </p>
               </div>
             )}
 

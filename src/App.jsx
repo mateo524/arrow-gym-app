@@ -347,9 +347,32 @@ function AppContent() {
   useEffect(() => {
     if (didInit.current) return;
     didInit.current = true;
-    const path = location.replace(/^\//, "") || "home";
-    if (PAGE_MAP[path] && path !== currentPage) setPage(path);
+    // Detect invite link: #/join/CODE or /join/CODE in pathname
+    const hashPath = location.replace(/^\//, "");
+    const pathnamePath = window.location.pathname.replace(/^\//, "");
+    const joinPath = hashPath.startsWith("join/") ? hashPath : pathnamePath.startsWith("join/") ? pathnamePath : null;
+    if (joinPath) {
+      const code = joinPath.replace("join/", "").trim();
+      if (code) localStorage.setItem("pending_invite_code", code);
+      setPage("home"); // will show login if not authenticated
+      return;
+    }
+    if (PAGE_MAP[hashPath] && hashPath !== currentPage) setPage(hashPath);
   }, []); // eslint-disable-line
+
+  // After login: if there's a pending invite code, resolve it to referred_by on profile
+  useEffect(() => {
+    if (!user?.id) return;
+    const code = localStorage.getItem("pending_invite_code");
+    if (!code) return;
+    localStorage.removeItem("pending_invite_code");
+    (async () => {
+      const { data } = await supabase.from("invite_codes").select("trainer_id").eq("code", code).maybeSingle();
+      if (data?.trainer_id && data.trainer_id !== user.id) {
+        await supabase.from("profiles").update({ referred_by: data.trainer_id }).eq("id", user.id);
+      }
+    })();
+  }, [user?.id]); // eslint-disable-line
 
   // Store → URL (one-way, no feedback loop)
   useEffect(() => {
