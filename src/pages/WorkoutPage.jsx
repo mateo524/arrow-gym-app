@@ -77,6 +77,32 @@ function ProgressiveOverloadChip({ sets, lastWeight }) {
   );
 }
 
+// Progressive load: returns suggested next weight based on last 2 sessions + goal
+function getProgressiveSuggestion(workouts, exercise, goal) {
+  const sessions = (workouts || [])
+    .filter(w => w.sets?.some(s => s.exercise === exercise && s.weight && s.reps))
+    .slice(0, 2);
+  if (!sessions.length) return null;
+  const lastSets = sessions[0].sets.filter(s => s.exercise === exercise && s.weight && s.reps);
+  if (!lastSets.length) return null;
+  const lastBest = lastSets.reduce((b, s) => Number(s.weight) > Number(b.weight) ? s : b, lastSets[0]);
+  const lastWeight = Number(lastBest.weight);
+  const lastReps   = Number(lastBest.reps);
+  if (!lastWeight) return null;
+  const bands = { volumen: [8,12], definicion: [8,15], mantenimiento: [8,15], rendimiento: [1,5] };
+  const [low, high] = bands[goal] || bands.mantenimiento;
+  let sameStreak = 1;
+  if (sessions.length >= 2) {
+    const prev = sessions[1].sets.filter(s => s.exercise === exercise && s.weight);
+    const prevBest = prev.reduce((b, s) => Number(s.weight) > Number(b.weight) ? s : b, prev[0] || {});
+    if (Number(prevBest.weight) === lastWeight) sameStreak = 2;
+  }
+  if (lastReps > high || (sameStreak >= 2 && lastReps >= low)) {
+    return Math.round((lastWeight + 2.5) * 2) / 2;
+  }
+  return null;
+}
+
 const EXERCISE_TIPS = {
   "Chest Press Machine": "Sentate erguido, espalda pegada al respaldo. Agarre ancho, empujá hacia adelante exhalando. Bajá lento (2-3 seg) para maximizar el estiramiento.",
   "Incline Chest Press Machine": "Ajustá el asiento para que las manijas queden a altura de pecho. Empujá en diagonal hacia arriba. Controlá el retorno para trabajar el pectoral superior.",
@@ -682,17 +708,28 @@ export default function WorkoutPage() {
                       <VolumeSparkline data={volumeHistory} />
                     </div>
                     {(first?.lastWeight != null && first?.lastWeight !== '') && (
-                      <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 3 }}>
-                        <span style={{ fontSize: 11, color: "var(--muted)" }}>
-                          {first?.equipment === "Peso corporal" ? (
-                            <>Último: <b style={{ color: "var(--text)" }}>
-                              {Number(first.lastWeight) > 0 ? `PC +${first.lastWeight}kg` : "PC"} × {first.lastReps}
-                            </b></>
-                          ) : (
-                            <>Último: <b style={{ color: "var(--text)" }}>{first.lastWeight}kg × {first.lastReps}</b></>
-                          )}
-                        </span>
-                        <ProgressiveOverloadChip sets={sets} lastWeight={first.lastWeight} />
+                      <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 3 }}>
+                        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                          <span style={{ fontSize: 11, color: "var(--muted)" }}>
+                            {first?.equipment === "Peso corporal" ? (
+                              <>Último: <b style={{ color: "var(--text)" }}>
+                                {Number(first.lastWeight) > 0 ? `PC +${first.lastWeight}kg` : "PC"} × {first.lastReps}
+                              </b></>
+                            ) : (
+                              <>Último: <b style={{ color: "var(--text)" }}>{first.lastWeight}kg × {first.lastReps}</b></>
+                            )}
+                          </span>
+                          <ProgressiveOverloadChip sets={sets} lastWeight={first.lastWeight} />
+                        </div>
+                        {(() => {
+                          const suggested = getProgressiveSuggestion(workouts, exercise, goal);
+                          if (!suggested) return null;
+                          return (
+                            <span style={{ fontSize: 11, padding: "2px 9px", borderRadius: 10, display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(52,211,153,.12)", color: "#34d399", alignSelf: "flex-start" }}>
+                              ↑ Probá {suggested}kg esta sesión
+                            </span>
+                          );
+                        })()}
                       </div>
                     )}
                     {coachHint && (() => {

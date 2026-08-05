@@ -166,6 +166,18 @@ function AppContent() {
   const hasSeenOnboarding = useStore(s => s.hasSeenOnboarding);
   const markOnboardingSeen = useStore(s => s.markOnboardingSeen);
   const workouts = useStore(s => s.workouts) || [];
+  const newAchievements = useStore(s => s.newAchievements) || [];
+  const clearNewAchievements = useStore(s => s.clearNewAchievements);
+  const [achToast, setAchToast] = useState(null);
+
+  // Show achievement unlock toast when new badges are earned
+  useEffect(() => {
+    if (!newAchievements.length) return;
+    const first = newAchievements[0];
+    setAchToast(first);
+    const t = setTimeout(() => { setAchToast(null); clearNewAchievements(); }, 4000);
+    return () => clearTimeout(t);
+  }, [newAchievements.length]);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
@@ -519,6 +531,24 @@ function AppContent() {
       {!isOnline && (
         <div style={{ position:"fixed", top:0, left:0, right:0, zIndex:9999, background:"rgba(245,158,11,.9)", color:"#000", fontSize:12, fontWeight:700, textAlign:"center", padding:"6px", backdropFilter:"blur(8px)" }}>
           Sin conexión — tus datos se guardan localmente
+        </div>
+      )}
+      {/* ── ACHIEVEMENT UNLOCK TOAST ─────────────────────────────────────── */}
+      {achToast && (
+        <div style={{
+          position: "fixed", bottom: 90, left: "50%", transform: "translateX(-50%)",
+          zIndex: 9997, background: "var(--panel)", border: "1.5px solid #f59e0b",
+          borderRadius: 16, padding: "12px 18px", boxShadow: "0 4px 24px rgba(0,0,0,.5)",
+          display: "flex", alignItems: "center", gap: 12, maxWidth: 320, width: "calc(100% - 32px)",
+          animation: "slideUp .3s ease",
+        }}>
+          <span style={{ fontSize: 28, flexShrink: 0 }}>🏆</span>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: "#f59e0b" }}>¡Logro desbloqueado!</div>
+            <div style={{ fontSize: 12, color: "var(--text)", marginTop: 2 }}>{achToast.title || achToast.id}</div>
+          </div>
+          <button onClick={() => { setAchToast(null); clearNewAchievements(); }}
+            style={{ background: "none", border: "none", color: "var(--muted)", fontSize: 16, cursor: "pointer", padding: "0 4px", flexShrink: 0, marginLeft: "auto" }}>✕</button>
         </div>
       )}
       {inner}
