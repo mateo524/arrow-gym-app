@@ -517,6 +517,7 @@ export default function WorkoutPage() {
 
   function handleFinishClick() {
     cancelRestTimerPush();
+    setPrCelebration(null);
     if (navigator.vibrate) navigator.vibrate(20);
     const allSets = active?.sets || [];
     const validSets = allSets.filter(s => s.weight && s.reps);
@@ -1281,7 +1282,7 @@ export default function WorkoutPage() {
 
     {/* ── POST WORKOUT SUMMARY ──────────────────────────────────────────── */}
     {postSummary && (
-      <div className="modal-overlay" style={{ alignItems: "center", padding: "16px" }}>
+      <div className="modal-overlay" style={{ alignItems: "center", padding: "16px", zIndex: 1100 }}>
         <div className="modal-card" style={{ maxWidth: 360, width: "100%", maxHeight: "85vh", overflowY: "auto" }}>
           <div style={{ textAlign: "center", marginBottom: 14 }}>
             <div style={{ fontSize: 36, marginBottom: 6 }}>🎯</div>
