@@ -1,9 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY") ?? "";
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
-const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
 
 const corsHeaders = {
@@ -14,14 +11,68 @@ const corsHeaders = {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
+  // Read secrets inside handler — module-level reads cache empty on cold start
+  const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY") ?? "";
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
+  const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+
+  if (!GEMINI_KEY) {
+    return new Response(JSON.stringify({ error: "no_api_key" }), { status: 200, headers: corsHeaders });
+  }
+
   try {
-    const { user_id, question, mode = "chat" } = await req.json();
+    const body = await req.json();
+    const { mode = "chat" } = body;
+
+    // ── NUDGE MODE: generate WhatsApp message for trainer → student ──────────
+    if (mode === "nudge") {
+      const { student_name, days_since_last, trainer_name, adherence_level } = body;
+
+      const levelDesc = adherence_level === "red"
+        ? `no entrena hace ${days_since_last ?? "varios"} días (inactivo/a)`
+        : adherence_level === "yellow"
+        ? `no entrena hace ${days_since_last ?? "varios"} días (en riesgo)`
+        : `lleva ${days_since_last ?? "algunos"} días sin entrenar`;
+
+      const prompt = `Sos ${trainer_name || "el coach"}, un entrenador personal que usa Loop Gym.
+Escribí UN mensaje corto de WhatsApp para motivar a tu alumno/a ${student_name || "el/la alumno/a"}, quien ${levelDesc}.
+El mensaje debe:
+- Sonar HUMANO y en primera persona ("Te", "vos", no "tu")
+- Ser cálido y motivador, no retador ni culposo
+- Tener entre 2 y 3 oraciones
+- NO incluir emojis excesivos (máx 1-2)
+- Ser en español rioplatense
+- NO mencionar la app ni términos técnicos
+Devolvé SOLO el mensaje, sin comillas ni texto adicional.`;
+
+      const geminiPayload = {
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.85, maxOutputTokens: 150 },
+      };
+
+      const geminiRes = await fetch(`${GEMINI_URL}?key=${GEMINI_KEY}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(geminiPayload),
+      });
+
+      if (!geminiRes.ok) {
+        return new Response(JSON.stringify({ error: "ai_unavailable" }), { status: 200, headers: corsHeaders });
+      }
+
+      const geminiData = await geminiRes.json();
+      const message = geminiData.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? "";
+      return new Response(JSON.stringify({ message }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ── INSIGHTS / CHAT MODES: need user_id ──────────────────────────────────
+    const { user_id, question } = body;
     if (!user_id) return new Response(JSON.stringify({ error: "user_id required" }), { status: 400, headers: corsHeaders });
 
-    // Rate limiting: max 20 calls per user per day (via simple check)
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-    // ── Fetch all user data for context ──────────────────────────────────────
     const sixWeeksAgo = new Date(Date.now() - 42 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
     const [
@@ -30,18 +81,16 @@ serve(async (req) => {
       { data: weightLog },
       { data: measurements },
     ] = await Promise.all([
-      supabase.from("profiles").select("name, weekly_goal, subscription_status, created_at").eq("id", user_id).single(),
+      supabase.from("profiles").select("name, subscription_status, created_at").eq("id", user_id).single(),
       supabase.from("user_workouts").select("date, sets, duration_min, notes").eq("user_id", user_id).gte("date", sixWeeksAgo).order("date", { ascending: false }).limit(50),
       supabase.from("weight_log").select("date, kg").eq("user_id", user_id).order("date", { ascending: false }).limit(20),
       supabase.from("measurements").select("date, bicep_cm, chest_cm, waist_cm, hip_cm, quad_cm").eq("user_id", user_id).order("date", { ascending: false }).limit(5),
     ]);
 
-    // ── Compute derived stats ─────────────────────────────────────────────────
     const workoutDates = (workouts ?? []).map((w: any) => w.date);
     const workoutsLast7 = workoutDates.filter((d: string) => d >= new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)).length;
     const workoutsLast30 = workoutDates.filter((d: string) => d >= new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)).length;
 
-    // PRs per exercise from workouts
     const prMap: Record<string, { weight: number; reps: number; date: string }> = {};
     for (const w of (workouts ?? [])) {
       for (const s of (w.sets ?? [])) {
@@ -53,7 +102,6 @@ serve(async (req) => {
       }
     }
 
-    // Volume per muscle group last 7 days
     const volumeByGroup: Record<string, number> = {};
     const recentWorkouts = (workouts ?? []).filter((w: any) => w.date >= new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10));
     for (const w of recentWorkouts) {
@@ -63,13 +111,11 @@ serve(async (req) => {
       }
     }
 
-    // Weight trend
     const wLog = (weightLog ?? []).slice(0, 10);
     const weightTrend = wLog.length >= 2
       ? (wLog[0].kg - wLog[wLog.length - 1].kg).toFixed(1)
       : null;
 
-    // Stagnation detection: exercises with same or lower weight for 3+ sessions
     const stagnant: string[] = [];
     const exerciseSessions: Record<string, number[]> = {};
     for (const w of (workouts ?? []).slice(0, 20)) {
@@ -83,69 +129,61 @@ serve(async (req) => {
       if (last3.length >= 3 && Math.max(...last3) === Math.min(...last3)) stagnant.push(ex);
     }
 
-    // Days since last workout
     const lastWorkoutDate = workoutDates[0] ?? null;
     const daysSinceLast = lastWorkoutDate
       ? Math.floor((Date.now() - new Date(lastWorkoutDate).getTime()) / 86400000)
       : null;
 
-    // ── Build system context ──────────────────────────────────────────────────
     const userName = profile?.name ?? "el atleta";
-    const weeklyGoal = profile?.weekly_goal ?? 3;
     const memberSince = profile?.created_at ? Math.floor((Date.now() - new Date(profile.created_at).getTime()) / 86400000) : 0;
 
     const dataContext = `
 DATOS DEL ATLETA: ${userName}
-- Miembro hace: ${memberSince} días
-- Meta semanal: ${weeklyGoal} entrenamientos/semana
-- Entrenamientos últimos 7 días: ${workoutsLast7}/${weeklyGoal}
-- Entrenamientos últimos 30 días: ${workoutsLast30}
-- Días desde último entreno: ${daysSinceLast ?? "desconocido"}
+- Miembro hace: ${memberSince} dias
+- Entrenamientos ultimos 7 dias: ${workoutsLast7}
+- Entrenamientos ultimos 30 dias: ${workoutsLast30}
+- Dias desde ultimo entreno: ${daysSinceLast ?? "desconocido"}
 - Peso actual: ${wLog[0]?.kg ?? "no registrado"} kg
-- Tendencia de peso (últimas ${wLog.length} lecturas): ${weightTrend !== null ? (Number(weightTrend) > 0 ? `+${weightTrend}kg` : `${weightTrend}kg`) : "sin datos suficientes"}
+- Tendencia de peso (ultimas ${wLog.length} lecturas): ${weightTrend !== null ? (Number(weightTrend) > 0 ? `+${weightTrend}kg` : `${weightTrend}kg`) : "sin datos suficientes"}
 
-RÉCORDS PERSONALES RECIENTES (últimas 6 semanas):
-${Object.entries(prMap).slice(0, 15).map(([ex, pr]) => `  ${ex}: ${pr.weight}kg × ${pr.reps} reps (${pr.date})`).join("\n") || "  Sin PRs registrados"}
+RECORDS PERSONALES RECIENTES (ultimas 6 semanas):
+${Object.entries(prMap).slice(0, 15).map(([ex, pr]) => `  ${ex}: ${pr.weight}kg x ${pr.reps} reps (${pr.date})`).join("\n") || "  Sin PRs registrados"}
 
-VOLUMEN POR GRUPO MUSCULAR (últimos 7 días, en kg·reps):
-${Object.entries(volumeByGroup).map(([g, v]) => `  ${g}: ${Math.round(v)} kg·reps`).join("\n") || "  Sin datos"}
+VOLUMEN POR GRUPO MUSCULAR (ultimos 7 dias, en kg*reps):
+${Object.entries(volumeByGroup).map(([g, v]) => `  ${g}: ${Math.round(v)} kg*reps`).join("\n") || "  Sin datos"}
 
 EJERCICIOS ESTANCADOS (mismo peso 3+ sesiones):
 ${stagnant.slice(0, 5).join(", ") || "Ninguno detectado"}
 
-MEDICIONES CORPORALES (última):
-${measurements?.[0] ? `Bícep: ${measurements[0].bicep_cm}cm, Pecho: ${measurements[0].chest_cm}cm, Cintura: ${measurements[0].waist_cm}cm (${measurements[0].date})` : "Sin mediciones"}
+MEDICIONES CORPORALES (ultima):
+${measurements?.[0] ? `Bicep: ${measurements[0].bicep_cm}cm, Pecho: ${measurements[0].chest_cm}cm, Cintura: ${measurements[0].waist_cm}cm (${measurements[0].date})` : "Sin mediciones"}
 
-ÚLTIMOS ENTRENAMIENTOS:
+ULTIMOS ENTRENAMIENTOS:
 ${(workouts ?? []).slice(0, 5).map((w: any) => `  ${w.date}: ${(w.sets ?? []).length} series, ${w.duration_min ?? "?"} min`).join("\n") || "  Sin historial"}
 `.trim();
 
-    // ── Prompt by mode ────────────────────────────────────────────────────────
     let systemPrompt = "";
     let userMessage = question ?? "";
 
     if (mode === "insights") {
-      // Proactive weekly insights — no user question
-      systemPrompt = `Sos un coach de fitness experto. Analizá los datos del atleta y devolvé un JSON con:
+      systemPrompt = `Sos un coach de fitness experto. Analiza los datos del atleta y devuelve un JSON con:
 {
   "summary": "resumen de 2 oraciones del estado actual",
-  "alerts": ["alerta 1", "alerta 2"], // max 3 alertas accionables
-  "predictions": [{"label": "...", "value": "...", "icon": "..."}], // max 3 predicciones concretas
-  "recommendation": "recomendación principal para esta semana en 1 oración",
-  "nextSession": "sugerencia específica para la próxima sesión"
+  "alerts": ["alerta 1", "alerta 2"],
+  "predictions": [{"label": "...", "value": "...", "icon": "..."}],
+  "recommendation": "recomendacion principal para esta semana en 1 oracion",
+  "nextSession": "sugerencia especifica para la proxima sesion"
 }
-Respondé SOLO el JSON, sin markdown ni texto extra. Usá español rioplatense (vos, dale, etc.).`;
-      userMessage = `Analizá los datos y generá insights accionables para esta semana.`;
+Responde SOLO el JSON, sin markdown ni texto extra. Usa espanol rioplatense (vos, dale, etc.).`;
+      userMessage = `Analiza los datos y genera insights accionables para esta semana.`;
     } else {
-      // Chat mode
       systemPrompt = `Sos Loop Coach, un asistente de entrenamiento experto que conoce los datos reales del atleta.
-Respondés en español rioplatense (vos, dale, etc.). Sos directo, específico y motivador.
-NUNCA inventés datos que no estén en el contexto. Si no tenés información suficiente, lo decís.
-NO das consejos médicos ni nutricionales específicos (dosis, suplementos).
-Tus respuestas son concisas (máx 150 palabras) salvo que pidan algo detallado.`;
+Respondes en espanol rioplatense (vos, dale, etc.). Sos directo, especifico y motivador.
+NUNCA inventes datos que no esten en el contexto. Si no tenes informacion suficiente, lo dices.
+NO das consejos medicos ni nutricionales especificos (dosis, suplementos).
+Tus respuestas son concisas (max 150 palabras) salvo que pidan algo detallado.`;
     }
 
-    // ── Call Gemini Flash ─────────────────────────────────────────────────────
     const geminiPayload = {
       contents: [
         { role: "user", parts: [{ text: `${systemPrompt}\n\n${dataContext}\n\nPregunta del atleta: ${userMessage}` }] },

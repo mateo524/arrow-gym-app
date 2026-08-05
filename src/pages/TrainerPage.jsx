@@ -93,12 +93,45 @@ export default function TrainerPage() {
   const [routineGroupName, setRoutineGroupName] = useState("");
   const [exercises, setExercises] = useState([]);
 
+  // Nudge: generate WhatsApp message per student
+  const [nudgeLoading, setNudgeLoading] = useState({});
+  const [nudgeModal, setNudgeModal] = useState(null); // { name, message }
+  const [nudgeCopied, setNudgeCopied] = useState(false);
+
   const catalogNames = EXERCISE_DATABASE.map((e) => e.name);
 
   useEffect(() => {
     loadClients();
     loadInviteCode();
   }, []);
+
+  async function generateNudge(client, e) {
+    e.stopPropagation();
+    const status = adherenceStatus(client.id);
+    const days = daysSinceLast(client.id);
+    const trainerName = profile?.name?.split(" ")[0] || "tu coach";
+    const studentName = client.name?.split(" ")[0] || "el/la alumno/a";
+
+    setNudgeLoading((prev) => ({ ...prev, [client.id]: true }));
+    try {
+      const { data, error } = await supabase.functions.invoke("ai-coach", {
+        body: {
+          mode: "nudge",
+          student_name: studentName,
+          days_since_last: days,
+          trainer_name: trainerName,
+          adherence_level: status.level,
+        },
+      });
+      if (data?.message) {
+        setNudgeModal({ name: client.name || studentName, message: data.message });
+        setNudgeCopied(false);
+      }
+    } catch (err) {
+      console.error("nudge error", err);
+    }
+    setNudgeLoading((prev) => ({ ...prev, [client.id]: false }));
+  }
 
   async function loadInviteCode() {
     if (!profile?.id) return;
@@ -616,6 +649,29 @@ export default function TrainerPage() {
                       })}
                     </div>
                   </div>
+                  <button
+                    onClick={(e) => generateNudge(c, e)}
+                    disabled={nudgeLoading[c.id]}
+                    title="Generar mensaje de WhatsApp"
+                    style={{
+                      padding: "5px 7px",
+                      borderRadius: 8,
+                      background: "rgba(168,85,247,.12)",
+                      border: "1px solid rgba(168,85,247,.22)",
+                      color: "var(--accent, #a855f7)",
+                      cursor: "pointer",
+                      flexShrink: 0,
+                      fontSize: 14,
+                      lineHeight: 1,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    {nudgeLoading[c.id]
+                      ? <Icon name="Loader" size={13} className="spin" />
+                      : "💬"}
+                  </button>
                   <Icon name="ChevronRight" size={18} />
                 </button>
                 );
@@ -861,6 +917,41 @@ export default function TrainerPage() {
         <div className="modal-actions">
           <button className="ghost" onClick={() => setDeleteRoutineTarget(null)}>Cancelar</button>
           <button className="danger" onClick={confirmDeleteRoutine}>Eliminar</button>
+        </div>
+      </div>
+    </div>
+  )}
+
+  {/* Nudge modal */}
+  {nudgeModal && (
+    <div className="modal-overlay" onClick={() => setNudgeModal(null)}>
+      <div className="modal-box" style={{ maxWidth: 380 }} onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <span style={{ fontSize: 20 }}>💬</span>
+          <h3>Mensaje para {nudgeModal.name}</h3>
+        </div>
+        <div style={{
+          background: "var(--panel2)",
+          borderRadius: 12,
+          padding: "12px 14px",
+          marginBottom: 14,
+          fontSize: 14,
+          lineHeight: 1.65,
+          color: "var(--text)",
+          whiteSpace: "pre-wrap",
+        }}>
+          {nudgeModal.message}
+        </div>
+        <div className="modal-actions">
+          <button className="ghost" onClick={() => setNudgeModal(null)}>Cerrar</button>
+          <button className="btn-primary" onClick={async () => {
+            try { await navigator.clipboard.writeText(nudgeModal.message); } catch {}
+            setNudgeCopied(true);
+            setTimeout(() => setNudgeCopied(false), 2500);
+          }}>
+            <Icon name={nudgeCopied ? "Check" : "Copy"} size={14} />
+            {nudgeCopied ? "¡Copiado!" : "Copiar"}
+          </button>
         </div>
       </div>
     </div>

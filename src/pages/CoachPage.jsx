@@ -2,6 +2,7 @@
 import useStore from "../store/useStore.js";
 import useAuthStore from "../store/useAuthStore.js";
 import Icon from "../components/Icon.jsx";
+import { supabase } from "../lib/supabase.js";
 import { shareWorkout } from "../lib/shareWorkout.js";
 import { todayLocal, dateToLocal } from "../lib/dates.js";
 import { buildCoachReport, formatDate, getPeriodizationPhase, getWeeklyFatigueScore, getWeightPrescriptions, getSkippedGroups, getOneRMHistory, getCycleComparison, getMuscleBalance, getWeekComparison, getWorkoutVolume, VOLUME_LANDMARKS, getStagnantExercises, getWeeklyActionableFeedback, calcWorkoutCalories } from "../lib/analytics.js";
@@ -86,6 +87,9 @@ export default function CoachPage() {
 
   const [tab, setTab] = useState("resumen");
   const [planSubTab, setPlanSubTab] = useState("rendimiento"); // "rendimiento" | "nutricion"
+
+  // Proactive coach notifications from daily cron
+  const [coachNotif, setCoachNotif] = useState(null); // latest unread coach_insight notif
   const [muscleRange, setMuscleRange] = useState("1m"); // "1w","1m","3m","6m","1y","all"
   const [sharing, setSharing] = useState(false);
   const [showProgresoAdvanced, setShowProgresoAdvanced] = useState(false);
@@ -96,6 +100,20 @@ export default function CoachPage() {
     // Always call — it auto-rotates weekly and refreshes doneCount
     generateWeeklyChallenge();
   }, [workouts.length]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase
+      .from("notifications")
+      .select("id, title, body, created_at")
+      .eq("user_id", user.id)
+      .eq("type", "coach_insight")
+      .eq("read", false)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => { if (data) setCoachNotif(data); });
+  }, [user?.id]);
 
   const computed = useMemo(
     () => reports.length ? reports : workouts.slice(0, 12).flatMap((workout) => {
@@ -788,6 +806,40 @@ export default function CoachPage() {
             );
           })()}
           </>)}
+
+          {/* ── Proactive coach notification (from daily cron) ─── */}
+          {coachNotif && (
+            <div style={{
+              background: "linear-gradient(135deg, rgba(168,85,247,.14) 0%, rgba(124,58,237,.08) 100%)",
+              border: "1px solid rgba(168,85,247,.28)",
+              borderRadius: 14,
+              padding: "12px 14px",
+              marginBottom: 14,
+              display: "flex",
+              gap: 10,
+              alignItems: "flex-start",
+            }}>
+              <span style={{ fontSize: 20, flexShrink: 0, marginTop: 1 }}>🤖</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ margin: "0 0 2px", fontWeight: 700, fontSize: 13, color: "var(--accent, #a855f7)" }}>
+                  {coachNotif.title || "Coach IA"}
+                </p>
+                <p style={{ margin: 0, fontSize: 13, color: "var(--text)", lineHeight: 1.5 }}>
+                  {coachNotif.body}
+                </p>
+              </div>
+              <button
+                className="ghost icon-btn"
+                style={{ flexShrink: 0, padding: 2, marginTop: -2 }}
+                onClick={() => {
+                  setCoachNotif(null);
+                  supabase.from("notifications").update({ read: true }).eq("id", coachNotif.id);
+                }}
+              >
+                <Icon name="X" size={14} />
+              </button>
+            </div>
+          )}
 
           {/* ── AI Coach section ────────────────────────────────── */}
           <div style={{ marginTop: 16 }}>
