@@ -307,7 +307,7 @@ export const createWorkoutSlice = (set, get) => ({
     set({ activeWorkout: { ...active, sets: newSets } });
   },
 
-  finishWorkout: async (notes) => {
+  finishWorkout: async (notes, mood) => {
     const active = get().activeWorkout;
     if (!active) return;
     const durationMin = active.startedAt ? Math.max(1, Math.round((Date.now() - active.startedAt) / 60000)) : 45;
@@ -316,6 +316,7 @@ export const createWorkoutSlice = (set, get) => ({
       startedAt: active.startedAt || (Date.now() - (durationMin * 60000)),
       durationMin,
       notes: notes || "",
+      ...(mood ? { mood } : {}),
       sets: active.sets
         .filter((s) => s.exercise && (s.weight !== "" && s.weight !== null) && (s.reps !== "" && s.reps !== null) && Number(s.reps) > 0)
         .map(normalizeSet),

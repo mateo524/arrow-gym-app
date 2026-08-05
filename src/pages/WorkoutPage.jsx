@@ -200,6 +200,7 @@ export default function WorkoutPage() {
   const [showRpe, setShowRpe] = useState(false);
   const [sessionRpe, setSessionRpe] = useState(null);
   const [postSummary, setPostSummary] = useState(null);
+  const [checkinMood, setCheckinMood] = useState(null); // "tired"|"good"|"great"
   const [flippedExercise, setFlippedExercise] = useState(null);
   const [tipExercise, setTipExercise] = useState(null);
   const [elapsed, setElapsed] = useState(0);
@@ -448,7 +449,7 @@ export default function WorkoutPage() {
     setTimeout(() => { setRestDone(false); setRestExercise(null); }, 4000);
   }, [cancelRestTimerPush]);
 
-  function doFinish(notes, rpe) {
+  function doFinish(notes, rpe, mood) {
     setShowSummary(false);
     const baseSummary = getPostWorkoutSummary(active, workouts);
     const allSets = (active?.sets || []).filter(s => s.weight && s.reps);
@@ -476,17 +477,17 @@ export default function WorkoutPage() {
           newPRs:    newPRsCount,
         }
       : null;
-    pendingFinishRef.current = { notes, rpe, summary };
+    pendingFinishRef.current = { notes, rpe, summary, mood };
     const userId = profile?.id || useAuthStore.getState().profile?.id;
     if (!userId || uniqueExercises.length === 0) {
-      _commitFinish(notes, rpe, summary);
+      _commitFinish(notes, rpe, summary, mood);
       return;
     }
-    const timeout = setTimeout(() => _commitFinish(notes, rpe, summary), 5000);
+    const timeout = setTimeout(() => _commitFinish(notes, rpe, summary, mood), 5000);
     import("../lib/supabase.js").then(({ supabase }) => {
       supabase.from("routines").select("id, exercises").eq("user_id", userId).then(({ data, error }) => {
         clearTimeout(timeout);
-        if (error || !data) { _commitFinish(notes, rpe, summary); return; }
+        if (error || !data) { _commitFinish(notes, rpe, summary, mood); return; }
         const routines = data || [];
         const alreadySaved = routines.some(r => {
           const rNames = (r.exercises || []).map(e => e.name);
@@ -498,26 +499,28 @@ export default function WorkoutPage() {
           setShowSummary(false);
           setShowSaveRoutine(true);
         } else {
-          _commitFinish(notes, rpe, summary);
+          _commitFinish(notes, rpe, summary, mood);
         }
-      }).catch(() => { clearTimeout(timeout); _commitFinish(notes, rpe, summary); });
-    }).catch(() => { clearTimeout(timeout); _commitFinish(notes, rpe, summary); });
+      }).catch(() => { clearTimeout(timeout); _commitFinish(notes, rpe, summary, mood); });
+    }).catch(() => { clearTimeout(timeout); _commitFinish(notes, rpe, summary, mood); });
   }
 
-  function _commitFinish(notes, rpe, summary) {
+  function _commitFinish(notes, rpe, summary, mood) {
     clearWorkoutDraft();
     if (summary) {
       // Show post-workout coach summary first; the "Listo" button will call finish()
       setPostSummary({ ...summary, rpe });
+      // mood will be read from checkinMood state in the postSummary modal
     } else {
-      finish(notes);
+      finish(notes, mood);
+      setCheckinMood(null);
     }
   }
 
   async function handleSaveRoutineAndFinish() {
     if (!saveRoutineName.trim()) {
-      const { notes, rpe, summary } = pendingFinishRef.current || {};
-      _commitFinish(notes, rpe, summary);
+      const { notes, rpe, summary, mood } = pendingFinishRef.current || {};
+      _commitFinish(notes, rpe, summary, mood);
       return;
     }
     setSavingRoutine(true);
@@ -534,8 +537,8 @@ export default function WorkoutPage() {
       if (error) throw error;
       setSavingRoutine(false);
       setShowSaveRoutine(false);
-      const { notes, rpe, summary } = pendingFinishRef.current || {};
-      _commitFinish(notes, rpe, summary);
+      const { notes, rpe, summary, mood } = pendingFinishRef.current || {};
+      _commitFinish(notes, rpe, summary, mood);
     } catch {
       setSaveRoutineError("No se pudo guardar la rutina. Intentá de nuevo.");
       setSavingRoutine(false);
@@ -1361,8 +1364,10 @@ export default function WorkoutPage() {
           <ShareWorkoutCard summary={postSummary} />
           <button className="primary" style={{ width: "100%", marginTop: 10 }} onClick={() => {
             const { notes } = pendingFinishRef.current || {};
+            const mood = checkinMood;
             setPostSummary(null);
-            finish(notes);
+            setCheckinMood(null);
+            finish(notes, mood);
             if (window.__showToast) window.__showToast("✓ Entrenamiento guardado");
           }}>
             Listo
@@ -1372,8 +1377,10 @@ export default function WorkoutPage() {
             style={{ width: "100%", marginTop: 8, fontSize: 14 }}
             onClick={() => {
               const { notes } = pendingFinishRef.current || {};
+              const mood = checkinMood;
               setPostSummary(null);
-              finish(notes);
+              setCheckinMood(null);
+              finish(notes, mood);
               setPage("coach");
             }}
           >
@@ -1401,7 +1408,7 @@ export default function WorkoutPage() {
             <p style={{ color: "var(--danger)", fontSize: 12, margin: "0 0 10px", textAlign: "center" }}>{saveRoutineError}</p>
           )}
           <div style={{ display: "flex", gap: 10 }}>
-            <button className="ghost" style={{ flex: 1 }} onClick={() => { setShowSaveRoutine(false); const { notes, rpe, summary } = pendingFinishRef.current || {}; _commitFinish(notes, rpe, summary); }}>
+            <button className="ghost" style={{ flex: 1 }} onClick={() => { setShowSaveRoutine(false); const { notes, rpe, summary, mood } = pendingFinishRef.current || {}; _commitFinish(notes, rpe, summary, mood); }}>
               No guardar
             </button>
             <button className="primary" style={{ flex: 2 }} disabled={savingRoutine || !saveRoutineName.trim()} onClick={handleSaveRoutineAndFinish}>
@@ -1625,10 +1632,33 @@ export default function WorkoutPage() {
             Compartir resumen
           </button>
           {shareMsg && <div style={{ textAlign: "center", fontSize: 12, color: "var(--green)", marginBottom: 6, fontWeight: 700 }}>{shareMsg}</div>}
+          {/* ── Check-in rápido ── */}
+          <div style={{ marginBottom: 12 }}>
+            <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, color: "var(--muted)", textAlign: "center", textTransform: "uppercase", letterSpacing: "0.06em" }}>¿Cómo te sentiste?</p>
+            <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
+              {[
+                { id: "tired", emoji: "😴", label: "Cansado" },
+                { id: "good",  emoji: "😊", label: "Bien"    },
+                { id: "great", emoji: "💪", label: "¡Excelente!" },
+              ].map(({ id, emoji, label }) => (
+                <button key={id} onClick={() => setCheckinMood(id)} style={{
+                  flex: 1, padding: "8px 4px", borderRadius: 12, border: "2px solid",
+                  borderColor: checkinMood === id ? "var(--green)" : "var(--border,rgba(255,255,255,.1))",
+                  background: checkinMood === id ? "rgba(34,197,94,.15)" : "var(--panel2)",
+                  cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
+                  transition: "all .12s",
+                }}>
+                  <span style={{ fontSize: 20 }}>{emoji}</span>
+                  <span style={{ fontSize: 9, fontWeight: 700, color: checkinMood === id ? "var(--green)" : "var(--muted)" }}>{label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           <button className="primary" style={{ width: "100%" }} onClick={() => {
             setShowSummary(false);
             if (emptySetsCount > 0) setShowFinishConfirm(true);
-            else doFinish(sessionNotes, workoutRPE);
+            else doFinish(sessionNotes, workoutRPE, checkinMood);
           }}>
             Guardar y terminar
           </button>
