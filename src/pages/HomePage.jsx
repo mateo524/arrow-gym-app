@@ -39,13 +39,25 @@ export default function HomePage() {
   const isTrainer = role === "trainer";
   const isEmpty = workouts.length === 0;
 
-  // Derive weekly goal from profile frequency preference, or fallback to historical average
+  const userGoal = useStore((s) => s.userGoal) || "mantenimiento";
+  const activityLevel = useStore((s) => s.activityLevel) || "moderado";
+
+  // Derive weekly goal: explicit user setting > profile frequency > goal-based recommendation
   const adaptedWeeklyGoal = useMemo(() => {
     const freq = profile?.weeklyFrequency || profile?.frequency;
     if (freq && Number(freq) > 0) return Number(freq);
-    // Always respect the user's explicitly set weeklyGoal
-    return weeklyGoal || 4;
-  }, [profile, weeklyGoal]);
+    if (weeklyGoal && weeklyGoal !== 4) return weeklyGoal; // user explicitly changed from default
+    // Auto-recommend based on goal + activity level
+    // activityLevel values from ProfilePage: principiante/intermedio/avanzado OR sedentario/ligero/moderado/activo/muy_activo
+    const goalDefaults = {
+      volumen:       { principiante: 3, intermedio: 4, avanzado: 5, sedentario: 3, ligero: 3, moderado: 4, activo: 4, muy_activo: 5 },
+      definicion:    { principiante: 3, intermedio: 4, avanzado: 5, sedentario: 3, ligero: 4, moderado: 4, activo: 5, muy_activo: 5 },
+      mantenimiento: { principiante: 2, intermedio: 3, avanzado: 3, sedentario: 2, ligero: 3, moderado: 3, activo: 4, muy_activo: 4 },
+      rendimiento:   { principiante: 3, intermedio: 4, avanzado: 5, sedentario: 3, ligero: 3, moderado: 4, activo: 4, muy_activo: 5 },
+    };
+    const lvlKey = activityLevel?.replace(/ /g, "_").toLowerCase() || "moderado";
+    return goalDefaults[userGoal]?.[lvlKey] ?? weeklyGoal ?? 4;
+  }, [profile, weeklyGoal, userGoal, activityLevel]);
 
   // Weekly streak: consecutive weeks where weeklyGoal was met
   // One "freeze" allowed every 4 weeks (missed by 1 workout)

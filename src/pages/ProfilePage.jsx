@@ -324,7 +324,7 @@ export default function ProfilePage() {
           )}
 
           <div className="settings-row" style={{ flexDirection: "column", alignItems: "flex-start", gap: 8 }}>
-            <div><label>Objetivo</label><small>Define cómo el coach adapta sus consejos</small></div>
+            <div><label>Objetivo</label><small>Define cómo el coach adapta sus consejos y rangos de repeticiones</small></div>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               { GOALS.map(g => (
                 <button key={g.id} onClick={() => {
@@ -335,13 +335,24 @@ export default function ProfilePage() {
                     padding:"6px 12px", borderRadius:8, border:"none", cursor:"pointer", fontWeight:600, fontSize:12,
                     background: userGoal === g.id ? "var(--green)" : "var(--panel2,rgba(255,255,255,.06))",
                     color: userGoal === g.id ? "#fff" : "var(--muted)",
-                  }}>{g.label}</button>
+                  }}>{g.icon} {g.label}</button>
               ))}
             </div>
+            {(() => {
+              const repRanges = { volumen: "8-12 reps", definicion: "10-15 reps", mantenimiento: "8-15 reps", rendimiento: "1-6 reps" };
+              const restTimes = { volumen: "90 seg", definicion: "45-60 seg", mantenimiento: "75 seg", rendimiento: "3-5 min" };
+              const freqSugg = { volumen: "3-4 días/sem", definicion: "4-5 días/sem", mantenimiento: "3 días/sem", rendimiento: "3-4 días/sem" };
+              return (
+                <div style={{ fontSize: 12, color: "var(--muted)", background: "var(--panel2)", borderRadius: 8, padding: "6px 10px", marginTop: 2 }}>
+                  <b style={{ color: "var(--text)" }}>{GOALS.find(g => g.id === userGoal)?.label}:</b>{" "}
+                  {repRanges[userGoal]} · descanso {restTimes[userGoal]} · {freqSugg[userGoal]}
+                </div>
+              );
+            })()}
           </div>
 
           <div className="settings-row" style={{ flexDirection: "column", alignItems: "flex-start", gap: 8 }}>
-            <div><label>Actividad diaria</label><small>Pasos, deporte, trabajo físico</small></div>
+            <div><label>Actividad diaria</label><small>Afecta la meta de entrenamientos semanales y el cálculo calórico</small></div>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               {LEVELS.map(l => (
                 <button key={l.id} onClick={() => setActivityLevel(l.id)}
@@ -349,9 +360,23 @@ export default function ProfilePage() {
                     padding:"6px 12px", borderRadius:8, border:"none", cursor:"pointer", fontWeight:600, fontSize:12,
                     background: activityLevel === l.id ? "var(--green)" : "var(--panel2,rgba(255,255,255,.06))",
                     color: activityLevel === l.id ? "#fff" : "var(--muted)",
-                  }}>{l.label}</button>
+                  }}>{l.icon} {l.label}</button>
               ))}
             </div>
+            {(() => {
+              const goalDefaults = {
+                volumen:       { principiante: 3, intermedio: 4, avanzado: 5 },
+                definicion:    { principiante: 3, intermedio: 4, avanzado: 5 },
+                mantenimiento: { principiante: 2, intermedio: 3, avanzado: 3 },
+                rendimiento:   { principiante: 3, intermedio: 4, avanzado: 5 },
+              };
+              const rec = goalDefaults[userGoal]?.[activityLevel] ?? 4;
+              return (
+                <div style={{ fontSize: 12, color: "var(--muted)", background: "var(--panel2)", borderRadius: 8, padding: "6px 10px", marginTop: 2 }}>
+                  Meta recomendada para vos: <b style={{ color: "var(--green)" }}>{rec} entrenamientos/semana</b>
+                </div>
+              );
+            })()}
           </div>
 
           <div className="settings-row">

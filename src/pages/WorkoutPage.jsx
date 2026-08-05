@@ -371,8 +371,10 @@ export default function WorkoutPage() {
     })();
     // Push notification for rest timer — only needed when app is backgrounded
     if (baseDuration > 0 && document.visibilityState === 'hidden') {
-      const { supabase } = await import('../lib/supabase.js');
-      scheduleRestTimerPush(baseDuration, supabase).catch(() => {});
+      (async () => {
+        const { supabase } = await import('../lib/supabase.js');
+        scheduleRestTimerPush(baseDuration, supabase).catch(() => {});
+      })();
     }
     // PR detection
     const currentActiveSets = useStore.getState().activeWorkout?.sets || [];
@@ -858,6 +860,9 @@ export default function WorkoutPage() {
                               }
 
                               // Rep-range based suggestions — goal × fitness_level
+                              // Rule: lowThresh is the minimum INCLUSIVE of good range.
+                              // r < lowThresh → "bajá el peso". lowThresh MUST be ≤ 8 so that
+                              // 8 reps never triggers a "lower weight" suggestion.
                               const goal = (userGoal || profile?.goal || "volumen").toLowerCase();
                               const lvl = (profile?.fitness_level || "intermedio").toLowerCase();
                               let lowThresh = 8, highThresh = 12, restSec = 90;
@@ -872,12 +877,12 @@ export default function WorkoutPage() {
                                 highThresh = 12;
                                 restSec = lvl === "avanzado" ? 120 : 90;
                               } else if (goal === "definicion") {
-                                // Densidad: reps moderadas-altas, descansos cortos
-                                lowThresh = lvl === "principiante" ? 12 : 10;
+                                // Definición: rango 10-15, pero nunca sugerir bajar con ≥8 reps
+                                lowThresh = 8;
                                 highThresh = lvl === "principiante" ? 18 : 15;
                                 restSec = lvl === "avanzado" ? 45 : 60;
                               } else if (goal === "mantenimiento") {
-                                // Salud general: rango amplio, moderado
+                                // Salud general: rango amplio
                                 lowThresh = 8; highThresh = 15; restSec = 75;
                               }
 
