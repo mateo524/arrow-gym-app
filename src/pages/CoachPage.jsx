@@ -324,7 +324,7 @@ export default function CoachPage() {
     try {
       const res = await fetch(`${supabaseUrl}/functions/v1/ai-coach`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "apikey": anonKey },
+        headers: { "Content-Type": "application/json", "apikey": anonKey, "Authorization": `Bearer ${anonKey}` },
         body: JSON.stringify({ user_id: user.id, mode: "insights" }),
       });
       const data = await res.json();
@@ -343,7 +343,7 @@ export default function CoachPage() {
     try {
       const res = await fetch(`${supabaseUrl}/functions/v1/ai-coach`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "apikey": anonKey },
+        headers: { "Content-Type": "application/json", "apikey": anonKey, "Authorization": `Bearer ${anonKey}` },
         body: JSON.stringify({ user_id: user.id, question: msg, mode: "chat" }),
       });
       const data = await res.json();

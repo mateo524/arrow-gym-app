@@ -81,8 +81,8 @@ export default function HomePage() {
         count++; freezeUsed++; freezeWindow++;
       } else { break; }
     }
-    // Include current week if already met goal
-    if (weekCounts[thisMondayStr] >= goal) count++;
+    // Include current week if at least 1 workout logged (week in progress)
+    if ((weekCounts[thisMondayStr] || 0) > 0) count++;
     return count;
   }, [workouts, cardioHistory, adaptedWeeklyGoal]);
 
