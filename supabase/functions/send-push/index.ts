@@ -1,20 +1,19 @@
 import webpush from "npm:web-push@3.6.6";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const VAPID_PUBLIC_KEY = Deno.env.get("VAPID_PUBLIC_KEY") ?? "";
-const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY") ?? "";
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
-const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-const ALLOWED_ORIGIN = Deno.env.get("ALLOWED_ORIGIN") ?? "*";
-
-webpush.setVapidDetails(
-  "mailto:admin@loop-gym.app",
-  VAPID_PUBLIC_KEY,
-  VAPID_PRIVATE_KEY
-);
-
 Deno.serve(async (req: Request) => {
+  // Read env vars inside handler to avoid cold-start issues
+  const VAPID_PUBLIC_KEY = Deno.env.get("VAPID_PUBLIC_KEY") ?? "";
+  const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY") ?? "";
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
+  const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  const ALLOWED_ORIGIN = Deno.env.get("ALLOWED_ORIGIN") ?? "*";
+
+  if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
+    webpush.setVapidDetails("mailto:admin@loop-gym.app", VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+  }
+
   const corsHeaders = {
     "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
     "Access-Control-Allow-Headers": "Content-Type, Authorization",

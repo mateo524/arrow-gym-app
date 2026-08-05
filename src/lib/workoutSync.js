@@ -11,6 +11,8 @@ export async function syncWorkoutUp(workout, userId) {
     type: workout.type,
     date: workout.date,
     sets: workout.sets,
+    duration_min: workout.durationMin ?? null,
+    notes: workout.notes ?? null,
     created_at: new Date().toISOString(),
   };
   if (!navigator.onLine) {

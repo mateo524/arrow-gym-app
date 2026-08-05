@@ -348,23 +348,18 @@ export default function CoachPage() {
   const [insightsLoading, setInsightsLoading] = useState(false);
   const [insightsError, setInsightsError] = useState(false);
 
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
-  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
-
   async function loadInsights() {
     if (!user?.id || insightsLoading) return;
     setInsightsLoading(true);
     setInsightsError(false);
     try {
-      const res = await fetch(`${supabaseUrl}/functions/v1/ai-coach`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "apikey": anonKey, "Authorization": `Bearer ${anonKey}` },
-        body: JSON.stringify({ user_id: user.id, mode: "insights" }),
+      const { data, error } = await supabase.functions.invoke("ai-coach", {
+        body: { user_id: user.id, mode: "insights" },
       });
-      const data = await res.json();
-      if (data.insights) { setAiInsights(data.insights); }
-      else if (data.error === "no_api_key") { setInsightsError("Configurá la GEMINI_API_KEY en Supabase → Edge Functions → Secrets."); }
-      else if (data.error === "ai_unavailable") { setInsightsError("API key de Gemini inválida o sin cuota. Revisá aistudio.google.com."); }
+      if (error) { setInsightsError("Sin respuesta del servidor. Intentá de nuevo."); }
+      else if (data?.insights) { setAiInsights(data.insights); }
+      else if (data?.error === "no_api_key") { setInsightsError("Configurá la GEMINI_API_KEY en Supabase → Edge Functions → Secrets."); }
+      else if (data?.error === "ai_unavailable") { setInsightsError("API key de Gemini inválida o sin cuota. Revisá aistudio.google.com."); }
       else { setInsightsError("Sin respuesta del servidor. Intentá de nuevo."); }
     } catch { setInsightsError("Sin conexión. Verificá tu red."); }
     setInsightsLoading(false);

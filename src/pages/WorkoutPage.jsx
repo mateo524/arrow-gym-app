@@ -370,9 +370,9 @@ export default function WorkoutPage() {
       } catch(e) {}
     })();
     // Push notification for rest timer — only needed when app is backgrounded
-    const pushSub = localStorage.getItem('pushSubscription');
-    if (pushSub && baseDuration > 0 && document.visibilityState === 'hidden') {
-      scheduleRestTimerPush(pushSub, baseDuration).catch(() => {});
+    if (baseDuration > 0 && document.visibilityState === 'hidden') {
+      const { supabase } = await import('../lib/supabase.js');
+      scheduleRestTimerPush(baseDuration, supabase).catch(() => {});
     }
     // PR detection
     const currentActiveSets = useStore.getState().activeWorkout?.sets || [];

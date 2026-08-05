@@ -1,9 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY") ?? "";
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
-const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const GEMINI_EMBED_URL = "https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent";
 const GEMINI_CHAT_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
 
@@ -20,8 +17,8 @@ function cosineSim(a: number[], b: number[]): number {
   return magA && magB ? dot / (magA * magB) : 0;
 }
 
-async function embed(text: string): Promise<number[]> {
-  const res = await fetch(`${GEMINI_EMBED_URL}?key=${GEMINI_KEY}`, {
+async function embed(text: string, geminiKey: string): Promise<number[]> {
+  const res = await fetch(`${GEMINI_EMBED_URL}?key=${geminiKey}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ model: "models/text-embedding-004", content: { parts: [{ text }] } }),
@@ -32,6 +29,11 @@ async function embed(text: string): Promise<number[]> {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  // Read env vars inside handler (cold-start safety)
+  const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY") ?? "";
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
+  const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
   try {
     const { trainer_id, student_id, question } = await req.json();
@@ -56,7 +58,7 @@ serve(async (req) => {
     }
 
     // Embed the question
-    const questionEmbedding = await embed(question);
+    const questionEmbedding = await embed(question, GEMINI_KEY);
 
     // Find most similar response
     let bestMatch = null;
@@ -67,7 +69,7 @@ serve(async (req) => {
 
       // If no embedding stored, generate and save it
       if (!embedding || embedding.length === 0) {
-        embedding = await embed(`${r.question_hint} ${r.response_text}`);
+        embedding = await embed(`${r.question_hint} ${r.response_text}`, GEMINI_KEY);
         await supabase.from("testamento_responses").update({ embedding }).eq("id", r.id);
       }
 

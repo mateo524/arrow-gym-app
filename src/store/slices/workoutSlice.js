@@ -402,12 +402,12 @@ export const createWorkoutSlice = (set, get) => ({
         const profile = getAuthProfile();
         const userId = getAuthUserId();
         if (profile?.trainer_id && userId) {
-          supabase.from('trainer_notifications').insert({
-            trainer_id: profile.trainer_id,
-            student_id: userId,
-            type: 'pr',
-            message: `${profile.full_name || profile.name || 'Tu alumno'} logró un nuevo récord: ${firstPR.exercise} ${firstPR.weight}kg`,
-            created_at: new Date().toISOString(),
+          supabase.from('notifications').insert({
+            user_id: profile.trainer_id,
+            type: 'coach_insight',
+            title: 'Nuevo récord de alumno',
+            body: `${profile.name || 'Tu alumno'} logró un nuevo récord: ${firstPR.exercise} ${firstPR.weight}kg`,
+            read: false,
           }).then(() => {}).catch(() => {});
         }
       } catch {}

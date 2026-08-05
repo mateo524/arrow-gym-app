@@ -116,17 +116,23 @@ Devolvé SOLO el mensaje, sin comillas ni texto adicional.`;
       ? (wLog[0].kg - wLog[wLog.length - 1].kg).toFixed(1)
       : null;
 
+    // Stagnation: use max weight per workout session (not per set) to avoid false positives
     const stagnant: string[] = [];
     const exerciseSessions: Record<string, number[]> = {};
     for (const w of (workouts ?? []).slice(0, 20)) {
+      const sessionMax: Record<string, number> = {};
       for (const s of (w.sets ?? [])) {
-        if (!exerciseSessions[s.exercise]) exerciseSessions[s.exercise] = [];
-        exerciseSessions[s.exercise].push(Number(s.weight) || 0);
+        const kg = Number(s.weight) || 0;
+        if (kg > 0) sessionMax[s.exercise] = Math.max(sessionMax[s.exercise] ?? 0, kg);
+      }
+      for (const [ex, maxKg] of Object.entries(sessionMax)) {
+        if (!exerciseSessions[ex]) exerciseSessions[ex] = [];
+        exerciseSessions[ex].push(maxKg);
       }
     }
     for (const [ex, weights] of Object.entries(exerciseSessions)) {
       const last3 = weights.slice(0, 3);
-      if (last3.length >= 3 && Math.max(...last3) === Math.min(...last3)) stagnant.push(ex);
+      if (last3.length >= 3 && Math.max(...last3) === Math.min(...last3) && last3[0] > 0) stagnant.push(ex);
     }
 
     const lastWorkoutDate = workoutDates[0] ?? null;

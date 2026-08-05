@@ -69,7 +69,9 @@ const useAuthStore = create((set, get) => ({
       set({ user: null, profile: null, loading: false });
     }
 
-    supabase.auth.onAuthStateChange((_event, session) => {
+    // Guard: only register one listener per store lifetime
+    if (get()._authSubscription) return;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         setAuthUserId(session.user.id);
         set({ user: session.user });
@@ -80,6 +82,7 @@ const useAuthStore = create((set, get) => ({
         set({ user: null, profile: null });
       }
     });
+    set({ _authSubscription: subscription });
   },
 
   fetchProfile: async (user) => {

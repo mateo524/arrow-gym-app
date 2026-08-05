@@ -402,7 +402,8 @@ function AppContent() {
   // Trainers always have full access — no paywall, no trial expiry
   const hasAccess = isTrainer || !subStatus || subStatus === "active" || subStatus === "trialing";
   const accountAgeMs = profile?.created_at ? Date.now() - new Date(profile.created_at).getTime() : 0;
-  const trialExpired = !isAdminRole && accountAgeMs > 30 * 24 * 60 * 60 * 1000 && subStatus !== "active";
+  // trialExpired only when account is old AND subStatus is explicitly non-active (not null/undefined = brand new user)
+  const trialExpired = !isAdminRole && accountAgeMs > 30 * 24 * 60 * 60 * 1000 && !!subStatus && subStatus !== "active";
 
   const PAGE_ROLE_GUARDS = {
     admin: ["admin", "superadmin"],
@@ -497,7 +498,7 @@ function AppContent() {
       )}
 
       {/* ── FIRST LOGIN / PASSWORD RECOVERY MODAL ──────────────────────── */}
-      {(showPasswordModal || profile?.has_changed_password === false) && (
+      {(showPasswordModal || (profile?.has_changed_password === false && !sessionStorage.getItem("pw-modal-dismissed"))) && (
         <div style={{ position:"fixed", inset:0, zIndex:10001, background:"rgba(0,0,0,.8)", display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
           <div style={{ background:"var(--panel)", borderRadius:20, padding:"28px 24px", width:"100%", maxWidth:360 }}>
             <div style={{ textAlign:"center", marginBottom:20 }}>
@@ -537,7 +538,7 @@ function AppContent() {
             </button>
             {showPasswordModal && (
               <button className="ghost" style={{ width:"100%", marginTop:8, color:"var(--muted)", fontSize:12 }}
-                onClick={() => { setShowPasswordModal(false); setNewPassword(""); }}>
+                onClick={() => { setShowPasswordModal(false); setNewPassword(""); sessionStorage.setItem("pw-modal-dismissed", "1"); }}>
                 Cancelar
               </button>
             )}

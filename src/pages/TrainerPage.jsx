@@ -133,12 +133,17 @@ export default function TrainerPage() {
           adherence_level: status.level,
         },
       });
-      if (data?.message) {
+      if (error || !data?.message) {
+        setSaveMsg("No se pudo generar el mensaje. Intentá de nuevo.");
+        setTimeout(() => setSaveMsg(""), 3000);
+      } else {
         setNudgeModal({ name: client.name || studentName, message: data.message });
         setNudgeCopied(false);
       }
     } catch (err) {
       console.error("nudge error", err);
+      setSaveMsg("Error de red. Verificá tu conexión.");
+      setTimeout(() => setSaveMsg(""), 3000);
     }
     setNudgeLoading((prev) => ({ ...prev, [client.id]: false }));
   }
@@ -232,7 +237,8 @@ export default function TrainerPage() {
       .from("user_workouts")
       .select("user_id, date")
       .in("user_id", clientIds)
-      .order("date", { ascending: false });
+      .order("date", { ascending: false })
+      .limit(clientIds.length * 10);
 
     if (allError) {
       console.warn("last-workout query failed:", allError.message);
@@ -290,7 +296,8 @@ export default function TrainerPage() {
     const trainedThisWeek = clients.filter((c) => (adherenceMap[c.id]?.size || 0) > 0).length;
     const adherencePct = total > 0 ? Math.round((trainedThisWeek / total) * 100) : 0;
     const atRisk = clients.filter((c) => adherenceStatus(c.id).level === "red").length;
-    const revenue = total * MONTHLY_FEE_ARS;
+    const activePaying = clients.filter((c) => c.subscription_status === "active").length;
+    const revenue = activePaying * MONTHLY_FEE_ARS;
     return { total, adherencePct, atRisk, revenue, trainedThisWeek };
   }
 
@@ -434,13 +441,17 @@ export default function TrainerPage() {
   }
 
   async function saveAsTemplate() {
-    if (!routineName.trim() || exercises.length === 0) return;
+    const cleanEx = exercises.filter((e) => e.name.trim());
+    if (!routineName.trim() || cleanEx.length === 0) {
+      setSaveMsg("Completá el nombre y al menos un ejercicio");
+      return;
+    }
     setSavingTemplate(true);
     const { error } = await supabase.from("routine_templates").insert({
       trainer_id: profile.id,
       program_name: saveTemplateProgramName.trim() || "Sin programa",
       name: routineName.trim(),
-      exercises,
+      exercises: cleanEx,
       day_index: routineDayIndex ? Number(routineDayIndex) : null,
       notes: routineNotes.trim() || null,
     });
@@ -458,6 +469,10 @@ export default function TrainerPage() {
   async function applyProgram(programName, client) {
     setApplyingProgram(true);
     const programTemplates = templates.filter((t) => t.program_name === programName);
+    if (programTemplates.length === 0) {
+      setApplyingProgram(false);
+      return;
+    }
     const rows = programTemplates.map((t) => ({
       trainer_id: profile.id,
       user_id: client.id,

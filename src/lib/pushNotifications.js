@@ -46,19 +46,23 @@ export async function subscribeToPush(userId, supabaseClient) {
   }
 }
 
-export async function scheduleRestTimerPush(subscription, delaySeconds) {
-  if (!subscription) return;
+export async function scheduleRestTimerPush(delaySeconds, supabaseClient) {
   try {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    const token = session?.access_token;
+    if (!token) { console.warn('No session token — push skipped'); return; }
     await fetch(`${supabaseUrl}/functions/v1/send-push`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
       body: JSON.stringify({
-        subscription: typeof subscription === 'string' ? subscription : JSON.stringify(subscription),
         title: 'Loop — Descanso terminado',
         body: 'Lista para la proxima serie.',
         tag: 'rest-timer',
-        delaySeconds
+        delaySeconds,
       })
     });
   } catch (e) {
