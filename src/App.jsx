@@ -24,6 +24,7 @@ const HealthSyncPage     = lazy(() => import("./pages/HealthSyncPage.jsx"));
 const ChallengesPage     = lazy(() => import("./pages/ChallengesPage.jsx"));
 const ReferralPage       = lazy(() => import("./pages/ReferralPage.jsx"));
 const TestamentoPage     = lazy(() => import("./pages/TestamentoPage.jsx"));
+const LeaguePage         = lazy(() => import("./pages/LeaguePage.jsx"));
 import Nav from "./components/Nav.jsx";
 import OnboardingModal from "./components/OnboardingModal.jsx";
 import PRCard from "./components/PRCard.jsx";
@@ -116,6 +117,7 @@ const PAGE_MAP = {
   challenges: ChallengesPage,
   referral: ReferralPage,
   testamento: TestamentoPage,
+  league: LeaguePage,
 };
 
 function AppContent() {

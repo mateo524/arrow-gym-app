@@ -90,6 +90,10 @@ export default function CoachPage() {
 
   // Proactive coach notifications from daily cron
   const [coachNotif, setCoachNotif] = useState(null); // latest unread coach_insight notif
+
+  // Liga: top preview
+  const [leaguePreview, setLeaguePreview] = useState(null); // { rank, total, topName }
+  const [wrappedShared, setWrappedShared] = useState(false);
   const [muscleRange, setMuscleRange] = useState("1m"); // "1w","1m","3m","6m","1y","all"
   const [sharing, setSharing] = useState(false);
   const [showProgresoAdvanced, setShowProgresoAdvanced] = useState(false);
@@ -100,6 +104,21 @@ export default function CoachPage() {
     // Always call — it auto-rotates weekly and refreshes doneCount
     generateWeeklyChallenge();
   }, [workouts.length]);
+
+  useEffect(() => {
+    if (!user?.id || profile?.role !== "user") return;
+    supabase.rpc("get_my_league").then(({ data }) => {
+      if (!data?.length) return;
+      const rank = data.findIndex((r) => r.user_id === user.id);
+      if (rank === -1) return;
+      setLeaguePreview({
+        rank: rank + 1,
+        total: data.length,
+        topName: data[0]?.display_name?.split(" ")[0] || "",
+        myWorkouts: data[rank]?.workouts_this_week ?? 0,
+      });
+    }).catch(() => {});
+  }, [user?.id, profile?.role]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -788,7 +807,30 @@ export default function CoachPage() {
             const topEx = Object.entries(exCount).sort((a,b)=>b[1]-a[1])[0];
             return (
               <div className="card" style={{ marginBottom:14 }}>
-                <h2 style={{ marginBottom:12 }}>🎉 Tu {year} en Loop</h2>
+                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 }}>
+                  <h2 style={{ margin:0 }}>🎉 Tu {year} en Loop</h2>
+                  <button
+                    className="ghost"
+                    style={{ fontSize:12, padding:"4px 10px", display:"flex", alignItems:"center", gap:5 }}
+                    onClick={async () => {
+                      const volStr = totalVol >= 1000000 ? (totalVol/1000000).toFixed(1)+"M" : totalVol >= 1000 ? (totalVol/1000).toFixed(0)+"k" : String(totalVol);
+                      const prsCount = (prs||[]).filter(p=>(p.date||"").startsWith(String(year))).length;
+                      const text = `🏋️ Mi ${year} en Loop Gym:\n📅 ${yearWorkouts.length} entrenamientos\n💪 ${prsCount} PRs nuevos\n📦 ${volStr}kg de volumen\n⭐ Ejercicio favorito: ${topEx?.[0] || "–"}\n\nDescargá Loop Gym 👉 loop-gym.vercel.app`;
+                      try {
+                        if (navigator.share) {
+                          await navigator.share({ text });
+                        } else {
+                          await navigator.clipboard.writeText(text);
+                          setWrappedShared(true);
+                          setTimeout(() => setWrappedShared(false), 2500);
+                        }
+                      } catch {}
+                    }}
+                  >
+                    <Icon name={wrappedShared ? "Check" : "Share2"} size={13} />
+                    {wrappedShared ? "Copiado" : "Compartir"}
+                  </button>
+                </div>
                 <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
                   {[
                     { label:"Entrenamientos", val: yearWorkouts.length, unit:"" },
@@ -806,6 +848,36 @@ export default function CoachPage() {
             );
           })()}
           </>)}
+
+          {/* ── Liga del gimnasio preview ────────────────────── */}
+          {leaguePreview && (
+            <button
+              onClick={() => setPage("league")}
+              style={{
+                width: "100%", textAlign: "left", cursor: "pointer",
+                background: "var(--panel)", border: "1px solid var(--border)",
+                borderRadius: 14, padding: "12px 14px", marginBottom: 14,
+                display: "flex", alignItems: "center", gap: 12,
+              }}
+            >
+              <div style={{
+                width: 42, height: 42, borderRadius: 12, flexShrink: 0,
+                background: "linear-gradient(135deg, rgba(168,85,247,.2), rgba(251,191,36,.15))",
+                display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22,
+              }}>
+                🏆
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ margin: 0, fontWeight: 700, fontSize: 14 }}>Liga del Gimnasio</p>
+                <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--muted)" }}>
+                  Posición {leaguePreview.rank}/{leaguePreview.total} esta semana ·{" "}
+                  {leaguePreview.myWorkouts} entreno{leaguePreview.myWorkouts !== 1 ? "s" : ""}
+                  {leaguePreview.rank === 1 ? " 🥇" : leaguePreview.rank === 2 ? " 🥈" : leaguePreview.rank === 3 ? " 🥉" : ""}
+                </p>
+              </div>
+              <Icon name="ChevronRight" size={16} style={{ color: "var(--muted)", flexShrink: 0 }} />
+            </button>
+          )}
 
           {/* ── Proactive coach notification (from daily cron) ─── */}
           {coachNotif && (
