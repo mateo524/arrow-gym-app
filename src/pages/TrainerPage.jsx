@@ -98,11 +98,21 @@ export default function TrainerPage() {
   const [nudgeModal, setNudgeModal] = useState(null); // { name, message }
   const [nudgeCopied, setNudgeCopied] = useState(false);
 
+  // Program Builder state
+  const [templates, setTemplates] = useState([]);
+  const [showSaveTemplate, setShowSaveTemplate] = useState(false);
+  const [saveTemplateProgramName, setSaveTemplateProgramName] = useState("");
+  const [savingTemplate, setSavingTemplate] = useState(false);
+  const [showApplyProgram, setShowApplyProgram] = useState(false); // { programName, client }
+  const [applyingProgram, setApplyingProgram] = useState(false);
+  const [showLoadTemplate, setShowLoadTemplate] = useState(false);
+
   const catalogNames = EXERCISE_DATABASE.map((e) => e.name);
 
   useEffect(() => {
     loadClients();
     loadInviteCode();
+    loadTemplates();
   }, []);
 
   async function generateNudge(client, e) {
@@ -347,6 +357,9 @@ export default function TrainerPage() {
     setRoutineDayIndex(String(nextDay));
     setRoutineNotes("");
     setExercises([{ name: "", sets: 3, reps: "8-12", notes: "" }]);
+    setShowSaveTemplate(false);
+    setShowLoadTemplate(false);
+    setSaveTemplateProgramName("");
   }
 
   function openEditRoutine(routine) {
@@ -357,6 +370,9 @@ export default function TrainerPage() {
     const grp = (routine.notes || "").match(/^\[GRUPO: (.+?)\]/);
     setRoutineGroupName(grp ? grp[1] : "");
     setExercises(routine.exercises || []);
+    setShowSaveTemplate(false);
+    setShowLoadTemplate(false);
+    setSaveTemplateProgramName("");
   }
 
   async function saveRoutine() {
@@ -404,6 +420,65 @@ export default function TrainerPage() {
       await selectClient(selectedClient);
     }
     setDeleteRoutineTarget(null);
+  }
+
+  async function loadTemplates() {
+    if (!profile?.id) return;
+    const { data } = await supabase
+      .from("routine_templates")
+      .select("*")
+      .eq("trainer_id", profile.id)
+      .order("program_name")
+      .order("day_index");
+    setTemplates(data || []);
+  }
+
+  async function saveAsTemplate() {
+    if (!routineName.trim() || exercises.length === 0) return;
+    setSavingTemplate(true);
+    const { error } = await supabase.from("routine_templates").insert({
+      trainer_id: profile.id,
+      program_name: saveTemplateProgramName.trim() || "Sin programa",
+      name: routineName.trim(),
+      exercises,
+      day_index: routineDayIndex ? Number(routineDayIndex) : null,
+      notes: routineNotes.trim() || null,
+    });
+    if (!error) {
+      await loadTemplates();
+      setShowSaveTemplate(false);
+      setSaveTemplateProgramName("");
+      setSaveMsg("✓ Guardada como plantilla");
+    } else {
+      setSaveMsg("Error al guardar plantilla");
+    }
+    setSavingTemplate(false);
+  }
+
+  async function applyProgram(programName, client) {
+    setApplyingProgram(true);
+    const programTemplates = templates.filter((t) => t.program_name === programName);
+    const rows = programTemplates.map((t) => ({
+      trainer_id: profile.id,
+      user_id: client.id,
+      name: t.name,
+      exercises: t.exercises,
+      day_index: t.day_index,
+      notes: t.notes,
+    }));
+    const { error } = await supabase.from("routines").insert(rows);
+    if (!error) {
+      await supabase.from("notifications").insert({
+        user_id: client.id,
+        type: "coach_insight",
+        title: "Nuevo programa asignado",
+        body: `Tu entrenador te asigno el programa "${programName}" (${rows.length} rutinas).`,
+        read: false,
+      });
+      setShowApplyProgram(false);
+      if (selectedClient?.id === client.id) await selectClient(client);
+    }
+    setApplyingProgram(false);
   }
 
   function addExerciseRow() {
@@ -545,6 +620,44 @@ export default function TrainerPage() {
             );
           })()}
 
+          {/* ── Mis Programas ── */}
+          {templates.length > 0 && (() => {
+            // Group templates by program_name
+            const groups = {};
+            templates.forEach((t) => {
+              if (!groups[t.program_name]) groups[t.program_name] = [];
+              groups[t.program_name].push(t);
+            });
+            const programNames = Object.keys(groups);
+            return (
+              <div className="card" style={{ marginBottom: 16, padding: "14px 16px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                  <p className="section-label" style={{ margin: 0 }}>Mis programas</p>
+                  <span style={{ fontSize: 11, color: "var(--muted)" }}>{programNames.length} programa{programNames.length !== 1 ? "s" : ""}</span>
+                </div>
+                {programNames.map((pName) => (
+                  <div key={pName} style={{ marginBottom: 10, background: "var(--panel2)", borderRadius: 10, padding: "10px 12px", border: "1px solid var(--border)" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+                      <strong style={{ fontSize: 14 }}>{pName}</strong>
+                      <span style={{ fontSize: 11, color: "var(--muted)" }}>{groups[pName].length} rutina{groups[pName].length !== 1 ? "s" : ""}</span>
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 8 }}>
+                      {groups[pName].map((t) => (
+                        <span key={t.id} style={{ fontSize: 11, background: "rgba(168,85,247,.12)", color: "var(--accent)", borderRadius: 6, padding: "2px 7px" }}>
+                          {t.day_index != null ? `Día ${t.day_index}: ` : ""}{t.name}
+                        </span>
+                      ))}
+                    </div>
+                    <button className="ghost" style={{ fontSize: 12, color: "var(--green)", borderColor: "var(--green)", width: "100%" }}
+                      onClick={() => setShowApplyProgram({ programName: pName })}>
+                      <Icon name="UserPlus" size={12} /> Aplicar a cliente
+                    </button>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+
           {/* ── Invite section ── */}
           <div className="card" style={{ marginBottom: 16, padding: "14px 16px" }}>
             <p className="section-label" style={{ marginBottom: 10 }}>Invitar alumnos</p>
@@ -555,7 +668,7 @@ export default function TrainerPage() {
                 </p>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#0b1518", border: "1px solid #1b2d31", borderRadius: 10, padding: "8px 12px", marginBottom: 8 }}>
                   <code style={{ flex: 1, fontSize: 12, color: "var(--cyan, #22d3ee)", wordBreak: "break-all" }}>
-                    https://loop.app/join/{inviteCode}
+                    {window.location.origin}/#/join/{inviteCode}
                   </code>
                   <button
                     className="ghost icon-btn"
@@ -702,6 +815,41 @@ export default function TrainerPage() {
                 </button>
               </div>
 
+              {/* Cargar desde plantilla — solo en modo nueva rutina */}
+              {editingRoutine === "new" && templates.length > 0 && (
+                <div style={{ marginBottom: 14 }}>
+                  {!showLoadTemplate ? (
+                    <button className="ghost" style={{ width: "100%", fontSize: 13, color: "var(--accent)" }}
+                      onClick={() => setShowLoadTemplate(true)}>
+                      <Icon name="BookOpen" size={14} /> Cargar desde plantilla
+                    </button>
+                  ) : (
+                    <div style={{ background: "var(--panel2)", border: "1px solid var(--border)", borderRadius: 12, padding: 10 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                        <p style={{ margin: 0, fontSize: 12, fontWeight: 600 }}>Seleccionar plantilla</p>
+                        <button className="ghost icon-btn" onClick={() => setShowLoadTemplate(false)}><Icon name="X" size={14} /></button>
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: 180, overflowY: "auto" }}>
+                        {templates.map((t) => (
+                          <button key={t.id} className="ghost" style={{ justifyContent: "flex-start", fontSize: 13, padding: "6px 10px" }}
+                            onClick={() => {
+                              setRoutineName(t.name);
+                              setRoutineDayIndex(t.day_index != null ? String(t.day_index) : "");
+                              setRoutineNotes(t.notes || "");
+                              setExercises(t.exercises || []);
+                              setShowLoadTemplate(false);
+                            }}>
+                            <span style={{ color: "var(--muted)", marginRight: 6, fontSize: 11 }}>{t.program_name}</span>
+                            {t.name}
+                            {t.day_index != null && <span style={{ marginLeft: 6, color: "var(--muted)", fontSize: 11 }}>Día {t.day_index}</span>}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div style={{ display:"flex", gap:10, marginBottom:12 }}>
                 <div className="field-group" style={{ flex:3 }}>
                   <label>Nombre de la rutina</label>
@@ -835,6 +983,31 @@ export default function TrainerPage() {
                 </button>
                 <button className="ghost" onClick={() => setEditingRoutine(null)}>Cancelar</button>
               </div>
+
+              {/* Guardar como plantilla */}
+              {!showSaveTemplate ? (
+                <button className="ghost" style={{ width: "100%", marginTop: 8, fontSize: 13, color: "var(--accent)" }}
+                  onClick={() => setShowSaveTemplate(true)}>
+                  <Icon name="BookmarkPlus" size={14} /> Guardar como plantilla de programa
+                </button>
+              ) : (
+                <div style={{ marginTop: 10, padding: "10px 12px", background: "var(--panel2)", borderRadius: 12, border: "1px solid var(--border)" }}>
+                  <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 8 }}>Nombre del programa (o dejá en blanco)</p>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <input
+                      type="text"
+                      value={saveTemplateProgramName}
+                      onChange={(e) => setSaveTemplateProgramName(e.target.value)}
+                      placeholder="Ej: Programa Verano, Full Body, etc."
+                      style={{ flex: 1, background: "#0b1518", border: "1px solid #1b2d31", borderRadius: 8, padding: "7px 10px", color: "var(--text)", fontSize: 13 }}
+                    />
+                    <button className="primary" style={{ fontSize: 13 }} disabled={savingTemplate} onClick={saveAsTemplate}>
+                      {savingTemplate ? "…" : "Guardar"}
+                    </button>
+                    <button className="ghost" style={{ fontSize: 13 }} onClick={() => setShowSaveTemplate(false)}>✕</button>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <>
@@ -917,6 +1090,36 @@ export default function TrainerPage() {
         <div className="modal-actions">
           <button className="ghost" onClick={() => setDeleteRoutineTarget(null)}>Cancelar</button>
           <button className="danger" onClick={confirmDeleteRoutine}>Eliminar</button>
+        </div>
+      </div>
+    </div>
+  )}
+
+  {/* Apply Program to Client modal */}
+  {showApplyProgram && (
+    <div className="modal-overlay" onClick={() => setShowApplyProgram(false)}>
+      <div className="modal-box" style={{ maxWidth: 380 }} onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <Icon name="BookOpen" size={20} style={{ color: "var(--accent)" }} />
+          <h3>Aplicar "{showApplyProgram.programName}"</h3>
+        </div>
+        <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 12 }}>
+          Seleccioná el cliente al que querés asignar este programa.
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: 260, overflowY: "auto" }}>
+          {clients.map((c) => (
+            <button key={c.id} className="ghost" style={{ justifyContent: "flex-start", padding: "8px 12px" }}
+              disabled={applyingProgram}
+              onClick={() => applyProgram(showApplyProgram.programName, c)}>
+              <div style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--accent)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, marginRight: 10, flexShrink: 0 }}>
+                {(c.name || c.email || "?")[0].toUpperCase()}
+              </div>
+              {c.name || c.email}
+            </button>
+          ))}
+        </div>
+        <div className="modal-actions" style={{ marginTop: 12 }}>
+          <button className="ghost" onClick={() => setShowApplyProgram(false)}>Cancelar</button>
         </div>
       </div>
     </div>
