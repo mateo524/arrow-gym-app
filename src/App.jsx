@@ -25,7 +25,8 @@ const ChallengesPage     = lazy(() => import("./pages/ChallengesPage.jsx"));
 const ReferralPage       = lazy(() => import("./pages/ReferralPage.jsx"));
 const TestamentoPage     = lazy(() => import("./pages/TestamentoPage.jsx"));
 const LeaguePage         = lazy(() => import("./pages/LeaguePage.jsx"));
-const TrainerLandingPage = lazy(() => import("./pages/TrainerLandingPage.jsx"));
+const TrainerLandingPage = lazy(() => import("./pages/TrainerLandingPage.jsx"))
+const WorkoutSharePage   = lazy(() => import("./pages/WorkoutSharePage.jsx"));
 import Nav from "./components/Nav.jsx";
 import OnboardingModal from "./components/OnboardingModal.jsx";
 import PRCard from "./components/PRCard.jsx";
@@ -35,6 +36,12 @@ import { supabase } from "./lib/supabase.js";
 import { subscribeToPush, requestPushPermission, isPushSupported } from "./lib/pushNotifications.js";
 
 const APP_VERSION = "54";
+
+// Apply saved theme on first load (before React renders)
+(function () {
+  const t = localStorage.getItem("loop-theme");
+  if (t === "light") document.documentElement.setAttribute("data-theme", "light");
+})();
 
 function InstallBanner({ onInstall, onDismiss, isIOS }) {
   if (isIOS) {
@@ -144,6 +151,12 @@ function AppContent() {
   const [trainerLandingCode, setTrainerLandingCode] = useState(
     () => localStorage.getItem("pending_trainer_landing") || null
   );
+  const [shareData, setShareData] = useState(() => {
+    // Detect #/share/BASE64 on first load
+    const h = window.location.hash.replace(/^#\/?/, "");
+    if (h.startsWith("share/")) return h.replace("share/", "").trim();
+    return null;
+  });
 
   async function startSubscription() {
     setSubscribing(true);
@@ -386,6 +399,13 @@ function AppContent() {
       setPage("home");
       return;
     }
+    // Workout share link: #/share/BASE64
+    const sharePath = hashPath.startsWith("share/") ? hashPath : pathnamePath.startsWith("share/") ? pathnamePath : null;
+    if (sharePath) {
+      const data = sharePath.replace("share/", "").trim();
+      if (data) setShareData(data);
+      return;
+    }
     // Trainer public landing: #/t/INVITE_CODE
     const trainerPath = hashPath.startsWith("t/") ? hashPath : pathnamePath.startsWith("t/") ? pathnamePath : null;
     if (trainerPath) {
@@ -476,7 +496,13 @@ function AppContent() {
   const showOnboarding = user && profile && !hasSeenOnboarding && !isReturningUser;
 
   let inner;
-  if (splashScreen) {
+  if (shareData) {
+    inner = (
+      <Suspense fallback={<div style={{ minHeight:"100dvh", background:"#050408", display:"flex", alignItems:"center", justifyContent:"center", color:"rgba(255,255,255,.4)", fontSize:14 }}>Cargando…</div>}>
+        <WorkoutSharePage data={shareData} />
+      </Suspense>
+    );
+  } else if (splashScreen) {
     inner = (
       <div className="splash-screen">
         <div className="splash-logo">

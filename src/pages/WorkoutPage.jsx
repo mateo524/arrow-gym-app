@@ -509,7 +509,7 @@ export default function WorkoutPage() {
     clearWorkoutDraft();
     if (summary) {
       // Show post-workout coach summary first; the "Listo" button will call finish()
-      setPostSummary({ ...summary, rpe });
+      setPostSummary({ ...summary, rpe, mood: checkinMood || undefined });
       // mood will be read from checkinMood state in the postSummary modal
     } else {
       finish(notes, mood);
