@@ -285,37 +285,6 @@ export default function StartWorkoutPage() {
         </div>
       </div>
 
-      {/* ── HOY TOCA card ──────────────────────────────────── */}
-      {todayRoutine && (
-        <div className="today-routine-card">
-          <div className="today-routine-header">
-            <div>
-              <p className="eyebrow" style={{ margin:"0 0 2px", color:"var(--green)" }}>
-                {todayRoutine.day_index != null ? `Día ${todayRoutine.day_index} · ` : ""}Hoy toca
-              </p>
-              <h2 style={{ margin:0, fontSize:20 }}>{todayRoutine.name}</h2>
-              <p style={{ margin:"4px 0 0", fontSize:12, color:"var(--muted)" }}>
-                {todayRoutine.exercises?.length || 0} ejercicios
-                {todayRoutine.notes ? ` · ${todayRoutine.notes}` : ""}
-              </p>
-            </div>
-          </div>
-          <div className="today-routine-exercises">
-            {(todayRoutine.exercises || []).slice(0, 5).map((ex, i) => (
-              <span key={i} className="ex-chip">{ex.name || ex}</span>
-            ))}
-            {(todayRoutine.exercises || []).length > 5 && (
-              <span className="ex-chip muted">+{todayRoutine.exercises.length - 5} más</span>
-            )}
-          </div>
-          <button
-            className="primary big today-start-btn"
-            onClick={() => startAssignedRoutine(todayRoutine)}
-          >
-            <Icon name="Play" size={20} /> Empezar ahora
-          </button>
-        </div>
-      )}
 
       {/* ── Volumen semanal por grupo muscular ───────────────── */}
       <div style={{ marginBottom:18 }}>
