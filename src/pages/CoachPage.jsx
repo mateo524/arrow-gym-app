@@ -301,7 +301,6 @@ export default function CoachPage() {
 
   const TABS = [
     { id: "resumen",  label: "Resumen"    },
-    { id: "ia",       label: "🤖 IA"      },
     { id: "plan",     label: "Plan"       },
     { id: "progreso", label: "Progresión" },
     { id: "alertas",  label: "Alertas"    },
@@ -810,100 +809,70 @@ export default function CoachPage() {
             );
           })()}
           </>)}
-        </div>
-      )}
 
-      {/* ── TAB: IA ─────────────────────────────────────────── */}
-      {tab === "ia" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-
-          {/* AI Insights card */}
-          <div className="card">
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-              <p className="section-label" style={{ margin: 0 }}>Análisis de tus datos</p>
+          {/* ── AI Coach section ────────────────────────────────── */}
+          <div style={{ marginTop: 16 }}>
+          <div className="card" style={{ marginBottom: 10 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <div>
+                <p className="section-label" style={{ margin: 0 }}>🤖 Coach IA</p>
+                <p style={{ fontSize: 11, color: "var(--muted)", margin: "2px 0 0" }}>Analiza tus datos reales de las últimas 6 semanas</p>
+              </div>
               <button className="ghost" style={{ fontSize: 12, padding: "4px 10px" }}
                 onClick={loadInsights} disabled={insightsLoading}>
-                {insightsLoading ? "Analizando…" : aiInsights ? "Actualizar" : "Generar"}
+                {insightsLoading ? "…" : aiInsights ? "↻" : "Analizar"}
               </button>
             </div>
 
-            {!aiInsights && !insightsLoading && (
-              <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>
-                Tocá "Generar" para que la IA analice tus pesos, entrenamientos, mediciones y tendencias de las últimas 6 semanas.
-              </p>
-            )}
             {insightsLoading && (
-              <div style={{ textAlign: "center", padding: 20 }}>
-                <Icon name="Loader" size={24} className="spin" />
-                <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 8 }}>Analizando tus datos reales…</p>
+              <div style={{ textAlign: "center", padding: 16 }}>
+                <Icon name="Loader" size={20} className="spin" />
+                <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 6 }}>Leyendo tus entrenamientos, pesos y PRs…</p>
               </div>
             )}
-            {insightsError && (
-              <p style={{ fontSize: 13, color: "var(--danger)", margin: 0 }}>No se pudo conectar. Verificá tu conexión.</p>
+            {insightsError && <p style={{ fontSize: 13, color: "var(--danger)", margin: 0 }}>Sin conexión. Revisá tu red.</p>}
+            {!aiInsights && !insightsLoading && !insightsError && (
+              <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>Tocá "Analizar" para ver predicciones e insights personalizados.</p>
             )}
             {aiInsights && !insightsLoading && (
               <>
-                <p style={{ fontSize: 14, color: "var(--text)", margin: "0 0 12px", lineHeight: 1.6 }}>
-                  {aiInsights.summary}
-                </p>
-
-                {/* Predictions */}
+                <p style={{ fontSize: 13, color: "var(--text)", margin: "0 0 10px", lineHeight: 1.6 }}>{aiInsights.summary}</p>
                 {aiInsights.predictions?.length > 0 && (
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 10 }}>
                     {aiInsights.predictions.map((p, i) => (
-                      <div key={i} style={{ background: "var(--panel2)", borderRadius: 10, padding: "10px 12px" }}>
-                        <div style={{ fontSize: 18, marginBottom: 4 }}>{p.icon || "📊"}</div>
+                      <div key={i} style={{ background: "var(--panel2)", borderRadius: 10, padding: "8px 10px" }}>
+                        <div style={{ fontSize: 16 }}>{p.icon || "📊"}</div>
                         <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>{p.value}</div>
                         <div style={{ fontSize: 11, color: "var(--muted)" }}>{p.label}</div>
                       </div>
                     ))}
                   </div>
                 )}
-
-                {/* Alerts */}
-                {aiInsights.alerts?.length > 0 && (
-                  <div style={{ marginBottom: 12 }}>
-                    {aiInsights.alerts.map((a, i) => (
-                      <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start", padding: "6px 0", borderBottom: "1px solid var(--border)" }}>
-                        <span style={{ color: "var(--accent, #a855f7)", marginTop: 1 }}>⚠</span>
-                        <p style={{ margin: 0, fontSize: 13, color: "var(--text)" }}>{a}</p>
-                      </div>
-                    ))}
+                {aiInsights.alerts?.map((a, i) => (
+                  <div key={i} style={{ display: "flex", gap: 6, padding: "5px 0", borderTop: "1px solid var(--border)" }}>
+                    <span style={{ color: "var(--accent, #a855f7)" }}>⚠</span>
+                    <p style={{ margin: 0, fontSize: 12, color: "var(--text)" }}>{a}</p>
                   </div>
-                )}
-
-                {/* Recommendation */}
+                ))}
                 {aiInsights.recommendation && (
-                  <div style={{ background: "rgba(168,85,247,.08)", border: "1px solid rgba(168,85,247,.2)", borderRadius: 10, padding: "10px 12px" }}>
-                    <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "var(--accent, #a855f7)" }}>Esta semana:</p>
-                    <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--text)" }}>{aiInsights.recommendation}</p>
-                    {aiInsights.nextSession && (
-                      <p style={{ margin: "6px 0 0", fontSize: 12, color: "var(--muted)" }}>
-                        Próxima sesión: {aiInsights.nextSession}
-                      </p>
-                    )}
+                  <div style={{ background: "rgba(168,85,247,.08)", border: "1px solid rgba(168,85,247,.2)", borderRadius: 10, padding: "8px 12px", marginTop: 8 }}>
+                    <p style={{ margin: 0, fontSize: 13, color: "var(--accent, #a855f7)", fontWeight: 600 }}>Esta semana: <span style={{ color: "var(--text)", fontWeight: 400 }}>{aiInsights.recommendation}</span></p>
+                    {aiInsights.nextSession && <p style={{ margin: "4px 0 0", fontSize: 11, color: "var(--muted)" }}>Próxima sesión: {aiInsights.nextSession}</p>}
                   </div>
                 )}
               </>
             )}
           </div>
 
-          {/* AI Chat */}
-          <div className="card" style={{ display: "flex", flexDirection: "column" }}>
-            <p className="section-label" style={{ marginBottom: 10 }}>Consultá al coach</p>
-            <p style={{ fontSize: 12, color: "var(--muted)", margin: "0 0 12px" }}>
-              Conoce tu historial real: pesos, PRs, volumen, tendencias.
-            </p>
-
-            {/* Messages */}
-            <div style={{ maxHeight: 300, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
+          {/* AI Chat inline */}
+          <div className="card">
+            <p className="section-label" style={{ marginBottom: 8 }}>Preguntale algo</p>
+            <div style={{ maxHeight: 240, overflowY: "auto", display: "flex", flexDirection: "column", gap: 6, marginBottom: 8 }}>
               {aiMessages.length === 0 && (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                  {["¿En qué ejercicio me estanqué?", "¿Cuándo debería hacer deload?", "¿Estoy entrenando suficiente?", "¿Qué grupo muscular descuidé?"].map(q => (
-                    <button key={q} className="ghost" style={{ fontSize: 12, padding: "5px 10px", borderRadius: 20 }}
-                      onClick={() => { setAiInput(q); }}>
-                      {q}
-                    </button>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                  {["¿En qué me estanqué?", "¿Necesito deload?", "¿Entrené suficiente?", "¿Qué músculo descuidé?"].map(q => (
+                    <button key={q} className="ghost" style={{ fontSize: 11, padding: "4px 8px", borderRadius: 20 }}
+                      onClick={() => setAiInput(q)}>{q}</button>
                   ))}
                 </div>
               )}
@@ -913,40 +882,28 @@ export default function CoachPage() {
                   maxWidth: "85%",
                   background: m.role === "user" ? "var(--accent, #a855f7)" : "var(--panel2)",
                   color: m.role === "user" ? "#fff" : "var(--text)",
-                  borderRadius: m.role === "user" ? "14px 14px 4px 14px" : "14px 14px 14px 4px",
-                  padding: "10px 14px",
-                  fontSize: 13,
-                  lineHeight: 1.5,
-                }}>
-                  {m.text}
-                </div>
+                  borderRadius: m.role === "user" ? "12px 12px 3px 12px" : "12px 12px 12px 3px",
+                  padding: "8px 12px", fontSize: 13, lineHeight: 1.5,
+                }}>{m.text}</div>
               ))}
               {aiLoading && (
-                <div style={{ alignSelf: "flex-start", background: "var(--panel2)", borderRadius: 14, padding: "10px 14px" }}>
-                  <Icon name="Loader" size={14} className="spin" />
+                <div style={{ alignSelf: "flex-start", background: "var(--panel2)", borderRadius: 12, padding: "8px 12px" }}>
+                  <Icon name="Loader" size={13} className="spin" />
                 </div>
               )}
             </div>
-
-            {/* Input */}
-            <div style={{ display: "flex", gap: 8 }}>
-              <input
-                value={aiInput}
-                onChange={e => setAiInput(e.target.value)}
+            <div style={{ display: "flex", gap: 6 }}>
+              <input value={aiInput} onChange={e => setAiInput(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && sendAiMessage()}
-                placeholder="Preguntale algo sobre tu entrenamiento…"
-                style={{
-                  flex: 1, padding: "10px 12px", borderRadius: 10,
-                  border: "1px solid var(--border)", background: "var(--panel2)",
-                  color: "var(--text)", fontSize: 13,
-                }}
-                disabled={aiLoading}
-              />
-              <button className="btn-primary" onClick={sendAiMessage} disabled={aiLoading || !aiInput.trim()}
-                style={{ padding: "10px 14px" }}>
-                <Icon name="Send" size={16} />
+                placeholder="Preguntá sobre tus datos…"
+                style={{ flex: 1, padding: "9px 12px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--panel2)", color: "var(--text)", fontSize: 13 }}
+                disabled={aiLoading} />
+              <button className="btn-primary" onClick={sendAiMessage}
+                disabled={aiLoading || !aiInput.trim()} style={{ padding: "9px 13px" }}>
+                <Icon name="Send" size={15} />
               </button>
             </div>
+          </div>
           </div>
         </div>
       )}
