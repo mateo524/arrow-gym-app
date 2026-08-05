@@ -343,28 +343,6 @@ export default function CoachPage() {
     { id: "alertas",  label: "Alertas"    },
   ];
 
-  // ── AI Coach state ───────────────────────────────────────────────────────
-  const [aiInsights, setAiInsights] = useState(null);
-  const [insightsLoading, setInsightsLoading] = useState(false);
-  const [insightsError, setInsightsError] = useState(false);
-
-  async function loadInsights() {
-    if (!user?.id || insightsLoading) return;
-    setInsightsLoading(true);
-    setInsightsError(false);
-    try {
-      const { data, error } = await supabase.functions.invoke("ai-coach", {
-        body: { user_id: user.id, mode: "insights" },
-      });
-      if (error) { setInsightsError("Sin respuesta del servidor. Intentá de nuevo."); }
-      else if (data?.insights) { setAiInsights(data.insights); }
-      else if (data?.error === "no_api_key") { setInsightsError("Configurá la GEMINI_API_KEY en Supabase → Edge Functions → Secrets."); }
-      else if (data?.error === "ai_unavailable") { setInsightsError("API key de Gemini inválida o sin cuota. Revisá aistudio.google.com."); }
-      else { setInsightsError("Sin respuesta del servidor. Intentá de nuevo."); }
-    } catch { setInsightsError("Sin conexión. Verificá tu red."); }
-    setInsightsLoading(false);
-  }
-
   const PLAN_SUB_TABS = [
     { id: "rendimiento", label: "Fuerza" },
     { id: "nutricion",   label: "Nutrición"   },
@@ -908,61 +886,6 @@ export default function CoachPage() {
             </div>
           )}
 
-          {/* ── AI Coach section ────────────────────────────────── */}
-          <div style={{ marginTop: 16 }}>
-          <div className="card" style={{ marginBottom: 10 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <div>
-                <p className="section-label" style={{ margin: 0 }}>🤖 Coach IA</p>
-                <p style={{ fontSize: 11, color: "var(--muted)", margin: "2px 0 0" }}>Analiza tus datos reales de las últimas 6 semanas</p>
-              </div>
-              <button className="ghost" style={{ fontSize: 12, padding: "4px 10px" }}
-                onClick={loadInsights} disabled={insightsLoading}>
-                {insightsLoading ? "…" : aiInsights ? "↻" : "Analizar"}
-              </button>
-            </div>
-
-            {insightsLoading && (
-              <div style={{ textAlign: "center", padding: 16 }}>
-                <Icon name="Loader" size={20} className="spin" />
-                <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 6 }}>Leyendo tus entrenamientos, pesos y PRs…</p>
-              </div>
-            )}
-            {insightsError && <p style={{ fontSize: 13, color: "var(--danger)", margin: 0 }}>{typeof insightsError === "string" ? insightsError : "Sin conexión. Revisá tu red."}</p>}
-            {!aiInsights && !insightsLoading && !insightsError && (
-              <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>Tocá "Analizar" para ver predicciones e insights personalizados.</p>
-            )}
-            {aiInsights && !insightsLoading && (
-              <>
-                <p style={{ fontSize: 13, color: "var(--text)", margin: "0 0 10px", lineHeight: 1.6 }}>{aiInsights.summary}</p>
-                {aiInsights.predictions?.length > 0 && (
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 10 }}>
-                    {aiInsights.predictions.map((p, i) => (
-                      <div key={i} style={{ background: "var(--panel2)", borderRadius: 10, padding: "8px 10px" }}>
-                        <div style={{ fontSize: 16 }}>{p.icon || "📊"}</div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>{p.value}</div>
-                        <div style={{ fontSize: 11, color: "var(--muted)" }}>{p.label}</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {aiInsights.alerts?.map((a, i) => (
-                  <div key={i} style={{ display: "flex", gap: 6, padding: "5px 0", borderTop: "1px solid var(--border)" }}>
-                    <span style={{ color: "var(--accent, #a855f7)" }}>⚠</span>
-                    <p style={{ margin: 0, fontSize: 12, color: "var(--text)" }}>{a}</p>
-                  </div>
-                ))}
-                {aiInsights.recommendation && (
-                  <div style={{ background: "rgba(168,85,247,.08)", border: "1px solid rgba(168,85,247,.2)", borderRadius: 10, padding: "8px 12px", marginTop: 8 }}>
-                    <p style={{ margin: 0, fontSize: 13, color: "var(--accent, #a855f7)", fontWeight: 600 }}>Esta semana: <span style={{ color: "var(--text)", fontWeight: 400 }}>{aiInsights.recommendation}</span></p>
-                    {aiInsights.nextSession && <p style={{ margin: "4px 0 0", fontSize: 11, color: "var(--muted)" }}>Próxima sesión: {aiInsights.nextSession}</p>}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-
-          </div>
         </div>
       )}
 
