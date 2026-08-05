@@ -215,18 +215,60 @@ export default function HomePage() {
     return candidates;
   }, [achievements]);
 
+  // ── Presentation helpers (no business logic) ──
+  const hour = new Date().getHours();
+  const greeting = hour < 6 ? "Buenas noches" : hour < 13 ? "Buenos días" : hour < 20 ? "Buenas tardes" : "Buenas noches";
+  const firstName = name.split(" ")[0];
+
+  // Motivational status line derived from existing data
+  const weekDone = weekCalendar.filter(d => d.trained || d.cardio).length;
+  const weekPct = Math.round(Math.min(1, weekDone / adaptedWeeklyGoal) * 100);
+  const trainedToday = weekCalendar.some(d => d.isToday && (d.trained || d.cardio));
+  const statusLine = (() => {
+    if (isEmpty) return "Tu primer entrenamiento te espera";
+    if (weekDone >= adaptedWeeklyGoal) return "Semana completa — seguí sumando 🔥";
+    if (trainedToday) return "Ya entrenaste hoy, bien ahí 💪";
+    if (streak > 0) return `Tu semana va al ${weekPct}%`;
+    return "Arrancá una nueva racha hoy";
+  })();
+
   return (
     <section className="page">
+      <style>{`
+        @keyframes home-cta-pulse {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(34,211,120,.45); }
+          50% { box-shadow: 0 0 0 10px rgba(34,211,120,0); }
+        }
+        .home-cta-pulse { animation: home-cta-pulse 2.2s ease-in-out infinite; }
+        .home-stat-card { transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease; }
+        .home-stat-card:hover { transform: translateY(-2px); border-color: rgba(34,211,120,.4); box-shadow: 0 6px 20px rgba(0,0,0,.18); }
+        .home-stat-card:active { transform: translateY(0) scale(.99); }
+      `}</style>
       {/* Header */}
       <div className="home-header">
         <div style={{ flex: 1 }}>
-          <p className="eyebrow">Loop</p>
-          <h1 style={{ margin: 0 }}>Hola, {name.split(" ")[0]}</h1>
+          <p className="eyebrow">{greeting}</p>
+          <h1 style={{ margin: 0 }}>{firstName}</h1>
         </div>
         <button className="profile-avatar" onClick={() => setPage("profile")} aria-label="Mi perfil">
           {initial}
         </button>
       </div>
+
+      {/* Hero: racha destacada + status motivacional */}
+      {!isEmpty && (
+        <div style={{ display: "flex", alignItems: "center", gap: 14, margin: "4px 0 14px", padding: "14px 16px", borderRadius: 18, background: streak > 0 ? "linear-gradient(135deg, rgba(249,115,22,.16), rgba(245,158,11,.05) 60%, transparent)" : "var(--panel)", border: "1px solid var(--line)", position: "relative", overflow: "hidden" }}>
+          {streak > 0 && <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 12% 40%, rgba(249,115,22,.18), transparent 55%)", pointerEvents: "none" }} />}
+          <div style={{ display: "flex", alignItems: "baseline", gap: 6, position: "relative" }}>
+            <span style={{ fontSize: "clamp(28px, 8vw, 42px)", lineHeight: 1 }}>🔥</span>
+            <span style={{ fontWeight: 900, fontSize: "clamp(28px, 8vw, 42px)", lineHeight: 1, color: streak >= 30 ? "#ef4444" : streak >= 7 ? "#f97316" : "#f59e0b" }}>{streak}</span>
+          </div>
+          <div style={{ position: "relative", flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: "var(--text)" }}>{streak === 1 ? "semana de racha" : "semanas de racha"}</div>
+            <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>{statusLine}</div>
+          </div>
+        </div>
+      )}
 
       {/* Onboarding vacío */}
       {isEmpty ? (
@@ -254,7 +296,7 @@ export default function HomePage() {
           {/* CTA principal — primer elemento visible */}
           <div style={{ marginBottom: 16, marginTop: 4 }}>
             <button
-              className="primary big"
+              className={`primary big${!activeWorkout ? " home-cta-pulse" : ""}`}
               style={{ width: "100%", padding: "16px", fontSize: 17, fontWeight: 800 }}
               onClick={() => setPage(activeWorkout ? "workout" : "start")}
             >
@@ -306,17 +348,17 @@ export default function HomePage() {
               const todayStr2 = todayLocal();
               const isRestToday = (restDays || []).some(r => r.date === todayStr2);
               return (
-                <div style={{ background: isMilestone ? "linear-gradient(135deg,rgba(245,158,11,.18),rgba(251,191,36,.08))" : "var(--panel)", border: isMilestone ? "1px solid rgba(245,158,11,.4)" : "1px solid var(--line)", borderRadius:16, padding:"12px 12px 10px", display:"flex", flexDirection:"column", gap:6, position:"relative", overflow:"hidden" }}>
-                  {isMilestone && <div style={{ position:"absolute", inset:0, background:"radial-gradient(circle at 30% 50%, rgba(245,158,11,.08), transparent 70%)", pointerEvents:"none" }} />}
-                  <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                <div className="home-stat-card" style={{ background: isMilestone ? "linear-gradient(135deg,rgba(249,115,22,.22),rgba(251,191,36,.08))" : streak > 0 ? "linear-gradient(135deg,rgba(249,115,22,.12),rgba(245,158,11,.03) 65%,transparent)" : "var(--panel)", border: isMilestone ? "1px solid rgba(245,158,11,.4)" : streak > 0 ? "1px solid rgba(249,115,22,.25)" : "1px solid var(--line)", borderRadius:16, padding:"12px 12px 10px", display:"flex", flexDirection:"column", gap:6, position:"relative", overflow:"hidden" }}>
+                  {(isMilestone || streak > 0) && <div style={{ position:"absolute", inset:0, background:"radial-gradient(circle at 25% 50%, rgba(249,115,22,.14), transparent 70%)", pointerEvents:"none" }} />}
+                  <div style={{ display:"flex", alignItems:"center", gap:8, position:"relative" }}>
                     <span style={{ display:"flex", alignItems:"center", animation: isMilestone ? "pulse 1s ease-in-out 3" : "none" }}>
                       {streak === 0
-                        ? <svg width={streak>=7?30:24} height={streak>=7?30:24} viewBox="0 0 24 24" fill="none"><path d="M12 3C10 7 8 9 8 12a4 4 0 0 0 8 0c0-3-2-5-4-9z" fill="#60a5fa" opacity=".5"/><path d="M9 16.5V19a3 3 0 0 0 6 0v-2.5" stroke="#60a5fa" strokeWidth="1.5" strokeLinecap="round"/></svg>
-                        : <svg width={streak>=7?30:24} height={streak>=7?30:24} viewBox="0 0 24 24" fill="none"><path d="M12 2C9 7 6 10 6 14a6 6 0 0 0 12 0c0-4-3-7-6-12z" fill={streak>=30?"#ef4444":streak>=7?"#f97316":"#f59e0b"}/><path d="M10 16c0 2 1 3 2 3s2-1 2-3c0-1.5-1-2.5-2-4-1 1.5-2 2.5-2 4z" fill="#fef08a"/></svg>
+                        ? <svg width={24} height={24} viewBox="0 0 24 24" fill="none"><path d="M12 3C10 7 8 9 8 12a4 4 0 0 0 8 0c0-3-2-5-4-9z" fill="#60a5fa" opacity=".5"/><path d="M9 16.5V19a3 3 0 0 0 6 0v-2.5" stroke="#60a5fa" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                        : <span style={{ fontSize: 26 }}>🔥</span>
                       }
                     </span>
                     <div>
-                      <div style={{ fontSize: streak >= 7 ? 26 : 22, fontWeight:900, color:"#f59e0b", lineHeight:1 }}>{streak}</div>
+                      <div style={{ fontWeight:900, fontSize:"clamp(28px, 8vw, 42px)", color: streak>=30?"#ef4444":streak>=7?"#f97316":"#f59e0b", lineHeight:1 }}>{streak}</div>
                       <div style={{ fontSize:11, color: isMilestone ? "#f59e0b" : "var(--muted)", marginTop:2, fontWeight: isMilestone ? 700 : 400 }}>
                         {streak === 0 ? "sin racha" : isMilestone ? milestoneMsg : `semana${streak !== 1 ? "s" : ""} de racha`}
                       </div>
@@ -348,7 +390,7 @@ export default function HomePage() {
               const pct = Math.min(1, done / goal);
               const R = 20, C = 2 * Math.PI * R;
               return (
-                <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:16, padding:"14px 12px", display:"flex", alignItems:"center", gap:10 }}>
+                <div className="home-stat-card" style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:16, padding:"14px 12px", display:"flex", alignItems:"center", gap:10 }}>
                   <svg width={52} height={52} viewBox="0 0 52 52" style={{ flexShrink:0 }}>
                     <circle cx={26} cy={26} r={R} fill="none" stroke="rgba(168,85,247,.12)" strokeWidth={5} />
                     <circle cx={26} cy={26} r={R} fill="none" stroke="var(--green)" strokeWidth={5}
@@ -369,6 +411,42 @@ export default function HomePage() {
               );
             })()}
           </div>
+
+          {/* Próximo entrenamiento — músculos que toca */}
+          {(() => {
+            const label = nextWorkout || nextSplitPrediction;
+            if (!label) return null;
+            const MG = {
+              push: [["Pecho", "#22d378"], ["Hombros", "#f59e0b"], ["Tríceps", "#06b6d4"]],
+              pull: [["Espalda", "#a78bfa"], ["Bíceps", "#f97316"], ["Trapecios", "#06b6d4"]],
+              legs: [["Cuádriceps", "#22d378"], ["Isquios", "#a78bfa"], ["Glúteos", "#f59e0b"], ["Gemelos", "#06b6d4"]],
+              upper: [["Pecho", "#22d378"], ["Espalda", "#a78bfa"], ["Hombros", "#f59e0b"], ["Brazos", "#06b6d4"]],
+              lower: [["Cuádriceps", "#22d378"], ["Isquios", "#a78bfa"], ["Glúteos", "#f59e0b"]],
+              full: [["Pecho", "#22d378"], ["Espalda", "#a78bfa"], ["Piernas", "#f59e0b"], ["Hombros", "#06b6d4"]],
+            };
+            const l = label.toLowerCase();
+            const key = /push|pecho|chest|empuj/.test(l) ? "push"
+              : /pull|espalda|back|jal|tir/.test(l) ? "pull"
+              : /leg|pierna|lower|inferior/.test(l) ? "legs"
+              : /upper|superior|torso/.test(l) ? "upper"
+              : /full|completo/.test(l) ? "full" : null;
+            const muscles = key ? MG[key] : null;
+            if (!muscles) return null;
+            return (
+              <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:16, padding:"12px 14px", marginBottom:12 }}>
+                <div style={{ fontSize:10, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:6 }}>Próximo entrenamiento</div>
+                <div style={{ fontSize:16, fontWeight:800, color:"var(--text)", marginBottom:10 }}>{label}</div>
+                <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
+                  {muscles.map(([m, c]) => (
+                    <span key={m} style={{ display:"inline-flex", alignItems:"center", gap:6, fontSize:12, color:"var(--text)", background:"rgba(255,255,255,.04)", border:"1px solid var(--line)", borderRadius:20, padding:"4px 10px" }}>
+                      <i style={{ width:8, height:8, borderRadius:"50%", background:c, flexShrink:0 }} />
+                      {m}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Próxima meta */}
           {(() => {
@@ -417,7 +495,7 @@ export default function HomePage() {
             return (
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:14 }}>
                 {/* Weekly volume */}
-                <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:16, padding:"14px 14px 12px" }}>
+                <div className="home-stat-card" style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:16, padding:"14px 14px 12px" }}>
                   <div style={{ fontSize:10, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:6 }}>Vol. semanal</div>
                   <div style={{ fontSize:20, fontWeight:900, color:"var(--green)", marginBottom:8, lineHeight:1 }}>
                     {weekVolume >= 1000 ? `${(weekVolume/1000).toFixed(1)}k` : weekVolume}<span style={{ fontSize:12, fontWeight:400, color:"var(--muted)", marginLeft:3 }}>kg</span>
@@ -427,7 +505,7 @@ export default function HomePage() {
                   </div>
                 </div>
                 {/* Daily calories */}
-                <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:16, padding:"14px 14px 12px" }}>
+                <div className="home-stat-card" style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:16, padding:"14px 14px 12px" }}>
                   <div style={{ fontSize:10, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:6 }}>Calorías hoy</div>
                   <div style={{ fontSize:20, fontWeight:900, color:todayKcal>0?"#f59e0b":"var(--muted)", marginBottom:8, lineHeight:1 }}>
                     {todayKcal>0?todayKcal:"—"}{todayKcal>0&&<span style={{ fontSize:12, fontWeight:400, color:"var(--muted)", marginLeft:3 }}>kcal</span>}

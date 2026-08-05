@@ -10,11 +10,48 @@ export default function PRCard({ pr, totalWorkouts, onClose }) {
   const { profile } = useAuthStore();
   const [shared, setShared] = useState(false);
   const [notified, setNotified] = useState(false);
+  const [trainerName, setTrainerName] = useState(null);
+  const [copied, setCopied] = useState(false);
 
   const exerciseName = pr?.exercise || "Ejercicio";
   const weight = pr?.weight ?? 0;
   const reps = pr?.reps ?? 0;
   const unit = pr?.unit || "kg";
+
+  // Production app URL used for referral / attribution links.
+  const APP_URL = "https://arrow-gym-app.vercel.app";
+
+  // Referral link with the trainer's code embedded so shares are attributable.
+  const referralUrl = profile?.trainer_id
+    ? `${APP_URL}?ref=${profile.trainer_id}`
+    : APP_URL;
+
+  // Motivational share text (Rioplatense) including the referral link.
+  const trainerTag = trainerName ? ` Entrenando con ${trainerName}.` : "";
+  const shareText =
+    `🔥 Rompí mi récord en ${exerciseName}: ${weight}${unit} x ${reps} reps.` +
+    `${trainerTag} Arrow Gym 👊 ${referralUrl}`;
+
+  // Invite message copied to clipboard for the second CTA.
+  const inviteMessage =
+    `Entrenando con ${trainerName || "mi entrenador"}, rompí un PR en ${exerciseName}. ` +
+    `Probá la app: ${referralUrl}`;
+
+  // Fetch the trainer's name so shares can credit them by name.
+  useEffect(() => {
+    let cancelled = false;
+    async function loadTrainer() {
+      if (!profile?.trainer_id) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("name")
+        .eq("id", profile.trainer_id)
+        .single();
+      if (!cancelled && data?.name) setTrainerName(data.name);
+    }
+    loadTrainer();
+    return () => { cancelled = true; };
+  }, [profile?.trainer_id]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -103,7 +140,11 @@ export default function PRCard({ pr, totalWorkouts, onClose }) {
       if (!blob) return;
       const file = new File([blob], "pr-record.png", { type: "image/png" });
       if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: `¡Nuevo récord en ${exerciseName}!` });
+        await navigator.share({
+          files: [file],
+          title: `¡Nuevo récord en ${exerciseName}!`,
+          text: shareText,
+        });
       } else {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
@@ -112,6 +153,22 @@ export default function PRCard({ pr, totalWorkouts, onClose }) {
       }
       setShared(true);
     });
+  }
+
+  async function copyInviteLink() {
+    try {
+      await navigator.clipboard.writeText(inviteMessage);
+    } catch {
+      // Fallback for browsers without the async clipboard API.
+      const ta = document.createElement("textarea");
+      ta.value = inviteMessage;
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand("copy"); } catch { /* ignore */ }
+      document.body.removeChild(ta);
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
   }
 
   return (
@@ -161,6 +218,24 @@ export default function PRCard({ pr, totalWorkouts, onClose }) {
           Cerrar
         </button>
       </div>
+
+      {/* Viral second CTA — shown after the user shares or downloads the card */}
+      {shared && (
+        <div style={{
+          display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
+          marginTop: 4, padding: "14px 18px", borderRadius: 12,
+          background: "rgba(168,85,247,.12)", border: "1px solid rgba(168,85,247,.35)",
+          maxWidth: "min(540px, 100%)",
+        }}>
+          <p style={{ color: "#e9d5ff", fontWeight: 600, fontSize: 15, margin: 0, textAlign: "center" }}>
+            ¿Querés que un amigo vea tu progreso? 👊
+          </p>
+          <button className="btn-primary" onClick={copyInviteLink} style={{ gap: 6 }}>
+            <Icon name={copied ? "Check" : "Copy"} size={14} />
+            {copied ? "¡Link copiado!" : "Copiar link de invitación"}
+          </button>
+        </div>
+      )}
 
       <style>{`
         @keyframes bounce {

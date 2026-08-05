@@ -68,6 +68,10 @@ export default function TrainerPage() {
   const [loading, setLoading] = useState(true);
   // adherence: { [userId]: Set<'YYYY-MM-DD'> }
   const [adherenceMap, setAdherenceMap] = useState({});
+  // lastWorkoutMap: { [userId]: 'YYYY-MM-DD' } — fecha del último entrenamiento (histórico)
+  const [lastWorkoutMap, setLastWorkoutMap] = useState({});
+  // Filtro del banner de churn: mostrar sólo alumnos en riesgo/inactivos
+  const [showChurnOnly, setShowChurnOnly] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showAssign, setShowAssign] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
@@ -178,6 +182,73 @@ export default function TrainerPage() {
       map[user_id].add(d);
     });
     setAdherenceMap(map);
+
+    // Segunda query: último entrenamiento histórico por alumno (sin límite de fecha),
+    // para calcular el semáforo de adherencia y detectar churn (>7 días).
+    const { data: allData, error: allError } = await supabase
+      .from("user_workouts")
+      .select("user_id, date")
+      .in("user_id", clientIds)
+      .order("date", { ascending: false });
+
+    if (allError) {
+      console.warn("last-workout query failed:", allError.message);
+      return;
+    }
+
+    const lastMap = {};
+    (allData || []).forEach(({ user_id, date }) => {
+      const d = date?.slice(0, 10);
+      if (!d) return;
+      // Los resultados vienen ordenados desc, así que el primero es el más reciente
+      if (!lastMap[user_id]) lastMap[user_id] = d;
+    });
+    setLastWorkoutMap(lastMap);
+  }
+
+  // Días transcurridos desde el último entrenamiento (histórico). null si nunca entrenó.
+  function daysSinceLast(userId) {
+    const last = lastWorkoutMap[userId];
+    if (!last) return null;
+    return Math.floor((new Date() - new Date(last + "T12:00:00")) / (1000 * 60 * 60 * 24));
+  }
+
+  // Semáforo de adherencia: verde ≤4d, amarillo 5-7d, rojo >7d (o nunca entrenó)
+  function adherenceStatus(userId) {
+    const days = daysSinceLast(userId);
+    if (days === null) {
+      return { level: "red", emoji: "🔴", chip: "Inactivo", color: "#f87171", bg: "rgba(220,38,38,.18)", days: null };
+    }
+    if (days <= 4) {
+      return { level: "green", emoji: "🟢", chip: "Activo", color: "#4ade80", bg: "rgba(34,197,94,.18)", days };
+    }
+    if (days <= 7) {
+      return { level: "yellow", emoji: "🟡", chip: "En riesgo", color: "#fbbf24", bg: "rgba(234,179,8,.18)", days };
+    }
+    return { level: "red", emoji: "🔴", chip: "Inactivo", color: "#f87171", bg: "rgba(220,38,38,.18)", days };
+  }
+
+  // Etiqueta humana de tiempo desde último entrenamiento
+  function lastWorkoutLabel(userId) {
+    const days = daysSinceLast(userId);
+    if (days === null) return "Sin registros";
+    if (days === 0) return "hoy";
+    if (days === 1) return "hace 1 día";
+    if (days < 7) return `hace ${days} días`;
+    if (days < 14) return "hace 1 semana";
+    if (days < 30) return `hace ${Math.floor(days / 7)} semanas`;
+    return `hace ${Math.floor(days / 30)} mes${Math.floor(days / 30) > 1 ? "es" : ""}`;
+  }
+
+  // Métricas de negocio agregadas
+  const MONTHLY_FEE_ARS = 25000;
+  function businessMetrics() {
+    const total = clients.length;
+    const trainedThisWeek = clients.filter((c) => (adherenceMap[c.id]?.size || 0) > 0).length;
+    const adherencePct = total > 0 ? Math.round((trainedThisWeek / total) * 100) : 0;
+    const atRisk = clients.filter((c) => adherenceStatus(c.id).level === "red").length;
+    const revenue = total * MONTHLY_FEE_ARS;
+    return { total, adherencePct, atRisk, revenue, trainedThisWeek };
   }
 
   // Returns array of last 7 date strings ['YYYY-MM-DD', ...]
@@ -396,6 +467,51 @@ export default function TrainerPage() {
 
       {!selectedClient ? (
         <>
+          {/* ── Mi negocio: alerta de churn + métricas ── */}
+          {!loading && clients.length > 0 && (() => {
+            const m = businessMetrics();
+            return (
+              <>
+                {m.atRisk > 0 && (
+                  <div className="card" style={{
+                    marginBottom: 16, padding: "12px 14px",
+                    background: "rgba(220,38,38,.10)", border: "1px solid rgba(220,38,38,.35)",
+                    display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
+                  }}>
+                    <span style={{ fontSize: 20, flexShrink: 0 }}>⚠️</span>
+                    <span style={{ flex: 1, minWidth: 160, fontSize: 13, color: "#fca5a5", fontWeight: 600 }}>
+                      {m.atRisk} {m.atRisk === 1 ? "alumno" : "alumnos"} sin entrenar hace más de 7 días
+                    </span>
+                    <button className="ghost" onClick={() => setShowChurnOnly((v) => !v)}
+                      style={{ fontSize: 12, flexShrink: 0, borderColor: "rgba(220,38,38,.45)", color: "#fca5a5" }}>
+                      {showChurnOnly ? "Ver todos" : "Ver quiénes"}
+                    </button>
+                  </div>
+                )}
+
+                <p className="section-label" style={{ marginBottom: 8 }}>Mi negocio</p>
+                <div className="card" style={{ marginBottom: 16, padding: "14px 16px", display: "flex", gap: 8, textAlign: "center" }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 22, fontWeight: 800, color: "var(--text)", lineHeight: 1.1 }}>{m.total}</div>
+                    <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 4, lineHeight: 1.2 }}>Alumnos activos</div>
+                  </div>
+                  <div style={{ width: 1, background: "#1b2d31" }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 22, fontWeight: 800, color: m.adherencePct >= 60 ? "#4ade80" : m.adherencePct >= 40 ? "#fbbf24" : "#f87171", lineHeight: 1.1 }}>{m.adherencePct}%</div>
+                    <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 4, lineHeight: 1.2 }}>Adherencia semanal</div>
+                  </div>
+                  <div style={{ width: 1, background: "#1b2d31" }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 22, fontWeight: 800, color: "var(--text)", lineHeight: 1.1 }}>
+                      ${(m.revenue / 1000).toLocaleString("es-AR")}k
+                    </div>
+                    <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 4, lineHeight: 1.2 }}>Ingresos/mes est. (ARS)</div>
+                  </div>
+                </div>
+              </>
+            );
+          })()}
+
           {/* ── Invite section ── */}
           <div className="card" style={{ marginBottom: 16, padding: "14px 16px" }}>
             <p className="section-label" style={{ marginBottom: 10 }}>Invitar alumnos</p>
@@ -435,31 +551,37 @@ export default function TrainerPage() {
             </div>
           ) : (
             <div className="user-list">
-              {clients.map((c) => {
+              {clients
+                .filter((c) => !showChurnOnly || adherenceStatus(c.id).level === "red")
+                .map((c) => {
                 const last7 = getLast7Days();
                 const trained = adherenceMap[c.id];
                 const dayLabels = ["L","M","X","J","V","S","D"];
-                const inactiveDays = daysSinceLastWorkout(c.id);
                 const hasAdherence = trained !== undefined;
+                const status = adherenceStatus(c.id);
                 return (
                 <button key={c.id} className="user-row as-button" onClick={() => selectClient(c)}>
-                  <div className="user-avatar">{(c.name || c.email || "?")[0].toUpperCase()}</div>
+                  <div className="user-avatar" style={{ position: "relative" }}>
+                    {(c.name || c.email || "?")[0].toUpperCase()}
+                    <span style={{ position: "absolute", bottom: -2, right: -2, fontSize: 12, lineHeight: 1 }}>{status.emoji}</span>
+                  </div>
                   <div className="user-info" style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                       <strong>{c.name || "—"}</strong>
-                      {hasAdherence && inactiveDays >= 3 && (
-                        <span style={{
-                          fontSize: 10,
-                          fontWeight: 600,
-                          padding: "1px 6px",
-                          borderRadius: 20,
-                          background: inactiveDays >= 5 ? "rgba(220,38,38,.18)" : "rgba(234,179,8,.18)",
-                          color: inactiveDays >= 5 ? "#f87171" : "#fbbf24",
-                          whiteSpace: "nowrap",
-                        }}>
-                          {inactiveDays}d sin entrenar
-                        </span>
-                      )}
+                      <span style={{
+                        fontSize: 10,
+                        fontWeight: 600,
+                        padding: "1px 6px",
+                        borderRadius: 20,
+                        background: status.bg,
+                        color: status.color,
+                        whiteSpace: "nowrap",
+                      }}>
+                        {status.chip}
+                      </span>
+                      <span style={{ fontSize: 11, color: "var(--muted)", whiteSpace: "nowrap" }}>
+                        · {lastWorkoutLabel(c.id)}
+                      </span>
                     </div>
                     <small>{c.email}</small>
                     {/* 7-day adherence circles */}
