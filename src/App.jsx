@@ -137,6 +137,9 @@ function AppContent() {
   const [draftRecovered, setDraftRecovered] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [subscribing, setSubscribing] = useState(false);
+  const [trialBannerDismissed, setTrialBannerDismissed] = useState(
+    () => localStorage.getItem("trial-banner-dismissed-day") === new Date().toDateString()
+  );
 
   async function startSubscription() {
     setSubscribing(true);
@@ -464,6 +467,37 @@ function AppContent() {
   } else {
     inner = (
       <div className={`app-shell${amoled ? " amoled" : ""}`}>
+        {/* ── TRIAL COUNTDOWN BANNER ─────────────────────────────────────── */}
+        {(() => {
+          if (isAdminRole || trialBannerDismissed) return null;
+          if (subStatus === "active") return null;
+          const daysLeft = 30 - Math.floor(accountAgeMs / (24 * 60 * 60 * 1000));
+          if (daysLeft > 14 || daysLeft <= 0) return null;
+          const urgent = daysLeft <= 3;
+          return (
+            <div style={{
+              position: "fixed", top: 0, left: 0, right: 0, zIndex: 9998,
+              background: urgent ? "rgba(239,68,68,.95)" : "rgba(168,85,247,.92)",
+              backdropFilter: "blur(8px)", padding: "10px 16px",
+              display: "flex", alignItems: "center", gap: 10, fontSize: 13,
+            }}>
+              <span style={{ flex: 1, fontWeight: 700, color: "#fff" }}>
+                {urgent ? "⚠️" : "⏳"} {daysLeft === 1 ? "¡Último día de prueba!" : `Te quedan ${daysLeft} días de prueba gratuita`}
+              </span>
+              <button
+                onClick={() => { setSubscribing(true); startSubscription(); }}
+                disabled={subscribing}
+                style={{ background: "#fff", color: urgent ? "#ef4444" : "#a855f7", border: "none", borderRadius: 8, padding: "6px 12px", fontWeight: 800, fontSize: 12, cursor: "pointer", flexShrink: 0 }}
+              >
+                {subscribing ? "…" : "Suscribirme"}
+              </button>
+              <button
+                onClick={() => { localStorage.setItem("trial-banner-dismissed-day", new Date().toDateString()); setTrialBannerDismissed(true); }}
+                style={{ background: "none", border: "none", color: "rgba(255,255,255,.7)", fontSize: 18, cursor: "pointer", padding: "0 4px", flexShrink: 0 }}
+              >✕</button>
+            </div>
+          );
+        })()}
         {draftRecovered && (
           <div style={{ position: "fixed", top: "max(env(safe-area-inset-top,0px),0px)", left: 0, right: 0, zIndex: 9999, background: "rgba(168,85,247,.15)", borderBottom: "1px solid rgba(168,85,247,.4)", padding: "10px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 13 }}>
             <span style={{ color: "var(--green)", fontWeight: 700 }}>Entrenamiento recuperado</span>

@@ -30,7 +30,7 @@ export default function OnboardingModal() {
   const profile = useAuthStore(s => s.profile);
   const refreshProfile = useAuthStore(s => s.refreshProfile);
 
-  const [step, setStep] = useState(1); // 1=welcome, 2=body, 3=level+goal, 4=features
+  const [step, setStep] = useState(1); // 1=welcome, 2=body, 3=level+goal, 4=features, 5=trial+trainer
   const [weight, setWeight] = useState("");
   const [height, setHeight] = useState("");
   const [dob, setDob] = useState("");
@@ -38,6 +38,31 @@ export default function OnboardingModal() {
   const [goal, setGoal] = useState("mantenimiento");
   const [level, setLevel] = useState("intermedio");
   const [saving, setSaving] = useState(false);
+  const [inviteCode, setInviteCode] = useState("");
+  const [inviteMsg, setInviteMsg] = useState("");
+  const [connectingTrainer, setConnectingTrainer] = useState(false);
+
+  async function connectTrainer() {
+    if (!inviteCode.trim()) return;
+    setConnectingTrainer(true);
+    setInviteMsg("");
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, name")
+        .eq("invite_code", inviteCode.trim().toUpperCase())
+        .eq("role", "trainer")
+        .single();
+      if (error || !data) { setInviteMsg("Código no válido. Pedíselo a tu entrenador."); setConnectingTrainer(false); return; }
+      await supabase.from("trainer_clients").upsert({ trainer_id: data.id, client_id: profile.id }, { onConflict: "trainer_id,client_id" });
+      await supabase.from("profiles").update({ trainer_id: data.id }).eq("id", profile.id);
+      refreshProfile?.();
+      setInviteMsg(`✓ Conectado con ${data.name}`);
+    } catch {
+      setInviteMsg("Error de conexión. Intentá de nuevo.");
+    }
+    setConnectingTrainer(false);
+  }
 
   async function finish() {
     setSaving(true);
@@ -56,7 +81,7 @@ export default function OnboardingModal() {
     setSaving(false);
   }
 
-  const TOTAL_STEPS = 4;
+  const TOTAL_STEPS = 5;
   const inputStyle = { width: "100%", background: "var(--panel)", border: "1.5px solid var(--border)", borderRadius: 12, padding: "12px 16px", color: "var(--text)", fontSize: 16, boxSizing: "border-box" };
   const labelStyle = { fontSize: 12, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 6 };
 
@@ -216,8 +241,72 @@ export default function OnboardingModal() {
 
             <div style={{ display: "flex", gap: 10 }}>
               <button className="ghost" style={{ flex: 1 }} onClick={() => setStep(3)}>← Atrás</button>
+              <button className="primary" style={{ flex: 2 }} onClick={() => setStep(5)}>Continuar →</button>
+            </div>
+          </>
+        )}
+
+        {/* Step 5: Trainer connection + trial awareness */}
+        {step === 5 && (
+          <>
+            <h2 style={{ margin: "0 0 4px", fontSize: 22 }}>¡Casi listo!</h2>
+            <p style={{ color: "var(--muted)", fontSize: 13, margin: "0 0 20px", lineHeight: 1.5 }}>
+              {profile?.trainer_id ? "Ya estás conectado con tu entrenador 🎉" : "Si tenés un entrenador en Loop, conectate ahora con su código."}
+            </p>
+
+            {!profile?.trainer_id ? (
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 6 }}>
+                  Código de entrenador (opcional)
+                </label>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input
+                    value={inviteCode}
+                    onChange={e => setInviteCode(e.target.value.toUpperCase())}
+                    placeholder="Ej: ABC123"
+                    maxLength={8}
+                    style={{ flex: 1, background: "var(--panel)", border: "1.5px solid var(--border)", borderRadius: 12, padding: "12px 16px", color: "var(--text)", fontSize: 16, textTransform: "uppercase", letterSpacing: "0.1em" }}
+                  />
+                  <button
+                    className="primary"
+                    onClick={connectTrainer}
+                    disabled={connectingTrainer || !inviteCode.trim()}
+                    style={{ padding: "12px 16px", borderRadius: 12, flexShrink: 0 }}
+                  >
+                    {connectingTrainer ? "…" : "Conectar"}
+                  </button>
+                </div>
+                {inviteMsg && (
+                  <p style={{ margin: "8px 0 0", fontSize: 13, color: inviteMsg.startsWith("✓") ? "var(--green)" : "var(--danger)" }}>
+                    {inviteMsg}
+                  </p>
+                )}
+                <p style={{ margin: "10px 0 0", fontSize: 12, color: "var(--muted)", lineHeight: 1.5 }}>
+                  ¿No tenés código? Podés empezar solo y conectarte después desde <b>Perfil</b>.
+                </p>
+              </div>
+            ) : (
+              <div style={{ background: "rgba(52,211,153,.08)", border: "1px solid rgba(52,211,153,.2)", borderRadius: 12, padding: "14px 16px", marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 28 }}>🏋️</span>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--green)" }}>Entrenador conectado</div>
+                  <div style={{ fontSize: 12, color: "var(--muted)" }}>Tu entrenador puede ver tu progreso y asignarte rutinas.</div>
+                </div>
+              </div>
+            )}
+
+            {/* Trial awareness */}
+            <div style={{ background: "rgba(168,85,247,.06)", border: "1px solid rgba(168,85,247,.2)", borderRadius: 12, padding: "14px 16px", marginBottom: 24 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>⏳ 30 días de prueba gratuita</div>
+              <div style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.6 }}>
+                Tenés 30 días para probar Loop sin pagar nada. Si querés seguir, la suscripción es <b style={{ color: "var(--text)" }}>$25.000 ARS/mes</b> — te avisamos antes de que venza.
+              </div>
+            </div>
+
+            <div style={{ display: "flex", gap: 10 }}>
+              <button className="ghost" style={{ flex: 1 }} onClick={() => setStep(4)}>← Atrás</button>
               <button className="primary" style={{ flex: 2 }} disabled={saving} onClick={finish}>
-                {saving ? "Guardando…" : "¡Empezar! →"}
+                {saving ? "Guardando…" : "¡Empezar! 🚀"}
               </button>
             </div>
           </>
