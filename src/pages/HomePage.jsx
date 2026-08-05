@@ -307,16 +307,6 @@ export default function HomePage() {
                 ⚠️ <b>Semana de descarga sugerida</b> — bajá los pesos al 60% esta semana.
               </div>
             )}
-            {nextWorkout && (
-              <div style={{ fontSize:12, color:"var(--muted)", marginTop:8, textAlign:"center" }}>
-                Recomendado hoy: <b style={{ color:"var(--green)" }}>{nextWorkout}</b>
-              </div>
-            )}
-            {nextSplitPrediction && !nextWorkout && (
-              <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 8, textAlign:"center" }}>
-                Próximo: <b style={{ color: "var(--green)" }}>{nextSplitPrediction}</b>
-              </div>
-            )}
           </div>
 
           {/* Feature 1: Comeback mechanic */}
@@ -412,41 +402,6 @@ export default function HomePage() {
             })()}
           </div>
 
-          {/* Próximo entrenamiento — músculos que toca */}
-          {(() => {
-            const label = nextWorkout || nextSplitPrediction;
-            if (!label) return null;
-            const MG = {
-              push: [["Pecho", "#22d378"], ["Hombros", "#f59e0b"], ["Tríceps", "#06b6d4"]],
-              pull: [["Espalda", "#a78bfa"], ["Bíceps", "#f97316"], ["Trapecios", "#06b6d4"]],
-              legs: [["Cuádriceps", "#22d378"], ["Isquios", "#a78bfa"], ["Glúteos", "#f59e0b"], ["Gemelos", "#06b6d4"]],
-              upper: [["Pecho", "#22d378"], ["Espalda", "#a78bfa"], ["Hombros", "#f59e0b"], ["Brazos", "#06b6d4"]],
-              lower: [["Cuádriceps", "#22d378"], ["Isquios", "#a78bfa"], ["Glúteos", "#f59e0b"]],
-              full: [["Pecho", "#22d378"], ["Espalda", "#a78bfa"], ["Piernas", "#f59e0b"], ["Hombros", "#06b6d4"]],
-            };
-            const l = label.toLowerCase();
-            const key = /push|pecho|chest|empuj/.test(l) ? "push"
-              : /pull|espalda|back|jal|tir/.test(l) ? "pull"
-              : /leg|pierna|lower|inferior/.test(l) ? "legs"
-              : /upper|superior|torso/.test(l) ? "upper"
-              : /full|completo/.test(l) ? "full" : null;
-            const muscles = key ? MG[key] : null;
-            if (!muscles) return null;
-            return (
-              <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:16, padding:"12px 14px", marginBottom:12 }}>
-                <div style={{ fontSize:10, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:6 }}>Próximo entrenamiento</div>
-                <div style={{ fontSize:16, fontWeight:800, color:"var(--text)", marginBottom:10 }}>{label}</div>
-                <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
-                  {muscles.map(([m, c]) => (
-                    <span key={m} style={{ display:"inline-flex", alignItems:"center", gap:6, fontSize:12, color:"var(--text)", background:"rgba(255,255,255,.04)", border:"1px solid var(--line)", borderRadius:20, padding:"4px 10px" }}>
-                      <i style={{ width:8, height:8, borderRadius:"50%", background:c, flexShrink:0 }} />
-                      {m}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            );
-          })()}
 
           {/* Próxima meta */}
           {(() => {

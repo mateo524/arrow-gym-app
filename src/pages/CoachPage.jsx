@@ -328,9 +328,11 @@ export default function CoachPage() {
         body: JSON.stringify({ user_id: user.id, mode: "insights" }),
       });
       const data = await res.json();
-      if (data.insights) setAiInsights(data.insights);
-      else setInsightsError(true);
-    } catch { setInsightsError(true); }
+      if (data.insights) { setAiInsights(data.insights); }
+      else if (data.error === "no_api_key") { setInsightsError("Configurá la GEMINI_API_KEY en Supabase → Edge Functions → Secrets."); }
+      else if (data.error === "ai_unavailable") { setInsightsError("API key de Gemini inválida o sin cuota. Revisá aistudio.google.com."); }
+      else { setInsightsError("Sin respuesta del servidor. Intentá de nuevo."); }
+    } catch { setInsightsError("Sin conexión. Verificá tu red."); }
     setInsightsLoading(false);
   }
 
@@ -347,9 +349,10 @@ export default function CoachPage() {
         body: JSON.stringify({ user_id: user.id, question: msg, mode: "chat" }),
       });
       const data = await res.json();
-      setAiMessages(m => [...m, { role: "coach", text: data.reply || "Sin respuesta. Intentá de nuevo." }]);
+      const reply = data.reply || (data.error === "no_api_key" ? "El AI Coach necesita la GEMINI_API_KEY en Supabase secrets." : data.error === "ai_unavailable" ? "API key de Gemini inválida. Revisá aistudio.google.com/apikey." : "Sin respuesta. Intentá de nuevo.");
+      setAiMessages(m => [...m, { role: "coach", text: reply }]);
     } catch {
-      setAiMessages(m => [...m, { role: "coach", text: "Error de conexión. Verificá tu red." }]);
+      setAiMessages(m => [...m, { role: "coach", text: "Sin conexión. Verificá tu red." }]);
     }
     setAiLoading(false);
   }
@@ -830,7 +833,7 @@ export default function CoachPage() {
                 <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 6 }}>Leyendo tus entrenamientos, pesos y PRs…</p>
               </div>
             )}
-            {insightsError && <p style={{ fontSize: 13, color: "var(--danger)", margin: 0 }}>Sin conexión. Revisá tu red.</p>}
+            {insightsError && <p style={{ fontSize: 13, color: "var(--danger)", margin: 0 }}>{typeof insightsError === "string" ? insightsError : "Sin conexión. Revisá tu red."}</p>}
             {!aiInsights && !insightsLoading && !insightsError && (
               <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>Tocá "Analizar" para ver predicciones e insights personalizados.</p>
             )}
