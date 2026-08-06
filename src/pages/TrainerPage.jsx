@@ -642,6 +642,56 @@ export default function TrainerPage() {
             );
           })()}
 
+          {/* ── Esta semana ── */}
+          {!loading && clients.length > 0 && trainerTab === "alumnos" && (() => {
+            const m = businessMetrics();
+            const trainedList = clients.filter((c) => (adherenceMap[c.id]?.size || 0) > 0);
+            const notTrainedList = clients.filter((c) => daysSinceLastWorkout(c.id) >= 3);
+            return (
+              <div style={{ background: "var(--panel)", border: "1px solid var(--line, var(--border))", borderRadius: 16, padding: "14px 16px", marginBottom: 14 }}>
+                <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 10 }}>Esta semana</div>
+                <div style={{ fontSize: 28, fontWeight: 900, color: "var(--green)", marginBottom: 4, lineHeight: 1 }}>
+                  {m.trainedThisWeek}/{m.total}
+                </div>
+                <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 14 }}>alumnos entrenaron</div>
+                <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+                  {trainedList.length > 0 && (
+                    <div style={{ flex: 1, minWidth: 120 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "#4ade80", marginBottom: 6 }}>Entrenaron</div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                        {trainedList.slice(0, 5).map((c) => (
+                          <div key={c.id} style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 5 }}>
+                            <span>✅</span>
+                            <span style={{ color: "var(--text)" }}>{c.name || c.email}</span>
+                          </div>
+                        ))}
+                        {trainedList.length > 5 && (
+                          <div style={{ fontSize: 11, color: "var(--muted)" }}>+{trainedList.length - 5} más</div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {notTrainedList.length > 0 && (
+                    <div style={{ flex: 1, minWidth: 120 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "#f87171", marginBottom: 6 }}>No entrenaron</div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                        {notTrainedList.slice(0, 5).map((c) => (
+                          <div key={c.id} style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 5 }}>
+                            <span>⚠️</span>
+                            <span style={{ color: "var(--text)" }}>{c.name || c.email}</span>
+                          </div>
+                        ))}
+                        {notTrainedList.length > 5 && (
+                          <div style={{ fontSize: 11, color: "var(--muted)" }}>+{notTrainedList.length - 5} más</div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+
           {/* ── Mis Programas ── */}
           {trainerTab === "alumnos" && templates.length > 0 && (() => {
             // Group templates by program_name
