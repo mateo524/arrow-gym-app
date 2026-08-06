@@ -1354,12 +1354,41 @@ export default function WorkoutPage() {
               </div>
             );
           })()}
+          {postSummary.mood && (
+            <p style={{ fontSize: 24, textAlign: "center", margin: "0 0 4px" }}>
+              {postSummary.mood === "tired" ? "😓" : postSummary.mood === "good" ? "💪" : "🔥"}
+            </p>
+          )}
           <p style={{ fontSize: 12, color: "var(--muted)", textAlign: "center", margin: "0 0 14px", lineHeight: 1.5 }}>
-            {postSummary.rpe >= 9 ? "RPE muy alto — tomá un día extra de descanso." :
-             postSummary.rpe <= 3 ? "Sesión liviana — la próxima subí el peso o agregá series." :
-             postSummary.overallPct > 10 ? "¡Gran sesión! Superaste tu promedio." :
-             postSummary.overallPct < -10 ? "Volumen debajo del promedio — si fue intencional, perfecto." :
-             "Sesión dentro de tu promedio. Constancia es la clave."}
+            {postSummary.mood === "tired" && postSummary.rpe >= 7
+              ? "Lo lograste cansado — eso es disciplina de verdad. 💪"
+              : postSummary.mood === "tired" && postSummary.overallPct > 0
+              ? "Volumen arriba incluso en un día difícil. Brutal."
+              : postSummary.mood === "tired"
+              ? "Lo lograste igual. Eso es lo que distingue a los que progresan."
+              : postSummary.mood === "great" && postSummary.overallPct > 10
+              ? "¡Día perfecto! Energía top y sesión superior. Guardá esta sensación. 🔥"
+              : postSummary.mood === "great" && postSummary.rpe >= 8
+              ? "Energía top, esfuerzo alto. Combinación ganadora. ⚡"
+              : postSummary.mood === "great"
+              ? "¡Excelente estado hoy! Aprovechá el momentum esta semana."
+              : postSummary.mood === "good" && postSummary.rpe >= 9
+              ? "RPE alto — tomá un día extra de descanso."
+              : postSummary.mood === "good" && postSummary.overallPct > 10
+              ? "¡Gran sesión! Superaste tu promedio."
+              : postSummary.mood === "good" && postSummary.overallPct < -10
+              ? "Volumen debajo del promedio — si fue intencional, perfecto."
+              : postSummary.mood === "good"
+              ? "Sesión sólida. Constancia es la clave del progreso."
+              : postSummary.rpe >= 9
+              ? "RPE muy alto — tomá un día extra de descanso."
+              : postSummary.rpe <= 3
+              ? "Sesión liviana — la próxima subí el peso o agregá series."
+              : postSummary.overallPct > 10
+              ? "¡Gran sesión! Superaste tu promedio."
+              : postSummary.overallPct < -10
+              ? "Volumen debajo del promedio — si fue intencional, perfecto."
+              : "Sesión dentro de tu promedio. Constancia es la clave."}
           </p>
           <ShareWorkoutCard summary={postSummary} />
           <button className="primary" style={{ width: "100%", marginTop: 10 }} onClick={() => {
