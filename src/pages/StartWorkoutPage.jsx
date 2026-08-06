@@ -286,6 +286,29 @@ export default function StartWorkoutPage() {
       </div>
 
 
+      {/* ── Entreno libre ───────────────────────────────────── */}
+      <button
+        onClick={startEmptyWorkout}
+        style={{
+          width: "100%",
+          padding: "16px",
+          background: "var(--accent)",
+          color: "#fff",
+          border: "none",
+          borderRadius: 14,
+          fontSize: 16,
+          fontWeight: 700,
+          cursor: "pointer",
+          marginBottom: 16,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 8
+        }}
+      >
+        ⚡ Empezar entreno libre
+      </button>
+
       {/* ── Volumen semanal por grupo muscular ───────────────── */}
       <div style={{ marginBottom:18 }}>
         <p className="section-label" style={{ marginBottom:8 }}>Volumen esta semana</p>
