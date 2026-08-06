@@ -218,6 +218,11 @@ export default function WorkoutPage() {
   const [shareMsg, setShareMsg] = useState("");
   const [showPDF, setShowPDF] = useState(false);
 
+  const [exerciseEfforts, setExerciseEfforts] = useState({});
+  const setExerciseEffort = (exerciseName, value) => {
+    setExerciseEfforts(prev => ({ ...prev, [exerciseName]: value }));
+  };
+
   const [illustrationExercise, setIllustrationExercise] = useState(null);
   const [restDone, setRestDone] = useState(false);
   const [showReadiness, setShowReadiness] = useState(false);
@@ -512,7 +517,7 @@ export default function WorkoutPage() {
       setPostSummary({ ...summary, rpe, mood: checkinMood || undefined });
       // mood will be read from checkinMood state in the postSummary modal
     } else {
-      finish(notes, mood);
+      finish(notes, mood, exerciseEfforts);
       setCheckinMood(null);
     }
   }
@@ -971,6 +976,33 @@ export default function WorkoutPage() {
                       <button className="ghost" style={{ flex: 1, fontSize: 12, padding: "7px 0", color: "#a78bfa", border: "1px solid rgba(167,139,250,.3)", borderRadius: 10 }}
                         onClick={() => setSupersetTarget(exercise)}>⇄ Super Serie</button>
                     </div>
+
+                    {/* Esfuerzo percibido por ejercicio */}
+                    <div style={{ display:"flex", gap:8, padding:"6px 0", alignItems:"center" }}>
+                      <span style={{ fontSize:11, color:"var(--muted)", marginRight:4 }}>Esfuerzo:</span>
+                      {[
+                        { value: "easy", emoji: "😌", label: "Fácil" },
+                        { value: "normal", emoji: "😤", label: "Normal" },
+                        { value: "hard", emoji: "🔥", label: "Duro" },
+                      ].map(opt => (
+                        <button
+                          key={opt.value}
+                          onClick={() => setExerciseEffort(exercise, opt.value)}
+                          style={{
+                            background: exerciseEfforts[exercise] === opt.value ? "var(--accent)" : "var(--panel)",
+                            color: exerciseEfforts[exercise] === opt.value ? "#fff" : "var(--muted)",
+                            border: "1px solid var(--line)",
+                            borderRadius: 20,
+                            padding: "4px 10px",
+                            fontSize: 12,
+                            cursor: "pointer",
+                            display: "flex", alignItems: "center", gap: 4
+                          }}
+                        >
+                          {opt.emoji} {opt.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
 
@@ -1396,7 +1428,7 @@ export default function WorkoutPage() {
             const mood = checkinMood;
             setPostSummary(null);
             setCheckinMood(null);
-            finish(notes, mood);
+            finish(notes, mood, exerciseEfforts);
             if (window.__showToast) window.__showToast("✓ Entrenamiento guardado");
           }}>
             Listo
@@ -1409,7 +1441,7 @@ export default function WorkoutPage() {
               const mood = checkinMood;
               setPostSummary(null);
               setCheckinMood(null);
-              finish(notes, mood);
+              finish(notes, mood, exerciseEfforts);
               setPage("coach");
             }}
           >
