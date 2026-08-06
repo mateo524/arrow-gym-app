@@ -70,6 +70,8 @@ export default function TrainerPage() {
   const [adherenceMap, setAdherenceMap] = useState({});
   // lastWorkoutMap: { [userId]: 'YYYY-MM-DD' } — fecha del último entrenamiento (histórico)
   const [lastWorkoutMap, setLastWorkoutMap] = useState({});
+  // lastMoodMap: { [userId]: 'tired'|'good'|'great' } — mood del último entrenamiento
+  const [lastMoodMap, setLastMoodMap] = useState({});
   // Filtro del banner de churn: mostrar sólo alumnos en riesgo/inactivos
   const [showChurnOnly, setShowChurnOnly] = useState(false);
   // Tab principal: "alumnos" | "pagos"
@@ -200,7 +202,7 @@ export default function TrainerPage() {
     // para calcular el semáforo de adherencia y detectar churn (>7 días).
     const { data: allData, error: allError } = await supabase
       .from("user_workouts")
-      .select("user_id, date")
+      .select("user_id, date, mood")
       .in("user_id", clientIds)
       .order("date", { ascending: false })
       .limit(clientIds.length * 10);
@@ -211,13 +213,18 @@ export default function TrainerPage() {
     }
 
     const lastMap = {};
-    (allData || []).forEach(({ user_id, date }) => {
+    const moodMap = {};
+    (allData || []).forEach(({ user_id, date, mood }) => {
       const d = date?.slice(0, 10);
       if (!d) return;
       // Los resultados vienen ordenados desc, así que el primero es el más reciente
-      if (!lastMap[user_id]) lastMap[user_id] = d;
+      if (!lastMap[user_id]) {
+        lastMap[user_id] = d;
+        if (mood) moodMap[user_id] = mood;
+      }
     });
     setLastWorkoutMap(lastMap);
+    setLastMoodMap(moodMap);
   }
 
   // Días transcurridos desde el último entrenamiento (histórico). null si nunca entrenó.
@@ -817,6 +824,12 @@ export default function TrainerPage() {
                       </span>
                       <span style={{ fontSize: 11, color: "var(--muted)", whiteSpace: "nowrap" }}>
                         · {lastWorkoutLabel(c.id)}
+                        {lastMoodMap[c.id] && (
+                          <span style={{ marginLeft: 6, fontSize: 14 }}>
+                            {lastMoodMap[c.id] === "tired" ? "😓" :
+                             lastMoodMap[c.id] === "great" ? "🔥" : "💪"}
+                          </span>
+                        )}
                       </span>
                     </div>
                     <small>{c.email}</small>
