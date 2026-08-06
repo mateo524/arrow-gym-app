@@ -75,6 +75,7 @@ export default function TrainerPage() {
   // Tab principal: "alumnos" | "pagos"
   const [trainerTab, setTrainerTab] = useState("alumnos");
   const [saving, setSaving] = useState(false);
+  const [payModal, setPayModal] = useState(null);
   const [showAssign, setShowAssign] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
 
@@ -918,6 +919,12 @@ export default function TrainerPage() {
                                 fontSize: 16, lineHeight: 1, flexShrink: 0,
                               }}
                             >💬</button>
+                            <button
+                              onClick={() => setPayModal(c)}
+                              style={{ background:"var(--green)", color:"#fff", border:"none", borderRadius:8, padding:"6px 12px", fontSize:12, cursor:"pointer" }}
+                            >
+                              ✓ Cobrado
+                            </button>
                           </div>
                         );
                       })}
@@ -1258,6 +1265,29 @@ export default function TrainerPage() {
         <div className="modal-actions" style={{ marginTop: 12 }}>
           <button className="ghost" onClick={() => setShowApplyProgram(false)}>Cancelar</button>
         </div>
+      </div>
+    </div>
+  )}
+
+  {payModal && (
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.6)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:999 }} onClick={() => setPayModal(null)}>
+      <div style={{ background:"var(--panel)", borderRadius:16, padding:24, width:"min(340px,90vw)" }} onClick={e => e.stopPropagation()}>
+        <div style={{ fontWeight:700, fontSize:16, marginBottom:4 }}>Registrar cobro</div>
+        <div style={{ fontSize:13, color:"var(--muted)", marginBottom:16 }}>{payModal.name || payModal.email}</div>
+        <div style={{ fontSize:13, marginBottom:8 }}>Monto cobrado (ARS)</div>
+        <input id="pay-amount" type="number" defaultValue={25000} style={{ width:"100%", padding:"8px 12px", borderRadius:8, border:"1px solid var(--line)", background:"var(--bg)", color:"var(--text)", fontSize:14, marginBottom:16, boxSizing:"border-box" }} />
+        <button onClick={async () => {
+          const amount = document.getElementById("pay-amount").value;
+          const today = new Date().toISOString().split("T")[0];
+          const nextDate = new Date(Date.now() + 30*24*60*60*1000).toISOString().split("T")[0];
+          const { supabase } = await import("../lib/supabase.js");
+          await supabase.from("profiles").update({ last_payment_date: today, next_payment_date: nextDate }).eq("id", payModal.id);
+          setPayModal(null);
+          // Refetch clients
+          window.location.reload();
+        }} style={{ width:"100%", background:"var(--accent)", color:"#fff", border:"none", borderRadius:10, padding:"12px", fontSize:15, fontWeight:700, cursor:"pointer" }}>
+          Confirmar cobro
+        </button>
       </div>
     </div>
   )}
