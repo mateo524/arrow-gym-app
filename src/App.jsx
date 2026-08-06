@@ -572,7 +572,7 @@ function AppContent() {
           if (isAdminRole || trialBannerDismissed) return null;
           if (subStatus === "active") return null;
           const daysLeft = 30 - Math.floor(accountAgeMs / (24 * 60 * 60 * 1000));
-          if (daysLeft > 14 || daysLeft <= 0) return null;
+          if (daysLeft > 7 || daysLeft <= 0) return null;
           const urgent = daysLeft <= 3;
           return (
             <div style={{
