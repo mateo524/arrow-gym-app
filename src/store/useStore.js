@@ -1,5 +1,16 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
+
+// One-time cleanup: the pre-createJSONStorage bug stored "[object Object]" literally.
+// Clear it so Zustand starts clean instead of falling back to defaults silently.
+(function () {
+  try {
+    const raw = localStorage.getItem("loop-gym-v4");
+    if (raw && !raw.trim().startsWith("{")) {
+      localStorage.removeItem("loop-gym-v4");
+    }
+  } catch {}
+})();
 import { createWorkoutSlice, ROUTINES } from "./slices/workoutSlice.js";
 import { createSettingsSlice } from "./slices/settingsSlice.js";
 import { createHealthSlice } from "./slices/healthSlice.js";

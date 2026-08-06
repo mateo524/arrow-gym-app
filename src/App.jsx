@@ -746,9 +746,10 @@ export default function App() {
     return () => { window.__showToast = undefined; };
   }, []);
 
-  // Apply zoom (scales ALL pixel values including inline JSX styles)
+  // Apply zoom via CSS custom property — avoids iOS page-reload bug triggered
+  // by setting document.documentElement.style.zoom directly.
   useEffect(() => {
-    document.documentElement.style.zoom = fontScale || 1.18;
+    document.documentElement.style.setProperty("--app-zoom", String(fontScale || 1));
   }, [fontScale]);
 
   // Apply auto dark mode

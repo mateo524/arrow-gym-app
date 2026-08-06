@@ -5,7 +5,7 @@ export const createSettingsSlice = (set, get) => ({
   amoled: false,
   soundEnabled: true,
   userGoal: "mantenimiento",
-  fontScale: 1.18,
+  fontScale: 1,
   autoDarkMode: false,
   reminderEnabled: false,
   reminderTime: "18:00",
