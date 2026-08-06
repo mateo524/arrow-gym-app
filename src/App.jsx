@@ -17,7 +17,6 @@ const PRPage             = lazy(() => import("./pages/PRPage.jsx"));
 const MeasurementsPage   = lazy(() => import("./pages/MeasurementsPage.jsx"));
 const CardioPage         = lazy(() => import("./pages/CardioPage.jsx"));
 const RoutinesPage       = lazy(() => import("./pages/RoutinesPage.jsx"));
-const CalendarPage       = lazy(() => import("./pages/CalendarPage.jsx"));
 const BadgesPage         = lazy(() => import("./pages/BadgesPage.jsx"));
 const HealthSyncPage     = lazy(() => import("./pages/HealthSyncPage.jsx"));
 const ChallengesPage     = lazy(() => import("./pages/ChallengesPage.jsx"));
@@ -117,7 +116,6 @@ const PAGE_MAP = {
   measurements: MeasurementsPage,
   cardio: CardioPage,
   routines: RoutinesPage,
-  calendar: CalendarPage,
   badges: BadgesPage,
 healthsync: HealthSyncPage,
   challenges: ChallengesPage,
@@ -460,7 +458,11 @@ function AppContent() {
   }, [currentPage]);
 
   // These effects reference user/profile so they must also be before any early return
-  useEffect(() => { if (isReturningUser && !hasSeenOnboarding) markOnboardingSeen(); }, [isReturningUser, hasSeenOnboarding]);
+  useEffect(() => {
+    if (isReturningUser && !hasSeenOnboarding && profile?.id && (profile?.goal || profile?.fitness_level)) {
+      markOnboardingSeen();
+    }
+  }, [isReturningUser, hasSeenOnboarding, profile]);
 
   // Show a minimal splash ONLY when there's no cached session at all
   // (first load, logged out). If there's a cached user we skip the splash
@@ -640,7 +642,7 @@ function AppContent() {
         </div>
       )}
       {inner}
-      <Nav role={role} />
+      {user && hasAccess && <Nav role={role} />}
       {currentPRCard && (
         <PRCard
           pr={{ exercise: currentPRCard.exercise, weight: currentPRCard.newWeight, reps: currentPRCard.reps, unit: "kg" }}

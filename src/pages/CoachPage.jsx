@@ -45,12 +45,6 @@ export default function CoachPage() {
   const [tab, setTab] = useState("resumen");
   const [planSubTab, setPlanSubTab] = useState("rendimiento"); // "rendimiento" | "nutricion"
 
-  // Calendario state
-  const now = new Date();
-  const [calYear, setCalYear] = useState(now.getFullYear());
-  const [calMonth, setCalMonth] = useState(now.getMonth()); // 0-indexed
-  const [calSelectedDay, setCalSelectedDay] = useState(null); // "YYYY-MM-DD"
-
   // Proactive coach notifications from daily cron
   const [coachNotif, setCoachNotif] = useState(null); // latest unread coach_insight notif
 

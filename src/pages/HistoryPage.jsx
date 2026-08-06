@@ -190,6 +190,16 @@ export default function HistoryPage() {
         </div>
       </div>
 
+      {workouts.length === 0 && (
+        <div style={{ textAlign:"center", padding:"48px 24px", color:"var(--muted)" }}>
+          <div style={{ fontSize:48, marginBottom:12 }}>📋</div>
+          <p style={{ fontSize:16, fontWeight:600, marginBottom:6, color:"var(--text)" }}>Sin entrenamientos aún</p>
+          <p style={{ fontSize:14 }}>Completá tu primer entreno para ver el historial aquí.</p>
+        </div>
+      )}
+
+      {workouts.length > 0 && (<>
+
       {/* Search bar */}
       <div style={{ marginBottom: 14 }}>
         <input

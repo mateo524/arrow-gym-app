@@ -8,7 +8,7 @@ import AdvancedMuscleDiagram from "../components/AdvancedMuscleDiagram.jsx";
 import Icon from "../components/Icon.jsx";
 
 export default function HomePage() {
-  const { workouts, restDays, setPage, activeWorkout, achievements, prs, cardioHistory, weeklyGoal, logRestDay } = useStore(
+  const { workouts, restDays, setPage, activeWorkout, achievements, prs, cardioHistory, weeklyGoal, logRestDay, mealLog } = useStore(
     useShallow(s => ({
       workouts: s.workouts,
       restDays: s.restDays || [],
@@ -19,6 +19,7 @@ export default function HomePage() {
       cardioHistory: s.cardioHistory || [],
       weeklyGoal: s.weeklyGoal || 4,
       logRestDay: s.logRestDay,
+      mealLog: s.mealLog || [],
     }))
   );
   const profile = useAuthStore((s) => s.profile);
@@ -440,7 +441,6 @@ export default function HomePage() {
             const weekWorkouts = workouts.filter(w => w.date >= dateToLocal(weekStart));
             const weekVolume = weekWorkouts.reduce((s,w) => s+(w.sets||[]).reduce((sv,set)=>sv+(Number(set.weight)||0)*(Number(set.reps)||0),0),0);
             const todayStr = todayLocal();
-            const mealLog = useStore.getState().mealLog || [];
             const todayKcal = mealLog.filter(m=>m.date===todayStr).reduce((s,m)=>s+(Number(m.kcal)||0),0);
             const maxWeekVol = 50000;
             const pctVol = Math.min(100, (weekVolume/maxWeekVol)*100);

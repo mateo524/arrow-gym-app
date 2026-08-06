@@ -67,5 +67,10 @@ export const createSettingsSlice = (set, get) => ({
     activeChallenges: [],
     competitionDate: null,
     competitionName: "",
+    savedTemplates: [],
+    weeklyChallenge: null,
+    weightLog: [],
+    measurementsHistory: [],
+    progressPhotos: [],
   }),
 });

@@ -13,6 +13,7 @@ export async function syncWorkoutUp(workout, userId) {
     sets: workout.sets,
     duration_min: workout.durationMin ?? null,
     notes: workout.notes ?? null,
+    mood: workout.mood ?? null,
     created_at: new Date().toISOString(),
   };
   if (!navigator.onLine) {
@@ -49,6 +50,9 @@ export async function fetchWorkoutsFromDB(userId) {
       type: row.type,
       date: row.date,
       sets: row.sets || [],
+      durationMin: row.duration_min ?? null,
+      notes: row.notes ?? null,
+      mood: row.mood ?? null,
     }));
   } catch {
     return [];

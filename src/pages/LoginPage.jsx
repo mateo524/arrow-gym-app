@@ -49,14 +49,17 @@ export default function LoginPage() {
     await login(email.trim(), password);
     const error = useAuthStore.getState().authError;
     if (error) {
-      const attempts = (rl.attempts || 0) + 1;
-      if (attempts >= MAX_ATTEMPTS) {
-        const lockedUntil = Date.now() + COOLDOWN_MS;
-        setRateLimit({ attempts, lockedUntil });
-        setCooldownSecs(Math.ceil(COOLDOWN_MS / 1000));
-        setTimeout(() => { setRateLimit({}); setCooldownSecs(0); }, COOLDOWN_MS);
-      } else {
-        setRateLimit({ ...rl, attempts });
+      const isEmailNotConfirmed = error.includes("Email not confirmed") || error.includes("email_not_confirmed");
+      if (!isEmailNotConfirmed) {
+        const attempts = (rl.attempts || 0) + 1;
+        if (attempts >= MAX_ATTEMPTS) {
+          const lockedUntil = Date.now() + COOLDOWN_MS;
+          setRateLimit({ attempts, lockedUntil });
+          setCooldownSecs(Math.ceil(COOLDOWN_MS / 1000));
+          setTimeout(() => { setRateLimit({}); setCooldownSecs(0); }, COOLDOWN_MS);
+        } else {
+          setRateLimit({ ...rl, attempts });
+        }
       }
     } else {
       setRateLimit({});
@@ -68,7 +71,7 @@ export default function LoginPage() {
     e.preventDefault();
     setSubmitting(true);
     setMsg("");
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
       options: { data: { name: fullName.trim() } },
@@ -76,6 +79,10 @@ export default function LoginPage() {
     setSubmitting(false);
     if (error) {
       setMsg("Error: " + error.message);
+    } else if (data?.session) {
+      // Email confirmation desactivada — sesión activa inmediata
+      // El onAuthStateChange de App.jsx la va a capturar automáticamente
+      setMsg("✓ ¡Bienvenido/a a Loop Gym!");
     } else {
       setMsg("✓ ¡Cuenta creada! Revisá tu email para confirmar.");
     }
@@ -159,6 +166,8 @@ export default function LoginPage() {
                   <Icon name="AlertCircle" size={14} />
                   <span>{authError.includes("Invalid login") || authError.includes("invalid_credentials")
                     ? "Email o contraseña incorrectos"
+                    : authError.includes("Email not confirmed") || authError.includes("email_not_confirmed")
+                    ? "Confirmá tu email antes de ingresar. Revisá tu casilla."
                     : authError.includes("Failed to fetch") || authError.includes("NetworkError")
                     ? "Error de conexión — revisá tu internet o intentá más tarde"
                     : authError}</span>

@@ -42,7 +42,7 @@ export default function Nav({ role }) {
   });
 
   if (role === "trainer") tabs = [...tabs, TRAINER_EXTRA];
-  if (role === "admin")   tabs = [...tabs, ADMIN_EXTRA];
+  if (role === "admin" || role === "superadmin")   tabs = [...tabs, ADMIN_EXTRA];
 
   return (
     <nav className="bottom-nav" aria-label="Main navigation">

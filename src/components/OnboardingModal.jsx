@@ -107,7 +107,7 @@ export default function OnboardingModal() {
               <div style={{ fontSize: 58, marginBottom: 12 }}>⚡</div>
               <h2 style={{ margin: "0 0 10px", fontSize: 26 }}>Bienvenido a Loop</h2>
               <p style={{ color: "var(--muted)", fontSize: 14, margin: 0, lineHeight: 1.6 }}>
-                En 4 pasos rápidos configuramos tu experiencia personalizada.
+                En 5 pasos rápidos configuramos tu experiencia personalizada.
               </p>
             </div>
             <div style={{ background: "rgba(168,85,247,.06)", border: "1px solid rgba(168,85,247,.2)", borderRadius: 12, padding: "14px 16px", marginBottom: 24 }}>

@@ -579,13 +579,13 @@ export default function StartWorkoutPage() {
 
       {/* Create routine modal */}
       {createRoutineModal && (
-        <div className="modal-overlay" onClick={() => { setCreateRoutineModal(false); setCreationMode("choose"); setShowCreatePicker(false); }}>
+        <div className="modal-overlay" onClick={() => { setCreateRoutineModal(false); setCreationMode("choose"); setShowCreatePicker(false); setCoachSplit(""); setCoachGoal(""); setNewRoutineName(""); setNewRoutineExercises([]); }}>
           <div className="modal-card" onClick={e => e.stopPropagation()} style={{ maxHeight:"90vh", overflowY:"auto", display:"flex", flexDirection:"column" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
               <h2 style={{ margin:0, fontSize:18 }}>
                 {creationMode === "choose" ? "Nueva rutina" : creationMode === "coach" ? "Rutina con coach" : "Nueva rutina"}
               </h2>
-              <button onClick={() => { setCreateRoutineModal(false); setCreationMode("choose"); setShowCreatePicker(false); }} style={{ background:"none", border:"none", color:"var(--muted)", fontSize:20, cursor:"pointer" }}>✕</button>
+              <button onClick={() => { setCreateRoutineModal(false); setCreationMode("choose"); setShowCreatePicker(false); setCoachSplit(""); setCoachGoal(""); setNewRoutineName(""); setNewRoutineExercises([]); }} style={{ background:"none", border:"none", color:"var(--muted)", fontSize:20, cursor:"pointer" }}>✕</button>
             </div>
 
             {/* ── MODE PICKER ── */}

@@ -116,7 +116,7 @@ const useAuthStore = create((set, get) => ({
           setAuthProfile(cached);
         } else {
           // Absolute last resort: minimal profile so the UI unblocks
-          const fallback = { id: user.id, email: user.email, role: "user" };
+          const fallback = { id: user.id, email: user.email, role: "user", subscription_status: "unknown" };
           set({ profile: fallback });
         }
       }
@@ -127,10 +127,15 @@ const useAuthStore = create((set, get) => ({
         set({ profile: cached });
         setAuthProfile(cached);
       } else {
-        const fallback = { id: user.id, email: user.email, role: "user" };
+        const fallback = { id: user.id, email: user.email, role: "user", subscription_status: "unknown" };
         set({ profile: fallback });
       }
     }
+  },
+
+  refreshProfile: () => {
+    const user = get().user;
+    if (user) get().fetchProfile(user);
   },
 
   login: async (email, password) => {
@@ -157,7 +162,9 @@ const useAuthStore = create((set, get) => ({
     try {
       const { default: useStore } = await import("./useStore.js");
       useStore.getState().clearActiveWorkout();
+      useStore.getState().resetUserData(null);
     } catch {}
+    sessionStorage.removeItem("loop-gym-active-workout");
     try {
       if ("caches" in window) {
         const keys = await caches.keys();
