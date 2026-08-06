@@ -25,21 +25,17 @@ Deno.serve(async (req: Request) => {
     .eq("key", "cron_secret")
     .single();
 
-  if (configError || !configData) {
-    return new Response(JSON.stringify({ error: "Could not fetch cron secret" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-
-  if (cronSecret !== configData.value) {
-    return new Response(JSON.stringify({ error: "Invalid cron secret" }), {
+  if (configError || !configData || cronSecret !== configData.value) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 403,
       headers: { "Content-Type": "application/json" },
     });
   }
 
-  // Configure VAPID
+  if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+    return new Response(JSON.stringify({ error: "VAPID keys not configured" }), { status: 500 });
+  }
+
   webpush.setVapidDetails(
     "mailto:admin@loop-gym.app",
     VAPID_PUBLIC_KEY,
@@ -67,7 +63,7 @@ Deno.serve(async (req: Request) => {
 
       // Fetch the most recent workout for this user
       const { data: workouts, error: workoutError } = await supabase
-        .from("workouts")
+        .from("user_workouts")
         .select("date, sets")
         .eq("user_id", user_id)
         .order("date", { ascending: false })
@@ -122,7 +118,8 @@ Deno.serve(async (req: Request) => {
         tag: "reengagement",
       });
 
-      await webpush.sendNotification(subscription, payload);
+      const parsed = typeof subscription === "string" ? JSON.parse(subscription) : subscription;
+      await webpush.sendNotification(parsed, payload);
       sent++;
     } catch (err) {
       console.error(`Error sending push to user ${sub.user_id}:`, err);
