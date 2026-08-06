@@ -257,7 +257,6 @@ export default function ProfilePage() {
             )}
             {nameMsg && <small style={{ color: nameMsg.startsWith("✓") ? "var(--green)" : "var(--danger)" }}>{nameMsg}</small>}
             <small>{profile?.email}</small>
-            <span className="role-badge">{role}</span>
           </div>
         </div>
 
