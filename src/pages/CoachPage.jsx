@@ -304,7 +304,6 @@ export default function CoachPage() {
     { id: "plan",       label: "Plan"       },
     { id: "progreso",   label: "Progresión" },
     { id: "alertas",    label: "Alertas"    },
-    { id: "calendario", label: "📅"         },
   ];
 
   const PLAN_SUB_TABS = [
@@ -1733,8 +1732,8 @@ export default function CoachPage() {
           )}
         </div>
       )}
-      {/* ── TAB: CALENDARIO ─────────────────────────────────── */}
-      {tab === "calendario" && (() => {
+      {/* ── TAB: CALENDARIO (removed) ─────────────────────── */}
+      {tab === "calendario_disabled" && (() => {
         const MONTH_NAMES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
         const DAY_LABELS = ["Lu","Ma","Mi","Ju","Vi","Sa","Do"];
 

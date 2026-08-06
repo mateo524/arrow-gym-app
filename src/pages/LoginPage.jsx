@@ -15,9 +15,10 @@ function setRateLimit(data) {
 }
 
 export default function LoginPage() {
-  const [mode, setMode] = useState("login"); // "login" | "forgot"
+  const [mode, setMode] = useState("login"); // "login" | "forgot" | "register"
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [msg, setMsg] = useState("");
   const [cooldownSecs, setCooldownSecs] = useState(0);
@@ -63,6 +64,23 @@ export default function LoginPage() {
     setSubmitting(false);
   }
 
+  async function handleRegister(e) {
+    e.preventDefault();
+    setSubmitting(true);
+    setMsg("");
+    const { error } = await supabase.auth.signUp({
+      email: email.trim(),
+      password,
+      options: { data: { name: fullName.trim() } },
+    });
+    setSubmitting(false);
+    if (error) {
+      setMsg("Error: " + error.message);
+    } else {
+      setMsg("✓ ¡Cuenta creada! Revisá tu email para confirmar.");
+    }
+  }
+
   async function handleForgot(e) {
     e.preventDefault();
     setSubmitting(true);
@@ -87,7 +105,41 @@ export default function LoginPage() {
         <h1 className="login-title" style={{ background:"linear-gradient(135deg, var(--green), var(--cyan))", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text" }}>Loop</h1>
         <p style={{ textAlign:"center", fontSize:12, color:"var(--muted)", margin:"-8px 0 16px", letterSpacing:"0.12em", textTransform:"uppercase" }}>Track · Improve · Dominate</p>
 
-        {mode === "login" ? (
+        {mode === "register" ? (
+          <>
+            <p className="login-subtitle">Creá tu cuenta gratis y empezá a entrenar</p>
+            <form onSubmit={handleRegister} className="login-form">
+              <div className="field-group">
+                <label htmlFor="fullname">Nombre completo</label>
+                <input id="fullname" type="text" value={fullName} onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Tu nombre" autoComplete="name" required />
+              </div>
+              <div className="field-group">
+                <label htmlFor="email-reg">Email</label>
+                <input id="email-reg" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                  placeholder="tu@email.com" autoComplete="email" inputMode="email" required />
+              </div>
+              <div className="field-group">
+                <label htmlFor="password-reg">Contraseña</label>
+                <input id="password-reg" type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Mínimo 6 caracteres" autoComplete="new-password" minLength={6} required />
+              </div>
+              {msg && (
+                <div className={msg.startsWith("✓") ? "success-msg" : "login-error"}>
+                  <Icon name={msg.startsWith("✓") ? "CheckCircle" : "AlertCircle"} size={14} />
+                  <span>{msg}</span>
+                </div>
+              )}
+              <button type="submit" className="primary big login-btn" disabled={submitting || !email || !password || !fullName}>
+                {submitting ? "Creando cuenta…" : "Crear cuenta"}
+              </button>
+              <button type="button" className="ghost" style={{ width:"100%", fontSize:13 }}
+                onClick={() => { setMode("login"); setMsg(""); }}>
+                ← Ya tengo cuenta
+              </button>
+            </form>
+          </>
+        ) : mode === "login" ? (
           <>
             <p className="login-subtitle">Ingresá con tu cuenta para ver tu rutina personalizada</p>
             <form onSubmit={handleLogin} className="login-form">
@@ -158,7 +210,15 @@ export default function LoginPage() {
           </>
         )}
 
-        <p className="login-footer">¿No tenés cuenta? Tu entrenador la crea por vos.</p>
+        {mode === "login" && (
+          <p className="login-footer">
+            ¿No tenés cuenta?{" "}
+            <button type="button" className="ghost" style={{ display:"inline", padding:0, fontSize:"inherit", color:"var(--accent)", textDecoration:"underline", background:"none", border:"none", cursor:"pointer" }}
+              onClick={() => { setMode("register"); setMsg(""); }}>
+              Registrarse
+            </button>
+          </p>
+        )}
       </div>
     </div>
   );
