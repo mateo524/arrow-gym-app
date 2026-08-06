@@ -271,7 +271,7 @@ function AppContent() {
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
-      useStore.getState().flushPendingSyncs?.();
+      // flushPendingSyncs handled by the offline-queue listener above — no duplicate flush here
     };
     const handleOffline = () => setIsOnline(false);
     window.addEventListener("online", handleOnline);
@@ -652,7 +652,7 @@ function AppContent() {
       )}
 
       {/* ── FIRST LOGIN / PASSWORD RECOVERY MODAL ──────────────────────── */}
-      {(showPasswordModal || (profile?.has_changed_password === false && !sessionStorage.getItem("pw-modal-dismissed"))) && (
+      {(showPasswordModal || (profile?.has_changed_password === false && profile?.trainer_id && !sessionStorage.getItem("pw-modal-dismissed"))) && (
         <div style={{ position:"fixed", inset:0, zIndex:10001, background:"rgba(0,0,0,.8)", display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
           <div style={{ background:"var(--panel)", borderRadius:20, padding:"28px 24px", width:"100%", maxWidth:360 }}>
             <div style={{ textAlign:"center", marginBottom:20 }}>
