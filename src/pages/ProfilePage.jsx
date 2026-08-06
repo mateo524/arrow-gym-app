@@ -19,6 +19,28 @@ const LEVELS = [
   { id: "avanzado",     label: "Avanzado",      icon: "🏆" },
 ];
 
+function BodyWeightChart({ data }) {
+  const weights = data.map(d => d.weight);
+  const min = Math.min(...weights) - 1;
+  const max = Math.max(...weights) + 1;
+  const w = 280, h = 60;
+  const points = data.map((d, i) => {
+    const x = (i / (data.length - 1)) * w;
+    const y = h - ((d.weight - min) / (max - min)) * h;
+    return `${x},${y}`;
+  }).join(" ");
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ width:"100%", height:"auto" }}>
+      <polyline points={points} fill="none" stroke="var(--accent)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      {data.map((d, i) => {
+        const x = (i / (data.length - 1)) * w;
+        const y = h - ((d.weight - min) / (max - min)) * h;
+        return <circle key={i} cx={x} cy={y} r={3} fill="var(--accent)" />;
+      })}
+    </svg>
+  );
+}
+
 export default function ProfilePage() {
   const setPage = useStore((s) => s.setPage);
   const amoled = useStore((s) => s.amoled);
@@ -47,6 +69,18 @@ export default function ProfilePage() {
   const [showCompForm, setShowCompForm] = useState(false);
   const [compDate, setCompDate] = useState("");
   const [compName, setCompName] = useState("");
+
+  const bodyMetrics = useStore(s => s.bodyMetrics || []);
+  const addBodyMetric = useStore(s => s.addBodyMetric);
+  const [weightInput, setWeightInput] = useState("");
+
+  function handleAddWeight() {
+    const val = parseFloat(String(weightInput).replace(/,/g, "."));
+    if (!val || isNaN(val)) return;
+    const today = todayLocal();
+    addBodyMetric({ date: today, weight: val });
+    setWeightInput("");
+  }
 
   async function toggleReminder() {
     if (!reminderEnabled) {
@@ -307,6 +341,35 @@ export default function ProfilePage() {
             </div>
           );
         })()}
+
+        {/* Body Metrics */}
+        <div style={{ background:"var(--panel)", borderRadius:16, padding:"14px 16px", marginBottom:12 }}>
+          <div style={{ fontWeight:700, fontSize:14, marginBottom:10 }}>📏 Mi progreso</div>
+
+          {/* Input peso */}
+          <div style={{ display:"flex", gap:8, marginBottom:12 }}>
+            <input
+              type="number"
+              placeholder="Peso (kg)"
+              value={weightInput}
+              onChange={e => setWeightInput(e.target.value)}
+              style={{ flex:1, padding:"8px 12px", borderRadius:8, border:"1px solid var(--line)", background:"var(--bg)", color:"var(--text)", fontSize:14 }}
+            />
+            <button onClick={handleAddWeight} style={{ background:"var(--accent)", color:"#fff", border:"none", borderRadius:8, padding:"8px 14px", fontWeight:600, cursor:"pointer" }}>
+              Guardar
+            </button>
+          </div>
+
+          {bodyMetrics.length >= 2 && (
+            <BodyWeightChart data={bodyMetrics.slice(-8)} />
+          )}
+
+          {bodyMetrics.length > 0 && (
+            <div style={{ fontSize:12, color:"var(--muted)", marginTop:6 }}>
+              Último registro: {bodyMetrics[bodyMetrics.length-1].weight}kg el {bodyMetrics[bodyMetrics.length-1].date}
+            </div>
+          )}
+        </div>
 
         {/* Settings */}
         <div className="card">

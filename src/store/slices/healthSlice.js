@@ -52,6 +52,9 @@ function queueHealthSync(get) {
 }
 
 export const createHealthSlice = (set, get) => ({
+  bodyMetrics: [],
+  addBodyMetric: (entry) => set(s => ({ bodyMetrics: [...(s.bodyMetrics || []), entry] })),
+
   weightLog: [],
   restDays: [],
   cardioHistory: [],
