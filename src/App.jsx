@@ -19,7 +19,6 @@ const CardioPage         = lazy(() => import("./pages/CardioPage.jsx"));
 const RoutinesPage       = lazy(() => import("./pages/RoutinesPage.jsx"));
 const CalendarPage       = lazy(() => import("./pages/CalendarPage.jsx"));
 const BadgesPage         = lazy(() => import("./pages/BadgesPage.jsx"));
-const ChatPage           = lazy(() => import("./pages/ChatPage.jsx"));
 const HealthSyncPage     = lazy(() => import("./pages/HealthSyncPage.jsx"));
 const ChallengesPage     = lazy(() => import("./pages/ChallengesPage.jsx"));
 const ReferralPage       = lazy(() => import("./pages/ReferralPage.jsx"));
@@ -120,8 +119,7 @@ const PAGE_MAP = {
   routines: RoutinesPage,
   calendar: CalendarPage,
   badges: BadgesPage,
-  chat: ChatPage,
-  healthsync: HealthSyncPage,
+healthsync: HealthSyncPage,
   challenges: ChallengesPage,
   referral: ReferralPage,
   testamento: TestamentoPage,

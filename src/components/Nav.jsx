@@ -8,8 +8,7 @@ const USER_TABS = [
   { id: "home",    label: "Inicio",    icon: "Home" },
   { id: "start",   label: "Entreno",   icon: "Dumbbell", badgeKey: "activeWorkout" },
   { id: "coach",   label: "Coach",     icon: "BrainCircuit", badgeKey: "coachBadge" },
-  { id: "chat",    label: "Chat",      icon: "MessageCircle", badgeKey: "chatBadge" },
-  { id: "history", label: "Historial", icon: "Clock" },
+{ id: "history", label: "Historial", icon: "Clock" },
   { id: "profile", label: "Perfil",    icon: "User" },
 ];
 
@@ -23,7 +22,6 @@ export default function Nav({ role }) {
   const coachBadge    = useStore((s) => s.coachBadge);
   const { profile } = useAuthStore();
   const [notifCount, setNotifCount] = useState(0);
-  const [chatCount, setChatCount] = useState(0);
 
   useEffect(() => {
     if (!profile?.id) return;
@@ -31,15 +29,9 @@ export default function Nav({ role }) {
       .eq("user_id", profile.id).eq("read", false)
       .then(({ count }) => setNotifCount(count || 0))
       .catch(() => {});
-    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    supabase.from("messages").select("id", { count: "exact" })
-      .eq("to_id", profile.id)
-      .gte("created_at", since)
-      .then(({ count }) => setChatCount(count || 0))
-      .catch(() => {});
   }, [profile?.id, currentPage]);
 
-  const badges = { activeWorkout: !!activeWorkout, coachBadge, notifBadge: notifCount > 0, chatBadge: chatCount > 0 };
+  const badges = { activeWorkout: !!activeWorkout, coachBadge, notifBadge: notifCount > 0 };
 
   // Build tabs based on role
   let tabs = USER_TABS.map((tab) => {
