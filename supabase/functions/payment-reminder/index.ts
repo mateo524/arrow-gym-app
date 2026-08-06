@@ -42,10 +42,46 @@ Deno.serve(async (req: Request) => {
     VAPID_PRIVATE_KEY
   );
 
-  // Fetch all users with active push subscriptions
+  // Target date: today + 3 days (equivalent to CURRENT_DATE + INTERVAL '3 days')
+  const targetDate = new Date();
+  targetDate.setDate(targetDate.getDate() + 3);
+  const targetDateStr = targetDate.toISOString().split("T")[0];
+
+  // Fetch students whose next_payment_date is in exactly 3 days
+  // Equivalent SQL: SELECT p.id, p.name, p.email, p.next_payment_date
+  //   FROM profiles p
+  //   WHERE p.role = 'student'
+  //     AND p.next_payment_date IS NOT NULL
+  //     AND p.next_payment_date = (CURRENT_DATE + INTERVAL '3 days')::date
+  const { data: students, error: studentsError } = await supabase
+    .from("profiles")
+    .select("id, name, email, next_payment_date")
+    .eq("role", "student")
+    .not("next_payment_date", "is", null)
+    .eq("next_payment_date", targetDateStr);
+
+  if (studentsError || !students) {
+    return new Response(JSON.stringify({ error: "Could not fetch students", detail: studentsError?.message }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  if (students.length === 0) {
+    return new Response(JSON.stringify({ sent: 0, skipped: 0, message: "No students with payment due in 3 days" }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  // Build a set of user IDs with payment due
+  const userIds = students.map((u) => u.id);
+
+  // Fetch push subscriptions for those users
   const { data: subscriptions, error: subError } = await supabase
     .from("push_subscriptions")
-    .select("user_id, subscription");
+    .select("user_id, subscription")
+    .in("user_id", userIds);
 
   if (subError || !subscriptions) {
     return new Response(JSON.stringify({ error: "Could not fetch push subscriptions" }), {
@@ -59,73 +95,13 @@ Deno.serve(async (req: Request) => {
 
   for (const sub of subscriptions) {
     try {
-      const { user_id, subscription } = sub;
-
-      // Fetch the most recent workout for this user
-      const { data: workouts, error: workoutError } = await supabase
-        .from("user_workouts")
-        .select("date, sets")
-        .eq("user_id", user_id)
-        .order("date", { ascending: false })
-        .limit(10);
-
-      if (workoutError || !workouts || workouts.length === 0) {
-        skipped++;
-        continue;
-      }
-
-      // Skip if user trained today
-      const today = new Date().toISOString().split("T")[0];
-      if (workouts[0]?.date === today) {
-        skipped++;
-        continue;
-      }
-
-      const lastWorkoutDate = workouts[0].date;
-
-      // Calculate days of inactivity
-      const daysInactive = Math.floor(
-        (Date.now() - new Date(lastWorkoutDate + "T12:00:00").getTime()) / 86400000
-      );
-
-      if (daysInactive < 3) {
-        skipped++;
-        continue;
-      }
-
-      // Find the most frequent exercise in the last 10 workouts
-      const exerciseCounts: Record<string, number> = {};
-      for (const workout of workouts) {
-        if (Array.isArray(workout.sets)) {
-          for (const set of workout.sets) {
-            if (set.exercise) {
-              exerciseCounts[set.exercise] = (exerciseCounts[set.exercise] ?? 0) + 1;
-            }
-          }
-        }
-      }
-
-      let topExercise: string | null = null;
-      let topCount = 0;
-      for (const [exercise, count] of Object.entries(exerciseCounts)) {
-        if (count > topCount) {
-          topCount = count;
-          topExercise = exercise;
-        }
-      }
-
-      const title = "¡Te extrañamos en el gym! 💪";
-      const body = topExercise
-        ? `Hace ${daysInactive} días sin entrenar. Tu ${topExercise} te está esperando.`
-        : `Hace ${daysInactive} días sin entrenar. ¡Volvé cuando puedas!`;
-
       const payload = JSON.stringify({
-        title,
-        body,
-        tag: "reengagement",
+        title: "💳 Recordatorio de pago",
+        body: "Tu suscripción vence en 3 días. Renovála para seguir entrenando.",
+        tag: "payment-reminder",
       });
 
-      const parsed = typeof subscription === "string" ? JSON.parse(subscription) : subscription;
+      const parsed = typeof sub.subscription === "string" ? JSON.parse(sub.subscription) : sub.subscription;
       await webpush.sendNotification(parsed, payload);
       sent++;
     } catch (err) {
@@ -134,7 +110,7 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  return new Response(JSON.stringify({ sent, skipped }), {
+  return new Response(JSON.stringify({ sent, skipped, studentsWithPaymentDue: students.length }), {
     status: 200,
     headers: { "Content-Type": "application/json" },
   });

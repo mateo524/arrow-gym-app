@@ -54,6 +54,11 @@ Deno.serve(async (req: Request) => {
     });
   }
 
+  // Calculate the date 7 days ago in YYYY-MM-DD format
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  const sevenDaysAgoStr = sevenDaysAgo.toISOString().split("T")[0];
+
   let sent = 0;
   let skipped = 0;
 
@@ -61,45 +66,34 @@ Deno.serve(async (req: Request) => {
     try {
       const { user_id, subscription } = sub;
 
-      // Fetch the most recent workout for this user
+      // Fetch workouts from the last 7 days
       const { data: workouts, error: workoutError } = await supabase
         .from("user_workouts")
         .select("date, sets")
         .eq("user_id", user_id)
-        .order("date", { ascending: false })
-        .limit(10);
+        .gte("date", sevenDaysAgoStr)
+        .order("date", { ascending: false });
 
       if (workoutError || !workouts || workouts.length === 0) {
+        // Skip users who didn't train at all this week (daily-reengagement covers them)
         skipped++;
         continue;
       }
 
-      // Skip if user trained today
-      const today = new Date().toISOString().split("T")[0];
-      if (workouts[0]?.date === today) {
-        skipped++;
-        continue;
-      }
+      const sessionsThisWeek = workouts.length;
 
-      const lastWorkoutDate = workouts[0].date;
-
-      // Calculate days of inactivity
-      const daysInactive = Math.floor(
-        (Date.now() - new Date(lastWorkoutDate + "T12:00:00").getTime()) / 86400000
-      );
-
-      if (daysInactive < 3) {
-        skipped++;
-        continue;
-      }
-
-      // Find the most frequent exercise in the last 10 workouts
+      // Find the most frequent exercise across all workouts this week
       const exerciseCounts: Record<string, number> = {};
+      let bestPR = 0;
+
       for (const workout of workouts) {
         if (Array.isArray(workout.sets)) {
           for (const set of workout.sets) {
             if (set.exercise) {
               exerciseCounts[set.exercise] = (exerciseCounts[set.exercise] ?? 0) + 1;
+            }
+            if (typeof set.weight === "number" && set.weight > bestPR) {
+              bestPR = set.weight;
             }
           }
         }
@@ -114,22 +108,22 @@ Deno.serve(async (req: Request) => {
         }
       }
 
-      const title = "¡Te extrañamos en el gym! 💪";
+      const title = "📊 Tu semana en Loop Gym";
       const body = topExercise
-        ? `Hace ${daysInactive} días sin entrenar. Tu ${topExercise} te está esperando.`
-        : `Hace ${daysInactive} días sin entrenar. ¡Volvé cuando puedas!`;
+        ? `${sessionsThisWeek} entrenamientos · Tu ejercicio estrella: ${topExercise}`
+        : `${sessionsThisWeek} entrenamientos esta semana. ¡Buen trabajo!`;
 
       const payload = JSON.stringify({
         title,
         body,
-        tag: "reengagement",
+        tag: "weekly-summary",
       });
 
       const parsed = typeof subscription === "string" ? JSON.parse(subscription) : subscription;
       await webpush.sendNotification(parsed, payload);
       sent++;
     } catch (err) {
-      console.error(`Error sending push to user ${sub.user_id}:`, err);
+      console.error(`Error sending weekly summary push to user ${sub.user_id}:`, err);
       skipped++;
     }
   }
