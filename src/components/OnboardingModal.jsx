@@ -78,6 +78,7 @@ export default function OnboardingModal() {
     }
     setUserGoal(goal);
     markOnboardingSeen();
+    useStore.getState().setPage("start");
     setSaving(false);
   }
 
@@ -306,7 +307,7 @@ export default function OnboardingModal() {
             <div style={{ display: "flex", gap: 10 }}>
               <button className="ghost" style={{ flex: 1 }} onClick={() => setStep(4)}>← Atrás</button>
               <button className="primary" style={{ flex: 2 }} disabled={saving} onClick={finish}>
-                {saving ? "Guardando…" : "¡Empezar! 🚀"}
+                {saving ? "Guardando…" : "🏋️ Empezar mi primer entreno"}
               </button>
             </div>
           </>
