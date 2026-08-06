@@ -479,10 +479,12 @@ function AppContent() {
   const isTrainer = role === "trainer";
   const isAdminRole = ["superadmin", "admin", "trainer"].includes(role);
   // Trainers always have full access — no paywall, no trial expiry
-  const hasAccess = isTrainer || !subStatus || subStatus === "active" || subStatus === "trialing";
   const accountAgeMs = profile?.created_at ? Date.now() - new Date(profile.created_at).getTime() : 0;
-  // trialExpired only when account is old AND subStatus is explicitly non-active (not null/undefined = brand new user)
-  const trialExpired = !isAdminRole && accountAgeMs > 30 * 24 * 60 * 60 * 1000 && !!subStatus && subStatus !== "active";
+  const TRIAL_MS = 30 * 24 * 60 * 60 * 1000;
+  // Trial is active when account is < 30 days old (regardless of subStatus)
+  const hasAccess = isTrainer || subStatus === "active" || subStatus === "trialing" || accountAgeMs <= TRIAL_MS;
+  // Trial expired when > 30 days old AND not active/trialing subscriber (includes null subStatus after trial ends)
+  const trialExpired = !isAdminRole && accountAgeMs > TRIAL_MS && subStatus !== "active" && subStatus !== "trialing";
 
   const PAGE_ROLE_GUARDS = {
     admin: ["admin", "superadmin"],
