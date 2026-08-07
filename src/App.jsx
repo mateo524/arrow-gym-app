@@ -35,11 +35,9 @@ import { subscribeToPush, requestPushPermission, isPushSupported } from "./lib/p
 
 const APP_VERSION = "54";
 
-// Apply saved theme on first load (before React renders)
-(function () {
-  const t = localStorage.getItem("loop-theme");
-  if (t === "light") document.documentElement.setAttribute("data-theme", "light");
-})();
+// Always dark mode — remove any stale light theme from localStorage
+localStorage.removeItem("loop-theme");
+document.documentElement.removeAttribute("data-theme");
 
 function InstallBanner({ onInstall, onDismiss, isIOS }) {
   if (isIOS) {
@@ -758,18 +756,6 @@ export default function App() {
     document.documentElement.style.setProperty("--app-zoom", String(fontScale || 1));
   }, [fontScale]);
 
-  // Apply auto dark mode
-  useEffect(() => {
-    if (!autoDarkMode) return;
-    function checkDark() {
-      const h = new Date().getHours();
-      const isDark = h >= 19 || h < 8;
-      document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light");
-    }
-    checkDark();
-    const interval = setInterval(checkDark, 60000);
-    return () => clearInterval(interval);
-  }, [autoDarkMode]);
 
   return (
     <Router hook={useHashLocation}>

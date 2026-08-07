@@ -510,10 +510,6 @@ export default function ProfilePage() {
             })()}
           </div>
 
-          <div className="settings-row">
-            <div><label>Modo oscuro automático</label><small>Sigue el tema del sistema</small></div>
-            <button className={`toggle${autoDarkMode ? " on" : ""}`} onClick={() => setAutoDarkMode(!autoDarkMode)} aria-pressed={autoDarkMode} />
-          </div>
 
           <div className="settings-row" style={{ flexDirection:"column", alignItems:"flex-start", gap:8 }}>
             <div>
@@ -675,35 +671,6 @@ export default function ProfilePage() {
               </div>
             )}
           </div>
-        </div>
-
-        {/* Theme toggle */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--panel)", borderRadius: 14, padding: "12px 16px", marginTop: 14 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ fontSize: 18 }}>{theme === "light" ? "☀️" : "🌙"}</span>
-            <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>{theme === "light" ? "Modo claro" : "Modo oscuro"}</span>
-          </div>
-          <button
-            onClick={() => {
-              const next = theme === "dark" ? "light" : "dark";
-              setTheme(next);
-              localStorage.setItem("loop-theme", next);
-              if (next === "light") document.documentElement.setAttribute("data-theme", "light");
-              else document.documentElement.removeAttribute("data-theme");
-            }}
-            style={{
-              width: 48, height: 26, borderRadius: 13, border: "none", cursor: "pointer", position: "relative", transition: "background .2s",
-              background: theme === "light" ? "#a855f7" : "rgba(255,255,255,.15)",
-              flexShrink: 0,
-            }}
-            aria-label="Cambiar tema"
-          >
-            <span style={{
-              position: "absolute", top: 3, width: 20, height: 20, borderRadius: "50%", background: "#fff",
-              transition: "left .2s", left: theme === "light" ? 25 : 3,
-              boxShadow: "0 1px 4px rgba(0,0,0,.3)",
-            }} />
-          </button>
         </div>
 
         {/* Logout */}
