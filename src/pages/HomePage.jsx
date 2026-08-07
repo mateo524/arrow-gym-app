@@ -62,15 +62,18 @@ export default function HomePage() {
   }, [profile, weeklyGoal, userGoal, activityLevel]);
 
   // Daily streak: consecutive days with at least 1 workout or cardio
+  // If today hasn't been trained yet, we look backwards from yesterday so the streak isn't broken mid-day
   const streak = useMemo(() => {
     const trainedDates = new Set([
       ...(workouts || []).map(w => w.date?.slice(0,10)),
       ...(cardioHistory || []).map(c => c.date?.slice(0,10)),
     ].filter(Boolean));
     if (!trainedDates.size) return 0;
-    let count = 0;
     const today = new Date();
-    for (let i = 0; i < 365; i++) {
+    const todayStr = dateToLocal(today);
+    const startI = trainedDates.has(todayStr) ? 0 : 1;
+    let count = 0;
+    for (let i = startI; i < 365; i++) {
       const d = new Date(today);
       d.setDate(today.getDate() - i);
       if (trainedDates.has(dateToLocal(d))) { count++; } else { break; }
