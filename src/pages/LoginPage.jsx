@@ -18,6 +18,7 @@ export default function LoginPage() {
   const [mode, setMode] = useState("login"); // "login" | "forgot" | "register"
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [fullName, setFullName] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [msg, setMsg] = useState("");
@@ -128,8 +129,16 @@ export default function LoginPage() {
               </div>
               <div className="field-group">
                 <label htmlFor="password-reg">Contraseña</label>
-                <input id="password-reg" type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Mínimo 6 caracteres" autoComplete="new-password" minLength={6} required />
+                <div style={{ position:"relative" }}>
+                  <input id="password-reg" type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Mínimo 6 caracteres" autoComplete="new-password" minLength={6} required
+                    style={{ width:"100%", paddingRight:42, boxSizing:"border-box", color:"var(--text)" }} />
+                  <button type="button" onClick={() => setShowPassword(v => !v)}
+                    style={{ position:"absolute", right:12, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:"pointer", color:"var(--muted)", padding:0, display:"flex", alignItems:"center" }}
+                    aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}>
+                    <Icon name={showPassword ? "EyeOff" : "Eye"} size={18} />
+                  </button>
+                </div>
               </div>
               {msg && (
                 <div className={msg.startsWith("✓") ? "success-msg" : "login-error"}>
@@ -140,7 +149,7 @@ export default function LoginPage() {
               <button type="submit" className="primary big login-btn" disabled={submitting || !email || !password || !fullName}>
                 {submitting ? "Creando cuenta…" : "Crear cuenta"}
               </button>
-              <button type="button" className="ghost" style={{ width:"100%", fontSize:13 }}
+              <button type="button" className="ghost" style={{ width:"100%", fontSize:13, color:"var(--muted)" }}
                 onClick={() => { setMode("login"); setMsg(""); }}>
                 ← Ya tengo cuenta
               </button>
@@ -157,8 +166,16 @@ export default function LoginPage() {
               </div>
               <div className="field-group">
                 <label htmlFor="password">Contraseña</label>
-                <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••" autoComplete="current-password" required />
+                <div style={{ position:"relative" }}>
+                  <input id="password" type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••" autoComplete="current-password" required
+                    style={{ width:"100%", paddingRight:42, boxSizing:"border-box", color:"var(--text)" }} />
+                  <button type="button" onClick={() => setShowPassword(v => !v)}
+                    style={{ position:"absolute", right:12, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:"pointer", color:"var(--muted)", padding:0, display:"flex", alignItems:"center" }}
+                    aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}>
+                    <Icon name={showPassword ? "EyeOff" : "Eye"} size={18} />
+                  </button>
+                </div>
               </div>
 
               {authError && (
@@ -211,7 +228,7 @@ export default function LoginPage() {
                 {submitting ? "Enviando…" : "Enviar email"}
               </button>
 
-              <button type="button" className="ghost" style={{ width: "100%", fontSize: 13 }}
+              <button type="button" className="ghost" style={{ width: "100%", fontSize: 13, color:"var(--muted)" }}
                 onClick={() => { setMode("login"); setMsg(""); }}>
                 ← Volver al login
               </button>

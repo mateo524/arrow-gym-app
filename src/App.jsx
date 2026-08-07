@@ -191,7 +191,11 @@ function AppContent() {
     const t = setTimeout(() => { setAchToast(null); clearNewAchievements(); }, 4000);
     return () => clearTimeout(t);
   }, [newAchievements.length]);
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  // Check URL params on initial load (Supabase cleans URL before first effect runs)
+  const [showPasswordModal, setShowPasswordModal] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("type") === "recovery";
+  });
   const [newPassword, setNewPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [passwordLoading, setPasswordLoading] = useState(false);
