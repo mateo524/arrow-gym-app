@@ -60,44 +60,22 @@ export default function HomePage() {
     return goalDefaults[userGoal]?.[lvlKey] ?? weeklyGoal ?? 4;
   }, [profile, weeklyGoal, userGoal, activityLevel]);
 
-  // Weekly streak: consecutive weeks where weeklyGoal was met
-  // One "freeze" allowed every 4 weeks (missed by 1 workout)
+  // Daily streak: consecutive days with at least 1 workout or cardio
   const streak = useMemo(() => {
-    if (!workouts?.length) return 0;
-    const goal = adaptedWeeklyGoal;
-    // Count workouts per week (Mon–Sun)
-    const weekCounts = {};
-    [...(workouts || []), ...(cardioHistory || []).map(c => ({ date: c.date?.slice(0,10) }))].forEach(w => {
-      if (!w.date) return;
-      const d = new Date(w.date + 'T12:00:00');
-      const monday = new Date(d);
-      monday.setDate(d.getDate() - (d.getDay() === 0 ? 6 : d.getDay() - 1));
-      const key = dateToLocal(monday).slice(0, 10);
-      weekCounts[key] = (weekCounts[key] || 0) + 1;
-    });
-    // Get sorted week keys, excluding current (in-progress) week
+    const trainedDates = new Set([
+      ...(workouts || []).map(w => w.date?.slice(0,10)),
+      ...(cardioHistory || []).map(c => c.date?.slice(0,10)),
+    ].filter(Boolean));
+    if (!trainedDates.size) return 0;
+    let count = 0;
     const today = new Date();
-    const thisMonday = new Date(today);
-    thisMonday.setDate(today.getDate() - (today.getDay() === 0 ? 6 : today.getDay() - 1));
-    const thisMondayStr = dateToLocal(thisMonday).slice(0, 10);
-    const sortedWeeks = Object.keys(weekCounts).sort().reverse();
-    const pastWeeks = sortedWeeks.filter(k => k < thisMondayStr);
-    // Count consecutive weeks from most recent, with 1 freeze per 4 weeks
-    let count = 0; let freezeUsed = 0; let freezeWindow = 0;
-    for (const wk of pastWeeks) {
-      const met = weekCounts[wk] >= goal;
-      const almostMet = weekCounts[wk] === goal - 1;
-      if (met) {
-        count++; freezeWindow++;
-        if (freezeWindow >= 4) { freezeUsed = 0; freezeWindow = 0; }
-      } else if (almostMet && freezeUsed === 0) {
-        count++; freezeUsed++; freezeWindow++;
-      } else { break; }
+    for (let i = 0; i < 365; i++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      if (trainedDates.has(dateToLocal(d))) { count++; } else { break; }
     }
-    // Include current week if at least 1 workout logged (week in progress)
-    if ((weekCounts[thisMondayStr] || 0) > 0) count++;
     return count;
-  }, [workouts, cardioHistory, adaptedWeeklyGoal]);
+  }, [workouts, cardioHistory]);
 
   const consistencyScore = useMemo(() => {
     if (!workouts?.length) return null;
@@ -173,12 +151,12 @@ export default function HomePage() {
     return new Set(workouts.filter(w => w.date?.startsWith(prefix)).map(w => w.date?.slice(0,10))).size;
   }, [workouts]);
 
-  const recentAch = useMemo(() => (achievements || []).filter(a => {
-    if (!a.unlockedAt) return false;
-    const d = new Date();
-    const u = new Date(a.unlockedAt.slice(0, 10) + "T12:00:00");
-    return (d - u) / 86400000 <= 30;
-  }), [achievements]);
+  const recentAch = useMemo(() =>
+    (achievements || [])
+      .filter(a => a.unlockedAt)
+      .sort((a, b) => new Date(b.unlockedAt) - new Date(a.unlockedAt))
+      .slice(0, 3)
+  , [achievements]);
 
   const weekCalendar = useMemo(() => {
     const workoutDates = new Set((workouts || []).map(w => w.date?.slice(0,10)).filter(Boolean));
@@ -348,7 +326,7 @@ export default function HomePage() {
                     <div>
                       <div style={{ fontWeight:900, fontSize:"clamp(28px, 8vw, 42px)", color: streak>=30?"#ef4444":streak>=7?"#f97316":"#f59e0b", lineHeight:1 }}>{streak}</div>
                       <div style={{ fontSize:11, color: isMilestone ? "#f59e0b" : "var(--muted)", marginTop:2, fontWeight: isMilestone ? 700 : 400 }}>
-                        {streak === 0 ? "sin racha" : isMilestone ? milestoneMsg : `semana${streak !== 1 ? "s" : ""} de racha`}
+                        {streak === 0 ? "sin racha" : isMilestone ? milestoneMsg : `día${streak !== 1 ? "s" : ""} de racha`}
                       </div>
                       {consistencyScore !== null && (
                         <span style={{ fontSize: 10, color: 'var(--muted)', display: 'block' }}>
