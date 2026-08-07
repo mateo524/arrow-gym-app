@@ -10,6 +10,7 @@ export default function AdminPage() {
   const [tab, setTab] = useState("clients");
   const [trainers, setTrainers] = useState([]);
   const [clients, setClients] = useState([]);
+  const [trainerRequests, setTrainerRequests] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [showCreate, setShowCreate] = useState(false);
@@ -26,13 +27,33 @@ export default function AdminPage() {
 
   async function loadData() {
     setLoading(true);
-    const [{ data: t }, { data: c }] = await Promise.all([
+    const [{ data: t }, { data: c }, { data: r }] = await Promise.all([
       supabase.from("profiles").select("*").eq("role", "trainer").order("name"),
       supabase.from("profiles").select("*, trainer:trainer_id(name)").eq("role", "user").order("name"),
+      supabase.from("trainer_role_requests").select("*, user:user_id(id, name, email)").eq("status", "pending").order("created_at"),
     ]);
     setTrainers(t || []);
     setClients(c || []);
+    setTrainerRequests(r || []);
     setLoading(false);
+  }
+
+  async function handleApproveTrainer(userId) {
+    try {
+      const { error } = await supabase.rpc("approve_trainer_role", { p_user_id: userId });
+      if (error) throw error;
+      window.__showToast?.("Rol de entrenador activado.", "success");
+      await loadData();
+    } catch (e) {
+      window.__showToast?.(e.message || "Error al aprobar.", "error");
+    }
+  }
+
+  async function handleRejectTrainer(requestId) {
+    const { error } = await supabase.from("trainer_role_requests").update({ status: "rejected", reviewed_at: new Date().toISOString() }).eq("id", requestId);
+    if (error) { window.__showToast?.(error.message, "error"); return; }
+    window.__showToast?.("Solicitud rechazada.", "success");
+    await loadData();
   }
 
   async function handleCreateUser(e) {
@@ -114,7 +135,7 @@ export default function AdminPage() {
     await loadData();
   }
 
-  const displayList = tab === "trainers" ? trainers : clients;
+  const displayList = tab === "trainers" ? trainers : clients; // "requests" handled separately
 
   if (!["admin", "superadmin"].includes(profile?.role)) return null;
 
@@ -132,17 +153,23 @@ export default function AdminPage() {
         <button className={`tab-btn${tab === "trainers" ? " active" : ""}`} onClick={() => setTab("trainers")}>
           Entrenadores <span className="tab-count">{trainers.length}</span>
         </button>
+        <button className={`tab-btn${tab === "requests" ? " active" : ""}`} onClick={() => setTab("requests")} style={{ position: "relative" }}>
+          Solicitudes
+          {trainerRequests.length > 0 && <span className="tab-count" style={{ background: "var(--red, #e05252)" }}>{trainerRequests.length}</span>}
+        </button>
       </div>
 
-      <button className="primary" style={{ width: "100%", marginBottom: 16 }} onClick={() => {
-        setShowCreate(true);
-        setCreateRole(tab === "trainers" ? "trainer" : "user");
-        setCreateError("");
-        setCreateSuccess("");
-        setForm(EMPTY_FORM);
-      }}>
-        <Icon name="Plus" size={16} /> Crear {tab === "trainers" ? "entrenador" : "cliente"}
-      </button>
+      {tab !== "requests" && (
+        <button className="primary" style={{ width: "100%", marginBottom: 16 }} onClick={() => {
+          setShowCreate(true);
+          setCreateRole(tab === "trainers" ? "trainer" : "user");
+          setCreateError("");
+          setCreateSuccess("");
+          setForm(EMPTY_FORM);
+        }}>
+          <Icon name="Plus" size={16} /> Crear {tab === "trainers" ? "entrenador" : "cliente"}
+        </button>
+      )}
 
       {showCreate && (
         <div className="modal-overlay" onClick={() => setShowCreate(false)}>
@@ -230,6 +257,34 @@ export default function AdminPage() {
 
       {loading ? (
         <div className="loading-state"><Icon name="Loader" size={24} className="spin" /><p>Cargando…</p></div>
+      ) : tab === "requests" ? (
+        trainerRequests.length === 0 ? (
+          <div className="empty-state">
+            <Icon name="UserCheck" size={40} />
+            <p>No hay solicitudes pendientes.</p>
+          </div>
+        ) : (
+          <div className="user-list">
+            {trainerRequests.map((req) => (
+              <div key={req.id} className="user-row" style={{ alignItems: "flex-start", gap: 10 }}>
+                <div className="user-avatar">{(req.user?.name || req.user?.email || "?")[0].toUpperCase()}</div>
+                <div className="user-info" style={{ flex: 1 }}>
+                  <strong>{req.user?.name || "—"}</strong>
+                  <small>{req.user?.email}</small>
+                  <small style={{ color: "var(--muted)" }}>Solicitado: {new Date(req.created_at).toLocaleDateString("es-AR")}</small>
+                </div>
+                <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                  <button className="primary" style={{ fontSize: 12, padding: "6px 12px" }} onClick={() => handleApproveTrainer(req.user_id)}>
+                    Aprobar
+                  </button>
+                  <button className="ghost" style={{ fontSize: 12, padding: "6px 12px" }} onClick={() => handleRejectTrainer(req.id)}>
+                    Rechazar
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )
       ) : displayList.length === 0 ? (
         <div className="empty-state">
           <Icon name="Users" size={40} />

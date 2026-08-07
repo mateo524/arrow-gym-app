@@ -661,6 +661,28 @@ export default function ProfilePage() {
           </div>
 
 
+          {role === "user" && (
+            <div className="settings-row" style={{ flexDirection: "column", alignItems: "flex-start", gap: 8 }}>
+              <div><label>¿Sos entrenador?</label><small>Activá el panel de entrenador para gestionar alumnos y generar links de invitación</small></div>
+              <button
+                className="primary"
+                style={{ fontSize: 13, padding: "10px 18px", borderRadius: 12 }}
+                onClick={async () => {
+                  if (!confirm("¿Querés activar el modo entrenador en tu cuenta?")) return;
+                  try {
+                    const { error } = await supabase.rpc("request_trainer_role");
+                    if (error) throw error;
+                    window.__showToast?.("Solicitud enviada. Un admin la revisará pronto.", "success");
+                  } catch {
+                    window.__showToast?.("Error al enviar la solicitud. Intentá de nuevo.", "error");
+                  }
+                }}
+              >
+                Activar modo entrenador
+              </button>
+            </div>
+          )}
+
           <div className="settings-row" style={{ flexDirection:"column", alignItems:"flex-start", gap:8 }}>
             <div>
               <label>🏆 Modo competencia</label>

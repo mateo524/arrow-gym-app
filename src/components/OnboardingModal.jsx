@@ -87,17 +87,22 @@ export default function OnboardingModal() {
   const labelStyle = { fontSize: 12, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 6 };
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.88)", zIndex: 10002, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
-      <div style={{ background: "var(--bg)", borderRadius: "24px 24px 0 0", padding: "28px 24px 52px", width: "100%", maxWidth: 480, maxHeight: "92vh", overflow: "auto" }}>
+    <div role="dialog" aria-modal="true" aria-label="Configuración inicial" style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 60, background: "rgba(0,0,0,.88)", zIndex: 10002, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+      <div style={{ background: "var(--bg)", borderRadius: "24px 24px 0 0", padding: "28px 24px 32px", width: "100%", maxWidth: 480, maxHeight: "88vh", overflow: "auto" }}>
 
-        {/* Progress bar */}
-        <div style={{ display: "flex", gap: 5, marginBottom: 28 }}>
-          {Array.from({ length: TOTAL_STEPS }, (_, i) => (
-            <div key={i} style={{
-              flex: 1, height: 4, borderRadius: 2, transition: "background 0.3s",
-              background: i < step ? "var(--green)" : "var(--panel2)",
-            }} />
-          ))}
+        {/* Header: progress + skip */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24 }}>
+          <div style={{ display: "flex", gap: 5, flex: 1 }}>
+            {Array.from({ length: TOTAL_STEPS }, (_, i) => (
+              <div key={i} style={{
+                flex: 1, height: 4, borderRadius: 2, transition: "background 0.3s",
+                background: i < step ? "var(--green)" : "var(--panel2)",
+              }} />
+            ))}
+          </div>
+          <button onClick={finish} disabled={saving} style={{ background: "none", border: "none", color: "var(--muted)", fontSize: 13, cursor: "pointer", padding: "4px 8px", flexShrink: 0 }}>
+            Saltar
+          </button>
         </div>
 
         {/* Step 1: Welcome */}
