@@ -35,19 +35,8 @@ import { subscribeToPush, requestPushPermission, isPushSupported } from "./lib/p
 
 const APP_VERSION = "54";
 
-// Auto dark/light mode based on OS preference
-{
-  const mq = window.matchMedia("(prefers-color-scheme: light)");
-  const apply = (e) => {
-    if (e.matches) {
-      document.documentElement.setAttribute("data-theme", "light");
-    } else {
-      document.documentElement.removeAttribute("data-theme");
-    }
-  };
-  apply(mq);
-  mq.addEventListener("change", apply);
-}
+// Always dark mode
+document.documentElement.removeAttribute("data-theme");
 localStorage.removeItem("loop-theme");
 
 function InstallBanner({ onInstall, onDismiss, isIOS }) {
