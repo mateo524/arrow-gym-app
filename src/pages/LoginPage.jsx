@@ -184,7 +184,7 @@ export default function LoginPage() {
                 {submitting ? "Ingresando…" : cooldownSecs > 0 ? `Bloqueado (${cooldownSecs}s)` : "Ingresar"}
               </button>
 
-              <button type="button" className="ghost" style={{ width: "100%", fontSize: 13 }}
+              <button type="button" className="ghost" style={{ width: "100%", fontSize: 13, color: "var(--muted)" }}
                 onClick={() => { setMode("forgot"); setMsg(""); }}>
                 Olvidé mi contraseña
               </button>
@@ -222,7 +222,7 @@ export default function LoginPage() {
         {mode === "login" && (
           <p className="login-footer">
             ¿No tenés cuenta?{" "}
-            <button type="button" className="ghost" style={{ display:"inline", padding:0, fontSize:"inherit", color:"var(--accent)", textDecoration:"underline", background:"none", border:"none", cursor:"pointer" }}
+            <button type="button" className="ghost" style={{ display:"inline", padding:0, fontSize:"inherit", color:"var(--green)", textDecoration:"underline", background:"none", border:"none", cursor:"pointer" }}
               onClick={() => { setMode("register"); setMsg(""); }}>
               Registrarse
             </button>
