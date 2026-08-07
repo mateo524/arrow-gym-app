@@ -57,7 +57,7 @@ const useStore = create(
       version: 4,
       storage: quotaStorage,
       partialize: (state) => {
-        const { currentPage, selectedWorkoutId, progressPhotos, currentPRCard, ...rest } = state;
+        const { currentPage, selectedWorkoutId, currentPRCard, ...rest } = state;
         return rest;
       },
     }

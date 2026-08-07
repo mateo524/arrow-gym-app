@@ -25,11 +25,17 @@ export default function Nav({ role }) {
 
   useEffect(() => {
     if (!profile?.id) return;
-    supabase.from("notifications").select("id", { count: "exact" })
-      .eq("user_id", profile.id).eq("read", false)
-      .then(({ count }) => setNotifCount(count || 0))
-      .catch(() => {});
-  }, [profile?.id, currentPage]);
+    // Fetch once on mount and then every 5 minutes — not on every navigation
+    const fetch = () => {
+      supabase.from("notifications").select("id", { count: "exact" })
+        .eq("user_id", profile.id).eq("read", false)
+        .then(({ count }) => setNotifCount(count || 0))
+        .catch(() => {});
+    };
+    fetch();
+    const interval = setInterval(fetch, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [profile?.id]);
 
   const badges = { activeWorkout: !!activeWorkout, coachBadge, notifBadge: notifCount > 0 };
 

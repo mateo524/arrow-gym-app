@@ -71,6 +71,5 @@ export const createSettingsSlice = (set, get) => ({
     weeklyChallenge: null,
     weightLog: [],
     measurementsHistory: [],
-    progressPhotos: [],
   }),
 });

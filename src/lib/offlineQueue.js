@@ -4,7 +4,11 @@ function load() {
   try { return JSON.parse(localStorage.getItem(KEY) || "[]"); } catch { return []; }
 }
 function save(q) {
-  localStorage.setItem(KEY, JSON.stringify(q));
+  try {
+    localStorage.setItem(KEY, JSON.stringify(q));
+  } catch (e) {
+    console.warn("[offlineQueue] no se pudo guardar la cola:", e);
+  }
 }
 
 export function enqueue(item) {

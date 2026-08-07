@@ -538,7 +538,7 @@ function AppContent() {
     );
   } else if (showLogin) {
     inner = <LoginPage />;
-  } else if (!hasAccess) {
+  } else if (!hasAccess && !trialExpired) {
     inner = (
       <div style={{ minHeight:"100vh", background:"var(--bg)", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:24, textAlign:"center" }}>
         <div style={{ fontSize:40, marginBottom:16 }}>🔒</div>

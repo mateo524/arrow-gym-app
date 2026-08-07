@@ -483,7 +483,7 @@ export default function WorkoutPage() {
       _commitFinish(notes, rpe, summary, mood);
       return;
     }
-    const timeout = setTimeout(() => _commitFinish(notes, rpe, summary, mood), 5000);
+    const timeout = setTimeout(() => _commitFinish(notes, rpe, summary, mood), 2000);
     import("../lib/supabase.js").then(({ supabase }) => {
       supabase.from("routines").select("id, exercises").eq("user_id", userId).then(({ data, error }) => {
         clearTimeout(timeout);

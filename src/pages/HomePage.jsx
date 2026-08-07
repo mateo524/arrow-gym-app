@@ -3,12 +3,12 @@ import { useShallow } from "zustand/react/shallow";
 import useStore from "../store/useStore.js";
 import useAuthStore from "../store/useAuthStore.js";
 import { todayLocal, dateToLocal } from "../lib/dates.js";
-import { getWorkoutVolume, formatDate, getMuscleIntensity, filterCurrentWeek, getNextWorkoutSuggestion, getDeloadSuggestion, ACHIEVEMENTS_DEF } from "../lib/analytics.js";
+import { getWorkoutVolume, formatDate, getMuscleIntensity, filterCurrentWeek, getNextWorkoutSuggestion, getDeloadSuggestion, ACHIEVEMENTS_DEF, getAchievements } from "../lib/analytics.js";
 import AdvancedMuscleDiagram from "../components/AdvancedMuscleDiagram.jsx";
 import Icon from "../components/Icon.jsx";
 
 export default function HomePage() {
-  const { workouts, restDays, setPage, activeWorkout, achievements, prs, cardioHistory, weeklyGoal, logRestDay, mealLog } = useStore(
+  const { workouts, restDays, setPage, activeWorkout, achievements, prs, cardioHistory, weeklyGoal, logRestDay, mealLog, weightLog } = useStore(
     useShallow(s => ({
       workouts: s.workouts,
       restDays: s.restDays || [],
@@ -20,6 +20,7 @@ export default function HomePage() {
       weeklyGoal: s.weeklyGoal || 4,
       logRestDay: s.logRestDay,
       mealLog: s.mealLog || [],
+      weightLog: s.weightLog || [],
     }))
   );
   const profile = useAuthStore((s) => s.profile);
@@ -185,9 +186,9 @@ export default function HomePage() {
 
   // Upcoming achievements — earned achievements with next tier within reach
   const upcomingAchievements = useMemo(() => {
-    const achList = achievements || [];
-    const candidates = achList
-      .filter(a => a.level < 3 && Array.isArray(a.tiers))
+    const earned = getAchievements(workouts, prs, mealLog, weightLog, restDays);
+    const candidates = earned
+      .filter(a => a.level < 3)
       .map(a => {
         const nextTier = a.tiers[a.level]; // a.level is 1-based, tiers is 0-indexed
         if (!nextTier) return null;
@@ -204,7 +205,7 @@ export default function HomePage() {
       .sort((a, b) => b.ratio - a.ratio)
       .slice(0, 2);
     return candidates;
-  }, [achievements]);
+  }, [workouts, prs, mealLog, weightLog, restDays]);
 
   // ── Presentation helpers (no business logic) ──
   const hour = new Date().getHours();

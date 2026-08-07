@@ -496,10 +496,10 @@ export const createWorkoutSlice = (set, get) => ({
     const d = new Date(accepted); d.setDate(d.getDate() + 7);
     const planAdjustment = { type, factor, acceptedAt: accepted, expiresAt: dateToLocal(d) };
     set({ activePlanAdjustment: planAdjustment });
-    const uid = getAuthUserId();
-    if (uid) {
+    const userId = getAuthUserId();
+    if (userId) {
       import("../../lib/supabase.js").then(({ supabase }) => {
-        supabase.from("profiles").update({ plan_adjustment: JSON.stringify(planAdjustment) }).eq("id", uid).catch(() => {});
+        supabase.from("profiles").update({ plan_adjustment: JSON.stringify(planAdjustment) }).eq("id", userId).catch(() => {});
       });
     }
   },
@@ -507,10 +507,10 @@ export const createWorkoutSlice = (set, get) => ({
     // No expiry on decline — user explicitly rejected, don't show again
     const planAdjustment = { type, declined: true, declinedAt: today(), expiresAt: null };
     set({ activePlanAdjustment: planAdjustment });
-    const uid = getAuthUserId();
-    if (uid) {
+    const userId = getAuthUserId();
+    if (userId) {
       import("../../lib/supabase.js").then(({ supabase }) => {
-        supabase.from("profiles").update({ plan_adjustment: JSON.stringify(planAdjustment) }).eq("id", uid).catch(() => {});
+        supabase.from("profiles").update({ plan_adjustment: JSON.stringify(planAdjustment) }).eq("id", userId).catch(() => {});
       });
     }
   },
@@ -533,10 +533,10 @@ export const createWorkoutSlice = (set, get) => ({
     } else {
       set({ activePlanAdjustment: null });
     }
-    const uid = getAuthUserId();
-    if (uid) {
+    const userId = getAuthUserId();
+    if (userId) {
       import("../../lib/supabase.js").then(({ supabase }) => {
-        supabase.from("profiles").update({ plan_adjustment: null }).eq("id", uid).catch(() => {});
+        supabase.from("profiles").update({ plan_adjustment: null }).eq("id", userId).catch(() => {});
       });
     }
   },
