@@ -35,9 +35,20 @@ import { subscribeToPush, requestPushPermission, isPushSupported } from "./lib/p
 
 const APP_VERSION = "54";
 
-// Always dark mode — remove any stale light theme from localStorage
+// Auto dark/light mode based on OS preference
+{
+  const mq = window.matchMedia("(prefers-color-scheme: light)");
+  const apply = (e) => {
+    if (e.matches) {
+      document.documentElement.setAttribute("data-theme", "light");
+    } else {
+      document.documentElement.removeAttribute("data-theme");
+    }
+  };
+  apply(mq);
+  mq.addEventListener("change", apply);
+}
 localStorage.removeItem("loop-theme");
-document.documentElement.removeAttribute("data-theme");
 
 function InstallBanner({ onInstall, onDismiss, isIOS }) {
   if (isIOS) {
@@ -126,7 +137,6 @@ function AppContent() {
   const [location, setLocation] = useLocation();
   const currentPage = useStore((s) => s.currentPage);
   const activeWorkout = useStore((s) => s.activeWorkout);
-  const amoled = useStore((s) => s.amoled);
   const setPage = useStore((s) => s.setPage);
   const currentPRCard = useStore((s) => s.currentPRCard);
   const clearPRCard = useStore((s) => s.clearPRCard);
@@ -602,7 +612,7 @@ function AppContent() {
     );
   } else {
     inner = (
-      <div className={`app-shell${amoled ? " amoled" : ""}`}>
+      <div className="app-shell">
         {/* ── TRIAL COUNTDOWN BANNER ─────────────────────────────────────── */}
         {(() => {
           if (isAdminRole || trialBannerDismissed) return null;

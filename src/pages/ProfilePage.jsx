@@ -43,11 +43,9 @@ function BodyWeightChart({ data }) {
 
 export default function ProfilePage() {
   const setPage = useStore((s) => s.setPage);
-  const amoled = useStore((s) => s.amoled);
   const soundEnabled = useStore((s) => s.soundEnabled);
   const userGoal = useStore((s) => s.userGoal);
   const activityLevel = useStore((s) => s.activityLevel);
-  const toggleAmoled = useStore((s) => s.toggleAmoled);
   const toggleSound = useStore((s) => s.toggleSound);
 
   const reminderEnabled = useStore(s => s.reminderEnabled);
@@ -531,11 +529,6 @@ export default function ProfilePage() {
                   }}>{n}</button>
               ))}
             </div>
-          </div>
-
-          <div className="settings-row">
-            <div><label>Modo AMOLED</label><small>Fondo negro puro para pantallas OLED</small></div>
-            <button className={`toggle${amoled ? " on" : ""}`} onClick={toggleAmoled} aria-pressed={amoled} />
           </div>
 
           <div className="settings-row">

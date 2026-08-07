@@ -2,7 +2,6 @@ export const createSettingsSlice = (set, get) => ({
   currentPage: "home",
   selectedWorkoutId: null,
   coachBadge: false,
-  amoled: false,
   soundEnabled: true,
   userGoal: "mantenimiento",
   fontScale: 1,
@@ -30,7 +29,6 @@ export const createSettingsSlice = (set, get) => ({
 
   openWorkout: (id) => set({ selectedWorkoutId: id, currentPage: "workoutDetail" }),
   clearCoachBadge: () => set({ coachBadge: false }),
-  toggleAmoled: () => set((s) => ({ amoled: !s.amoled })),
   toggleSound: () => set((s) => ({ soundEnabled: !s.soundEnabled })),
   setUserGoal: (goal) => set({ userGoal: goal }),
   setActivityLevel: (level) => set({ activityLevel: level }),
