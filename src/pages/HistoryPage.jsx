@@ -335,7 +335,7 @@ export default function HistoryPage() {
                 items.push(
                   <div key={`month-${entryMonth}`} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 2px 4px", marginTop:12 }}>
                     <span style={{ fontSize:13, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.5px" }}>{monthLabel}</span>
-                    <span style={{ fontSize:12, color:"var(--muted)" }}>{monthVolume >= 1000 ? (monthVolume/1000).toFixed(1) + "k" : monthVolume}kg · {monthWorkoutCount} entrenos</span>
+                    <span style={{ fontSize:12, color:"var(--muted)" }}>{monthVolume >= 1000 ? (monthVolume/1000).toFixed(1) + "k" : monthVolume} kg · {monthWorkoutCount} entrenos</span>
                   </div>
                 );
               }

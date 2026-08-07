@@ -518,6 +518,16 @@ export default function HomePage() {
           )}
 
           {/* Próximos logros — goal-gradient progress bars */}
+          {recentAch.length === 0 && upcomingAchievements.length === 0 && isEmpty && (
+            <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:14, padding:"14px 16px", marginBottom:14, textAlign:"center" }}>
+              <div style={{ fontSize:28, marginBottom:6 }}>🏆</div>
+              <div style={{ fontSize:13, fontWeight:700, marginBottom:4 }}>Tus logros aparecen acá</div>
+              <div style={{ fontSize:12, color:"var(--muted)", lineHeight:1.5 }}>Completá tu primer entreno para empezar a desbloquear badges y ver tu progreso.</div>
+              <button className="primary" style={{ marginTop:12, fontSize:13, padding:"8px 20px" }} onClick={() => setPage("start")}>
+                Empezar ahora →
+              </button>
+            </div>
+          )}
           {upcomingAchievements.length > 0 && (
             <div style={{ marginBottom:14 }}>
               <p className="section-label">Próximos logros</p>

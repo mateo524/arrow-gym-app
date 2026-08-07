@@ -663,7 +663,7 @@ export default function WorkoutPage() {
             <p style={{ color: "var(--muted)", fontSize: 13, margin: "0 0 20px" }}>Tocá ⋮ para agregar ejercicios</p>
             <button
               style={{ background: "rgba(168,85,247,.15)", border: "1px solid rgba(168,85,247,.4)", borderRadius: 14, padding: "12px 24px", cursor: "pointer", fontSize: 14, fontWeight: 700, color: "var(--green)" }}
-              onClick={() => setShowMenu(true)}>
+              onClick={() => setShowPicker(true)}>
               + Agregar ejercicio
             </button>
           </div>

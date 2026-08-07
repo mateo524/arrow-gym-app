@@ -208,11 +208,8 @@ function AppContent() {
     // iOS detection — they don't have beforeinstallprompt, need manual instructions
     const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
     if (ios) {
-      // Show iOS instructions after 10s; suppress for 7 days after dismissal
-      const shownAt = localStorage.getItem('install-ios-shown-at');
-      const sevenDays = 7 * 24 * 60 * 60 * 1000;
-      const suppressed = shownAt && (Date.now() - Number(shownAt)) < sevenDays;
-      if (!suppressed) {
+      const dismissed = localStorage.getItem('install-dismissed-permanently');
+      if (!dismissed) {
         setTimeout(() => { setIsIOS(true); setShowInstallBanner(true); }, 10000);
       }
       return;
@@ -222,10 +219,9 @@ function AppContent() {
     const handler = (e) => {
       e.preventDefault();
       setInstallPrompt(e);
-      const shown = sessionStorage.getItem('install-shown');
-      if (!shown) {
+      const dismissed = localStorage.getItem('install-dismissed-permanently');
+      if (!dismissed) {
         setTimeout(() => setShowInstallBanner(true), 3000);
-        sessionStorage.setItem('install-shown', '1');
       }
     };
     window.addEventListener('beforeinstallprompt', handler);
@@ -430,9 +426,15 @@ function AppContent() {
     if (!code) return;
     localStorage.removeItem("pending_invite_code");
     (async () => {
-      const { data } = await supabase.from("invite_codes").select("trainer_id").eq("code", code).maybeSingle();
-      if (data?.trainer_id && data.trainer_id !== user.id) {
-        await supabase.from("profiles").update({ referred_by: data.trainer_id }).eq("id", user.id);
+      const { data, error } = await supabase.rpc("request_trainer_from_invite", { p_invite_code: code });
+      if (!error && data?.ok) {
+        window.__showToast?.(`Solicitud enviada a ${data.trainer_name || "tu entrenador"} 🏋️. Te avisamos cuando la acepte.`, "success");
+      } else if (data?.error !== "invalid_code") {
+        // Fallback: just set referred_by for commission tracking
+        const { data: inv } = await supabase.from("invite_codes").select("trainer_id").eq("code", code).maybeSingle();
+        if (inv?.trainer_id && inv.trainer_id !== user.id) {
+          await supabase.from("profiles").update({ referred_by: inv.trainer_id }).eq("id", user.id);
+        }
       }
     })();
   }, [user?.id]); // eslint-disable-line
@@ -510,10 +512,13 @@ function AppContent() {
   // Trainers always have full access — no paywall, no trial expiry
   const accountAgeMs = profile?.created_at ? Date.now() - new Date(profile.created_at).getTime() : 0;
   const TRIAL_MS = 30 * 24 * 60 * 60 * 1000;
+  // subscription_expires_at: if set and in the future, treat as active even if status wasn't updated yet
+  const subExpiresAt = profile?.subscription_expires_at ? new Date(profile.subscription_expires_at) : null;
+  const subNotExpired = subExpiresAt && subExpiresAt > new Date();
   // Trial is active when account is < 30 days old (regardless of subStatus)
-  const hasAccess = isTrainer || subStatus === "active" || subStatus === "trialing" || accountAgeMs <= TRIAL_MS;
-  // Trial expired when > 30 days old AND not active/trialing subscriber (includes null subStatus after trial ends)
-  const trialExpired = !isAdminRole && accountAgeMs > TRIAL_MS && subStatus !== "active" && subStatus !== "trialing";
+  const hasAccess = isAdminRole || subStatus === "active" || subStatus === "trialing" || subNotExpired || accountAgeMs <= TRIAL_MS;
+  // Trial expired when > 30 days old AND not active/trialing AND sub not paid (includes null subStatus after trial ends)
+  const trialExpired = !isAdminRole && accountAgeMs > TRIAL_MS && subStatus !== "active" && subStatus !== "trialing" && !subNotExpired;
 
   const PAGE_ROLE_GUARDS = {
     admin: ["admin", "superadmin"],
@@ -746,6 +751,7 @@ function AppContent() {
           isIOS={isIOS}
           onDismiss={() => {
             setShowInstallBanner(false);
+            localStorage.setItem('install-dismissed-permanently', '1');
             if (isIOS) localStorage.setItem('install-ios-shown-at', String(Date.now()));
           }}
           onInstall={async () => {

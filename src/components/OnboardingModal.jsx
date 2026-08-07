@@ -87,7 +87,7 @@ export default function OnboardingModal() {
   const labelStyle = { fontSize: 12, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 6 };
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.88)", zIndex: 9000, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.88)", zIndex: 10002, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
       <div style={{ background: "var(--bg)", borderRadius: "24px 24px 0 0", padding: "28px 24px 52px", width: "100%", maxWidth: 480, maxHeight: "92vh", overflow: "auto" }}>
 
         {/* Progress bar */}

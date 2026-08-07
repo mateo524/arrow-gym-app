@@ -954,11 +954,11 @@ export default function CoachPage() {
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
                     <div style={{ background:"var(--panel2)", borderRadius:12, padding:"8px 10px" }}>
                       <p style={{ margin:"0 0 2px", fontSize:10, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em" }}>Esta semana</p>
-                      <b style={{ fontSize:14 }}>{fatigueScore.thisWeek >= 1000 ? (fatigueScore.thisWeek/1000).toFixed(1) + "k" : fatigueScore.thisWeek}kg</b>
+                      <b style={{ fontSize:14 }}>{fatigueScore.thisWeek >= 1000 ? (fatigueScore.thisWeek/1000).toFixed(1) + "k" : fatigueScore.thisWeek} kg</b>
                     </div>
                     <div style={{ background:"var(--panel2)", borderRadius:12, padding:"8px 10px" }}>
                       <p style={{ margin:"0 0 2px", fontSize:10, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em" }}>Semana anterior</p>
-                      <b style={{ fontSize:14 }}>{fatigueScore.lastWeek >= 1000 ? (fatigueScore.lastWeek/1000).toFixed(1) + "k" : fatigueScore.lastWeek}kg</b>
+                      <b style={{ fontSize:14 }}>{fatigueScore.lastWeek >= 1000 ? (fatigueScore.lastWeek/1000).toFixed(1) + "k" : fatigueScore.lastWeek} kg</b>
                     </div>
                   </div>
                   {fatigueScore.overreaching && (
@@ -1139,7 +1139,7 @@ export default function CoachPage() {
                           <div style={{ fontSize:20, fontWeight:900, color: w.count >= 3 ? "var(--green)" : w.count >= 1 ? "#f59e0b" : "var(--muted)" }}>{w.count}</div>
                           <div style={{ fontSize:10, color:"var(--muted)", marginTop:2 }}>sesiones</div>
                           <div style={{ fontSize:11, fontWeight:700, color:"var(--muted)", marginTop:4 }}>
-                            {w.vol >= 1000 ? (w.vol/1000).toFixed(1)+"k" : w.vol}kg
+                            {w.vol >= 1000 ? (w.vol/1000).toFixed(1)+"k" : w.vol} kg
                           </div>
                         </div>
                       ))}
@@ -1228,7 +1228,7 @@ export default function CoachPage() {
                         {activeGroups}/{totalGroups} grupos activos
                       </p>
                       <p style={{ margin:"2px 0 0", fontSize:11, color:"var(--muted)" }}>
-                        {volSpark[volSpark.length-1] >= 1000 ? (volSpark[volSpark.length-1]/1000).toFixed(1) + "k" : Math.round(volSpark[volSpark.length-1])}kg esta semana
+                        {volSpark[volSpark.length-1] >= 1000 ? (volSpark[volSpark.length-1]/1000).toFixed(1) + "k" : Math.round(volSpark[volSpark.length-1])} kg esta semana
                       </p>
                     </div>
                     <svg width={SPW} height={SPH} viewBox={`0 0 ${SPW} ${SPH}`} style={{ flexShrink:0 }}>

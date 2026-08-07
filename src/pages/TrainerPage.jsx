@@ -81,6 +81,10 @@ export default function TrainerPage() {
   const [showAssign, setShowAssign] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
 
+  // Pending student requests
+  const [pendingRequests, setPendingRequests] = useState([]);
+  const [respondingId, setRespondingId] = useState(null);
+
   // Invite code state
   const [inviteCode, setInviteCode] = useState(null);
   const [inviteCopied, setInviteCopied] = useState(false);
@@ -113,7 +117,27 @@ export default function TrainerPage() {
     loadClients();
     loadInviteCode();
     loadTemplates();
+    loadPendingRequests();
   }, []);
+
+  async function loadPendingRequests() {
+    if (!profile?.id) return;
+    const { data } = await supabase
+      .from("trainer_requests")
+      .select("id, student_id, created_at, profiles:student_id(name, email)")
+      .eq("trainer_id", profile.id)
+      .eq("status", "pending")
+      .order("created_at", { ascending: false });
+    setPendingRequests(data || []);
+  }
+
+  async function respondToRequest(requestId, newStatus) {
+    setRespondingId(requestId);
+    await supabase.rpc("respond_trainer_request", { request_id: requestId, new_status: newStatus });
+    setPendingRequests(prev => prev.filter(r => r.id !== requestId));
+    if (newStatus === "accepted") loadClients();
+    setRespondingId(null);
+  }
 
   async function loadInviteCode() {
     if (!profile?.id) return;
@@ -784,6 +808,47 @@ export default function TrainerPage() {
               </button>
             )}
           </div>}
+
+          {/* Pending student requests */}
+          {trainerTab === "alumnos" && pendingRequests.length > 0 && (
+            <div style={{ background: "rgba(249,115,22,.08)", border: "1px solid rgba(249,115,22,.3)", borderRadius: 16, padding: "14px 16px", marginBottom: 14 }}>
+              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}>
+                <span>🔔</span> {pendingRequests.length} solicitud{pendingRequests.length !== 1 ? "es" : ""} pendiente{pendingRequests.length !== 1 ? "s" : ""}
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {pendingRequests.map(req => {
+                  const student = req.profiles;
+                  const sName = student?.name || student?.email?.split("@")[0] || "Alumno";
+                  const isResponding = respondingId === req.id;
+                  return (
+                    <div key={req.id} style={{ background: "var(--panel)", borderRadius: 12, padding: "10px 12px", display: "flex", alignItems: "center", gap: 10 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: "50%", background: "linear-gradient(135deg,#a855f7,#34d399)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, color: "#fff", flexShrink: 0 }}>
+                        {sName[0].toUpperCase()}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, fontSize: 13 }}>{sName}</div>
+                        <div style={{ fontSize: 11, color: "var(--muted)" }}>{student?.email}</div>
+                      </div>
+                      <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                        <button
+                          disabled={isResponding}
+                          onClick={() => respondToRequest(req.id, "accepted")}
+                          style={{ padding: "6px 12px", borderRadius: 8, background: "rgba(52,211,153,.2)", border: "1px solid rgba(52,211,153,.5)", color: "#34d399", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                          ✓ Aceptar
+                        </button>
+                        <button
+                          disabled={isResponding}
+                          onClick={() => respondToRequest(req.id, "rejected")}
+                          style={{ padding: "6px 12px", borderRadius: 8, background: "rgba(239,68,68,.1)", border: "1px solid rgba(239,68,68,.35)", color: "#ef4444", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {trainerTab === "alumnos" && (loading ? (
             <div className="loading-state"><Icon name="Loader" size={24} className="spin" /><p>Cargando…</p></div>
