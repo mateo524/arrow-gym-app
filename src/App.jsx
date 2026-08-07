@@ -499,7 +499,7 @@ function AppContent() {
   const requiredRoles = PAGE_ROLE_GUARDS[currentPage];
   const isAllowed = !requiredRoles || requiredRoles.includes(role);
   const PageComponent = isAllowed ? (PAGE_MAP[currentPage] || HomePage) : HomePage;
-  const showOnboarding = user && profile && !hasSeenOnboarding && !isReturningUser;
+  const showOnboarding = user && profile && !hasSeenOnboarding && !isReturningUser && !showPasswordModal;
 
   let inner;
   if (shareData) {

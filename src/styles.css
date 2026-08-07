@@ -1229,6 +1229,18 @@ p { color: #c4b8d8; }
   gap: 14px;
 }
 .login-btn { width: 100%; margin-top: 4px; }
+
+/* Fix autofill color overrides in login form */
+.login-form input:-webkit-autofill,
+.login-form input:-webkit-autofill:hover,
+.login-form input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--text) !important;
+  -webkit-box-shadow: 0 0 0 1000px var(--panel2) inset !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+.login-form input {
+  color: var(--text) !important;
+}
 .login-footer {
   color: var(--text-muted);
   font-size: 12px;
