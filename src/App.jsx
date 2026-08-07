@@ -412,10 +412,18 @@ function AppContent() {
       setPage("home");
       return;
     }
+    // Trainer-to-trainer invite: #/trainer-invite/CODE
+    const trainerInvitePath = hashPath.startsWith("trainer-invite/") ? hashPath : pathnamePath.startsWith("trainer-invite/") ? pathnamePath : null;
+    if (trainerInvitePath) {
+      const code = trainerInvitePath.replace("trainer-invite/", "").trim();
+      if (code) localStorage.setItem("pending_trainer_invite", code);
+      setPage("home");
+      return;
+    }
     if (PAGE_MAP[hashPath] && hashPath !== currentPage) setPage(hashPath);
   }, []); // eslint-disable-line
 
-  // After login: resolve pending trainer invite code
+  // After login: resolve pending trainer invite code (student → linked to trainer)
   useEffect(() => {
     if (!user?.id) return;
     const code = localStorage.getItem("pending_invite_code");
@@ -425,6 +433,25 @@ function AppContent() {
       const { data } = await supabase.from("invite_codes").select("trainer_id").eq("code", code).maybeSingle();
       if (data?.trainer_id && data.trainer_id !== user.id) {
         await supabase.from("profiles").update({ referred_by: data.trainer_id }).eq("id", user.id);
+      }
+    })();
+  }, [user?.id]); // eslint-disable-line
+
+  // After login: resolve pending trainer-to-trainer invite (assigns trainer role via RPC)
+  useEffect(() => {
+    if (!user?.id) return;
+    const code = localStorage.getItem("pending_trainer_invite");
+    if (!code) return;
+    localStorage.removeItem("pending_trainer_invite");
+    (async () => {
+      const { data, error } = await supabase.rpc("use_trainer_invite", { invite_code: code });
+      if (!error && data?.ok) {
+        // Reload profile so the new role takes effect
+        const { data: p } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
+        if (p) useAuthStore.getState().setProfile(p);
+        window.__showToast?.("¡Ya sos entrenador en Loop! 🏋️", "success");
+      } else if (data?.error === "invalid_or_expired") {
+        window.__showToast?.("El link de invitación ya fue usado o expiró.", "error");
       }
     })();
   }, [user?.id]); // eslint-disable-line

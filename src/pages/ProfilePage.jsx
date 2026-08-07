@@ -151,6 +151,63 @@ export default function ProfilePage() {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
 
+  // Trainer invite state
+  const [trainerInviteCode, setTrainerInviteCode] = useState(null);
+  const [trainerInviteCopied, setTrainerInviteCopied] = useState(false);
+  const [trainerInviteLoading, setTrainerInviteLoading] = useState(false);
+  const [studentInviteCopied, setStudentInviteCopied] = useState(false);
+  const [studentInviteCode, setStudentInviteCode] = useState(null);
+  const [studentInviteLoading, setStudentInviteLoading] = useState(false);
+
+  async function generateTrainerInvite() {
+    if (trainerInviteLoading) return;
+    setTrainerInviteLoading(true);
+    // Reusar código existente no usado si hay uno vigente
+    const { data: existing } = await supabase.from("trainer_invites")
+      .select("code, expires_at")
+      .eq("created_by", profile.id)
+      .is("used_by", null)
+      .gt("expires_at", new Date().toISOString())
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    let code = existing?.code;
+    if (!code) {
+      code = Math.random().toString(36).slice(2, 10).toUpperCase();
+      await supabase.from("trainer_invites").insert({ created_by: profile.id, code });
+    }
+    setTrainerInviteCode(code);
+    setTrainerInviteLoading(false);
+    const url = `${window.location.origin}/#/trainer-invite/${code}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setTrainerInviteCopied(true);
+      setTimeout(() => setTrainerInviteCopied(false), 3000);
+    });
+  }
+
+  async function generateStudentInvite() {
+    if (studentInviteLoading) return;
+    setStudentInviteLoading(true);
+    const { data: existing } = await supabase.from("invite_codes")
+      .select("code")
+      .eq("trainer_id", profile.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    let code = existing?.code;
+    if (!code) {
+      code = Math.random().toString(36).slice(2, 10).toUpperCase();
+      await supabase.from("invite_codes").insert({ trainer_id: profile.id, code });
+    }
+    setStudentInviteCode(code);
+    setStudentInviteLoading(false);
+    const url = `${window.location.origin}/#/join/${code}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setStudentInviteCopied(true);
+      setTimeout(() => setStudentInviteCopied(false), 3000);
+    });
+  }
+
   // Referral state
   const [referralCount, setReferralCount] = useState(null);
   const [referralCopied, setReferralCopied] = useState(false);
@@ -341,6 +398,35 @@ export default function ProfilePage() {
             </div>
           );
         })()}
+
+        {/* Trainer invite panel — solo para trainers y admins */}
+        {(role === "trainer" || role === "admin" || role === "superadmin") && (
+          <div style={{ background:"var(--panel)", borderRadius:16, padding:"14px 16px", marginBottom:12 }}>
+            <div style={{ fontWeight:700, fontSize:14, marginBottom:4 }}>🔗 Invitaciones</div>
+            <p style={{ fontSize:12, color:"var(--muted)", marginBottom:12, lineHeight:1.5 }}>
+              Generá links para incorporar alumnos o colegas entrenadores.
+            </p>
+            <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+              <button
+                onClick={generateStudentInvite}
+                disabled={studentInviteLoading}
+                style={{ padding:"11px 14px", borderRadius:12, background: studentInviteCopied ? "rgba(52,211,153,.2)" : "rgba(52,211,153,.1)", border:`1px solid ${studentInviteCopied ? "rgba(52,211,153,.6)" : "rgba(52,211,153,.3)"}`, color: studentInviteCopied ? "#34d399" : "#34d399", fontSize:13, fontWeight:700, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
+                {studentInviteLoading ? "Generando…" : studentInviteCopied ? "✓ Link de alumno copiado!" : "👤 Copiar link para alumno"}
+              </button>
+              <button
+                onClick={generateTrainerInvite}
+                disabled={trainerInviteLoading}
+                style={{ padding:"11px 14px", borderRadius:12, background: trainerInviteCopied ? "rgba(168,85,247,.2)" : "rgba(168,85,247,.1)", border:`1px solid ${trainerInviteCopied ? "rgba(168,85,247,.6)" : "rgba(168,85,247,.3)"}`, color: trainerInviteCopied ? "#c084fc" : "#a855f7", fontSize:13, fontWeight:700, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
+                {trainerInviteLoading ? "Generando…" : trainerInviteCopied ? "✓ Link de entrenador copiado!" : "🏋️ Copiar link para entrenador colega"}
+              </button>
+            </div>
+            {(trainerInviteCode || studentInviteCode) && (
+              <p style={{ fontSize:11, color:"var(--muted)", marginTop:8, textAlign:"center" }}>
+                Los links de entrenador expiran en 7 días y son de un solo uso.
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Body Metrics */}
         <div style={{ background:"var(--panel)", borderRadius:16, padding:"14px 16px", marginBottom:12 }}>
