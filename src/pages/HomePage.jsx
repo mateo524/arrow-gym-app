@@ -518,7 +518,7 @@ export default function HomePage() {
           )}
 
           {/* Próximos logros — goal-gradient progress bars */}
-          {recentAch.length === 0 && upcomingAchievements.length === 0 && isEmpty && (
+          {recentAch.length === 0 && upcomingAchievements.length === 0 && (
             <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:14, padding:"14px 16px", marginBottom:14, textAlign:"center" }}>
               <div style={{ fontSize:28, marginBottom:6 }}>🏆</div>
               <div style={{ fontSize:13, fontWeight:700, marginBottom:4 }}>Tus logros aparecen acá</div>

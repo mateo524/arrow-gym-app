@@ -614,7 +614,7 @@ export default function WorkoutPage() {
           if (!totalVol) return null;
           return (
             <span style={{ fontSize: 12, color: "var(--muted)", flexShrink: 0 }}>
-              <b style={{ color: workoutTypeTheme.accent }}>{totalVol}kg</b>
+              <b style={{ color: workoutTypeTheme.accent }}>{totalVol} kg</b>
             </span>
           );
         })()}
@@ -1326,8 +1326,8 @@ export default function WorkoutPage() {
             <h2 style={{ margin: "0 0 4px" }}>Resumen del coach</h2>
             <p style={{ color: "var(--muted)", fontSize: 13, margin: 0 }}>
               {postSummary.overallPct !== null
-                ? `${postSummary.thisVol}kg (${postSummary.overallPct > 0 ? "+" : ""}${postSummary.overallPct}% vs promedio)`
-                : `Volumen total: ${postSummary.thisVol}kg`}
+                ? `${postSummary.thisVol} kg (${postSummary.overallPct > 0 ? "+" : ""}${postSummary.overallPct}% vs promedio)`
+                : `Volumen total: ${postSummary.thisVol} kg`}
             </p>
           </div>
           {(postSummary.volumeChanges || []).length > 0 && (
@@ -1639,7 +1639,7 @@ export default function WorkoutPage() {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
             {[
               { label: "Series",     value: summaryData.totalSets,   color: "var(--green)" },
-              { label: "Volumen",    value: `${summaryData.totalVolume}kg`, color: "var(--green)" },
+              { label: "Volumen",    value: `${summaryData.totalVolume} kg`, color: "var(--green)" },
               { label: "Ejercicios", value: summaryData.exercises,   color: "var(--green)" },
               { label: "PRs",        value: summaryData.newPRs,      color: summaryData.newPRs > 0 ? "#f59e0b" : "var(--muted)" },
             ].map(({ label, value, color }) => (
