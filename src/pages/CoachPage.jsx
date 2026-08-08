@@ -20,6 +20,36 @@ export default function CoachPage() {
   const declinePlanRecommendation = useStore(s => s.declinePlanRecommendation);
   const profile = useAuthStore((s) => s.profile);
   const user = useAuthStore((s) => s.user);
+
+  // Subscription gate — trainers and admins always have access
+  const isSubscribed = profile?.subscription_status === "active" || ["trainer","admin","superadmin"].includes(profile?.role);
+  if (profile && !isSubscribed) {
+    return (
+      <section className="page" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "48px 24px" }}>
+        <span style={{ fontSize: 56, marginBottom: 16 }}>🧠</span>
+        <h2 style={{ margin: "0 0 8px", fontSize: 22 }}>Coach IA</h2>
+        <p style={{ color: "var(--muted)", fontSize: 14, marginBottom: 28, maxWidth: 280 }}>
+          Analizá tu progreso, recibí recomendaciones personalizadas y optimizá tu entrenamiento con inteligencia artificial.
+        </p>
+        <button
+          className="primary"
+          style={{ padding: "13px 28px", borderRadius: 14, fontSize: 14, fontWeight: 700 }}
+          onClick={async () => {
+            try {
+              const { supabase } = await import("../lib/supabase.js");
+              const { data, error } = await supabase.functions.invoke("mp-create-subscription");
+              if (data?.already_active) { window.__showToast?.("Ya tenés una suscripción activa.", "info"); return; }
+              if (!error && data?.init_point) window.location.href = data.init_point;
+              else window.__showToast?.("No se pudo iniciar el pago. Intentá de nuevo.", "error");
+            } catch { window.__showToast?.("Error de conexión.", "error"); }
+          }}
+        >
+          Suscribirme — $25.000/mes
+        </button>
+        <p style={{ color: "var(--muted)", fontSize: 11, marginTop: 12 }}>Renovación automática · cancelá cuando quieras</p>
+      </section>
+    );
+  }
   const userAge = profile?.age ? Number(profile.age) : null;
   const weightLog = useStore((state) => state.weightLog) || [];
   const userGoal = useStore((state) => state.userGoal) || "mantenimiento";

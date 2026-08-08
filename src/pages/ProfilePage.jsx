@@ -349,17 +349,12 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Subscription / trial status — only for regular users */}
+        {/* Subscription status — only for regular users */}
         {role === "user" && (() => {
-          const TRIAL_MS = 30 * 24 * 60 * 60 * 1000;
-          const createdMs = profile?.created_at ? Date.now() - new Date(profile.created_at).getTime() : 0;
-          const daysLeft = Math.max(0, 30 - Math.floor(createdMs / (24*60*60*1000)));
-          const subStatus = profile?.subscription_status;
-          const isActive = subStatus === "active" || subStatus === "trialing";
-          const expired = !isActive && createdMs > TRIAL_MS;
+          const isActive = profile?.subscription_status === "active";
+          const hasPreapproval = !!profile?.mp_preapproval_id;
           const subExpiresAt = profile?.subscription_expires_at ? new Date(profile.subscription_expires_at) : null;
           const daysUntilRenewal = subExpiresAt ? Math.max(0, Math.ceil((subExpiresAt - Date.now()) / (24*60*60*1000))) : null;
-          const hasPreapproval = !!profile?.mp_preapproval_id;
 
           const handleSubscribe = async () => {
             try {
@@ -369,7 +364,6 @@ export default function ProfilePage() {
                 return;
               }
               if (!error && data?.init_point) {
-                // Same-tab redirect works in PWA standalone mode; back_url brings user back to /#/profile
                 window.location.href = data.init_point;
               } else {
                 window.__showToast?.("No se pudo iniciar el pago. Intentá de nuevo.", "error");
@@ -392,29 +386,25 @@ export default function ProfilePage() {
           };
 
           return (
-            <div style={{ background: expired ? "rgba(239,68,68,.08)" : isActive ? "rgba(52,211,153,.08)" : "rgba(168,85,247,.06)", border: `1px solid ${expired ? "rgba(239,68,68,.25)" : isActive ? "rgba(52,211,153,.25)" : "rgba(168,85,247,.2)"}`, borderRadius: 16, padding: "14px 16px", marginBottom: 12 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: isActive || expired ? 10 : 0 }}>
-                <span style={{ fontSize: 22 }}>{expired ? "⛔" : isActive ? "✅" : "⏳"}</span>
+            <div style={{ background: isActive ? "rgba(52,211,153,.08)" : "rgba(168,85,247,.06)", border: `1px solid ${isActive ? "rgba(52,211,153,.25)" : "rgba(168,85,247,.2)"}`, borderRadius: 16, padding: "14px 16px", marginBottom: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: isActive ? 8 : 0 }}>
+                <span style={{ fontSize: 22 }}>{isActive ? "✅" : "🔒"}</span>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 700, fontSize: 14 }}>
-                    {expired ? "Suscripción vencida" : isActive
-                      ? (hasPreapproval ? "Suscripción mensual activa" : "Suscripción activa")
-                      : `Trial activo — ${daysLeft} día${daysLeft !== 1 ? "s" : ""} restante${daysLeft !== 1 ? "s" : ""}`}
+                    {isActive ? (hasPreapproval ? "Suscripción mensual activa" : "Suscripción activa") : "Sin suscripción activa"}
                   </div>
                   <div style={{ fontSize: 12, color: "var(--muted)" }}>
-                    {expired
-                      ? "Suscribite para seguir entrenando"
-                      : isActive
-                        ? hasPreapproval
-                          ? `Se renueva automáticamente${daysUntilRenewal !== null ? ` · vence en ${daysUntilRenewal} día${daysUntilRenewal !== 1 ? "s" : ""}` : ""}`
-                          : `Plan mensual $25.000 ARS${daysUntilRenewal !== null ? ` · vence en ${daysUntilRenewal} día${daysUntilRenewal !== 1 ? "s" : ""}` : ""}`
-                        : "Después del trial: $25.000 ARS/mes · se renueva solo"}
+                    {isActive
+                      ? hasPreapproval
+                        ? `Se renueva automáticamente${daysUntilRenewal !== null ? ` · vence en ${daysUntilRenewal} día${daysUntilRenewal !== 1 ? "s" : ""}` : ""}`
+                        : `Plan mensual $25.000 ARS${daysUntilRenewal !== null ? ` · vence en ${daysUntilRenewal} día${daysUntilRenewal !== 1 ? "s" : ""}` : ""}`
+                      : "Accedé al Coach IA y Nutrición · $25.000/mes"}
                   </div>
                 </div>
               </div>
               {!isActive && (
                 <button className="primary" style={{ width: "100%", padding: "11px", borderRadius: 12, fontSize: 13, marginTop: 8 }} onClick={handleSubscribe}>
-                  {expired ? "Renovar suscripción — $25.000/mes" : "Suscribirme — $25.000/mes · renovación automática"}
+                  Suscribirme — $25.000/mes · renovación automática
                 </button>
               )}
               {isActive && hasPreapproval && (

@@ -250,6 +250,29 @@ export default function HomePage() {
         </button>
       </div>
 
+      {/* Subscription banner for non-subscribers */}
+      {profile?.role === "user" && profile?.subscription_status !== "active" && (
+        <div
+          onClick={async () => {
+            try {
+              const { supabase } = await import("../lib/supabase.js");
+              const { data, error } = await supabase.functions.invoke("mp-create-subscription");
+              if (data?.already_active) { window.__showToast?.("Ya tenés una suscripción activa.", "info"); return; }
+              if (!error && data?.init_point) window.location.href = data.init_point;
+              else window.__showToast?.("No se pudo iniciar el pago. Intentá de nuevo.", "error");
+            } catch { window.__showToast?.("Error de conexión.", "error"); }
+          }}
+          style={{ background: "linear-gradient(135deg, rgba(168,85,247,.15), rgba(99,102,241,.12))", border: "1px solid rgba(168,85,247,.3)", borderRadius: 14, padding: "12px 16px", marginBottom: 16, cursor: "pointer", display: "flex", alignItems: "center", gap: 12 }}
+        >
+          <span style={{ fontSize: 24, flexShrink: 0 }}>🔒</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 700, fontSize: 13, color: "var(--text)" }}>Desbloqueá el Coach IA y Nutrición</div>
+            <div style={{ fontSize: 12, color: "var(--muted)" }}>$25.000/mes · renovación automática · cancelá cuando quieras</div>
+          </div>
+          <span style={{ fontSize: 18, color: "var(--muted)" }}>›</span>
+        </div>
+      )}
+
       {/* Onboarding vacío */}
       {isEmpty ? (
         <div className="hero" style={{ marginTop: 16 }}>
