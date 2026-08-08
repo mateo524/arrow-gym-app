@@ -362,15 +362,26 @@ export default function ProfilePage() {
           const hasPreapproval = !!profile?.mp_preapproval_id;
 
           const handleSubscribe = async () => {
+            // Open window BEFORE the async call so browsers don't block it as a popup
+            const win = window.open("", "_blank");
             try {
               const { data, error } = await supabase.functions.invoke("mp-create-subscription");
               if (data?.already_active) {
+                win?.close();
                 window.__showToast?.("Ya tenés una suscripción activa.", "info");
                 return;
               }
-              if (!error && data?.init_point) window.open(data.init_point, "_blank");
-              else window.__showToast?.("No se pudo iniciar el pago. Intentá de nuevo.", "error");
-            } catch { window.__showToast?.("Error de conexión.", "error"); }
+              if (!error && data?.init_point) {
+                if (win) win.location.href = data.init_point;
+                else window.location.href = data.init_point;
+              } else {
+                win?.close();
+                window.__showToast?.("No se pudo iniciar el pago. Intentá de nuevo.", "error");
+              }
+            } catch {
+              win?.close();
+              window.__showToast?.("Error de conexión.", "error");
+            }
           };
 
           const handleCancel = async () => {
@@ -667,14 +678,15 @@ export default function ProfilePage() {
               <button
                 className="primary"
                 style={{ fontSize: 13, padding: "10px 18px", borderRadius: 12 }}
-                onClick={async () => {
-                  if (!confirm("¿Querés activar el modo entrenador en tu cuenta?")) return;
+                onClick={async (e) => {
+                  e.currentTarget.disabled = true;
                   try {
                     const { error } = await supabase.rpc("request_trainer_role");
                     if (error) throw error;
                     window.__showToast?.("Solicitud enviada. Un admin la revisará pronto.", "success");
                   } catch {
                     window.__showToast?.("Error al enviar la solicitud. Intentá de nuevo.", "error");
+                    e.currentTarget.disabled = false;
                   }
                 }}
               >

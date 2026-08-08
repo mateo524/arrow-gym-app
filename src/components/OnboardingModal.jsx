@@ -87,8 +87,8 @@ export default function OnboardingModal() {
   const labelStyle = { fontSize: 12, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 6 };
 
   return (
-    <div role="dialog" aria-modal="true" aria-label="Configuración inicial" style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 60, background: "rgba(0,0,0,.88)", zIndex: 10002, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
-      <div style={{ background: "var(--bg)", borderRadius: "24px 24px 0 0", padding: "28px 24px 32px", width: "100%", maxWidth: 480, maxHeight: "88vh", overflow: "auto" }}>
+    <div role="dialog" aria-modal="true" aria-label="Configuración inicial" style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 60, background: "rgba(0,0,0,.88)", zIndex: 10002, display: "flex", alignItems: "flex-end", justifyContent: "center", pointerEvents: "none" }}>
+      <div style={{ background: "var(--bg)", borderRadius: "24px 24px 0 0", padding: "28px 24px 32px", width: "100%", maxWidth: 480, maxHeight: "88vh", overflow: "auto", pointerEvents: "auto" }}>
 
         {/* Header: progress + skip */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24 }}>
