@@ -362,24 +362,19 @@ export default function ProfilePage() {
           const hasPreapproval = !!profile?.mp_preapproval_id;
 
           const handleSubscribe = async () => {
-            // Open window BEFORE the async call so browsers don't block it as a popup
-            const win = window.open("", "_blank");
             try {
               const { data, error } = await supabase.functions.invoke("mp-create-subscription");
               if (data?.already_active) {
-                win?.close();
                 window.__showToast?.("Ya tenés una suscripción activa.", "info");
                 return;
               }
               if (!error && data?.init_point) {
-                if (win) win.location.href = data.init_point;
-                else window.location.href = data.init_point;
+                // Same-tab redirect works in PWA standalone mode; back_url brings user back to /#/profile
+                window.location.href = data.init_point;
               } else {
-                win?.close();
                 window.__showToast?.("No se pudo iniciar el pago. Intentá de nuevo.", "error");
               }
             } catch {
-              win?.close();
               window.__showToast?.("Error de conexión.", "error");
             }
           };
