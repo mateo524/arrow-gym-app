@@ -39,7 +39,6 @@ export default function HomePage() {
   const role = profile?.role;
   const isAdmin = role === "superadmin" || role === "admin";
   const isTrainer = role === "trainer";
-  const isEmpty = workouts.length === 0;
 
   const userGoal = useStore((s) => s.userGoal) || "mantenimiento";
   const activityLevel = useStore((s) => s.activityLevel) || "moderado";
@@ -220,7 +219,7 @@ export default function HomePage() {
   const weekPct = Math.round(Math.min(1, weekDone / adaptedWeeklyGoal) * 100);
   const trainedToday = weekCalendar.some(d => d.isToday && (d.trained || d.cardio));
   const statusLine = (() => {
-    if (isEmpty) return "Tu primer entrenamiento te espera";
+    if (workouts.length === 0) return "Tu primer entrenamiento te espera";
     if (weekDone >= adaptedWeeklyGoal) return "Semana completa — seguí sumando 🔥";
     if (trainedToday) return "Ya entrenaste hoy, bien ahí 💪";
     if (streak > 0) return `Tu semana va al ${weekPct}%`;
@@ -273,28 +272,8 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Onboarding vacío */}
-      {isEmpty ? (
-        <div className="hero" style={{ marginTop: 16 }}>
-          <p className="eyebrow" style={{ marginBottom: 4 }}>Bienvenido</p>
-          <h2 style={{ margin: "0 0 12px" }}>Empezá en 3 pasos</h2>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
-            {[
-              { n: 1, text: "Elegí una rutina o entrenamiento libre" },
-              { n: 2, text: "Cargá peso y repeticiones por serie" },
-              { n: 3, text: "Finalizá y mirá tu mapa muscular" },
-            ].map(({ n, text }) => (
-              <div key={n} style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--green)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 13, flexShrink: 0 }}>{n}</div>
-                <span style={{ fontSize: 14, color: "var(--text)" }}>{text}</span>
-              </div>
-            ))}
-          </div>
-          <button className="primary big" onClick={() => setPage("start")}>
-            Empezar primer entrenamiento
-          </button>
-        </div>
-      ) : (
+      {/* Dashboard principal */}
+      {(
         <>
           {/* CTA principal — primer elemento visible */}
           <div style={{ marginBottom: 16, marginTop: 4 }}>
@@ -628,28 +607,26 @@ export default function HomePage() {
       )}
 
       {/* Quick access grid */}
-      {!isEmpty && (
-        <div style={{ marginTop: 14, marginBottom: 4 }}>
-          <p className="section-label">Accesos rápidos</p>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
-            {[
-              { id: "history",      icon: "BarChart2",     label: "Historial",  color: "var(--accent)" },
-              { id: "routines",     icon: "ClipboardList", label: "Rutinas",    color: "#a78bfa" },
-              { id: "calendar",     icon: "Calendar",      label: "Calendario", color: "var(--cyan)" },
-              { id: "badges",       icon: "Trophy",        label: "Logros",     color: "#f59e0b" },
-            ].map(({ id, icon, label, color }) => (
-              <button key={id} onClick={() => setPage(id)} style={{
-                background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 14,
-                padding: "12px 6px", display: "flex", flexDirection: "column", alignItems: "center",
-                gap: 6, cursor: "pointer",
-              }}>
-                <Icon name={icon} size={20} style={{ color }} />
-                <span style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)" }}>{label}</span>
-              </button>
-            ))}
-          </div>
+      <div style={{ marginTop: 14, marginBottom: 4 }}>
+        <p className="section-label">Accesos rápidos</p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
+          {[
+            { id: "history",      icon: "BarChart2",     label: "Historial",  color: "var(--accent)" },
+            { id: "routines",     icon: "ClipboardList", label: "Rutinas",    color: "#a78bfa" },
+            { id: "calendar",     icon: "Calendar",      label: "Calendario", color: "var(--cyan)" },
+            { id: "badges",       icon: "Trophy",        label: "Logros",     color: "#f59e0b" },
+          ].map(({ id, icon, label, color }) => (
+            <button key={id} onClick={() => setPage(id)} style={{
+              background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 14,
+              padding: "12px 6px", display: "flex", flexDirection: "column", alignItems: "center",
+              gap: 6, cursor: "pointer",
+            }}>
+              <Icon name={icon} size={20} style={{ color }} />
+              <span style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)" }}>{label}</span>
+            </button>
+          ))}
         </div>
-      )}
+      </div>
 
       {/* Acceso rápido admin/trainer */}
       {(isAdmin || isTrainer) && (
