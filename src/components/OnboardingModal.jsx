@@ -78,7 +78,7 @@ export default function OnboardingModal() {
     }
     setUserGoal(goal);
     markOnboardingSeen();
-    useStore.getState().setPage("start");
+    useStore.getState().setPage("home");
     setSaving(false);
   }
 
