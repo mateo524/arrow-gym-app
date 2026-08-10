@@ -1,27 +1,27 @@
-ï»¿import { useState } from "react";
+import { useState } from "react";
 import useStore from "../store/useStore.js";
 import useAuthStore from "../store/useAuthStore.js";
 import { supabase } from "../lib/supabase.js";
 
 const GOALS = [
-  { id: "volumen",       label: "Ganar mÃºsculo",  icon: "ğŸ’ª", desc: "Aumentar masa muscular y fuerza" },
-  { id: "definicion",    label: "DefiniciÃ³n",     icon: "ğŸ”¥", desc: "Bajar grasa manteniendo mÃºsculo" },
-  { id: "mantenimiento", label: "Salud general",  icon: "âš–ï¸",  desc: "Mantener el fÃ­sico y bienestar general" },
-  { id: "rendimiento",   label: "Fuerza",         icon: "âš¡", desc: "Desarrollar fuerza mÃ¡xima" },
+  { id: "volumen",       label: "Ganar músculo",  icon: "??", desc: "Aumentar masa muscular y fuerza" },
+  { id: "definicion",    label: "Definición",     icon: "??", desc: "Bajar grasa manteniendo músculo" },
+  { id: "mantenimiento", label: "Salud general",  icon: "??",  desc: "Mantener el físico y bienestar general" },
+  { id: "rendimiento",   label: "Fuerza",         icon: "?", desc: "Desarrollar fuerza máxima" },
 ];
 
 const LEVELS = [
-  { id: "principiante", label: "Principiante",  icon: "ğŸŒ±", desc: "Menos de 1 aÃ±o entrenando" },
-  { id: "intermedio",   label: "Intermedio",    icon: "ğŸ’ª", desc: "1 a 3 aÃ±os de experiencia" },
-  { id: "avanzado",     label: "Avanzado",      icon: "ğŸ†", desc: "MÃ¡s de 3 aÃ±os entrenando" },
+  { id: "principiante", label: "Principiante",  icon: "??", desc: "Menos de 1 año entrenando" },
+  { id: "intermedio",   label: "Intermedio",    icon: "??", desc: "1 a 3 años de experiencia" },
+  { id: "avanzado",     label: "Avanzado",      icon: "??", desc: "Más de 3 años entrenando" },
 ];
 
 const FEATURES = [
-  { icon: "ğŸ“Š", title: "Coach IA en vivo",       desc: "Te sugiere peso, detecta fatiga y sobreentrenamiento en tiempo real durante el entreno." },
-  { icon: "ğŸ“", title: "Mediciones corporales",  desc: "RegistrÃ¡ peso, % grasa, cintura y mÃ¡s. Encontralo en el tab Medidas del menÃº." },
-  { icon: "ğŸ", title: "Calculadora de macros",  desc: "CalculÃ¡ tus calorÃ­as y macros diarios segÃºn tu objetivo. EstÃ¡ en la secciÃ³n Coach â†’ Macros." },
-  { icon: "ğŸ—“", title: "Rutinas y plantillas",   desc: "CreÃ¡ rutinas o usÃ¡ plantillas populares (PPL, 5x5, Full Body). En Inicio â†’ Accesos rÃ¡pidos." },
-  { icon: "ğŸ”¥", title: "Rachas y logros",        desc: "GanÃ¡s logros por consistencia y PRs. MirÃ¡ tus badges en Inicio â†’ Logros." },
+  { icon: "??", title: "Coach IA en vivo",       desc: "Te sugiere peso, detecta fatiga y sobreentrenamiento en tiempo real durante el entreno." },
+  { icon: "??", title: "Mediciones corporales",  desc: "Registrá peso, % grasa, cintura y más. Encontralo en el tab Medidas del menú." },
+  { icon: "??", title: "Calculadora de macros",  desc: "Calculá tus calorías y macros diarios según tu objetivo. Está en la sección Coach ? Macros." },
+  { icon: "??", title: "Rutinas y plantillas",   desc: "Creá rutinas o usá plantillas populares (PPL, 5x5, Full Body). En Inicio ? Accesos rápidos." },
+  { icon: "??", title: "Rachas y logros",        desc: "Ganás logros por consistencia y PRs. Mirá tus badges en Inicio ? Logros." },
 ];
 
 export default function OnboardingModal() {
@@ -54,13 +54,13 @@ export default function OnboardingModal() {
         .eq("invite_code", inviteCode.trim().toUpperCase())
         .eq("role", "trainer")
         .single();
-      if (error || !data) { setInviteMsg("CÃ³digo no vÃ¡lido. PedÃ­selo a tu entrenador."); setConnectingTrainer(false); return; }
+      if (error || !data) { setInviteMsg("Código no válido. Pedíselo a tu entrenador."); setConnectingTrainer(false); return; }
       await supabase.from("trainer_clients").upsert({ trainer_id: data.id, client_id: profile.id }, { onConflict: "trainer_id,client_id" });
       await supabase.from("profiles").update({ trainer_id: data.id }).eq("id", profile.id);
       refreshProfile?.();
-      setInviteMsg(`âœ“ Conectado con ${data.name}`);
+      setInviteMsg(`? Conectado con ${data.name}`);
     } catch {
-      setInviteMsg("Error de conexiÃ³n. IntentÃ¡ de nuevo.");
+      setInviteMsg("Error de conexión. Intentá de nuevo.");
     }
     setConnectingTrainer(false);
   }
@@ -88,7 +88,7 @@ export default function OnboardingModal() {
   const labelStyle = { fontSize: 12, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 6 };
 
   return (
-    <div role="dialog" aria-modal="true" aria-label="ConfiguraciÃ³n inicial" style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 60, background: "rgba(0,0,0,.88)", zIndex: 10002, display: "flex", alignItems: "flex-end", justifyContent: "center", pointerEvents: "none" }}>
+    <div role="dialog" aria-modal="true" aria-label="Configuración inicial" style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 60, background: "rgba(0,0,0,.88)", zIndex: 10002, display: "flex", alignItems: "flex-end", justifyContent: "center", pointerEvents: "none" }}>
       <div style={{ background: "var(--bg)", borderRadius: "24px 24px 0 0", padding: "28px 24px 32px", width: "100%", maxWidth: 480, maxHeight: "88vh", overflow: "auto", pointerEvents: "auto" }}>
 
         {/* Header: progress + skip */}
@@ -110,18 +110,18 @@ export default function OnboardingModal() {
         {step === 1 && (
           <>
             <div style={{ textAlign: "center", marginBottom: 24 }}>
-              <div style={{ fontSize: 52, marginBottom: 12 }}>âš¡</div>
+              <div style={{ fontSize: 52, marginBottom: 12 }}>?</div>
               <h2 style={{ margin: "0 0 8px", fontSize: 24 }}>Bienvenido a Loop</h2>
               <p style={{ color: "var(--muted)", fontSize: 14, margin: 0, lineHeight: 1.5 }}>
-                Â¿CÃ³mo querÃ©s usar la app?
+                ¿Cómo querés usar la app?
               </p>
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 24 }}>
               {[
-                { id: "simple",   icon: "ğŸ“", label: "Solo quiero registrar lo que hago",    sub: "Sin sugerencias ni anÃ¡lisis extra" },
-                { id: "standard", icon: "ğŸ’ª", label: "Registrar y recibir sugerencias",       sub: "El coach te avisa si algo no avanza" },
-                { id: "advanced", icon: "ğŸ”¬", label: "Control total",                         sub: "Volumen, cargas, semanas de descarga" },
+                { id: "simple",   icon: "??", label: "Solo quiero registrar lo que hago",    sub: "Sin sugerencias ni análisis extra" },
+                { id: "standard", icon: "??", label: "Registrar y recibir sugerencias",       sub: "El coach te avisa si algo no avanza" },
+                { id: "advanced", icon: "??", label: "Control total",                         sub: "Volumen, cargas, semanas de descarga" },
               ].map(({ id, icon, label, sub }) => (
                 <button
                   key={id}
@@ -138,7 +138,7 @@ export default function OnboardingModal() {
                     <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text)", marginBottom: 2 }}>{label}</div>
                     <div style={{ fontSize: 12, color: "var(--muted)" }}>{sub}</div>
                   </div>
-                  {uiMode === id && <span style={{ marginLeft: "auto", color: "var(--accent)", fontSize: 18 }}>âœ“</span>}
+                  {uiMode === id && <span style={{ marginLeft: "auto", color: "var(--accent)", fontSize: 18 }}>?</span>}
                 </button>
               ))}
             </div>
@@ -149,7 +149,7 @@ export default function OnboardingModal() {
               disabled={!uiMode}
               onClick={() => setStep(2)}
             >
-              Continuar â†’
+              Continuar ?
             </button>
           </>
         )}
@@ -157,9 +157,9 @@ export default function OnboardingModal() {
         {/* Step 2: Body measurements */}
         {step === 2 && (
           <>
-            <h2 style={{ margin: "0 0 4px", fontSize: 22 }}>Tus medidas bÃ¡sicas</h2>
+            <h2 style={{ margin: "0 0 4px", fontSize: 22 }}>Tus medidas básicas</h2>
             <p style={{ color: "var(--muted)", fontSize: 13, margin: "0 0 20px", lineHeight: 1.5 }}>
-              PodÃ©s completarlas ahora o despuÃ©s en <b>Medidas</b>.
+              Podés completarlas ahora o después en <b>Medidas</b>.
             </p>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 20 }}>
@@ -177,7 +177,7 @@ export default function OnboardingModal() {
                   <input type="date" value={dob} onChange={e => setDob(e.target.value)} style={{ ...inputStyle, fontSize: 14 }} />
                 </div>
                 <div>
-                  <label style={labelStyle}>Sexo biolÃ³gico</label>
+                  <label style={labelStyle}>Sexo biológico</label>
                   <div style={{ display: "flex", gap: 8, height: 48 }}>
                     {[{id:"M", label:"Masc."}, {id:"F", label:"Fem."}].map(o => (
                       <button key={o.id} onClick={() => setSex(o.id)} style={{
@@ -194,13 +194,13 @@ export default function OnboardingModal() {
 
             <div style={{ background: "rgba(96,165,250,.06)", border: "1px solid rgba(96,165,250,.2)", borderRadius: 10, padding: "10px 14px", marginBottom: 20 }}>
               <p style={{ margin: 0, fontSize: 12, color: "#60a5fa", lineHeight: 1.5 }}>
-                ğŸ’¡ Para % grasa corporal, perÃ­metros y seguimiento avanzado â†’ <b>Medidas</b> en el menÃº inferior.
+                ?? Para % grasa corporal, perímetros y seguimiento avanzado ? <b>Medidas</b> en el menú inferior.
               </p>
             </div>
 
             <div style={{ display: "flex", gap: 10 }}>
-              <button className="ghost" style={{ flex: 1 }} onClick={() => setStep(1)}>â† AtrÃ¡s</button>
-              <button className="primary" style={{ flex: 2 }} onClick={() => setStep(3)}>Continuar â†’</button>
+              <button className="ghost" style={{ flex: 1 }} onClick={() => setStep(1)}>? Atrás</button>
+              <button className="primary" style={{ flex: 2 }} onClick={() => setStep(3)}>Continuar ?</button>
             </div>
           </>
         )}
@@ -225,7 +225,7 @@ export default function OnboardingModal() {
                     <div style={{ fontSize: 14, fontWeight: 800, color: level === l.id ? "var(--green)" : "var(--text)" }}>{l.label}</div>
                     <div style={{ fontSize: 12, color: "var(--muted)" }}>{l.desc}</div>
                   </div>
-                  {level === l.id && <span style={{ marginLeft: "auto", color: "var(--green)" }}>âœ“</span>}
+                  {level === l.id && <span style={{ marginLeft: "auto", color: "var(--green)" }}>?</span>}
                 </button>
               ))}
             </div>
@@ -244,14 +244,14 @@ export default function OnboardingModal() {
                     <div style={{ fontSize: 14, fontWeight: 800, color: goal === g.id ? "var(--green)" : "var(--text)" }}>{g.label}</div>
                     <div style={{ fontSize: 12, color: "var(--muted)" }}>{g.desc}</div>
                   </div>
-                  {goal === g.id && <span style={{ marginLeft: "auto", color: "var(--green)" }}>âœ“</span>}
+                  {goal === g.id && <span style={{ marginLeft: "auto", color: "var(--green)" }}>?</span>}
                 </button>
               ))}
             </div>
 
             <div style={{ display: "flex", gap: 10 }}>
-              <button className="ghost" style={{ flex: 1 }} onClick={() => setStep(2)}>â† AtrÃ¡s</button>
-              <button className="primary" style={{ flex: 2 }} onClick={() => setStep(4)}>Continuar â†’</button>
+              <button className="ghost" style={{ flex: 1 }} onClick={() => setStep(2)}>? Atrás</button>
+              <button className="primary" style={{ flex: 2 }} onClick={() => setStep(4)}>Continuar ?</button>
             </div>
           </>
         )}
@@ -259,7 +259,7 @@ export default function OnboardingModal() {
         {/* Step 4: Feature discovery */}
         {step === 4 && (
           <>
-            <h2 style={{ margin: "0 0 4px", fontSize: 22 }}>Lo que podÃ©s hacer</h2>
+            <h2 style={{ margin: "0 0 4px", fontSize: 22 }}>Lo que podés hacer</h2>
             <p style={{ color: "var(--muted)", fontSize: 13, margin: "0 0 18px" }}>Loop tiene todo esto para vos:</p>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 24 }}>
@@ -275,8 +275,8 @@ export default function OnboardingModal() {
             </div>
 
             <div style={{ display: "flex", gap: 10 }}>
-              <button className="ghost" style={{ flex: 1 }} onClick={() => setStep(3)}>â† AtrÃ¡s</button>
-              <button className="primary" style={{ flex: 2 }} onClick={() => setStep(5)}>Continuar â†’</button>
+              <button className="ghost" style={{ flex: 1 }} onClick={() => setStep(3)}>? Atrás</button>
+              <button className="primary" style={{ flex: 2 }} onClick={() => setStep(5)}>Continuar ?</button>
             </div>
           </>
         )}
@@ -284,15 +284,15 @@ export default function OnboardingModal() {
         {/* Step 5: Trainer connection + trial awareness */}
         {step === 5 && (
           <>
-            <h2 style={{ margin: "0 0 4px", fontSize: 22 }}>Â¡Casi listo!</h2>
+            <h2 style={{ margin: "0 0 4px", fontSize: 22 }}>¡Casi listo!</h2>
             <p style={{ color: "var(--muted)", fontSize: 13, margin: "0 0 20px", lineHeight: 1.5 }}>
-              {profile?.trainer_id ? "Ya estÃ¡s conectado con tu entrenador ğŸ‰" : "Si tenÃ©s un entrenador en Loop, conectate ahora con su cÃ³digo."}
+              {profile?.trainer_id ? "Ya estás conectado con tu entrenador ??" : "Si tenés un entrenador en Loop, conectate ahora con su código."}
             </p>
 
             {!profile?.trainer_id ? (
               <div style={{ marginBottom: 20 }}>
                 <label style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 6 }}>
-                  CÃ³digo de entrenador (opcional)
+                  Código de entrenador (opcional)
                 </label>
                 <div style={{ display: "flex", gap: 8 }}>
                   <input
@@ -308,21 +308,21 @@ export default function OnboardingModal() {
                     disabled={connectingTrainer || !inviteCode.trim()}
                     style={{ padding: "12px 16px", borderRadius: 12, flexShrink: 0 }}
                   >
-                    {connectingTrainer ? "â€¦" : "Conectar"}
+                    {connectingTrainer ? "…" : "Conectar"}
                   </button>
                 </div>
                 {inviteMsg && (
-                  <p style={{ margin: "8px 0 0", fontSize: 13, color: inviteMsg.startsWith("âœ“") ? "var(--green)" : "var(--danger)" }}>
+                  <p style={{ margin: "8px 0 0", fontSize: 13, color: inviteMsg.startsWith("?") ? "var(--green)" : "var(--danger)" }}>
                     {inviteMsg}
                   </p>
                 )}
                 <p style={{ margin: "10px 0 0", fontSize: 12, color: "var(--muted)", lineHeight: 1.5 }}>
-                  Â¿No tenÃ©s cÃ³digo? PodÃ©s empezar solo y conectarte despuÃ©s desde <b>Perfil</b>.
+                  ¿No tenés código? Podés empezar solo y conectarte después desde <b>Perfil</b>.
                 </p>
               </div>
             ) : (
               <div style={{ background: "rgba(52,211,153,.08)", border: "1px solid rgba(52,211,153,.2)", borderRadius: 12, padding: "14px 16px", marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 28 }}>ğŸ‹ï¸</span>
+                <span style={{ fontSize: 28 }}>???</span>
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: "var(--green)" }}>Entrenador conectado</div>
                   <div style={{ fontSize: 12, color: "var(--muted)" }}>Tu entrenador puede ver tu progreso y asignarte rutinas.</div>
@@ -332,16 +332,16 @@ export default function OnboardingModal() {
 
             {/* Trial awareness */}
             <div style={{ background: "rgba(168,85,247,.06)", border: "1px solid rgba(168,85,247,.2)", borderRadius: 12, padding: "14px 16px", marginBottom: 24 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>â³ 30 dÃ­as de prueba gratuita</div>
+              <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>? 30 días de prueba gratuita</div>
               <div style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.6 }}>
-                TenÃ©s 30 dÃ­as para probar Loop sin pagar nada. Si querÃ©s seguir, la suscripciÃ³n es <b style={{ color: "var(--text)" }}>$25.000 ARS/mes</b> â€” te avisamos antes de que venza.
+                Tenés 30 días para probar Loop sin pagar nada. Si querés seguir, la suscripción es <b style={{ color: "var(--text)" }}>$10.000 ARS/mes</b> — te avisamos antes de que venza.
               </div>
             </div>
 
             <div style={{ display: "flex", gap: 10 }}>
-              <button className="ghost" style={{ flex: 1 }} onClick={() => setStep(4)}>â† AtrÃ¡s</button>
+              <button className="ghost" style={{ flex: 1 }} onClick={() => setStep(4)}>? Atrás</button>
               <button className="primary" style={{ flex: 2 }} disabled={saving} onClick={finish}>
-                {saving ? "Guardandoâ€¦" : "ğŸ‹ï¸ Empezar mi primer entreno"}
+                {saving ? "Guardando…" : "??? Empezar mi primer entreno"}
               </button>
             </div>
           </>

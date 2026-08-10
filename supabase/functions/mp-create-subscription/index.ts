@@ -1,6 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const PRICE_ARS = 25000;
+const PRICE_ARS = 10000;
 const APP_URL = "https://arrow-gym-project.vercel.app";
 
 Deno.serve(async (req: Request) => {

@@ -45,7 +45,7 @@ export default function NutritionPage() {
               else window.__showToast?.("No se pudo iniciar el pago. Intentá de nuevo.", "error");
             } catch { window.__showToast?.("Error de conexión.", "error"); }
           }}>
-          Suscribirme — $25.000/mes
+          Suscribirme — $10.000/mes
         </button>
         <p style={{ color:"var(--muted)", fontSize:11, marginTop:12 }}>Renovación automática · cancelá cuando quieras</p>
       </section>

@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState, Component, lazy, Suspense } from "react";
+import { useEffect, useRef, useState, Component, lazy, Suspense } from "react";
 import { Router, useLocation } from "wouter";
 import { useHashLocation } from "wouter/use-hash-location";
 // Critical path: load HomePage and WorkoutPage eagerly, everything else lazy
@@ -44,16 +44,16 @@ function InstallBanner({ onInstall, onDismiss, isIOS }) {
   if (isIOS) {
     return (
       <div style={{ position:"fixed", bottom:80, left:12, right:12, zIndex:9997, background:"var(--panel)", border:"1px solid var(--border)", borderRadius:16, padding:"14px 16px", boxShadow:"0 4px 24px rgba(0,0,0,.5)" }}>
-        <button onClick={onDismiss} style={{ position:"absolute", top:10, right:12, background:"none", border:"none", color:"var(--muted)", fontSize:18, cursor:"pointer" }}>✕</button>
+        <button onClick={onDismiss} style={{ position:"absolute", top:10, right:12, background:"none", border:"none", color:"var(--muted)", fontSize:18, cursor:"pointer" }}>?</button>
         <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:10 }}>
           <img src="/icon-192.png" width={40} height={40} style={{ borderRadius:10 }} alt="Loop" />
           <div>
-            <div style={{ fontWeight:800, fontSize:14 }}>Instalá Loop</div>
-            <div style={{ fontSize:12, color:"var(--muted)" }}>Accedé desde tu pantalla de inicio</div>
+            <div style={{ fontWeight:800, fontSize:14 }}>Instal� Loop</div>
+            <div style={{ fontSize:12, color:"var(--muted)" }}>Acced� desde tu pantalla de inicio</div>
           </div>
         </div>
         <div style={{ fontSize:13, color:"var(--muted)", lineHeight:1.6 }}>
-          Para activar notificaciones, instalá la app: tocá <b style={{ color:"var(--text)" }}>􀈂 Compartir</b> y después <b style={{ color:"var(--text)" }}>"Añadir a inicio"</b>
+          Para activar notificaciones, instal� la app: toc� <b style={{ color:"var(--text)" }}>?? Compartir</b> y despu�s <b style={{ color:"var(--text)" }}>"A�adir a inicio"</b>
         </div>
       </div>
     );
@@ -62,7 +62,7 @@ function InstallBanner({ onInstall, onDismiss, isIOS }) {
     <div style={{ position:"fixed", bottom:80, left:12, right:12, zIndex:9997, background:"var(--panel)", border:"1px solid var(--green)", borderRadius:16, padding:"14px 16px", boxShadow:"0 4px 24px rgba(0,0,0,.5)", display:"flex", alignItems:"center", gap:12 }}>
       <img src="/icon-192.png" width={40} height={40} style={{ borderRadius:10, flexShrink:0 }} alt="Loop" />
       <div style={{ flex:1, minWidth:0 }}>
-        <div style={{ fontWeight:800, fontSize:14 }}>Instalá Loop</div>
+        <div style={{ fontWeight:800, fontSize:14 }}>Instal� Loop</div>
         <div style={{ fontSize:12, color:"var(--muted)" }}>Agregala a tu pantalla de inicio</div>
       </div>
       <div style={{ display:"flex", flexDirection:"column", gap:6, flexShrink:0 }}>
@@ -87,7 +87,7 @@ class ErrorBoundary extends Component {
     if (this.state.error) {
       return (
         <div style={{ padding: 24, minHeight: "100vh", background: "var(--bg, #fff)" }}>
-          <h2 style={{ marginTop: 0, color: "var(--text, #e2e8f0)" }}>Algo salió mal</h2>
+          <h2 style={{ marginTop: 0, color: "var(--text, #e2e8f0)" }}>Algo sali� mal</h2>
           <p style={{ color: "var(--muted)", fontSize: 13, fontFamily: "monospace", wordBreak: "break-word" }}>
             {this.state.error.message}
           </p>
@@ -159,15 +159,15 @@ function AppContent() {
       const { data, error } = await supabase.functions.invoke("mp-create-subscription");
       if (error || !data?.init_point) {
         if (data?.error === "no_mp_token") {
-          alert("El sistema de pagos no está configurado aún. Contactá a tu entrenador.");
+          alert("El sistema de pagos no est� configurado a�n. Contact� a tu entrenador.");
         } else {
-          alert("No se pudo iniciar el pago. Intentá de nuevo.");
+          alert("No se pudo iniciar el pago. Intent� de nuevo.");
         }
         return;
       }
       window.open(data.init_point, "_blank");
     } catch {
-      alert("Error de conexión. Verificá tu red e intentá de nuevo.");
+      alert("Error de conexi�n. Verific� tu red e intent� de nuevo.");
     } finally {
       setSubscribing(false);
     }
@@ -200,13 +200,13 @@ function AppContent() {
   const [passwordLoading, setPasswordLoading] = useState(false);
   const isReturningUser = workouts.length > 0 || Boolean(profile?.goal) || Boolean(profile?.fitness_level) || Boolean(profile?.weight_kg);
 
-  // PWA install prompt — Android: capture beforeinstallprompt; iOS: detect Safari
+  // PWA install prompt � Android: capture beforeinstallprompt; iOS: detect Safari
   useEffect(() => {
     // Don't show if already installed as standalone
     if (window.matchMedia('(display-mode: standalone)').matches) return;
     if (window.navigator.standalone === true) return; // iOS standalone
 
-    // iOS detection — they don't have beforeinstallprompt, need manual instructions
+    // iOS detection � they don't have beforeinstallprompt, need manual instructions
     const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
     if (ios) {
       const dismissed = localStorage.getItem('install-dismissed-permanently');
@@ -270,7 +270,7 @@ function AppContent() {
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
-      // flushPendingSyncs handled by the offline-queue listener above — no duplicate flush here
+      // flushPendingSyncs handled by the offline-queue listener above � no duplicate flush here
     };
     const handleOffline = () => setIsOnline(false);
     window.addEventListener("online", handleOnline);
@@ -297,7 +297,7 @@ function AppContent() {
   // Push subscription is handled by the ProfilePage toggle (user gesture required on iOS).
   // On re-auth, preserve any existing subscription stored in localStorage.
 
-  // Init auth in background — the cached session already set user synchronously
+  // Init auth in background � the cached session already set user synchronously
   useEffect(() => {
     init();
     // Safety net: if loading OR profile-fetch hangs for 8s, unblock the UI
@@ -329,9 +329,9 @@ function AppContent() {
     if (daysSince < 3) return;
     const notify = () => {
       const msgs = [
-        `Llevas ${daysSince} días sin entrenar. ¡El gym te extraña!`,
-        `${daysSince} días de descanso... ¿será que ya descansaste suficiente?`,
-        `Tu racha está en pausa hace ${daysSince} días. ¡Volvé hoy!`,
+        `Llevas ${daysSince} d�as sin entrenar. �El gym te extra�a!`,
+        `${daysSince} d�as de descanso... �ser� que ya descansaste suficiente?`,
+        `Tu racha est� en pausa hace ${daysSince} d�as. �Volv� hoy!`,
       ];
       const opts = {
         body: msgs[daysSince % msgs.length],
@@ -420,7 +420,7 @@ function AppContent() {
     if (PAGE_MAP[hashPath] && hashPath !== currentPage) setPage(hashPath);
   }, []); // eslint-disable-line
 
-  // After login: resolve pending trainer invite code (student → linked to trainer)
+  // After login: resolve pending trainer invite code (student ? linked to trainer)
   useEffect(() => {
     if (!user?.id) return;
     const code = localStorage.getItem("pending_invite_code");
@@ -429,7 +429,7 @@ function AppContent() {
     (async () => {
       const { data, error } = await supabase.rpc("request_trainer_from_invite", { p_invite_code: code });
       if (!error && data?.ok) {
-        window.__showToast?.(`Solicitud enviada a ${data.trainer_name || "tu entrenador"} 🏋️. Te avisamos cuando la acepte.`, "success");
+        window.__showToast?.(`Solicitud enviada a ${data.trainer_name || "tu entrenador"} ???. Te avisamos cuando la acepte.`, "success");
       } else if (data?.error !== "invalid_code") {
         // Fallback: just set referred_by for commission tracking
         const { data: inv } = await supabase.from("invite_codes").select("trainer_id").eq("code", code).maybeSingle();
@@ -452,9 +452,9 @@ function AppContent() {
         // Reload profile so the new role takes effect
         const { data: p } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
         if (p) useAuthStore.getState().setProfile(p);
-        window.__showToast?.("¡Ya sos entrenador en Loop! 🏋️", "success");
+        window.__showToast?.("�Ya sos entrenador en Loop! ???", "success");
       } else if (data?.error === "invalid_or_expired") {
-        window.__showToast?.("El link de invitación ya fue usado o expiró.", "error");
+        window.__showToast?.("El link de invitaci�n ya fue usado o expir�.", "error");
       }
     })();
   }, [user?.id]); // eslint-disable-line
@@ -483,7 +483,7 @@ function AppContent() {
     })();
   }, [user?.id]); // eslint-disable-line
 
-  // Store → URL (one-way, no feedback loop)
+  // Store ? URL (one-way, no feedback loop)
   useEffect(() => {
     const path = "/" + currentPage;
     if (path !== location) setLocation(path, { replace: true });
@@ -500,7 +500,7 @@ function AppContent() {
   // (first load, logged out). If there's a cached user we skip the splash
   // entirely so returning to the app feels instant.
   // Show splash while: (a) initial load with no cached session, or (b) session
-  // refreshed but profile hasn't loaded yet — prevents the black screen on iOS PWA
+  // refreshed but profile hasn't loaded yet � prevents the black screen on iOS PWA
   // when the app is opened after the JWT has expired.
   const splashScreen = loading || (user && !profile);
   const showLogin = !splashScreen && !user;
@@ -510,7 +510,7 @@ function AppContent() {
   const role = profile?.role;
   const isTrainer = role === "trainer";
   const isAdminRole = ["superadmin", "admin", "trainer"].includes(role);
-  // Trainers always have full access — no paywall, no trial expiry
+  // Trainers always have full access � no paywall, no trial expiry
   const accountAgeMs = profile?.created_at ? Date.now() - new Date(profile.created_at).getTime() : 0;
   const TRIAL_MS = 30 * 24 * 60 * 60 * 1000;
   // subscription_expires_at: if set and in the future, treat as active even if status wasn't updated yet
@@ -535,7 +535,7 @@ function AppContent() {
   let inner;
   if (shareData) {
     inner = (
-      <Suspense fallback={<div style={{ minHeight:"100dvh", background:"#050408", display:"flex", alignItems:"center", justifyContent:"center", color:"rgba(255,255,255,.4)", fontSize:14 }}>Cargando…</div>}>
+      <Suspense fallback={<div style={{ minHeight:"100dvh", background:"#050408", display:"flex", alignItems:"center", justifyContent:"center", color:"rgba(255,255,255,.4)", fontSize:14 }}>Cargando�</div>}>
         <WorkoutSharePage data={shareData} />
       </Suspense>
     );
@@ -553,7 +553,7 @@ function AppContent() {
     );
   } else if (showLogin && trainerLandingCode) {
     inner = (
-      <Suspense fallback={<div style={{ minHeight:"100dvh", background:"var(--bg)", display:"flex", alignItems:"center", justifyContent:"center", color:"var(--muted)", fontSize:14 }}>Cargando…</div>}>
+      <Suspense fallback={<div style={{ minHeight:"100dvh", background:"var(--bg)", display:"flex", alignItems:"center", justifyContent:"center", color:"var(--muted)", fontSize:14 }}>Cargando�</div>}>
         <TrainerLandingPage
           inviteCode={trainerLandingCode}
           onJoin={() => {
@@ -574,37 +574,37 @@ function AppContent() {
   } else if (!hasAccess && !trialExpired) {
     inner = (
       <div style={{ minHeight:"100vh", background:"var(--bg)", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:24, textAlign:"center" }}>
-        <div style={{ fontSize:40, marginBottom:16 }}>🔒</div>
-        <h2 style={{ margin:"0 0 8px" }}>Suscripción vencida</h2>
-        <p style={{ color:"var(--muted)", fontSize:14, marginBottom:24 }}>Renová tu plan para seguir entrenando con la app.</p>
+        <div style={{ fontSize:40, marginBottom:16 }}>??</div>
+        <h2 style={{ margin:"0 0 8px" }}>Suscripci�n vencida</h2>
+        <p style={{ color:"var(--muted)", fontSize:14, marginBottom:24 }}>Renov� tu plan para seguir entrenando con la app.</p>
         <button className="primary" style={{ marginBottom:12 }} disabled={subscribing} onClick={startSubscription}>
-          {subscribing ? "Conectando…" : "Renovar plan"}
+          {subscribing ? "Conectando�" : "Renovar plan"}
         </button>
-        <button className="ghost" onClick={() => useAuthStore.getState().logout()}>Cerrar sesión</button>
+        <button className="ghost" onClick={() => useAuthStore.getState().logout()}>Cerrar sesi�n</button>
       </div>
     );
   } else if (trialExpired) {
     inner = (
       <div style={{ minHeight:"100vh", background:"var(--bg)", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:24, textAlign:"center" }}>
-        <div style={{ fontSize:48, marginBottom:16 }}>⏳</div>
+        <div style={{ fontSize:48, marginBottom:16 }}>?</div>
         <h2 style={{ margin:"0 0 8px" }}>Hola {profile?.name || profile?.email?.split("@")[0] || ""},</h2>
-        <p style={{ color:"var(--muted)", fontSize:15, marginBottom:8 }}>Tu período de prueba terminó.</p>
+        <p style={{ color:"var(--muted)", fontSize:15, marginBottom:8 }}>Tu per�odo de prueba termin�.</p>
         <p style={{ color:"var(--muted)", fontSize:14, marginBottom:24, lineHeight:1.6 }}>
-          Activá tu suscripción para seguir entrenando con tu coach por <b style={{ color:"var(--text)" }}>$25.000 ARS/mes</b>.
+          Activ� tu suscripci�n para seguir entrenando con tu coach por <b style={{ color:"var(--text)" }}>$10.000 ARS/mes</b>.
         </p>
         <button className="primary" style={{ marginBottom:12, padding:"14px 28px", fontSize:15 }}
           disabled={subscribing} onClick={startSubscription}>
-          {subscribing ? "Conectando…" : "Suscribirme ahora"}
+          {subscribing ? "Conectando�" : "Suscribirme ahora"}
         </button>
         <button className="ghost" style={{ color:"var(--muted)", fontSize:13 }} onClick={() => useAuthStore.getState().logout()}>
-          Cerrar sesión
+          Cerrar sesi�n
         </button>
       </div>
     );
   } else {
     inner = (
       <div className="app-shell">
-        {/* ── TRIAL COUNTDOWN BANNER ─────────────────────────────────────── */}
+        {/* -- TRIAL COUNTDOWN BANNER --------------------------------------- */}
         {(() => {
           if (isAdminRole || trialBannerDismissed) return null;
           if (subStatus === "active") return null;
@@ -619,26 +619,26 @@ function AppContent() {
               display: "flex", alignItems: "center", gap: 10, fontSize: 13,
             }}>
               <span style={{ flex: 1, fontWeight: 700, color: "#fff" }}>
-                {urgent ? "⚠️" : "⏳"} {daysLeft === 1 ? "¡Último día de prueba!" : `Te quedan ${daysLeft} días de prueba gratuita`}
+                {urgent ? "??" : "?"} {daysLeft === 1 ? "��ltimo d�a de prueba!" : `Te quedan ${daysLeft} d�as de prueba gratuita`}
               </span>
               <button
                 onClick={() => { setSubscribing(true); startSubscription(); }}
                 disabled={subscribing}
                 style={{ background: "#fff", color: urgent ? "#ef4444" : "#a855f7", border: "none", borderRadius: 8, padding: "6px 12px", fontWeight: 800, fontSize: 12, cursor: "pointer", flexShrink: 0 }}
               >
-                {subscribing ? "…" : "Suscribirme"}
+                {subscribing ? "�" : "Suscribirme"}
               </button>
               <button
                 onClick={() => { localStorage.setItem("trial-banner-dismissed-day", new Date().toDateString()); setTrialBannerDismissed(true); }}
                 style={{ background: "none", border: "none", color: "rgba(255,255,255,.7)", fontSize: 18, cursor: "pointer", padding: "0 4px", flexShrink: 0 }}
-              >✕</button>
+              >?</button>
             </div>
           );
         })()}
         {draftRecovered && (
           <div style={{ position: "fixed", top: "max(env(safe-area-inset-top,0px),0px)", left: 0, right: 0, zIndex: 9999, background: "rgba(168,85,247,.15)", borderBottom: "1px solid rgba(168,85,247,.4)", padding: "10px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 13 }}>
             <span style={{ color: "var(--green)", fontWeight: 700 }}>Entrenamiento recuperado</span>
-            <button style={{ background: "none", border: "none", color: "var(--muted)", fontSize: 16, cursor: "pointer", padding: "0 4px" }} onClick={() => setDraftRecovered(false)}>✕</button>
+            <button style={{ background: "none", border: "none", color: "var(--muted)", fontSize: 16, cursor: "pointer", padding: "0 4px" }} onClick={() => setDraftRecovered(false)}>?</button>
           </div>
         )}
         <main className="app-main">
@@ -655,10 +655,10 @@ function AppContent() {
     <ErrorBoundary resetKey={currentPage}>
       {!isOnline && (
         <div style={{ position:"fixed", top:0, left:0, right:0, zIndex:9999, background:"rgba(245,158,11,.9)", color:"#000", fontSize:12, fontWeight:700, textAlign:"center", padding:"6px", backdropFilter:"blur(8px)" }}>
-          Sin conexión — tus datos se guardan localmente
+          Sin conexi�n � tus datos se guardan localmente
         </div>
       )}
-      {/* ── ACHIEVEMENT UNLOCK TOAST ─────────────────────────────────────── */}
+      {/* -- ACHIEVEMENT UNLOCK TOAST --------------------------------------- */}
       {achToast && (
         <div style={{
           position: "fixed", bottom: 90, left: "50%", transform: "translateX(-50%)",
@@ -667,13 +667,13 @@ function AppContent() {
           display: "flex", alignItems: "center", gap: 12, maxWidth: 320, width: "calc(100% - 32px)",
           animation: "slideUp .3s ease",
         }}>
-          <span style={{ fontSize: 28, flexShrink: 0 }}>🏆</span>
+          <span style={{ fontSize: 28, flexShrink: 0 }}>??</span>
           <div>
-            <div style={{ fontSize: 13, fontWeight: 800, color: "#f59e0b" }}>¡Logro desbloqueado!</div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: "#f59e0b" }}>�Logro desbloqueado!</div>
             <div style={{ fontSize: 12, color: "var(--text)", marginTop: 2 }}>{achToast.title || achToast.id}</div>
           </div>
           <button onClick={() => { setAchToast(null); clearNewAchievements(); }}
-            style={{ background: "none", border: "none", color: "var(--muted)", fontSize: 16, cursor: "pointer", padding: "0 4px", flexShrink: 0, marginLeft: "auto" }}>✕</button>
+            style={{ background: "none", border: "none", color: "var(--muted)", fontSize: 16, cursor: "pointer", padding: "0 4px", flexShrink: 0, marginLeft: "auto" }}>?</button>
         </div>
       )}
       {inner}
@@ -686,21 +686,21 @@ function AppContent() {
         />
       )}
 
-      {/* ── FIRST LOGIN / PASSWORD RECOVERY MODAL ──────────────────────── */}
+      {/* -- FIRST LOGIN / PASSWORD RECOVERY MODAL ------------------------ */}
       {(showPasswordModal || (profile?.has_changed_password === false && profile?.trainer_id && !sessionStorage.getItem("pw-modal-dismissed"))) && (
         <div style={{ position:"fixed", inset:0, zIndex:10001, background:"rgba(0,0,0,.8)", display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
           <div style={{ background:"var(--panel)", borderRadius:20, padding:"28px 24px", width:"100%", maxWidth:360 }}>
             <div style={{ textAlign:"center", marginBottom:20 }}>
-              <div style={{ fontSize:40, marginBottom:8 }}>🔐</div>
-              <h2 style={{ margin:"0 0 6px" }}>Cambiá tu contraseña</h2>
+              <div style={{ fontSize:40, marginBottom:8 }}>??</div>
+              <h2 style={{ margin:"0 0 6px" }}>Cambi� tu contrase�a</h2>
               <p style={{ color:"var(--muted)", fontSize:13, margin:0 }}>
-                {showPasswordModal ? "Ingresá tu nueva contraseña." : "Es tu primer acceso. Elegí una contraseña segura para tu cuenta."}
+                {showPasswordModal ? "Ingres� tu nueva contrase�a." : "Es tu primer acceso. Eleg� una contrase�a segura para tu cuenta."}
               </p>
             </div>
             <div style={{ marginBottom:12 }}>
               <input
                 type="password"
-                placeholder="Nueva contraseña (mín. 6 caracteres)"
+                placeholder="Nueva contrase�a (m�n. 6 caracteres)"
                 value={newPassword}
                 onChange={e => { setNewPassword(e.target.value); setPasswordError(""); }}
                 style={{ width:"100%", padding:"13px 14px", borderRadius:12, border:"1.5px solid var(--line)", background:"var(--panel2)", color:"var(--text)", fontSize:14, boxSizing:"border-box" }}
@@ -709,7 +709,7 @@ function AppContent() {
             {passwordError && <p style={{ color:"var(--danger)", fontSize:12, margin:"0 0 10px", textAlign:"center" }}>{passwordError}</p>}
             <button className="primary" style={{ width:"100%" }} disabled={passwordLoading || newPassword.length < 6}
               onClick={async () => {
-                if (newPassword.length < 6) { setPasswordError("La contraseña debe tener al menos 6 caracteres."); return; }
+                if (newPassword.length < 6) { setPasswordError("La contrase�a debe tener al menos 6 caracteres."); return; }
                 setPasswordLoading(true);
                 setPasswordError("");
                 const { error } = await supabase.auth.updateUser({ password: newPassword });
@@ -723,7 +723,7 @@ function AppContent() {
                 setNewPassword("");
                 setPasswordLoading(false);
               }}>
-              {passwordLoading ? "Guardando…" : "Guardar contraseña"}
+              {passwordLoading ? "Guardando�" : "Guardar contrase�a"}
             </button>
             {showPasswordModal && (
               <button className="ghost" style={{ width:"100%", marginTop:8, color:"var(--muted)", fontSize:12 }}
@@ -739,7 +739,7 @@ function AppContent() {
         <div style={{ position:"fixed", top:0, left:0, right:0, zIndex:9999,
           background:"var(--green)", color:"#050709", padding:"12px 16px",
           display:"flex", alignItems:"center", justifyContent:"space-between", gap:12 }}>
-          <span style={{ fontSize:14, fontWeight:700 }}>Nueva versión disponible</span>
+          <span style={{ fontSize:14, fontWeight:700 }}>Nueva versi�n disponible</span>
           <button onClick={() => window.location.reload()}
             style={{ background:"#050709", color:"var(--green)", border:"none",
               padding:"7px 16px", borderRadius:8, fontWeight:700, fontSize:13, cursor:"pointer" }}>
@@ -784,7 +784,7 @@ export default function App() {
     return () => { window.__showToast = undefined; };
   }, []);
 
-  // Apply zoom via CSS custom property — avoids iOS page-reload bug triggered
+  // Apply zoom via CSS custom property � avoids iOS page-reload bug triggered
   // by setting document.documentElement.style.zoom directly.
   useEffect(() => {
     document.documentElement.style.setProperty("--app-zoom", String(fontScale || 1));

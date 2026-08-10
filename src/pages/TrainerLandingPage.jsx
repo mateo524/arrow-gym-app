@@ -131,7 +131,7 @@ export default function TrainerLandingPage({ inviteCode, onJoin, onBack }) {
         <div style={{ background: "rgba(168,85,247,.08)", border: "1px solid rgba(168,85,247,.25)", borderRadius: 14, padding: "14px 16px", marginBottom: 24, textAlign: "center" }}>
           <p style={{ margin: "0 0 4px", fontSize: 12, color: "var(--muted)" }}>30 días de prueba gratis, después</p>
           <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: "var(--text)" }}>
-            $25.000 <span style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)" }}>ARS / mes</span>
+            $10.000 <span style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)" }}>ARS / mes</span>
           </p>
         </div>
 

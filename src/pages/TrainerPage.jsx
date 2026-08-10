@@ -308,7 +308,7 @@ export default function TrainerPage() {
   }
 
   // Métricas de negocio agregadas
-  const MONTHLY_FEE_ARS = 25000;
+  const MONTHLY_FEE_ARS = 10000;
   function businessMetrics() {
     const total = clients.length;
     const trainedThisWeek = clients.filter((c) => (adherenceMap[c.id]?.size || 0) > 0).length;
@@ -1353,7 +1353,7 @@ export default function TrainerPage() {
         <div style={{ fontWeight:700, fontSize:16, marginBottom:4 }}>Registrar cobro</div>
         <div style={{ fontSize:13, color:"var(--muted)", marginBottom:16 }}>{payModal.name || payModal.email}</div>
         <div style={{ fontSize:13, marginBottom:8 }}>Monto cobrado (ARS)</div>
-        <input id="pay-amount" type="number" defaultValue={25000} style={{ width:"100%", padding:"8px 12px", borderRadius:8, border:"1px solid var(--line)", background:"var(--bg)", color:"var(--text)", fontSize:14, marginBottom:16, boxSizing:"border-box" }} />
+        <input id="pay-amount" type="number" defaultValue={10000} style={{ width:"100%", padding:"8px 12px", borderRadius:8, border:"1px solid var(--line)", background:"var(--bg)", color:"var(--text)", fontSize:14, marginBottom:16, boxSizing:"border-box" }} />
         <button onClick={async () => {
           const amount = document.getElementById("pay-amount").value;
           const today = new Date().toISOString().split("T")[0];
