@@ -52,6 +52,23 @@ export default function CoachPage() {
     );
   }
   const f = features(profile);
+
+  // Coach toggle — max priority (overrides ui_mode)
+  if (profile && (profile.coach_enabled === false)) {
+    return (
+      <section className="page" style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", textAlign:"center", padding:"48px 24px" }}>
+        <span style={{ fontSize:56, marginBottom:16 }}>💤</span>
+        <h2 style={{ margin:"0 0 8px", fontSize:22 }}>Coach pausado</h2>
+        <p style={{ color:"var(--muted)", fontSize:14, marginBottom:28, maxWidth:280 }}>
+          Las sugerencias del coach están desactivadas. Activalas desde Configuración cuando quieras.
+        </p>
+        <button className="primary" style={{ padding:"12px 24px", fontSize:14 }} onClick={() => useStore.getState().setPage("profile")}>
+          Ir a Configuración
+        </button>
+      </section>
+    );
+  }
+
   const userAge = profile?.age ? Number(profile.age) : null;
   const weightLog = useStore((state) => state.weightLog) || [];
   const userGoal = useStore((state) => state.userGoal) || "mantenimiento";

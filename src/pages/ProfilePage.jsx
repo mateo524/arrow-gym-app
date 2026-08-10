@@ -628,6 +628,32 @@ export default function ProfilePage() {
             })()}
           </div>
 
+          {/* ── Toggle Coach IA ── */}
+          <div className="settings-row" style={{ alignItems: "center" }}>
+            <div style={{ flex: 1 }}>
+              <label>Sugerencias del coach</label>
+              <small>Desactivá si solo querés registrar sin recibir análisis</small>
+            </div>
+            <button onClick={async () => {
+              if (!profile?.id) return;
+              const next = !(profile?.coach_enabled ?? true);
+              const { error } = await supabase.from("profiles").update({ coach_enabled: next }).eq("id", profile.id);
+              if (!error) {
+                useAuthStore.setState(s => ({ profile: { ...s.profile, coach_enabled: next } }));
+              }
+            }} style={{
+              width: 48, height: 28, borderRadius: 14, border: "none", cursor: "pointer", flexShrink: 0,
+              background: (profile?.coach_enabled ?? true) ? "var(--green)" : "rgba(255,255,255,.12)",
+              position: "relative", transition: "background .2s",
+            }}>
+              <span style={{
+                position: "absolute", top: 3, left: (profile?.coach_enabled ?? true) ? 22 : 3,
+                width: 22, height: 22, borderRadius: "50%", background: "#fff",
+                transition: "left .2s", display: "block",
+              }} />
+            </button>
+          </div>
+
           {/* ── Modo de app ── */}
           <div className="settings-row" style={{ flexDirection: "column", alignItems: "flex-start", gap: 8 }}>
             <div><label>¿Cómo querés usar Loop?</label><small>Podés cambiarlo cuando quieras — afecta qué funciones ves</small></div>
