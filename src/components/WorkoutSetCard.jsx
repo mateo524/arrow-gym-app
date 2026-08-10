@@ -182,7 +182,13 @@ export default function WorkoutSetCard({ setItem, index, onUpdate, onApplyToNext
             value={setItem.weight}
             placeholder={(!setItem.weight && coachSuggestion?.weight != null) ? String(coachSuggestion.weight) : (setItem.lastWeight || "")}
             onChange={(e) => { haptic(); setDone(false); onUpdate({ weight: sanitizeWeight(e.target.value) }); }}
-            onFocus={(e) => e.target.select()}
+            onFocus={(e) => {
+              // Si el input está vacío y hay dato anterior, pre-cargarlo con un tap
+              if (!setItem.weight && setItem.lastWeight) {
+                onUpdate({ weight: String(setItem.lastWeight) });
+              }
+              e.target.select();
+            }}
             style={{ width: "100%", textAlign: "center", fontSize: 26, fontWeight: 800, borderColor: setItem.weight ? "rgba(168,85,247,.5)" : undefined, transition: "border-color .2s" }}
           />
         </div>
@@ -199,7 +205,12 @@ export default function WorkoutSetCard({ setItem, index, onUpdate, onApplyToNext
             value={setItem.reps}
             placeholder={setItem.planReps || setItem.lastReps || "—"}
             onChange={(e) => { haptic(); setDone(false); onUpdate({ reps: sanitizeReps(e.target.value) }); }}
-            onFocus={(e) => e.target.select()}
+            onFocus={(e) => {
+              if (!setItem.reps && setItem.lastReps) {
+                onUpdate({ reps: String(setItem.lastReps) });
+              }
+              e.target.select();
+            }}
             style={{ width: "100%", textAlign: "center", fontSize: 26, fontWeight: 800, borderColor: setItem.reps ? "rgba(168,85,247,.5)" : undefined, transition: "border-color .2s" }}
           />
         </div>
@@ -256,23 +267,54 @@ export default function WorkoutSetCard({ setItem, index, onUpdate, onApplyToNext
       )}
 
       <div className="set-actions">
-        <button
-          className="ghost set-action-sm"
-          onClick={() => {
-            haptic();
-            setDone(true);
-            // Convert RIR to effective RPE for smart timer: RIR 0 = RPE 10, RIR 1 = RPE 9, etc.
-            const effectiveRpe = setItem.rir !== undefined && setItem.rir !== ""
-              ? Math.max(6, 10 - Number(setItem.rir))
-              : setItem.rpe;
-            onStartRest(effectiveRpe);
-          }}
-          title="Descanso"
-          style={{ display:"flex", alignItems:"center", gap:5, border:"1.5px dashed var(--cyan)", color:"var(--cyan)", background:"rgba(117,217,255,.06)" }}
-        >
-          <Icon name="Timer" size={13} />
-          Descanso
-        </button>
+        {/* Botón principal: confirma la serie Y arranca el descanso en un tap */}
+        {hasData && !done && (
+          <button
+            className="ghost set-action-sm"
+            onClick={() => {
+              haptic("done");
+              setDone(true);
+              onUpdate({ done: true });
+              const effectiveRpe = setItem.rir !== undefined && setItem.rir !== ""
+                ? Math.max(6, 10 - Number(setItem.rir))
+                : setItem.rpe;
+              onStartRest(effectiveRpe);
+            }}
+            style={{
+              flex: 1, fontWeight: 800, fontSize: 14,
+              background: "rgba(52,211,153,.12)", border: "1.5px solid rgba(52,211,153,.4)",
+              color: "#34d399", display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            }}
+          >
+            ✓ Hecho
+          </button>
+        )}
+        {done && (
+          <span style={{
+            flex: 1, fontWeight: 800, fontSize: 13, textAlign: "center",
+            color: "#34d399", display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+          }}>
+            <Icon name="CheckCircle" size={14} /> Completada
+          </span>
+        )}
+        {!hasData && (
+          <button
+            className="ghost set-action-sm"
+            onClick={() => {
+              haptic();
+              setDone(true);
+              const effectiveRpe = setItem.rir !== undefined && setItem.rir !== ""
+                ? Math.max(6, 10 - Number(setItem.rir))
+                : setItem.rpe;
+              onStartRest(effectiveRpe);
+            }}
+            title="Descanso"
+            style={{ display:"flex", alignItems:"center", gap:5, border:"1.5px dashed var(--cyan)", color:"var(--cyan)", background:"rgba(117,217,255,.06)" }}
+          >
+            <Icon name="Timer" size={13} />
+            Descanso
+          </button>
+        )}
         <button
           className="ghost set-action-sm"
           onClick={() => { haptic(); onRepeat(); }}
