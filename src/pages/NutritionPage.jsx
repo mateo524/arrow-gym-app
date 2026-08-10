@@ -1,8 +1,9 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import useStore from "../store/useStore.js";
 import useAuthStore from "../store/useAuthStore.js";
 import { todayLocal } from "../lib/dates.js";
 import { features, vocab } from "../config/features.js";
+import { searchFoods } from "../data/foodDatabase.js";
 
 const MEAL_TYPES = ["Desayuno", "Almuerzo", "Merienda", "Cena", "Snack"];
 
@@ -70,6 +71,26 @@ export default function NutritionPage() {
   const [showQuick, setShowQuick] = useState(false);
   const [form, setForm]       = useState({ type:"Almuerzo", name:"", kcal:"", protein:"", carbs:"", fat:"" });
   const [saving, setSaving]   = useState(false);
+  const [dbQuery, setDbQuery] = useState("");
+  const [dbResults, setDbResults] = useState([]);
+
+  const handleDbSearch = useCallback((q) => {
+    setDbQuery(q);
+    setDbResults(q.trim().length >= 2 ? searchFoods(q, 12) : []);
+  }, []);
+
+  const selectDbFood = useCallback((food) => {
+    setForm(f => ({
+      ...f,
+      name: food.name,
+      kcal: String(food.kcal),
+      protein: String(food.protein),
+      carbs: String(food.carbs),
+      fat: String(food.fat),
+    }));
+    setDbQuery("");
+    setDbResults([]);
+  }, []);
 
   const today = todayLocal();
   const bodyWeight = Number([...weightLog].sort((a,b) => String(b.date).localeCompare(String(a.date)))[0]?.kg) || null;
@@ -129,6 +150,8 @@ export default function NutritionPage() {
     setForm({ type:"Almuerzo", name:"", kcal:"", protein:"", carbs:"", fat:"" });
     setShowForm(false);
     setShowQuick(false);
+    setDbQuery("");
+    setDbResults([]);
   }
 
   async function handleAdd(e) {
@@ -402,6 +425,39 @@ export default function NutritionPage() {
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
               <h3 style={{ margin:0, fontSize:17 }}>Registrar comida</h3>
               <button onClick={resetForm} style={{ background:"none", border:"none", cursor:"pointer", fontSize:22, color:"var(--muted)" }}>×</button>
+            </div>
+
+            {/* ── BUSCADOR DE BASE DE DATOS ── */}
+            <div style={{ position:"relative", marginBottom:14 }}>
+              <input
+                className="input"
+                placeholder="🔍 Buscar alimento (ej: pollo, manzana, arroz…)"
+                value={dbQuery}
+                onChange={e => handleDbSearch(e.target.value)}
+                style={{ width:"100%", boxSizing:"border-box" }}
+                autoComplete="off"
+              />
+              {dbResults.length > 0 && (
+                <div style={{ position:"absolute", top:"100%", left:0, right:0, background:"var(--panel)", border:"1px solid var(--line)", borderRadius:12, zIndex:200, maxHeight:260, overflowY:"auto", boxShadow:"0 8px 24px rgba(0,0,0,.4)" }}>
+                  {dbResults.map(food => (
+                    <button
+                      key={food.id}
+                      type="button"
+                      onClick={() => selectDbFood(food)}
+                      style={{ width:"100%", padding:"10px 14px", background:"none", border:"none", borderBottom:"1px solid var(--line)", cursor:"pointer", textAlign:"left", display:"flex", justifyContent:"space-between", alignItems:"center", gap:8 }}
+                    >
+                      <div>
+                        <div style={{ fontSize:13, fontWeight:700, color:"var(--text)" }}>{food.name}</div>
+                        <div style={{ fontSize:11, color:"var(--muted)" }}>{food.serving} · {food.cat}</div>
+                      </div>
+                      <div style={{ textAlign:"right", flexShrink:0 }}>
+                        <div style={{ fontSize:13, fontWeight:800, color:"var(--green)" }}>{food.kcal} kcal</div>
+                        <div style={{ fontSize:10, color:"var(--muted)" }}>{food.protein}P · {food.carbs}C · {food.fat}G</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Quick foods toggle */}
