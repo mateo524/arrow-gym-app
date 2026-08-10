@@ -30,13 +30,14 @@ export default function OnboardingModal() {
   const profile = useAuthStore(s => s.profile);
   const refreshProfile = useAuthStore(s => s.refreshProfile);
 
-  const [step, setStep] = useState(1); // 1=welcome, 2=body, 3=level+goal, 4=features, 5=trial+trainer
+  const [step, setStep] = useState(1); // 1=welcome+mode, 2=body, 3=level+goal, 4=features, 5=trainer
   const [weight, setWeight] = useState("");
   const [height, setHeight] = useState("");
   const [dob, setDob] = useState("");
   const [sex, setSex] = useState("");
   const [goal, setGoal] = useState("mantenimiento");
   const [level, setLevel] = useState("intermedio");
+  const [uiMode, setUiMode] = useState("");
   const [saving, setSaving] = useState(false);
   const [inviteCode, setInviteCode] = useState("");
   const [inviteMsg, setInviteMsg] = useState("");
@@ -66,7 +67,7 @@ export default function OnboardingModal() {
 
   async function finish() {
     setSaving(true);
-    const payload = { goal, fitness_level: level };
+    const payload = { goal, fitness_level: level, ui_mode: uiMode || "standard" };
     if (weight) payload.weight_kg    = parseFloat(weight);
     if (height) payload.height_cm    = parseFloat(height);
     if (dob)    payload.date_of_birth = dob;
@@ -105,23 +106,51 @@ export default function OnboardingModal() {
           </button>
         </div>
 
-        {/* Step 1: Welcome */}
+        {/* Step 1: Welcome + modo de uso */}
         {step === 1 && (
           <>
             <div style={{ textAlign: "center", marginBottom: 24 }}>
-              <div style={{ fontSize: 58, marginBottom: 12 }}>⚡</div>
-              <h2 style={{ margin: "0 0 10px", fontSize: 26 }}>Bienvenido a Loop</h2>
-              <p style={{ color: "var(--muted)", fontSize: 14, margin: 0, lineHeight: 1.6 }}>
-                En 5 pasos rápidos configuramos tu experiencia personalizada.
+              <div style={{ fontSize: 52, marginBottom: 12 }}>⚡</div>
+              <h2 style={{ margin: "0 0 8px", fontSize: 24 }}>Bienvenido a Loop</h2>
+              <p style={{ color: "var(--muted)", fontSize: 14, margin: 0, lineHeight: 1.5 }}>
+                ¿Cómo querés usar la app?
               </p>
             </div>
-            <div style={{ background: "rgba(168,85,247,.06)", border: "1px solid rgba(168,85,247,.2)", borderRadius: 12, padding: "14px 16px", marginBottom: 24 }}>
-              <p style={{ margin: "0 0 6px", fontSize: 13, color: "var(--green)", fontWeight: 700 }}>¿Para qué usamos tus datos?</p>
-              <p style={{ margin: 0, fontSize: 12, color: "var(--muted)", lineHeight: 1.6 }}>
-                Tu peso y altura permiten calcular calorías y macros. Tu nivel y objetivo ajustan los consejos del coach. Todo queda solo en tu cuenta.
-              </p>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 24 }}>
+              {[
+                { id: "simple",   icon: "📝", label: "Solo quiero registrar lo que hago",    sub: "Sin sugerencias ni análisis extra" },
+                { id: "standard", icon: "💪", label: "Registrar y recibir sugerencias",       sub: "El coach te avisa si algo no avanza" },
+                { id: "advanced", icon: "🔬", label: "Control total",                         sub: "Volumen, cargas, semanas de descarga" },
+              ].map(({ id, icon, label, sub }) => (
+                <button
+                  key={id}
+                  onClick={() => setUiMode(id)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 14,
+                    background: uiMode === id ? "rgba(168,85,247,.15)" : "var(--panel)",
+                    border: `1.5px solid ${uiMode === id ? "rgba(168,85,247,.6)" : "var(--line)"}`,
+                    borderRadius: 14, padding: "14px 16px", cursor: "pointer", textAlign: "left", width: "100%",
+                  }}
+                >
+                  <span style={{ fontSize: 28, flexShrink: 0 }}>{icon}</span>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text)", marginBottom: 2 }}>{label}</div>
+                    <div style={{ fontSize: 12, color: "var(--muted)" }}>{sub}</div>
+                  </div>
+                  {uiMode === id && <span style={{ marginLeft: "auto", color: "var(--accent)", fontSize: 18 }}>✓</span>}
+                </button>
+              ))}
             </div>
-            <button className="primary big" style={{ width: "100%" }} onClick={() => setStep(2)}>Empezar →</button>
+
+            <button
+              className="primary big"
+              style={{ width: "100%", opacity: uiMode ? 1 : 0.5 }}
+              disabled={!uiMode}
+              onClick={() => setStep(2)}
+            >
+              Continuar →
+            </button>
           </>
         )}
 
