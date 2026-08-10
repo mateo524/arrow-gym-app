@@ -25,6 +25,7 @@ const TestamentoPage     = lazy(() => import("./pages/TestamentoPage.jsx"));
 const LeaguePage         = lazy(() => import("./pages/LeaguePage.jsx"));
 const TrainerLandingPage = lazy(() => import("./pages/TrainerLandingPage.jsx"))
 const WorkoutSharePage   = lazy(() => import("./pages/WorkoutSharePage.jsx"));
+const NutritionPage      = lazy(() => import("./pages/NutritionPage.jsx"));
 import Nav from "./components/Nav.jsx";
 import OnboardingModal from "./components/OnboardingModal.jsx";
 import PRCard from "./components/PRCard.jsx";
@@ -120,6 +121,7 @@ healthsync: HealthSyncPage,
   referral: ReferralPage,
   testamento: TestamentoPage,
   league: LeaguePage,
+  nutrition: NutritionPage,
 };
 
 function AppContent() {

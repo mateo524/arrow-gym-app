@@ -5,11 +5,11 @@ import { supabase } from "../lib/supabase.js";
 import Icon from "./Icon.jsx";
 
 const USER_TABS = [
-  { id: "home",    label: "Inicio",    icon: "Home" },
-  { id: "start",   label: "Entreno",   icon: "Dumbbell", badgeKey: "activeWorkout" },
-  { id: "coach",   label: "Coach",     icon: "BrainCircuit", badgeKey: "coachBadge" },
-{ id: "history", label: "Historial", icon: "Clock" },
-  { id: "profile", label: "Perfil",    icon: "User" },
+  { id: "home",      label: "Inicio",    icon: "Home" },
+  { id: "start",     label: "Entreno",   icon: "Dumbbell", badgeKey: "activeWorkout" },
+  { id: "coach",     label: "Coach",     icon: "BrainCircuit", badgeKey: "coachBadge" },
+  { id: "nutrition", label: "Nutrición", icon: "Apple" },
+  { id: "profile",   label: "Perfil",    icon: "User" },
 ];
 
 const TRAINER_EXTRA = { id: "trainer", label: "Alumnos", icon: "Users" };
