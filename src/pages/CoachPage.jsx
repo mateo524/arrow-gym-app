@@ -1,4 +1,4 @@
-﻿import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import MuscleRadarChart from "../components/MuscleRadarChart.jsx";
 import useStore from "../store/useStore.js";
 import useAuthStore from "../store/useAuthStore.js";
@@ -22,7 +22,7 @@ export default function CoachPage() {
   const profile = useAuthStore((s) => s.profile);
   const user = useAuthStore((s) => s.user);
 
-  // Subscription gate � trainers and admins always have access
+  // Subscription gate — trainers and admins always have access
   const isSubscribed = profile?.subscription_status === "active" || ["trainer","admin","superadmin"].includes(profile?.role);
   if (profile && !isSubscribed) {
     return (
@@ -30,7 +30,7 @@ export default function CoachPage() {
         <span style={{ fontSize: 56, marginBottom: 16 }}>??</span>
         <h2 style={{ margin: "0 0 8px", fontSize: 22 }}>Coach IA</h2>
         <p style={{ color: "var(--muted)", fontSize: 14, marginBottom: 28, maxWidth: 280 }}>
-          Analiz� tu progreso, recib� recomendaciones personalizadas y optimiz� tu entrenamiento con inteligencia artificial.
+          Analizá tu progreso, recibí recomendaciones personalizadas y optimizá tu entrenamiento con inteligencia artificial.
         </p>
         <button
           className="primary"
@@ -39,31 +39,31 @@ export default function CoachPage() {
             try {
               const { supabase } = await import("../lib/supabase.js");
               const { data, error } = await supabase.functions.invoke("mp-create-subscription");
-              if (data?.already_active) { window.__showToast?.("Ya ten�s una suscripci�n activa.", "info"); return; }
+              if (data?.already_active) { window.__showToast?.("Ya tenés una suscripción activa.", "info"); return; }
               if (!error && data?.init_point) window.location.href = data.init_point;
-              else window.__showToast?.("No se pudo iniciar el pago. Intent� de nuevo.", "error");
-            } catch { window.__showToast?.("Error de conexi�n.", "error"); }
+              else window.__showToast?.("No se pudo iniciar el pago. Intentá de nuevo.", "error");
+            } catch { window.__showToast?.("Error de conexión.", "error"); }
           }}
         >
-          Suscribirme � $10.000/mes
+          Suscribirme — $10.000/mes
         </button>
-        <p style={{ color: "var(--muted)", fontSize: 11, marginTop: 12 }}>Renovaci�n autom�tica � cancel� cuando quieras</p>
+        <p style={{ color: "var(--muted)", fontSize: 11, marginTop: 12 }}>Renovación automática — cancelá cuando quieras</p>
       </section>
     );
   }
   const f = features(profile);
 
-  // Coach toggle � max priority (overrides ui_mode)
+  // Coach toggle — max priority (overrides ui_mode)
   if (profile && (profile.coach_enabled === false)) {
     return (
       <section className="page" style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", textAlign:"center", padding:"48px 24px" }}>
         <span style={{ fontSize:56, marginBottom:16 }}>??</span>
         <h2 style={{ margin:"0 0 8px", fontSize:22 }}>Coach pausado</h2>
         <p style={{ color:"var(--muted)", fontSize:14, marginBottom:28, maxWidth:280 }}>
-          Las sugerencias del coach est�n desactivadas. Activalas desde Configuraci�n cuando quieras.
+          Las sugerencias del coach están desactivadas. Activalas desde Configuración cuando quieras.
         </p>
         <button className="primary" style={{ padding:"12px 24px", fontSize:14 }} onClick={() => useStore.getState().setPage("profile")}>
-          Ir a Configuraci�n
+          Ir a Configuración
         </button>
       </section>
     );
@@ -107,7 +107,7 @@ export default function CoachPage() {
   const [macroDay, setMacroDay] = useState("entreno"); // "entreno" | "descanso"
 
   useEffect(() => {
-    // Always call � it auto-rotates weekly and refreshes doneCount
+    // Always call — it auto-rotates weekly and refreshes doneCount
     generateWeeklyChallenge();
   }, [workouts.length]);
 
@@ -184,7 +184,7 @@ export default function CoachPage() {
       const noProgress = maxW === minW && recent.length >= 3 && daySpan >= 21;
       if (noProgress) {
         const weeks = Math.round(daySpan / 7);
-        alerts.push({ type: "stall", msg: `Sin progresi�n en ${exName} hace ${weeks} semanas (${maxW}kg). Prob� aumentar 2.5kg la pr�xima sesi�n o cambiar el rango de repeticiones.` });
+        alerts.push({ type: "stall", msg: `Sin progresión en ${exName} hace ${weeks} semanas (${maxW}kg). Probá aumentar 2.5kg la próxima sesión o cambiar el rango de repeticiones.` });
       }
     });
 
@@ -200,7 +200,7 @@ export default function CoachPage() {
       const recentVol = recent2w.reduce((s, w) => s + getVol(w), 0);
       const prevVol = prev2w.reduce((s, w) => s + getVol(w), 0);
       if (prevVol > 0 && recentVol < prevVol * 0.8) {
-        alerts.push({ type: "volume", msg: "Tu volumen baj� esta semana � �est�s descansando bien? Revis� sue�o y nutrici�n." });
+        alerts.push({ type: "volume", msg: "Tu volumen bajó esta semana — —estás descansando bien? Revisá sueño y nutrición." });
       }
     }
 
@@ -213,17 +213,17 @@ export default function CoachPage() {
         const g = (s.group || "").toLowerCase();
         const ex = (s.exercise || "").toLowerCase();
         const isPush = g === "pecho" || g === "hombros" || ex.includes("press") || ex.includes("pecho") || ex.includes("fondos") || ex.includes("aperturas");
-        const isPull = g === "espalda" || ex.includes("espalda") || ex.includes("dominadas") || ex.includes("remo") || ex.includes("jal�n") || ex.includes("pull");
+        const isPull = g === "espalda" || ex.includes("espalda") || ex.includes("dominadas") || ex.includes("remo") || ex.includes("jalón") || ex.includes("pull");
         if (isPush) pushSets++;
         if (isPull) pullSets++;
       });
     });
     if (pushSets >= 10 && pullSets > 0 && pushSets >= pullSets * 1.6) {
       const ratio = (pushSets / pullSets).toFixed(1);
-      alerts.push({ type: "imbalance", msg: `Relaci�n empuje/tir�n desequilibrada (${ratio}:1) en las �ltimas 4 semanas: ${pushSets} series de empuje vs ${pullSets} de tir�n. Lo ideal es 1:1. Agreg� m�s espalda/remo/dominadas.` });
+      alerts.push({ type: "imbalance", msg: `Relación empuje/tirón desequilibrada (${ratio}:1) en las últimas 4 semanas: ${pushSets} series de empuje vs ${pullSets} de tirón. Lo ideal es 1:1. Agregá más espalda/remo/dominadas.` });
     } else if (pullSets >= 10 && pushSets > 0 && pullSets >= pushSets * 1.6) {
       const ratio = (pullSets / pushSets).toFixed(1);
-      alerts.push({ type: "imbalance", msg: `M�s tir�n que empuje (${ratio}:1): ${pullSets} series de espalda vs ${pushSets} de pecho/hombros. Revis� si es intencional.` });
+      alerts.push({ type: "imbalance", msg: `Más tirón que empuje (${ratio}:1): ${pullSets} series de espalda vs ${pushSets} de pecho/hombros. Revisá si es intencional.` });
     }
 
     // 4. No rest days: 5+ consecutive training days
@@ -237,13 +237,13 @@ export default function CoachPage() {
         if (diff === 1) { consecutive++; } else { break; }
       }
       if (consecutive >= 4) {
-        alerts.push({ type: "rest", msg: `${consecutive + 1} d�as seguidos entrenando sin descanso. Tu cuerpo necesita al menos 1 d�a de recuperaci�n por semana para supercompensar.` });
+        alerts.push({ type: "rest", msg: `${consecutive + 1} días seguidos entrenando sin descanso. Tu cuerpo necesita al menos 1 día de recuperación por semana para supercompensar.` });
       }
     }
 
     // 5. Neglected legs: no leg training in 10+ days with 5+ total workouts
     if (workouts.length >= 5) {
-      const legWords = ["sentadilla", "pierna", "femoral", "gl�teo", "peso muerto", "estocada", "leg press", "hack squat", "hip thrust", "nordico", "pantorrilla"];
+      const legWords = ["sentadilla", "pierna", "femoral", "glúteo", "peso muerto", "estocada", "leg press", "hack squat", "hip thrust", "nordico", "pantorrilla"];
       const lastLeg = sortedW.find(w => (w.sets || []).some(s => {
         const g = (s.group || "").toLowerCase();
         const ex = (s.exercise || "").toLowerCase();
@@ -253,7 +253,7 @@ export default function CoachPage() {
         ? Math.floor((now - new Date(lastLeg.date + "T12:00:00")) / 86400000)
         : null;
       if (daysSinceLeg !== null && daysSinceLeg >= 10) {
-        alerts.push({ type: "neglect", msg: `Sin entrenamiento de piernas hace ${daysSinceLeg} d�as. Las piernas son el grupo m�s grande � no entrenarlas afecta tu hormona de crecimiento y fuerza general.` });
+        alerts.push({ type: "neglect", msg: `Sin entrenamiento de piernas hace ${daysSinceLeg} días. Las piernas son el grupo más grande — no entrenarlas afecta tu hormona de crecimiento y fuerza general.` });
       }
     }
 
@@ -263,27 +263,27 @@ export default function CoachPage() {
       const last4w = workouts.filter(w => w.date && new Date(w.date) >= fourWAgo);
       const avgPerWeek = last4w.length / 4;
       if (avgPerWeek < 2 && avgPerWeek > 0) {
-        alerts.push({ type: "frequency", msg: `Promedio de ${avgPerWeek.toFixed(1)} entrenos/semana en las �ltimas 4 semanas. Para progresar se recomiendan al menos 3 sesiones semanales.` });
+        alerts.push({ type: "frequency", msg: `Promedio de ${avgPerWeek.toFixed(1)} entrenos/semana en las últimas 4 semanas. Para progresar se recomiendan al menos 3 sesiones semanales.` });
       }
     }
 
-    // 7. Body composition alerts � umbrales seg�n Gallagher et al. 2000, Friedl et al. 1994
+    // 7. Body composition alerts — umbrales según Gallagher et al. 2000, Friedl et al. 1994
     if (bodyFatPct !== null) {
-      // Umbrales seg�n sexo (Gallagher et al. 2000)
+      // Umbrales según sexo (Gallagher et al. 2000)
       const sexFlag = profile?.sex || "M";
       const bfHighThresh  = sexFlag === "F" ? 32 : 25;  // obeso: >32% mujeres, >25% hombres
       const bfModThresh   = sexFlag === "F" ? 25 : 20;  // exceso: >25% / >20%
       const bfLowRisk     = sexFlag === "F" ? 14 : 8;   // riesgo bajo: <14% mujeres, <8% hombres
-      const bfEssential   = sexFlag === "F" ? 10 : 5;   // grasa esencial � riesgo hormonal severo
+      const bfEssential   = sexFlag === "F" ? 10 : 5;   // grasa esencial — riesgo hormonal severo
 
       if (bodyFatPct > bfHighThresh) {
-        alerts.push({ type: "bodyfat_high", msg: `% grasa elevado (${bodyFatPct.toFixed(1)}%). Gallagher et al. (2000): >25% en hombres / >32% en mujeres se asocia a mayor riesgo metab�lico. Objetivo: d�ficit 300-500 kcal/d�a ? p�rdida de 0.5-1% peso/semana (ISSN 2017). Cardio aer�bico 2-3x/semana complementa el d�ficit sin comprometer el m�sculo.` });
+        alerts.push({ type: "bodyfat_high", msg: `% grasa elevado (${bodyFatPct.toFixed(1)}%). Gallagher et al. (2000): >25% en hombres / >32% en mujeres se asocia a mayor riesgo metabólico. Objetivo: déficit 300-500 kcal/día ? pérdida de 0.5-1% peso/semana (ISSN 2017). Cardio aeróbico 2-3x/semana complementa el déficit sin comprometer el músculo.` });
       } else if (bodyFatPct > bfModThresh) {
-        alerts.push({ type: "bodyfat_mod", msg: `% grasa moderadamente elevado (${bodyFatPct.toFixed(1)}%). Consider� una fase de definici�n con d�ficit conservador (300 kcal/d�a) para llegar al rango �ptimo (15-20% hombres, 22-28% mujeres) antes de un ciclo de volumen.` });
+        alerts.push({ type: "bodyfat_mod", msg: `% grasa moderadamente elevado (${bodyFatPct.toFixed(1)}%). Considerá una fase de definición con déficit conservador (300 kcal/día) para llegar al rango óptimo (15-20% hombres, 22-28% mujeres) antes de un ciclo de volumen.` });
       } else if (bodyFatPct < bfEssential) {
-        alerts.push({ type: "bodyfat_critical", msg: `?? % grasa cr�tico (${bodyFatPct.toFixed(1)}%). Por debajo de la grasa esencial (5% hombres, 10% mujeres). Riesgo serio de disfunci�n hormonal, amenorrea e inmunodepresi�n (Friedl et al. 1994). Aument� calor�as de inmediato.` });
+        alerts.push({ type: "bodyfat_critical", msg: `?? % grasa crítico (${bodyFatPct.toFixed(1)}%). Por debajo de la grasa esencial (5% hombres, 10% mujeres). Riesgo serio de disfunción hormonal, amenorrea e inmunodepresión (Friedl et al. 1994). Aumentá calorías de inmediato.` });
       } else if (bodyFatPct < bfLowRisk) {
-        alerts.push({ type: "bodyfat_low", msg: `% grasa muy bajo (${bodyFatPct.toFixed(1)}%). Valores <8% en hombres (<14% mujeres) pueden comprometer testosterona y rendimiento (Friedl et al. 1994). Priorizar calor�as suficientes y prote�na =2g/kg.` });
+        alerts.push({ type: "bodyfat_low", msg: `% grasa muy bajo (${bodyFatPct.toFixed(1)}%). Valores <8% en hombres (<14% mujeres) pueden comprometer testosterona y rendimiento (Friedl et al. 1994). Priorizar calorías suficientes y proteína =2g/kg.` });
       }
     }
 
@@ -345,13 +345,13 @@ export default function CoachPage() {
   const TABS = [
     { id: "resumen",    label: "Resumen"    },
     { id: "plan",       label: "Plan"       },
-    { id: "progreso",   label: "Progresi�n" },
+    { id: "progreso",   label: "Progresión" },
     { id: "alertas",    label: "Alertas"    },
   ];
 
   const PLAN_SUB_TABS = [
     { id: "rendimiento", label: "Fuerza" },
-    { id: "nutricion",   label: "Nutrici�n"   },
+    { id: "nutricion",   label: "Nutrición"   },
   ];
 
   const MUSCLE_RANGE_LABELS = [
@@ -359,7 +359,7 @@ export default function CoachPage() {
     { key:"1m", label:"1 mes" },
     { key:"3m", label:"3 meses" },
     { key:"6m", label:"6 meses" },
-    { key:"1y", label:"1 a�o" },
+    { key:"1y", label:"1 año" },
     { key:"all", label:"Inicio" },
   ];
 
@@ -399,7 +399,7 @@ export default function CoachPage() {
     };
   }, [mealLog]);
 
-  // -- Adaptive TDEE � EMA weight trend vs goal --------------------------------
+  // -- Adaptive TDEE — EMA weight trend vs goal --------------------------------
   const adaptiveTDEE = useMemo(() => {
     const sorted = [...weightLog]
       .filter(e => e.date && Number(e.kg) > 0)
@@ -410,7 +410,7 @@ export default function CoachPage() {
     const spanDays = Math.max(1, Math.floor((new Date(newest.date) - new Date(oldest.date)) / 86400000));
     if (spanDays < 7) return null; // need at least 1 week of data
 
-    // EMA with a=0.3 over all entries � smooths out daily fluctuation noise
+    // EMA with a=0.3 over all entries — smooths out daily fluctuation noise
     const a = 0.3;
     let ema = sorted[0].kg;
     for (let i = 1; i < sorted.length; i++) {
@@ -420,7 +420,7 @@ export default function CoachPage() {
     const weeklyChange = ((ema - sorted[0].kg) / spanDays) * 7;
     const targetWeekly = userGoal === "volumen" ? 0.25 : userGoal === "definicion" ? -0.5 : 0;
     const diff = weeklyChange - targetWeekly;
-    if (Math.abs(diff) < 0.08) return null; // within �80g/wk is on track
+    if (Math.abs(diff) < 0.08) return null; // within ±80g/wk is on track
     const calAdj = Math.round(-diff * 7700 / 7);
     const clamped = Math.max(-400, Math.min(400, calAdj));
     // Adjust targets based on body fat: higher BF ? more conservative surplus, more aggressive deficit
@@ -460,9 +460,9 @@ export default function CoachPage() {
       const minW = Math.min(...weights);
       // Signal 1: consistently high RPE with no weight gain = stuck at ceiling
       if (highRPE >= 3 && maxW === minW) {
-        alerts.push({ exercise: ex, rpe: recent[0].rpe, msg: `? ${ex}: RPE 9+ en ${highRPE} sesiones sin subir peso (${maxW}kg). Consider� una semana de menor intensidad antes de progresar.` });
+        alerts.push({ exercise: ex, rpe: recent[0].rpe, msg: `? ${ex}: RPE 9+ en ${highRPE} sesiones sin subir peso (${maxW}kg). Considerá una semana de menor intensidad antes de progresar.` });
       }
-      // Signal 2: RPE trending up while weight constant or only slightly up � efficiency declining
+      // Signal 2: RPE trending up while weight constant or only slightly up — efficiency declining
       if (recent.length >= 4) {
         const earlyRPE = recent.slice(Math.floor(recent.length / 2)).reduce((s, e) => s + e.rpe, 0) / Math.floor(recent.length / 2);
         const lateRPE  = recent.slice(0, Math.floor(recent.length / 2)).reduce((s, e) => s + e.rpe, 0) / Math.floor(recent.length / 2);
@@ -472,7 +472,7 @@ export default function CoachPage() {
         const weightRise = lateW - earlyW;
         // RPE went up >=1.5 points but weight barely moved (<5% increase)
         if (rpeRise >= 1.5 && weightRise < earlyW * 0.05 && lateRPE >= 8) {
-          alerts.push({ exercise: ex, rpe: Math.round(lateRPE * 10) / 10, msg: `?? ${ex}: RPE subi� ${rpeRise.toFixed(1)} puntos sin ganancia de carga (${earlyW.toFixed(1)}?${lateW.toFixed(1)}kg). Tu eficiencia baj� � es se�al de fatiga acumulada.` });
+          alerts.push({ exercise: ex, rpe: Math.round(lateRPE * 10) / 10, msg: `?? ${ex}: RPE subió ${rpeRise.toFixed(1)} puntos sin ganancia de carga (${earlyW.toFixed(1)}?${lateW.toFixed(1)}kg). Tu eficiencia bajó — es señal de fatiga acumulada.` });
         }
       }
     });
@@ -493,8 +493,8 @@ export default function CoachPage() {
 
     let score = 50; // base
     // Sleep factor (0-35)
-    // Evidencia: <6h sue�o ? cortisol +21%, testosterona -24%, s�ntesis proteica -18% (PMC12610528, 2024)
-    // 7-9h = �ptimo (NSF, AASM); <5h = riesgo de catabolismo y lesi�n
+    // Evidencia: <6h sueño ? cortisol +21%, testosterona -24%, síntesis proteica -18% (PMC12610528, 2024)
+    // 7-9h = óptimo (NSF, AASM); <5h = riesgo de catabolismo y lesión
     if (todaySleep?.hours) {
       const h = todaySleep.hours;
       score += h >= 7 && h <= 9 ? 35 : h >= 6 ? 15 : h >= 5 ? 0 : -10;
@@ -513,14 +513,14 @@ export default function CoachPage() {
       score += 20; // no workouts yet ? fresh
     }
     score = Math.max(10, Math.min(100, score));
-    const label = score >= 80 ? "�ptimo" : score >= 60 ? "Bueno" : score >= 40 ? "Moderado" : "Recuperate";
+    const label = score >= 80 ? "óptimo" : score >= 60 ? "Bueno" : score >= 40 ? "Moderado" : "Recuperate";
     const color = score >= 80 ? "#22c55e" : score >= 60 ? "#a855f7" : score >= 40 ? "#f59e0b" : "#ef4444";
-    // Tip mejorado con datos de sue�o
+    // Tip mejorado con datos de sueño
     const sleepHours = todaySleep?.hours || 0;
     const sleepTip = sleepHours > 0 && sleepHours < 6
-      ? ` ?? Dormiste ${sleepHours}h � s�ntesis proteica reducida ~18% (PMC12610528). Baj� el RPE objetivo 1-2 puntos.`
+      ? ` ?? Dormiste ${sleepHours}h — síntesis proteica reducida ~18% (PMC12610528). Bajó el RPE objetivo 1-2 puntos.`
       : sleepHours >= 6 && sleepHours < 7 ? " Dormiste algo menos de lo ideal (7-9h recomendadas)." : "";
-    const tip   = (score >= 80 ? "Ideal para entrenar fuerte hoy." : score >= 60 ? "Buen estado � entrenamiento normal." : score >= 40 ? "Reduc� el volumen un 15-20% hoy." : "Prioriz� recuperaci�n � descanso activo o d�a libre.") + sleepTip;
+    const tip   = (score >= 80 ? "Ideal para entrenar fuerte hoy." : score >= 60 ? "Buen estado — entrenamiento normal." : score >= 40 ? "Reducí el volumen un 15-20% hoy." : "Priorizá recuperación — descanso activo o día libre.") + sleepTip;
     return { score, label, color, tip };
   }, [sleepLog, waterLog, waterGoal, workouts]);
 
@@ -550,7 +550,7 @@ export default function CoachPage() {
     <section className="page coach-page">
       <div className="top-row">
         <div>
-          <p className="eyebrow">An�lisis post-entreno</p>
+          <p className="eyebrow">Análisis post-entreno</p>
           <h1>Coach</h1>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -560,7 +560,7 @@ export default function CoachPage() {
               disabled={sharing}
               style={{ background: "rgba(168,85,247,.15)", border: "1px solid rgba(168,85,247,.4)", borderRadius: 10, padding: "8px 12px", cursor: "pointer", color: "var(--green)", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", gap: 5 }}
             >
-              <Icon name="Share2" size={15} /> {sharing ? "�" : "Compartir"}
+              <Icon name="Share2" size={15} /> {sharing ? "—" : "Compartir"}
             </button>
           )}
           <button className="back-btn" onClick={() => setPage("home")} aria-label="Back">
@@ -649,7 +649,7 @@ export default function CoachPage() {
             </div>
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
-                <span style={{ fontSize: 15, fontWeight: 800, color: "var(--text)" }}>Preparaci�n</span>
+                <span style={{ fontSize: 15, fontWeight: 800, color: "var(--text)" }}>Preparación</span>
                 <span style={{ fontSize: 11, fontWeight: 700, color: readiness.color, background: `${readiness.color}22`, padding: "2px 8px", borderRadius: 6 }}>{readiness.label}</span>
               </div>
               <p style={{ margin: 0, fontSize: 12, color: "var(--muted)", lineHeight: 1.4 }}>{readiness.tip}</p>
@@ -662,7 +662,7 @@ export default function CoachPage() {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
               {muscleRecovery.map(({ name, daysSince, recDays, status }) => {
                 const color = status === "listo" ? "#22c55e" : status === "recuperando" ? "#f59e0b" : status === "pronto" ? "#ef4444" : "rgba(255,255,255,.25)";
-                const icon  = status === "listo" ? "?" : status === "recuperando" ? "?" : status === "pronto" ? "?" : "�";
+                const icon  = status === "listo" ? "?" : status === "recuperando" ? "?" : status === "pronto" ? "?" : "—";
                 return (
                   <div key={name} style={{ background: "var(--panel2)", borderRadius: 12, padding: "10px 8px", textAlign: "center" }}>
                     <div style={{ width: 28, height: 28, borderRadius: "50%", background: `${color}22`, border: `2px solid ${color}`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 6px", fontSize: 13, color }}>{icon}</div>
@@ -676,12 +676,12 @@ export default function CoachPage() {
               })}
             </div>
             <p style={{ margin: "10px 0 0", fontSize: 10, color: "var(--muted)" }}>
-              Basado en volumen de �ltima sesi�n y tiempo de recuperaci�n recomendado por grupo.
+              Basado en volumen de última sesión y tiempo de recuperación recomendado por grupo.
             </p>
           </div>
 
           {workouts.length === 0 ? (
-            <div className="notice"><b>Sin entrenamientos</b><p>Complet� tu primer entrenamiento para activar el Coach.</p></div>
+            <div className="notice"><b>Sin entrenamientos</b><p>Completá tu primer entrenamiento para activar el Coach.</p></div>
           ) : (
             <HolisticSummary workouts={workouts} prs={prs} userAge={userAge} bodyWeight={bodyWeight} bodyFatPct={bodyFatPct} lbm={lbm} userGoal={userGoal} />
           )}
@@ -689,7 +689,7 @@ export default function CoachPage() {
           {weeklyChallenge && (
             <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:14, padding:"14px", marginBottom:14, marginTop:8 }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
-                <p style={{ margin:0, fontSize:13, fontWeight:700 }}>Desaf�o de la semana</p>
+                <p style={{ margin:0, fontSize:13, fontWeight:700 }}>Desafío de la semana</p>
                 <button onClick={generateWeeklyChallenge} style={{ background:"none", border:"none", cursor:"pointer", fontSize:11, color:"var(--muted)" }}>? nuevo</button>
               </div>
               <p style={{ margin:"0 0 8px", fontSize:13, color:"var(--text)", lineHeight:1.4 }}>{weeklyChallenge.text}</p>
@@ -705,17 +705,17 @@ export default function CoachPage() {
             </div>
           )}
 
-          {/* ? An�lisis avanzado (colapsable) */}
+          {/* ? Análisis avanzado (colapsable) */}
           <button onClick={() => setShowAdvanced(s => !s)}
             style={{ width:"100%", padding:"8px", borderRadius:10, border:"1px solid var(--line)", background:"var(--panel)", cursor:"pointer", fontSize:12, fontWeight:600, color:"var(--muted)", marginBottom:12 }}>
-            {showAdvanced ? "? Ocultar an�lisis avanzado" : "? Ver an�lisis avanzado"}
+            {showAdvanced ? "? Ocultar análisis avanzado" : "? Ver análisis avanzado"}
           </button>
 
           {showAdvanced && (<>
-          {/* Distribuci�n muscular */}
+          {/* Distribución muscular */}
           <div className="card" style={{ marginTop:0 }}>
             <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 }}>
-              <h2 style={{ margin:0, fontSize:16 }}>Distribuci�n muscular</h2>
+              <h2 style={{ margin:0, fontSize:16 }}>Distribución muscular</h2>
             </div>
             <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:14 }}>
               {MUSCLE_RANGE_LABELS.map(({key, label}) => (
@@ -764,19 +764,19 @@ export default function CoachPage() {
                       <div key={name} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:"1px solid var(--line)" }}>
                         <div>
                           <div style={{ fontSize:13, fontWeight:700 }}>{name}</div>
-                          <div style={{ fontSize:11, color:"var(--muted)" }}>{best.w}kg � {best.r} reps</div>
+                          <div style={{ fontSize:11, color:"var(--muted)" }}>{best.w}kg — {best.r} reps</div>
                         </div>
                         <div style={{ fontSize:18, fontWeight:900, color:"var(--green)" }}>{Math.round(best.rm)}kg</div>
                       </div>
                     );
                   })}
                 </div>
-                <p style={{ margin:"8px 0 0", fontSize:10, color:"var(--muted)" }}>F�rmula Epley � Estimaci�n, no reemplaza test real</p>
+                <p style={{ margin:"8px 0 0", fontSize:10, color:"var(--muted)" }}>Fórmula Epley — Estimación, no reemplaza test real</p>
               </div>
             );
           })()}
 
-          {/* A�o en n�meros */}
+          {/* Año en números */}
           {workouts.length >= 10 && (() => {
             const year = new Date().getFullYear();
             const yearWorkouts = workouts.filter(w => (w.date||"").startsWith(String(year)));
@@ -794,7 +794,7 @@ export default function CoachPage() {
                     onClick={async () => {
                       const volStr = totalVol >= 1000000 ? (totalVol/1000000).toFixed(1)+"M" : totalVol >= 1000 ? (totalVol/1000).toFixed(0)+"k" : String(totalVol);
                       const prsCount = (prs||[]).filter(p=>(p.date||"").startsWith(String(year))).length;
-                      const text = `??? Mi ${year} en Loop Gym:\n?? ${yearWorkouts.length} entrenamientos\n?? ${prsCount} PRs nuevos\n?? ${volStr}kg de volumen\n? Ejercicio favorito: ${topEx?.[0] || "�"}\n\nDescarg� Loop Gym ?? loop-gym.vercel.app`;
+                      const text = `??? Mi ${year} en Loop Gym:\n?? ${yearWorkouts.length} entrenamientos\n?? ${prsCount} PRs nuevos\n?? ${volStr}kg de volumen\n? Ejercicio favorito: ${topEx?.[0] || "—"}\n\nDescarg— Loop Gym ?? loop-gym.vercel.app`;
                       try {
                         if (navigator.share) {
                           await navigator.share({ text });
@@ -814,8 +814,8 @@ export default function CoachPage() {
                   {[
                     { label:"Entrenamientos", val: yearWorkouts.length, unit:"" },
                     { label:"Volumen total", val: totalVol >= 1000000 ? (totalVol/1000000).toFixed(1)+"M" : totalVol >= 1000 ? (totalVol/1000).toFixed(0)+"k" : totalVol, unit:"kg" },
-                    { label:"Ejercicio fav.", val: topEx?.[0] || "�", unit:"" },
-                    { label:"PRs del a�o", val: (prs||[]).filter(p=>(p.date||"").startsWith(String(year))).length, unit:"" },
+                    { label:"Ejercicio fav.", val: topEx?.[0] || "—", unit:"" },
+                    { label:"PRs del año", val: (prs||[]).filter(p=>(p.date||"").startsWith(String(year))).length, unit:"" },
                   ].map(item=>(
                     <div key={item.label} style={{ background:"var(--panel2)", borderRadius:12, padding:"12px", textAlign:"center" }}>
                       <div style={{ fontSize:18, fontWeight:900, color:"var(--green)" }}>{item.val}<span style={{ fontSize:12, fontWeight:400 }}>{item.unit}</span></div>
@@ -849,7 +849,7 @@ export default function CoachPage() {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ margin: 0, fontWeight: 700, fontSize: 14 }}>Liga del Gimnasio</p>
                 <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--muted)" }}>
-                  Posici�n {leaguePreview.rank}/{leaguePreview.total} esta semana �{" "}
+                  Posición {leaguePreview.rank}/{leaguePreview.total} esta semana —{" "}
                   {leaguePreview.myWorkouts} entreno{leaguePreview.myWorkouts !== 1 ? "s" : ""}
                   {leaguePreview.rank === 1 ? " ??" : leaguePreview.rank === 2 ? " ??" : leaguePreview.rank === 3 ? " ??" : ""}
                 </p>
@@ -898,7 +898,7 @@ export default function CoachPage() {
       {/* -- TAB: PLAN ----------------------------------------- */}
       {tab === "plan" && (
         <div>
-          {/* Sub-tab bar: Rendimiento | Nutrici�n */}
+          {/* Sub-tab bar: Rendimiento | Nutrición */}
           <div style={{ display:"flex", gap:4, background:"var(--panel)", borderRadius:14, padding:4, marginBottom:16 }}>
             {PLAN_SUB_TABS.map(({ id, label }) => (
               <button key={id} onClick={() => setPlanSubTab(id)} style={{
@@ -916,12 +916,12 @@ export default function CoachPage() {
           workouts.length < 3 ? (
             <div style={{ textAlign:"center", padding:"40px 20px" }}>
               <div style={{ fontSize:48, marginBottom:12 }}>??</div>
-              <h3 style={{ margin:"0 0 8px", fontSize:17 }}>Plan en construcci�n</h3>
-              <p style={{ color:"var(--muted)", fontSize:13, lineHeight:1.5, margin:0 }}>Complet� al menos 3 entrenamientos para que el coach genere tu plan personalizado.</p>
+              <h3 style={{ margin:"0 0 8px", fontSize:17 }}>Plan en construcción</h3>
+              <p style={{ color:"var(--muted)", fontSize:13, lineHeight:1.5, margin:0 }}>Completá al menos 3 entrenamientos para que el coach genere tu plan personalizado.</p>
             </div>
           ) : (
             <>
-              {/* -- Fase de periodizaci�n -- */}
+              {/* -- Fase de periodización -- */}
               {periodization.phase !== "unknown" && (() => {
                 const isDeload = periodization.needsDeload || periodization.phase === "deload";
                 const isAccum  = periodization.phase === "accumulation";
@@ -929,12 +929,12 @@ export default function CoachPage() {
                 const bg       = isDeload ? "rgba(239,68,68,.07)" : isAccum ? "rgba(168,85,247,.07)" : "rgba(117,217,255,.07)";
                 const border   = isDeload ? "rgba(239,68,68,.25)" : isAccum ? "rgba(168,85,247,.2)" : "rgba(117,217,255,.2)";
                 const icon     = isDeload ? "??" : isAccum ? "??" : "?";
-                const label    = periodization.needsDeload ? "Deload recomendado" : isAccum ? "Fase de acumulaci�n" : periodization.phase === "deload" ? "Fase de descarga" : "Fase de intensificaci�n";
+                const label    = periodization.needsDeload ? "Deload recomendado" : isAccum ? "Fase de acumulación" : periodization.phase === "deload" ? "Fase de descarga" : "Fase de intensificación";
                 const desc     = periodization.needsDeload
-                  ? "Llevas 3+ semanas subiendo volumen. Esta semana baj� el peso al 60% y aument� las repeticiones (12-20 reps por serie) para que el cuerpo se recupere sin perder calidad."
-                  : isAccum ? "Volumen en alza � buena se�al. Prioriz� t�cnica perfecta antes de seguir subiendo cargas."
-                  : periodization.phase === "deload" ? "Volumen bajando. Si es planificado, perfecto. Si no, revis� fatiga o motivaci�n."
-                  : "Volumen estable � momento ideal para subir la intensidad (m�s kg, mismas series).";
+                  ? "Llevas 3+ semanas subiendo volumen. Esta semana bajó el peso al 60% y aumentá las repeticiones (12-20 reps por serie) para que el cuerpo se recupere sin perder calidad."
+                  : isAccum ? "Volumen en alza — buena señal. Priorizá técnica perfecta antes de seguir subiendo cargas."
+                  : periodization.phase === "deload" ? "Volumen bajando. Si es planificado, perfecto. Si no, revisá fatiga o motivación."
+                  : "Volumen estable — momento ideal para subir la intensidad (más kg, mismas series).";
                 return (
                   <div style={{ background:bg, border:`1px solid ${border}`, borderRadius:18, padding:"16px", marginBottom:12 }}>
                     <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:8 }}>
@@ -958,7 +958,7 @@ export default function CoachPage() {
                       );
                       if (isDeclined) return (
                         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-                          <p style={{ margin:0, fontSize:12, color:"var(--muted)" }}>Recomendaci�n declinada.</p>
+                          <p style={{ margin:0, fontSize:12, color:"var(--muted)" }}>Recomendación declinada.</p>
                           <button onClick={clearPlanAdjustment} style={{ background:"none", border:"none", color:"rgba(168,85,247,.7)", fontSize:11, cursor:"pointer", textDecoration:"underline" }}>Reactivar</button>
                         </div>
                       );
@@ -1013,20 +1013,20 @@ export default function CoachPage() {
                   {fatigueScore.overreaching && (
                     <div style={{ marginTop:10, paddingTop:10, borderTop:"1px solid rgba(239,68,68,.2)", display:"flex", gap:8, alignItems:"flex-start" }}>
                       <p style={{ margin:0, fontSize:12, color:"var(--danger)", lineHeight:1.5 }}>
-                        Subida de +{fatigueScore.pctChange || 0}% en una semana. Riesgo de sobreentrenamiento � prioriz� sue�o y descanso activo.
+                        Subida de +{fatigueScore.pctChange || 0}% en una semana. Riesgo de sobreentrenamiento — priorizá sueño y descanso activo.
                       </p>
                     </div>
                   )}
                 </div>
               )}
 
-              {/* -- Prescripci�n -- */}
+              {/* -- Prescripción -- */}
               <div style={{ marginBottom:12 }}>
                 <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
                   <div style={{ width:28, height:28, borderRadius:8, background:"rgba(168,85,247,.12)", border:"1px solid rgba(168,85,247,.2)", display:"flex", alignItems:"center", justifyContent:"center" }}>
                     <Icon name="Target" size={14} style={{ color:"var(--green)" }} />
                   </div>
-                  <p style={{ margin:0, fontSize:14, fontWeight:800 }}>Cargas para el pr�ximo entreno</p>
+                  <p style={{ margin:0, fontSize:14, fontWeight:800 }}>Cargas para el próximo entreno</p>
                 </div>
                 {prescriptions.length > 0 ? prescriptions.map(({ exercise, suggestedWeight, lastWeight, lastReps, reason }) => (
                   <div key={exercise} style={{
@@ -1041,15 +1041,15 @@ export default function CoachPage() {
                     </div>
                     <div style={{ textAlign:"right", flexShrink:0, marginLeft:12 }}>
                       <p style={{ margin:"0 0 1px", fontSize:22, fontWeight:900, color:"var(--green)", lineHeight:1 }}>{suggestedWeight}<span style={{ fontSize:12, fontWeight:600 }}>kg</span></p>
-                      <p style={{ margin:0, fontSize:10, color:"var(--muted)" }}>ant. {lastWeight}kg�{lastReps}</p>
+                      <p style={{ margin:0, fontSize:10, color:"var(--muted)" }}>ant. {lastWeight}kg×{lastReps}</p>
                     </div>
                   </div>
                 )) : (
-                  <p style={{ fontSize:13, color:"var(--muted)", padding:"10px 0" }}>Necesit�s al menos 2 entrenamientos del mismo tipo para ver prescripciones.</p>
+                  <p style={{ fontSize:13, color:"var(--muted)", padding:"10px 0" }}>Necesitás al menos 2 entrenamientos del mismo tipo para ver prescripciones.</p>
                 )}
               </div>
 
-              {/* -- Adherencia �ltimas 4 semanas -- */}
+              {/* -- Adherencia últimas 4 semanas -- */}
               {(() => {
                 const now = new Date();
                 const weeks = [0,1,2,3].map(i => {
@@ -1086,13 +1086,13 @@ export default function CoachPage() {
                       })}
                     </div>
                     <p style={{ margin:"10px 0 0", fontSize:12, color:"var(--muted)" }}>
-                      {avgAdherence >= 80 ? "Excelente consistencia. Segu� as�." : avgAdherence >= 50 ? "Hay margen para mejorar la consistencia." : "Adherencia baja � prioriz� la constancia sobre la intensidad."}
+                      {avgAdherence >= 80 ? "Excelente consistencia. Seguí así." : avgAdherence >= 50 ? "Hay margen para mejorar la consistencia." : "Adherencia baja — priorizá la constancia sobre la intensidad."}
                     </p>
                   </div>
                 );
               })()}
 
-              {/* -- D�as desde �ltimo entreno -- */}
+              {/* -- Días desde último entreno -- */}
               {workouts.length >= 1 && (() => {
                 const last = workouts[0];
                 const daysSince = last?.date
@@ -1100,26 +1100,26 @@ export default function CoachPage() {
                   : null;
                 if (daysSince === null) return null;
                 const color = daysSince === 0 ? "var(--green)" : daysSince <= 2 ? "#60a5fa" : daysSince <= 4 ? "#f59e0b" : "#ef4444";
-                const msg = daysSince === 0 ? "Entrenaste hoy ??" : daysSince === 1 ? "Ayer fue el �ltimo entreno" : `Hace ${daysSince} d�as sin entrenar`;
+                const msg = daysSince === 0 ? "Entrenaste hoy ??" : daysSince === 1 ? "Ayer fue el último entreno" : `Hace ${daysSince} días sin entrenar`;
                 return (
                   <div style={{ display:"flex", alignItems:"center", gap:12, background:"var(--panel)", border:`1px solid ${color}33`, borderRadius:14, padding:"12px 14px", marginBottom:12 }}>
                     <span style={{ fontSize:24 }}>{daysSince === 0 ? "??" : daysSince <= 2 ? "?" : daysSince <= 4 ? "?" : "??"}</span>
                     <div>
                       <p style={{ margin:"0 0 2px", fontSize:14, fontWeight:800, color }}>{msg}</p>
-                      {last?.type && <p style={{ margin:0, fontSize:12, color:"var(--muted)" }}>�ltimo: {last.type}</p>}
+                      {last?.type && <p style={{ margin:0, fontSize:12, color:"var(--muted)" }}>último: {last.type}</p>}
                     </div>
                   </div>
                 );
               })()}
 
-              {/* -- Mejor sesi�n de la semana -- */}
+              {/* -- Mejor sesión de la semana -- */}
               {workouts.length >= 1 && (() => {
                 const now = new Date();
                 const weekStart = new Date(now); weekStart.setDate(now.getDate() - ((now.getDay()+6)%7)); weekStart.setHours(0,0,0,0);
                 const thisWeek = workouts.filter(w => w.date && new Date(w.date + "T12:00:00") >= weekStart);
                 if (!thisWeek.length) return (
                   <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:14, padding:"12px 14px", marginBottom:12 }}>
-                    <p style={{ margin:0, fontSize:13, color:"var(--muted)" }}>Sin entrenamientos esta semana todav�a.</p>
+                    <p style={{ margin:0, fontSize:13, color:"var(--muted)" }}>Sin entrenamientos esta semana todavía.</p>
                   </div>
                 );
                 const best = thisWeek.reduce((a, b) => {
@@ -1135,7 +1135,7 @@ export default function CoachPage() {
                   <div style={{ background:"var(--panel)", border:"1px solid rgba(96,165,250,.3)", borderRadius:18, padding:"14px 16px", marginBottom:12 }}>
                     <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
                       <span style={{ fontSize:20 }}>??</span>
-                      <p style={{ margin:0, fontSize:14, fontWeight:800 }}>Mejor sesi�n esta semana</p>
+                      <p style={{ margin:0, fontSize:14, fontWeight:800 }}>Mejor sesión esta semana</p>
                     </div>
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
                       <span style={{ fontSize:13, fontWeight:700, color:"var(--text)" }}>{best.type || "Entrenamiento"}</span>
@@ -1164,7 +1164,7 @@ export default function CoachPage() {
                 );
               })()}
 
-              {/* -- Historial de las �ltimas 4 semanas -- */}
+              {/* -- Historial de las últimas 4 semanas -- */}
               {workouts.length >= 2 && (() => {
                 const now = new Date();
                 const weeks = [0,1,2,3].map(i => {
@@ -1180,7 +1180,7 @@ export default function CoachPage() {
                 }).reverse();
                 return (
                   <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:18, padding:"14px 16px", marginBottom:12 }}>
-                    <p style={{ margin:"0 0 12px", fontSize:14, fontWeight:800 }}>?? �ltimas 4 semanas</p>
+                    <p style={{ margin:"0 0 12px", fontSize:14, fontWeight:800 }}>?? últimas 4 semanas</p>
                     <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:6 }}>
                       {weeks.map(w => (
                         <div key={w.label} style={{ background:"var(--panel2)", borderRadius:12, padding:"10px 8px", textAlign:"center" }}>
@@ -1202,34 +1202,34 @@ export default function CoachPage() {
                 <div style={{ background:"rgba(239,68,68,.06)", border:"1px solid rgba(239,68,68,.2)", borderRadius:14, padding:"14px 16px" }}>
                   <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
                     <span style={{ fontSize:20 }}>??</span>
-                    <p style={{ margin:0, fontSize:14, fontWeight:800 }}>Grupos sin entrenar (�ltimas 4 semanas)</p>
+                    <p style={{ margin:0, fontSize:14, fontWeight:800 }}>Grupos sin entrenar (últimas 4 semanas)</p>
                   </div>
                   <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
                     {skippedGroups.map(g => (
                       <span key={g} style={{ background:"rgba(239,68,68,.1)", border:"1px solid rgba(239,68,68,.25)", borderRadius:20, padding:"4px 12px", fontSize:12, fontWeight:700, color:"#ef4444" }}>{g}</span>
                     ))}
                   </div>
-                  <p style={{ margin:"8px 0 0", fontSize:12, color:"var(--muted)", lineHeight:1.5 }}>Tu programa est� desequilibrado. Agreg� estos grupos en el pr�ximo ciclo.</p>
+                  <p style={{ margin:"8px 0 0", fontSize:12, color:"var(--muted)", lineHeight:1.5 }}>Tu programa está desequilibrado. Agregá estos grupos en el próximo ciclo.</p>
                 </div>
               )}
 
-              {/* Ejercicios sugeridos para grupos d�biles */}
+              {/* Ejercicios sugeridos para grupos débiles */}
               {skippedGroups && skippedGroups.length > 0 && (
                 <div className="card" style={{ marginBottom:14, marginTop:12 }}>
                   <h2 style={{ marginBottom:10 }}>?? Ejercicios sugeridos</h2>
                   {skippedGroups.slice(0,3).map(g => {
                     const suggestions = {
-                      "Espalda": ["Dominadas", "Remo con barra", "Jal�n al pecho"],
+                      "Espalda": ["Dominadas", "Remo con barra", "Jalón al pecho"],
                       "Piernas": ["Sentadilla", "Peso muerto rumano", "Prensa de piernas"],
                       "Hombros": ["Press militar", "Elevaciones laterales", "Face pull"],
                       "Pecho": ["Press banca", "Aperturas con mancuernas", "Fondos"],
-                      "B�ceps": ["Curl con barra", "Curl martillo", "Curl concentrado"],
-                      "Tr�ceps": ["Press franc�s", "Extensi�n en polea", "Fondos"],
+                      "Bíceps": ["Curl con barra", "Curl martillo", "Curl concentrado"],
+                      "Tríceps": ["Press francés", "Extensión en polea", "Fondos"],
                       "Core": ["Plancha", "Crunch en polea", "Rueda abdominal"],
                     }[g] || ["Consultar con entrenador"];
                     return (
                       <div key={g} style={{ marginBottom:10 }}>
-                        <div style={{ fontSize:12, fontWeight:700, color:"var(--danger)", marginBottom:4 }}>{g} � sin trabajar</div>
+                        <div style={{ fontSize:12, fontWeight:700, color:"var(--danger)", marginBottom:4 }}>{g} — sin trabajar</div>
                         <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
                           {suggestions.map(ex => (
                             <span key={ex} style={{ background:"var(--panel2)", border:"1px solid var(--line)", borderRadius:8, padding:"5px 10px", fontSize:12 }}>{ex}</span>
@@ -1245,14 +1245,14 @@ export default function CoachPage() {
         </div>
       )}
 
-      {/* -- TAB: PROGRESI�N ----------------------------------- */}
+      {/* -- TAB: PROGRESIÓN ----------------------------------- */}
       {tab === "progreso" && (
         <div>
           {!progression.length && !topExercises.length && !prs.length ? (
             <div style={{ textAlign:"center", padding:"40px 20px" }}>
               <div style={{ fontSize:48, marginBottom:12 }}>??</div>
-              <h3 style={{ margin:"0 0 8px", fontSize:17 }}>Sin datos a�n</h3>
-              <p style={{ color:"var(--muted)", fontSize:13, lineHeight:1.5, margin:0 }}>Complet� m�s entrenamientos para ver tu progresi�n por ejercicio y grupo muscular.</p>
+              <h3 style={{ margin:"0 0 8px", fontSize:17 }}>Sin datos aún</h3>
+              <p style={{ color:"var(--muted)", fontSize:13, lineHeight:1.5, margin:0 }}>Completá más entrenamientos para ver tu progresión por ejercicio y grupo muscular.</p>
             </div>
           ) : (
             <>
@@ -1319,7 +1319,7 @@ export default function CoachPage() {
                   const days = wDates.filter(x => x >= dateToLocal(start) && x <= dateToLocal(end)).length;
                   totalD += days; if (days > 0) wkCnt++;
                 }
-                const avgSem = wkCnt > 0 ? (totalD / wkCnt).toFixed(1) : "�";
+                const avgSem = wkCnt > 0 ? (totalD / wkCnt).toFixed(1) : "—";
                 // Weight trend (last 30 days)
                 const weightEntries = [...(weightLog||[])].sort((a,b) => String(a.date).localeCompare(b.date));
                 const recentWeight = weightEntries.filter(e => e.date >= monStr);
@@ -1349,8 +1349,8 @@ export default function CoachPage() {
 
                 const insights = [];
                 // Consistency
-                if (racha >= 3) insights.push({ icon:"??", text:`Racha de ${racha} d�as entrenando`, color:"var(--green)" });
-                else if (semana > 0) insights.push({ icon:"??", text:`${semana} d�as esta semana (prom. ${avgSem}/sem)`, color:"var(--text)" });
+                if (racha >= 3) insights.push({ icon:"??", text:`Racha de ${racha} días entrenando`, color:"var(--green)" });
+                else if (semana > 0) insights.push({ icon:"??", text:`${semana} días esta semana (prom. ${avgSem}/sem)`, color:"var(--text)" });
                 else insights.push({ icon:"?", text:"Sin entrenos esta semana", color:"var(--muted)" });
 
                 // Weight trend vs goal
@@ -1358,12 +1358,12 @@ export default function CoachPage() {
                   const dir = Number(wTrend) > 0 ? "subiste" : "bajaste";
                   const emoji = userGoal === "definicion" && Number(wTrend) < 0 ? "?" :
                     userGoal === "volumen" && Number(wTrend) > 0 ? "?" : "??";
-                  insights.push({ icon:emoji, text:`${dir} ${Math.abs(Number(wTrend))}kg en 30 d�as`, color:emoji === "?" ? "var(--green)" : "#f59e0b" });
+                  insights.push({ icon:emoji, text:`${dir} ${Math.abs(Number(wTrend))}kg en 30 días`, color:emoji === "?" ? "var(--green)" : "#f59e0b" });
                 }
                 // Sleep
                 if (sleepAvg !== null) {
                   const ok = Number(sleepAvg) >= 7;
-                  insights.push({ icon:ok ? "??" : "??", text:`Sue�o: ${sleepAvg}h promedio${ok ? " � �ptimo" : " � ideal =7h"}`, color:ok ? "var(--green)" : "#f59e0b" });
+                  insights.push({ icon:ok ? "??" : "??", text:`Sueño: ${sleepAvg}h promedio${ok ? " — óptimo" : " — ideal =7h"}`, color:ok ? "var(--green)" : "#f59e0b" });
                 }
                 // Volume trend
                 if (volTrend !== null && !isNaN(volTrend)) {
@@ -1377,7 +1377,7 @@ export default function CoachPage() {
                 }
                 // Body composition
                 if (bodyFatPct !== null && lbm !== null) {
-                  insights.push({ icon:"??", text:`Grasa: ${bodyFatPct.toFixed(1)}% � Masa magra: ${lbm.toFixed(1)}kg`, color:"var(--text)" });
+                  insights.push({ icon:"??", text:`Grasa: ${bodyFatPct.toFixed(1)}% — Masa magra: ${lbm.toFixed(1)}kg`, color:"var(--text)" });
                 }
 
                 return (
@@ -1399,10 +1399,10 @@ export default function CoachPage() {
                   <div key={i} style={{ flex:"0 0 auto", minWidth:120, background:"rgba(232,247,119,.07)", border:"1px solid rgba(232,247,119,.15)", borderRadius:12, padding:"8px 10px" }}>
                     <p style={{ margin:"0 0 2px", fontSize:10, color:"var(--yellow)", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.05em" }}>PR #{i+1}</p>
                     <p style={{ margin:0, fontSize:13, fontWeight:800, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{pr.exercise}</p>
-                    <p style={{ margin:"2px 0 0", fontSize:11, color:"var(--text)" }}>{pr.weight}kg � {pr.reps}</p>
+                    <p style={{ margin:"2px 0 0", fontSize:11, color:"var(--text)" }}>{pr.weight}kg — {pr.reps}</p>
                   </div>
                 ))}
-                {/* Grupo m�s trabajado */}
+                {/* Grupo más trabajado */}
                 {(() => {
                   const topGroup = Object.entries(muscleBalance).sort((a,b) => b[1].sets - a[1].sets)[0];
                   if (!topGroup || !topGroup[1].sets) return null;
@@ -1418,15 +1418,15 @@ export default function CoachPage() {
                 {/* Medidas link */}
                 <div style={{ flex:"0 0 auto", minWidth:100, background:"rgba(34,197,94,.07)", border:"1px solid rgba(34,197,94,.2)", borderRadius:12, padding:"8px 10px", cursor:"pointer" }} onClick={() => setPage("measurements")}>
                   <p style={{ margin:"0 0 2px", fontSize:10, color:"var(--green)", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.05em" }}>Medidas</p>
-                  <p style={{ margin:0, fontSize:13, fontWeight:800 }}>{bodyWeight ? `${bodyWeight}kg` : "�"}</p>
+                  <p style={{ margin:0, fontSize:13, fontWeight:800 }}>{bodyWeight ? `${bodyWeight}kg` : "—"}</p>
                   <p style={{ margin:"2px 0 0", fontSize:11, color:"var(--muted)" }}>Ver todo ?</p>
                 </div>
               </div>
 
-              {/* -- An�lisis detallado -- */}
+              {/* -- Análisis detallado -- */}
               <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
                 <div style={{ flex:1, height:1, background:"var(--line)" }} />
-                <span style={{ fontSize:11, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.07em", whiteSpace:"nowrap" }}>An�lisis detallado</span>
+                <span style={{ fontSize:11, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.07em", whiteSpace:"nowrap" }}>Análisis detallado</span>
                 <div style={{ flex:1, height:1, background:"var(--line)" }} />
               </div>
 
@@ -1468,12 +1468,12 @@ export default function CoachPage() {
                       </div>
                       <div style={{ background:"var(--panel2)", borderRadius:12, padding:"12px", textAlign:"center" }}>
                         <div style={{ fontSize:11, color:"var(--muted)", marginBottom:4 }}>Cadencia</div>
-                        <div style={{ fontSize:28, fontWeight:900, color: avgGap <= 2.5 ? "var(--green)" : avgGap <= 4 ? "#f59e0b" : "#ef4444" }}>{avgGap ?? "�"}</div>
-                        <div style={{ fontSize:11, color:"var(--muted)" }}>d�as entre sesiones</div>
+                        <div style={{ fontSize:28, fontWeight:900, color: avgGap <= 2.5 ? "var(--green)" : avgGap <= 4 ? "#f59e0b" : "#ef4444" }}>{avgGap ?? "—"}</div>
+                        <div style={{ fontSize:11, color:"var(--muted)" }}>días entre sesiones</div>
                       </div>
                     </div>
                     <p style={{ margin:"10px 0 0", fontSize:12, color:"var(--muted)" }}>
-                      {avgGap <= 2.5 ? "Frecuencia excelente. Est�s entrenando de forma muy regular." : avgGap <= 4 ? "Buena frecuencia. Intent� reducir el tiempo entre sesiones." : "Hay brechas largas entre entrenamientos. La consistencia supera a la intensidad."}
+                      {avgGap <= 2.5 ? "Frecuencia excelente. Estás entrenando de forma muy regular." : avgGap <= 4 ? "Buena frecuencia. Intentá reducir el tiempo entre sesiones." : "Hay brechas largas entre entrenamientos. La consistencia supera a la intensidad."}
                     </p>
                   </div>
                 );
@@ -1520,9 +1520,9 @@ export default function CoachPage() {
                 );
               })()}
 
-              {/* -- D�a de la semana m�s activo -- */}
+              {/* -- Día de la semana más activo -- */}
               {workouts.length >= 3 && (() => {
-                const DAY_NAMES = ["Dom","Lun","Mar","Mi�","Jue","Vie","S�b"];
+                const DAY_NAMES = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
                 const counts = Array(7).fill(0);
                 workouts.slice(0, 40).forEach(w => {
                   if (!w.date) return;
@@ -1533,7 +1533,7 @@ export default function CoachPage() {
                 const favDay = counts.indexOf(Math.max(...counts));
                 return (
                   <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:18, padding:"14px 16px", marginBottom:12 }}>
-                    <p style={{ margin:"0 0 12px", fontSize:14, fontWeight:800 }}>?? D�as m�s activos</p>
+                    <p style={{ margin:"0 0 12px", fontSize:14, fontWeight:800 }}>?? Días más activos</p>
                     <div style={{ display:"flex", gap:4, alignItems:"flex-end", height:52 }}>
                       {DAY_NAMES.map((day, i) => {
                         const h = Math.max(8, Math.round((counts[i] / maxCount) * 44));
@@ -1547,26 +1547,26 @@ export default function CoachPage() {
                       })}
                     </div>
                     <p style={{ margin:"8px 0 0", fontSize:12, color:"var(--muted)" }}>
-                      Tu d�a favorito es el <b style={{ color:"var(--green)" }}>{DAY_NAMES[favDay]}</b> ({counts[favDay]} sesiones en el historial).
+                      Tu día favorito es el <b style={{ color:"var(--green)" }}>{DAY_NAMES[favDay]}</b> ({counts[favDay]} sesiones en el historial).
                     </p>
                   </div>
                 );
               })()}
 
-              {/* -- Todos los r�cords -- */}
+              {/* -- Todos los récords -- */}
               {prs.length > 0 && (
                 <div style={{ marginBottom:8 }}>
                   <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
                     <div style={{ width:28, height:28, borderRadius:8, background:"rgba(232,247,119,.1)", border:"1px solid rgba(232,247,119,.2)", display:"flex", alignItems:"center", justifyContent:"center" }}>
                       <Icon name="Star" size={14} style={{ color:"var(--yellow)" }} />
                     </div>
-                    <p style={{ margin:0, fontSize:14, fontWeight:800 }}>Todos los r�cords</p>
+                    <p style={{ margin:0, fontSize:14, fontWeight:800 }}>Todos los récords</p>
                   </div>
                   <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
                     {prs.map((pr, i) => (
                       <div key={i} style={{ background:"rgba(232,247,119,.07)", border:"1px solid rgba(232,247,119,.15)", borderRadius:10, padding:"6px 10px" }}>
                         <p style={{ margin:"0 0 1px", fontSize:12, fontWeight:700 }}>{pr.exercise}</p>
-                        <p style={{ margin:0, fontSize:11, color:"var(--yellow)" }}>{pr.weight}kg � {pr.reps}</p>
+                        <p style={{ margin:0, fontSize:11, color:"var(--yellow)" }}>{pr.weight}kg — {pr.reps}</p>
                       </div>
                     ))}
                   </div>
@@ -1584,15 +1584,15 @@ export default function CoachPage() {
         <div>
           {smartAlerts.length === 0 && skippedGroups.length === 0 && !fatigueScore.overreaching && workouts.length >= 2 && (
             <div style={{ display:"flex", gap:10, alignItems:"flex-start", background:"rgba(168,85,247,.07)", border:"1px solid rgba(168,85,247,.2)", borderRadius:14, padding:"14px 16px", marginBottom:14 }}>
-              <span style={{ fontSize:20, flexShrink:0 }}>�</span>
+              <span style={{ fontSize:20, flexShrink:0 }}>—</span>
               <div>
                 <p style={{ margin:"0 0 3px", fontSize:14, fontWeight:700, color:"var(--text)" }}>Todo bien por ahora</p>
-                <p style={{ margin:0, fontSize:13, color:"var(--muted)", lineHeight:1.5 }}>No se detectan alertas activas. Segu� entrenando con consistencia.</p>
+                <p style={{ margin:0, fontSize:13, color:"var(--muted)", lineHeight:1.5 }}>No se detectan alertas activas. Seguí entrenando con consistencia.</p>
               </div>
             </div>
           )}
           {workouts.length < 2 && (
-            <div className="notice"><b>Pocos datos</b><p>Registr� al menos 2 entrenamientos para activar el sistema de alertas.</p></div>
+            <div className="notice"><b>Pocos datos</b><p>Registrá al menos 2 entrenamientos para activar el sistema de alertas.</p></div>
           )}
 
           {/* Overreaching alert */}
@@ -1601,7 +1601,7 @@ export default function CoachPage() {
               <div>
                 <p style={{ margin:"0 0 3px", fontSize:14, fontWeight:700, color:"var(--text)" }}>Sobrecarga detectada</p>
                 <p style={{ margin:0, fontSize:13, color:"var(--muted)", lineHeight:1.5 }}>
-                  Tu volumen subi� un {fatigueScore.pctChange || 0}% de golpe. Riesgo de sobreentrenamiento � prioriz� descanso esta semana.
+                  Tu volumen subió un {fatigueScore.pctChange || 0}% de golpe. Riesgo de sobreentrenamiento — priorizá descanso esta semana.
                 </p>
               </div>
             </div>
@@ -1620,7 +1620,7 @@ export default function CoachPage() {
               </span>
               <div>
                 <p style={{ margin:"0 0 3px", fontSize:14, fontWeight:700, color:"var(--text)" }}>
-                  {alert.type === "stall" ? "Estancamiento de peso" : alert.type === "volume" ? "Ca�da de volumen" : alert.type === "rest" ? "Sin d�as de descanso" : alert.type === "neglect" ? "Piernas abandonadas" : alert.type === "frequency" ? "Frecuencia baja" : alert.type === "bodyfat_high" ? "% Grasa elevado" : alert.type === "bodyfat_low" ? "% Grasa muy bajo" : "Desbalance muscular"}
+                  {alert.type === "stall" ? "Estancamiento de peso" : alert.type === "volume" ? "Caída de volumen" : alert.type === "rest" ? "Sin días de descanso" : alert.type === "neglect" ? "Piernas abandonadas" : alert.type === "frequency" ? "Frecuencia baja" : alert.type === "bodyfat_high" ? "% Grasa elevado" : alert.type === "bodyfat_low" ? "% Grasa muy bajo" : "Desbalance muscular"}
                 </p>
                 <p style={{ margin:0, fontSize:13, color:"var(--muted)", lineHeight:1.5 }}>{alert.msg}</p>
               </div>
@@ -1641,7 +1641,7 @@ export default function CoachPage() {
                   Estancamiento: {item.exercise}
                 </p>
                 <p style={{ margin:"0 0 4px", fontSize:12, color:"var(--muted)" }}>
-                  {item.weeks} semana{item.weeks !== 1 ? "s" : ""} sin progreso � Mejor peso: {item.bestWeight}kg � Volumen prom: {item.avgVolume}kg
+                  {item.weeks} semana{item.weeks !== 1 ? "s" : ""} sin progreso — Mejor peso: {item.bestWeight}kg — Volumen prom: {item.avgVolume}kg
                 </p>
                 <p style={{ margin:0, fontSize:13, color:"var(--muted)", lineHeight:1.5 }}>{item.suggestion}</p>
               </div>
@@ -1681,7 +1681,7 @@ export default function CoachPage() {
               <div>
                 <p style={{ margin:"0 0 3px", fontSize:14, fontWeight:700, color:"var(--text)" }}>Grupos sin entrenar</p>
                 <p style={{ margin:0, fontSize:13, color:"var(--muted)", lineHeight:1.5 }}>
-                  No entrenaste <b style={{ color:"var(--danger)" }}>{skippedGroups.join(", ")}</b> en las �ltimas 4 semanas. Tu programa est� desequilibrado.
+                  No entrenaste <b style={{ color:"var(--danger)" }}>{skippedGroups.join(", ")}</b> en las últimas 4 semanas. Tu programa está desequilibrado.
                 </p>
               </div>
             </div>
@@ -1689,7 +1689,7 @@ export default function CoachPage() {
 
           {/* Disclaimer */}
           <p style={{ fontSize: 10, color: 'var(--muted)', margin: '0 0 12px', opacity: 0.7, textAlign: 'center' }}>
-            Las sugerencias son orientativas. Consult� un profesional de salud ante cualquier dolor o lesi�n.
+            Las sugerencias son orientativas. Consultá un profesional de salud ante cualquier dolor o lesión.
           </p>
 
           {/* Weekly volume per muscle group */}
@@ -1704,7 +1704,7 @@ export default function CoachPage() {
             return (
               <div style={{ background:"var(--panel)", borderRadius:14, padding:"14px 16px", marginBottom:14 }}>
                 <p style={{ margin:"0 0 12px", fontSize:11, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em" }}>
-                  Volumen semanal por m�sculo (esta semana)
+                  Volumen semanal por músculo (esta semana)
                 </p>
                 {entries.map(({ group, sets, mev, mav, mrv, status }) => {
                   const barPct = Math.min(1, sets / mrv);
@@ -1716,7 +1716,7 @@ export default function CoachPage() {
                       <div style={{ display:"flex", justifyContent:"space-between", marginBottom:3, alignItems:"center" }}>
                         <span style={{ fontSize:12, fontWeight:600 }}>{group}</span>
                         <span style={{ fontSize:11, color: barColor, fontWeight:700 }}>
-                          {sets} series � {status === "overtrained" ? "? Exceso" : status === "optimal" ? "? �ptimo" : status === "undertrained" ? "? Bajo" : "Sin entrenar"}
+                          {sets} series — {status === "overtrained" ? "? Exceso" : status === "optimal" ? "? óptimo" : status === "undertrained" ? "? Bajo" : "Sin entrenar"}
                         </span>
                       </div>
                       <div style={{ position:"relative", height:6, background:"var(--panel2)", borderRadius:3, overflow:"visible" }}>
@@ -1730,8 +1730,8 @@ export default function CoachPage() {
                   );
                 })}
                 <div style={{ display:"flex", gap:12, marginTop:8, fontSize:10, color:"var(--muted)", flexWrap:"wrap" }}>
-                  <span>� = MEV (m�nimo efectivo)</span>
-                  <span>� = MAV (�ptimo)</span>
+                  <span>● = MEV (mínimo efectivo)</span>
+                  <span>● = MAV (óptimo)</span>
                   <span style={{ color:"var(--danger)" }}>Rojo = excede MRV</span>
                 </div>
               </div>
@@ -1745,13 +1745,13 @@ export default function CoachPage() {
                 <div>
                   <p style={{ margin:"0 0 3px", fontSize:14, fontWeight:700, color:"var(--text)" }}>Deload recomendado</p>
                   <p style={{ margin:0, fontSize:13, color:"var(--muted)", lineHeight:1.5 }}>
-                    Llev�s 3+ semanas aumentando volumen. Esta semana baj� el peso al 60% y aument� las repeticiones (12-20 reps por serie) � tu cuerpo lo necesita para recuperarse y seguir progresando.
+                    Llevás 3+ semanas aumentando volumen. Esta semana bajó el peso al 60% y aumentá las repeticiones (12-20 reps por serie) — tu cuerpo lo necesita para recuperarse y seguir progresando.
                   </p>
                 </div>
               </div>
               {activePlanAdjustment?.type === "deload" && !activePlanAdjustment?.declined && new Date(activePlanAdjustment?.expiresAt) >= new Date() ? (
                 <div style={{ background:"rgba(168,85,247,.1)", border:"1px solid rgba(168,85,247,.3)", borderRadius:10, padding:"8px 12px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-                  <span style={{ fontSize:12, color:"var(--green)", fontWeight:700 }}>? Deload activo � pesos reducidos al 60% hasta {activePlanAdjustment.expiresAt}</span>
+                  <span style={{ fontSize:12, color:"var(--green)", fontWeight:700 }}>? Deload activo — pesos reducidos al 60% hasta {activePlanAdjustment.expiresAt}</span>
                   <button onClick={clearPlanAdjustment} style={{ background:"none", border:"none", color:"var(--muted)", fontSize:11, cursor:"pointer" }}>Cancelar</button>
                 </div>
               ) : activePlanAdjustment?.type === "deload" && activePlanAdjustment?.declined ? (
@@ -1784,25 +1784,25 @@ export default function CoachPage() {
 const CATS = [
   { id:"",            label:"Todo"       },
   { id:"desayuno",    label:"Desayuno"   },
-  { id:"colacion",    label:"Colaci�n"   },
+  { id:"colacion",    label:"Colación"   },
   { id:"merienda",    label:"Merienda"   },
   { id:"entrada",     label:"Entrada"    },
   { id:"principal",   label:"Principal"  },
   { id:"postre",      label:"Postre"     },
   { id:"fruta",       label:"Fruta"      },
   { id:"verdura",     label:"Verdura"    },
-  { id:"proteina",    label:"Prote�na"   },
+  { id:"proteina",    label:"Proteína"   },
   { id:"carbohidrato",label:"Carbs"      },
-  { id:"lacteo",      label:"L�cteo"     },
+  { id:"lacteo",      label:"Lácteo"     },
   { id:"legumbre",    label:"Legumbre"   },
   { id:"grasa",       label:"Grasas"     },
   { id:"bebida",      label:"Bebida"     },
   { id:"suplemento",  label:"Suplemento" },
-  { id:"rapida",      label:"R�pida"     },
+  { id:"rapida",      label:"Rápida"     },
 ];
 
 const FOOD_DB = [
-  // -- Prote�nas ------------------------------------------------
+  // -- Proteínas ------------------------------------------------
   { cat:"proteina", name:"Pechuga de pollo",          kcal:165, protein:31,  carbs:0,   fat:3.6  },
   { cat:"proteina", name:"Muslo de pollo s/piel",     kcal:177, protein:24,  carbs:0,   fat:8.5  },
   { cat:"proteina", name:"Pollo entero asado",        kcal:239, protein:27,  carbs:0,   fat:14   },
@@ -1814,14 +1814,14 @@ const FOOD_DB = [
   { cat:"proteina", name:"Cuadril",                   kcal:175, protein:28,  carbs:0,   fat:6.5  },
   { cat:"proteina", name:"Nalga",                     kcal:160, protein:28,  carbs:0,   fat:5    },
   { cat:"proteina", name:"Tapa de asado",             kcal:310, protein:23,  carbs:0,   fat:24   },
-  { cat:"proteina", name:"Vac�o",                     kcal:190, protein:27,  carbs:0,   fat:9    },
-  { cat:"proteina", name:"Entra�a",                   kcal:230, protein:24,  carbs:0,   fat:14   },
+  { cat:"proteina", name:"Vacío",                     kcal:190, protein:27,  carbs:0,   fat:9    },
+  { cat:"proteina", name:"Entraña",                   kcal:230, protein:24,  carbs:0,   fat:14   },
   { cat:"proteina", name:"Carne vacuna (asado)",      kcal:245, protein:22,  carbs:0,   fat:17   },
   { cat:"proteina", name:"Costillas de cerdo",        kcal:275, protein:24,  carbs:0,   fat:19   },
   { cat:"proteina", name:"Lomo de cerdo",             kcal:143, protein:26,  carbs:0,   fat:4    },
-  { cat:"proteina", name:"At�n en lata (agua)",       kcal:116, protein:26,  carbs:0,   fat:1    },
-  { cat:"proteina", name:"At�n en lata (aceite)",     kcal:198, protein:25,  carbs:0,   fat:11   },
-  { cat:"proteina", name:"Salm�n",                    kcal:208, protein:20,  carbs:0,   fat:13   },
+  { cat:"proteina", name:"Atún en lata (agua)",       kcal:116, protein:26,  carbs:0,   fat:1    },
+  { cat:"proteina", name:"Atún en lata (aceite)",     kcal:198, protein:25,  carbs:0,   fat:11   },
+  { cat:"proteina", name:"Salmón",                    kcal:208, protein:20,  carbs:0,   fat:13   },
   { cat:"proteina", name:"Merluza",                   kcal:82,  protein:17,  carbs:0,   fat:1    },
   { cat:"proteina", name:"Trucha",                    kcal:148, protein:21,  carbs:0,   fat:6.6  },
   { cat:"proteina", name:"Bacalao",                   kcal:105, protein:23,  carbs:0,   fat:0.9  },
@@ -1833,10 +1833,10 @@ const FOOD_DB = [
   { cat:"proteina", name:"Huevo entero",              kcal:155, protein:13,  carbs:1,   fat:11,  unit:true, unitWeight:55 },
   { cat:"proteina", name:"Clara de huevo",            kcal:52,  protein:11,  carbs:0,   fat:0.2, unit:true, unitWeight:35 },
   { cat:"proteina", name:"Pechuga de pavo",           kcal:135, protein:30,  carbs:0,   fat:1    },
-  { cat:"proteina", name:"Jam�n cocido (feta)",       kcal:42,  protein:7,   carbs:0.5, fat:1.3  },
-  { cat:"proteina", name:"Jam�n serrano (feta)",      kcal:60,  protein:8,   carbs:0,   fat:3    },
+  { cat:"proteina", name:"Jamón cocido (feta)",       kcal:42,  protein:7,   carbs:0.5, fat:1.3  },
+  { cat:"proteina", name:"Jamón serrano (feta)",      kcal:60,  protein:8,   carbs:0,   fat:3    },
   { cat:"proteina", name:"Salame (feta)",             kcal:90,  protein:5,   carbs:0.5, fat:7.5  },
-  // -- L�cteos --------------------------------------------------
+  // -- Lácteos --------------------------------------------------
   { cat:"lacteo", name:"Queso cottage",             kcal:98,  protein:11,  carbs:3,   fat:4.5  },
   { cat:"lacteo", name:"Yogur griego (0%)",         kcal:59,  protein:10,  carbs:4,   fat:0.4  },
   { cat:"lacteo", name:"Yogur griego (entero)",     kcal:97,  protein:9,   carbs:4,   fat:5    },
@@ -1856,15 +1856,15 @@ const FOOD_DB = [
   { cat:"lacteo", name:"Leche de almendra (250ml)", kcal:60,  protein:1,   carbs:8,   fat:2.5, drink:true },
   { cat:"lacteo", name:"Crema de leche",            kcal:340, protein:2,   carbs:3,   fat:36   },
   { cat:"lacteo", name:"Manteca",                   kcal:717, protein:0.9, carbs:0.1, fat:81   },
-  { cat:"lacteo", name:"K�fir natural",             kcal:61,  protein:3.4, carbs:4.5, fat:3.3, drink:true },
+  { cat:"lacteo", name:"Kéfir natural",             kcal:61,  protein:3.4, carbs:4.5, fat:3.3, drink:true },
   // -- Bebidas --------------------------------------------------
   { cat:"bebida", name:"Agua",                      kcal:0,   protein:0,   carbs:0,   fat:0,   drink:true },
   { cat:"bebida", name:"Jugo de naranja natural",   kcal:45,  protein:0.7, carbs:10.4,fat:0.2, drink:true },
   { cat:"bebida", name:"Leche entera",              kcal:61,  protein:3.2, carbs:4.8, fat:3.3, drink:true },
   { cat:"bebida", name:"Leche descremada",          kcal:34,  protein:3.4, carbs:5,   fat:0.1, drink:true },
-  { cat:"bebida", name:"K�fir natural",             kcal:61,  protein:3.4, carbs:4.5, fat:3.3, drink:true },
-  { cat:"bebida", name:"T� verde",                  kcal:2,   protein:0,   carbs:0.4, fat:0,   drink:true },
-  { cat:"bebida", name:"Caf� negro",                kcal:2,   protein:0.3, carbs:0,   fat:0,   drink:true },
+  { cat:"bebida", name:"Kéfir natural",             kcal:61,  protein:3.4, carbs:4.5, fat:3.3, drink:true },
+  { cat:"bebida", name:"Té verde",                  kcal:2,   protein:0,   carbs:0.4, fat:0,   drink:true },
+  { cat:"bebida", name:"Café negro",                kcal:2,   protein:0.3, carbs:0,   fat:0,   drink:true },
   { cat:"bebida", name:"Jugo de manzana natural",   kcal:46,  protein:0.1, carbs:11,  fat:0.1, drink:true },
   // -- Carbohidratos --------------------------------------------
   { cat:"carbohidrato", name:"Arroz blanco cocido",     kcal:130, protein:2.7, carbs:28,  fat:0.3  },
@@ -1874,7 +1874,7 @@ const FOOD_DB = [
   { cat:"carbohidrato", name:"Avena cocida",            kcal:71,  protein:2.5, carbs:12,  fat:1.5  },
   { cat:"carbohidrato", name:"Pan integral (rebanada)", kcal:247, protein:9,   carbs:46,  fat:3.4  },
   { cat:"carbohidrato", name:"Pan blanco (rebanada)",   kcal:265, protein:9,   carbs:49,  fat:3.2  },
-  { cat:"carbohidrato", name:"Pan �rabe/pita",          kcal:275, protein:9,   carbs:56,  fat:1.2  },
+  { cat:"carbohidrato", name:"Pan árabe/pita",          kcal:275, protein:9,   carbs:56,  fat:1.2  },
   { cat:"carbohidrato", name:"Pan de molde (rebanada)", kcal:79,  protein:2.7, carbs:15,  fat:0.9  },
   { cat:"carbohidrato", name:"Pan lactal integral",     kcal:240, protein:9,   carbs:44,  fat:3    },
   { cat:"carbohidrato", name:"Tostada integral",        kcal:325, protein:10,  carbs:56,  fat:5    },
@@ -1886,13 +1886,13 @@ const FOOD_DB = [
   { cat:"carbohidrato", name:"Pasta integral cocida",   kcal:124, protein:5.3, carbs:24,  fat:1.1  },
   { cat:"carbohidrato", name:"Fideos de arroz cocidos", kcal:109, protein:0.9, carbs:25,  fat:0.2  },
   { cat:"carbohidrato", name:"Tallarines cocidos",      kcal:138, protein:5.4, carbs:27,  fat:1.4  },
-  { cat:"carbohidrato", name:"�oquis cocidos",          kcal:130, protein:3.5, carbs:27,  fat:1    },
+  { cat:"carbohidrato", name:"Ñoquis cocidos",          kcal:130, protein:3.5, carbs:27,  fat:1    },
   { cat:"carbohidrato", name:"Quinoa cocida",           kcal:120, protein:4.4, carbs:21,  fat:1.9  },
   { cat:"carbohidrato", name:"Polenta cocida",          kcal:70,  protein:1.6, carbs:15,  fat:0.3  },
-  { cat:"carbohidrato", name:"Cusc�s cocido",           kcal:112, protein:3.8, carbs:23,  fat:0.2  },
+  { cat:"carbohidrato", name:"Cuscús cocido",           kcal:112, protein:3.8, carbs:23,  fat:0.2  },
   { cat:"carbohidrato", name:"Mijo cocido",             kcal:119, protein:3.5, carbs:23,  fat:1    },
   { cat:"carbohidrato", name:"Chipa (c/u)",             kcal:100, protein:3,   carbs:13,  fat:4,   unit:true, unitWeight:40 },
-  { cat:"carbohidrato", name:"Ma�z cocido",             kcal:108, protein:3.4, carbs:23,  fat:1.3  },
+  { cat:"carbohidrato", name:"Maíz cocido",             kcal:108, protein:3.4, carbs:23,  fat:1.3  },
   { cat:"carbohidrato", name:"Miel (1 cda)",            kcal:64,  protein:0.1, carbs:17,  fat:0    },
   { cat:"carbohidrato", name:"Mermelada (1 cda)",       kcal:49,  protein:0.1, carbs:13,  fat:0    },
   { cat:"carbohidrato", name:"Dulce de leche (1 cda)",  kcal:70,  protein:1.5, carbs:13,  fat:1.5  },
@@ -1900,14 +1900,14 @@ const FOOD_DB = [
   { cat:"grasa", name:"Palta/aguacate",          kcal:160, protein:2,   carbs:9,   fat:15   },
   { cat:"grasa", name:"Almendras",               kcal:579, protein:21,  carbs:22,  fat:50   },
   { cat:"grasa", name:"Nueces",                  kcal:654, protein:15,  carbs:14,  fat:65   },
-  { cat:"grasa", name:"Casta�as de caj�",        kcal:553, protein:18,  carbs:30,  fat:44   },
-  { cat:"grasa", name:"Man� tostado",            kcal:585, protein:24,  carbs:16,  fat:50   },
-  { cat:"grasa", name:"Manteca de man�",          kcal:588, protein:25,  carbs:20,  fat:50   },
+  { cat:"grasa", name:"Castañas de cajú",        kcal:553, protein:18,  carbs:30,  fat:44   },
+  { cat:"grasa", name:"Maní tostado",            kcal:585, protein:24,  carbs:16,  fat:50   },
+  { cat:"grasa", name:"Manteca de maní",          kcal:588, protein:25,  carbs:20,  fat:50   },
   { cat:"grasa", name:"Pasta de almendras",      kcal:614, protein:21,  carbs:19,  fat:56   },
   { cat:"grasa", name:"Aceite de oliva",         kcal:884, protein:0,   carbs:0,   fat:100  },
   { cat:"grasa", name:"Aceite de coco",          kcal:862, protein:0,   carbs:0,   fat:100  },
   { cat:"grasa", name:"Aceite de girasol",       kcal:884, protein:0,   carbs:0,   fat:100  },
-  { cat:"grasa", name:"Semillas de ch�a",        kcal:486, protein:17,  carbs:42,  fat:31   },
+  { cat:"grasa", name:"Semillas de chía",        kcal:486, protein:17,  carbs:42,  fat:31   },
   { cat:"grasa", name:"Semillas de lino",        kcal:534, protein:18,  carbs:29,  fat:42   },
   { cat:"grasa", name:"Semillas de girasol",     kcal:584, protein:21,  carbs:20,  fat:51   },
   { cat:"grasa", name:"Semillas de calabaza",    kcal:559, protein:30,  carbs:11,  fat:49   },
@@ -1930,29 +1930,29 @@ const FOOD_DB = [
   { cat:"fruta", name:"Pera",             kcal:57,  protein:0.4, carbs:15,  fat:0.1, unit:true, unitWeight:160 },
   { cat:"fruta", name:"Mandarina",        kcal:53,  protein:0.8, carbs:13,  fat:0.3, unit:true, unitWeight:100 },
   { cat:"fruta", name:"Pomelo",           kcal:42,  protein:0.8, carbs:11,  fat:0.1, unit:true, unitWeight:250 },
-  { cat:"fruta", name:"Lim�n",            kcal:29,  protein:1.1, carbs:9,   fat:0.3, unit:true, unitWeight:80  },
+  { cat:"fruta", name:"Limón",            kcal:29,  protein:1.1, carbs:9,   fat:0.3, unit:true, unitWeight:80  },
   { cat:"fruta", name:"Uvas",             kcal:69,  protein:0.7, carbs:18,  fat:0.2  },
-  { cat:"fruta", name:"Sand�a",           kcal:30,  protein:0.6, carbs:8,   fat:0.2  },
-  { cat:"fruta", name:"Mel�n",            kcal:34,  protein:0.8, carbs:8,   fat:0.2  },
+  { cat:"fruta", name:"Sandía",           kcal:30,  protein:0.6, carbs:8,   fat:0.2  },
+  { cat:"fruta", name:"Melón",            kcal:34,  protein:0.8, carbs:8,   fat:0.2  },
   { cat:"fruta", name:"Durazno",          kcal:39,  protein:0.9, carbs:10,  fat:0.3, unit:true, unitWeight:130 },
   { cat:"fruta", name:"Kiwi",             kcal:61,  protein:1.1, carbs:15,  fat:0.5, unit:true, unitWeight:90  },
   { cat:"fruta", name:"Frutillas",        kcal:32,  protein:0.7, carbs:8,   fat:0.3  },
-  { cat:"fruta", name:"Ar�ndanos",        kcal:57,  protein:0.7, carbs:14,  fat:0.3  },
+  { cat:"fruta", name:"Arándanos",        kcal:57,  protein:0.7, carbs:14,  fat:0.3  },
   { cat:"fruta", name:"Frambuesas",       kcal:52,  protein:1.2, carbs:12,  fat:0.7  },
   { cat:"fruta", name:"Ciruela",          kcal:46,  protein:0.7, carbs:11,  fat:0.3, unit:true, unitWeight:65  },
   { cat:"fruta", name:"Cereza",           kcal:63,  protein:1.1, carbs:16,  fat:0.2  },
-  { cat:"fruta", name:"Anan�/Pi�a",       kcal:50,  protein:0.5, carbs:13,  fat:0.1  },
+  { cat:"fruta", name:"Ananá/Piña",       kcal:50,  protein:0.5, carbs:13,  fat:0.1  },
   { cat:"fruta", name:"Mango",            kcal:60,  protein:0.8, carbs:15,  fat:0.4  },
   { cat:"fruta", name:"Papaya",           kcal:43,  protein:0.5, carbs:11,  fat:0.3  },
   { cat:"fruta", name:"Higo",             kcal:74,  protein:0.8, carbs:19,  fat:0.3, unit:true, unitWeight:50  },
-  { cat:"fruta", name:"Maracuy�",         kcal:97,  protein:2.2, carbs:23,  fat:0.7  },
+  { cat:"fruta", name:"Maracuyá",         kcal:97,  protein:2.2, carbs:23,  fat:0.7  },
   { cat:"fruta", name:"Uva pasa (30g)",   kcal:85,  protein:0.9, carbs:22,  fat:0.1  },
   { cat:"fruta", name:"Coco rallado (30g)",kcal:100, protein:1,  carbs:4,   fat:9    },
   // -- Verduras -------------------------------------------------
-  { cat:"verdura", name:"Br�coli",              kcal:34,  protein:2.8, carbs:7,   fat:0.4  },
+  { cat:"verdura", name:"Brócoli",              kcal:34,  protein:2.8, carbs:7,   fat:0.4  },
   { cat:"verdura", name:"Espinaca",             kcal:23,  protein:2.9, carbs:3.6, fat:0.4  },
   { cat:"verdura", name:"Kale",                 kcal:49,  protein:4.3, carbs:9,   fat:0.9  },
-  { cat:"verdura", name:"R�cula",               kcal:25,  protein:2.6, carbs:3.7, fat:0.7  },
+  { cat:"verdura", name:"Rúcula",               kcal:25,  protein:2.6, carbs:3.7, fat:0.7  },
   { cat:"verdura", name:"Lechuga",              kcal:15,  protein:1.4, carbs:2.9, fat:0.2  },
   { cat:"verdura", name:"Acelga",               kcal:19,  protein:1.8, carbs:3.7, fat:0.2  },
   { cat:"verdura", name:"Tomate",               kcal:18,  protein:0.9, carbs:3.9, fat:0.2  },
@@ -1974,14 +1974,14 @@ const FOOD_DB = [
   { cat:"verdura", name:"Coliflor",             kcal:25,  protein:1.9, carbs:5,   fat:0.3  },
   { cat:"verdura", name:"Repollo",              kcal:25,  protein:1.3, carbs:5.8, fat:0.1  },
   { cat:"verdura", name:"Apio",                 kcal:16,  protein:0.7, carbs:3,   fat:0.2  },
-  { cat:"verdura", name:"Champi��n",            kcal:22,  protein:3.1, carbs:3.3, fat:0.3  },
+  { cat:"verdura", name:"Champiñón",            kcal:22,  protein:3.1, carbs:3.3, fat:0.3  },
   { cat:"verdura", name:"Chaucha (poroto verde)",kcal:31, protein:1.8, carbs:7,   fat:0.2  },
   { cat:"verdura", name:"Arvejas frescas",      kcal:81,  protein:5.4, carbs:14,  fat:0.4  },
   { cat:"verdura", name:"Choclo desgranado",    kcal:96,  protein:3.4, carbs:21,  fat:1.5  },
-  { cat:"verdura", name:"Esp�rrago",            kcal:20,  protein:2.2, carbs:3.9, fat:0.1  },
+  { cat:"verdura", name:"Espárrago",            kcal:20,  protein:2.2, carbs:3.9, fat:0.1  },
   { cat:"verdura", name:"Alcaucil",             kcal:47,  protein:3.3, carbs:11,  fat:0.2  },
   { cat:"verdura", name:"Palmito",              kcal:20,  protein:2,   carbs:3,   fat:0.2  },
-  { cat:"verdura", name:"R�bano",               kcal:16,  protein:0.7, carbs:3.4, fat:0.1  },
+  { cat:"verdura", name:"Rábano",               kcal:16,  protein:0.7, carbs:3.4, fat:0.1  },
   // -- Desayunos ------------------------------------------------
   { cat:"desayuno", name:"Medialunas (c/u)",            kcal:160, protein:3.5, carbs:22,  fat:6.5, unit:true, unitWeight:50  },
   { cat:"desayuno", name:"Medialunas de manteca (x2)",  kcal:320, protein:7,   carbs:44,  fat:13,  unit:true, unitWeight:100 },
@@ -1997,7 +1997,7 @@ const FOOD_DB = [
   { cat:"desayuno", name:"Granola con yogur",            kcal:280, protein:8,   carbs:38,  fat:10   },
   { cat:"desayuno", name:"Granola (30g)",               kcal:132, protein:3,   carbs:20,  fat:5    },
   { cat:"desayuno", name:"Desayuno completo (avena+leche+banana)",kcal:350,protein:14,carbs:62,fat:5 },
-  { cat:"desayuno", name:"Licuado de prote�nas",        kcal:250, protein:28,  carbs:20,  fat:4    },
+  { cat:"desayuno", name:"Licuado de proteínas",        kcal:250, protein:28,  carbs:20,  fat:4    },
   { cat:"desayuno", name:"Licuado de banana y leche",   kcal:220, protein:7,   carbs:38,  fat:4    },
   { cat:"desayuno", name:"Omelette (2 huevos+queso)",   kcal:220, protein:18,  carbs:2,   fat:15   },
   { cat:"desayuno", name:"Revuelto de huevos (2)",      kcal:185, protein:14,  carbs:1.5, fat:14   },
@@ -2009,7 +2009,7 @@ const FOOD_DB = [
   { cat:"desayuno", name:"Bowl de fruta con yogur",     kcal:140, protein:7,   carbs:24,  fat:2    },
   { cat:"desayuno", name:"Chia pudding (150g)",         kcal:210, protein:7,   carbs:18,  fat:13   },
   { cat:"desayuno", name:"Smoothie verde (espinaca+banana)",kcal:180,protein:6,carbs:32,  fat:3    },
-  { cat:"desayuno", name:"Caf� con leche (200ml)",      kcal:64,  protein:4,   carbs:6,   fat:2,   drink:true },
+  { cat:"desayuno", name:"Café con leche (200ml)",      kcal:64,  protein:4,   carbs:6,   fat:2,   drink:true },
   { cat:"desayuno", name:"Mate cocido con leche",       kcal:55,  protein:3.5, carbs:5.5, fat:2,   drink:true },
   // -- Meriendas ------------------------------------------------
   { cat:"merienda", name:"Facturas dulces (c/u)",       kcal:180, protein:3,   carbs:25,  fat:8,   unit:true, unitWeight:60  },
@@ -2019,46 +2019,46 @@ const FOOD_DB = [
   { cat:"merienda", name:"Galletitas de agua (c/u)",    kcal:21,  protein:0.5, carbs:3.5, fat:0.5, unit:true, unitWeight:8   },
   { cat:"merienda", name:"Galletitas dulces (c/u)",     kcal:45,  protein:0.6, carbs:6.5, fat:1.8, unit:true, unitWeight:12  },
   { cat:"merienda", name:"Galletitas de arroz (c/u)",   kcal:35,  protein:0.7, carbs:7.5, fat:0.3, unit:true, unitWeight:10  },
-  { cat:"merienda", name:"Bud�n (porci�n 60g)",         kcal:220, protein:3.5, carbs:32,  fat:9    },
-  { cat:"merienda", name:"Bizcochuelo (porci�n)",       kcal:230, protein:4,   carbs:34,  fat:9    },
+  { cat:"merienda", name:"Budín (porción 60g)",         kcal:220, protein:3.5, carbs:32,  fat:9    },
+  { cat:"merienda", name:"Bizcochuelo (porción)",       kcal:230, protein:4,   carbs:34,  fat:9    },
   { cat:"merienda", name:"Muffin (c/u)",                kcal:270, protein:4,   carbs:38,  fat:11,  unit:true, unitWeight:80  },
   { cat:"merienda", name:"Bizcochitos de grasa",        kcal:450, protein:9,   carbs:60,  fat:20   },
   { cat:"merienda", name:"Barritas de cereal",          kcal:120, protein:2,   carbs:22,  fat:3,   unit:true, unitWeight:28  },
-  { cat:"merienda", name:"Barra de prote�nas",          kcal:200, protein:20,  carbs:18,  fat:6,   unit:true, unitWeight:60  },
-  { cat:"merienda", name:"Tostado de jam�n y queso",    kcal:340, protein:16,  carbs:32,  fat:14,  unit:true, unitWeight:140 },
-  { cat:"merienda", name:"Turr�n (30g)",                kcal:130, protein:3,   carbs:19,  fat:5    },
+  { cat:"merienda", name:"Barra de proteínas",          kcal:200, protein:20,  carbs:18,  fat:6,   unit:true, unitWeight:60  },
+  { cat:"merienda", name:"Tostado de jamón y queso",    kcal:340, protein:16,  carbs:32,  fat:14,  unit:true, unitWeight:140 },
+  { cat:"merienda", name:"Turrón (30g)",                kcal:130, protein:3,   carbs:19,  fat:5    },
   { cat:"merienda", name:"Facturas de hojaldre (c/u)",  kcal:200, protein:3,   carbs:24,  fat:10,  unit:true, unitWeight:65  },
-  { cat:"merienda", name:"Torta casera (porci�n)",      kcal:300, protein:4,   carbs:42,  fat:13   },
+  { cat:"merienda", name:"Torta casera (porción)",      kcal:300, protein:4,   carbs:42,  fat:13   },
   { cat:"merienda", name:"Yogur con frutas",            kcal:120, protein:5,   carbs:20,  fat:2    },
-  { cat:"merienda", name:"Fruta con queso (porci�n)",   kcal:130, protein:7,   carbs:16,  fat:4    },
+  { cat:"merienda", name:"Fruta con queso (porción)",   kcal:130, protein:7,   carbs:16,  fat:4    },
   // -- Colaciones -----------------------------------------------
   { cat:"colacion", name:"Huevo duro",                  kcal:85,  protein:7,   carbs:0.5, fat:6,   unit:true, unitWeight:55  },
   { cat:"colacion", name:"Yogur griego + 1 fruta",      kcal:130, protein:10,  carbs:18,  fat:1    },
-  { cat:"colacion", name:"Man� tostado (30g)",          kcal:176, protein:7,   carbs:5,   fat:15   },
+  { cat:"colacion", name:"Maní tostado (30g)",          kcal:176, protein:7,   carbs:5,   fat:15   },
   { cat:"colacion", name:"Mix de frutas secas (30g)",   kcal:175, protein:5,   carbs:8,   fat:14   },
   { cat:"colacion", name:"Pistacho (30g)",              kcal:173, protein:6,   carbs:9,   fat:14   },
   { cat:"colacion", name:"Hummus con verduras crudas",  kcal:120, protein:5,   carbs:14,  fat:5    },
   { cat:"colacion", name:"Hummus con pita",             kcal:220, protein:7,   carbs:32,  fat:8    },
   { cat:"colacion", name:"Queso cottage (150g)",        kcal:147, protein:17,  carbs:5,   fat:7    },
   { cat:"colacion", name:"Edamame (100g)",              kcal:122, protein:11,  carbs:10,  fat:5    },
-  { cat:"colacion", name:"Fruta + manteca de man�",     kcal:185, protein:5,   carbs:22,  fat:9    },
-  { cat:"colacion", name:"Palta con lim�n (�)",         kcal:120, protein:1.5, carbs:6,   fat:11   },
+  { cat:"colacion", name:"Fruta + manteca de maní",     kcal:185, protein:5,   carbs:22,  fat:9    },
+  { cat:"colacion", name:"Palta con limón (—)",         kcal:120, protein:1.5, carbs:6,   fat:11   },
   { cat:"colacion", name:"Arroz con leche (150g)",      kcal:185, protein:5,   carbs:34,  fat:3.5  },
   { cat:"colacion", name:"Chocolate amargo (20g)",      kcal:114, protein:1.8, carbs:9,   fat:8    },
   { cat:"colacion", name:"Chips de papa (30g)",         kcal:160, protein:2,   carbs:15,  fat:10   },
   { cat:"colacion", name:"Palomitas/pochoclos (30g)",   kcal:110, protein:3,   carbs:19,  fat:3    },
-  { cat:"colacion", name:"D�tiles (3 unid)",            kcal:66,  protein:0.5, carbs:18,  fat:0.1  },
+  { cat:"colacion", name:"Dátiles (3 unid)",            kcal:66,  protein:0.5, carbs:18,  fat:0.1  },
   { cat:"colacion", name:"Pepino con hummus",           kcal:65,  protein:3,   carbs:9,   fat:2.5  },
   { cat:"colacion", name:"Chips de arroz (15g)",        kcal:57,  protein:1,   carbs:12,  fat:0.4  },
   { cat:"colacion", name:"Chocolate con leche (20g)",   kcal:107, protein:1.5, carbs:12,  fat:6    },
   // -- Entradas -------------------------------------------------
   { cat:"entrada", name:"Ensalada mixta c/huevo",      kcal:85,  protein:7,   carbs:5,   fat:4    },
-  { cat:"entrada", name:"Ensalada C�sar (sin pollo)",  kcal:140, protein:5,   carbs:10,  fat:9    },
+  { cat:"entrada", name:"Ensalada César (sin pollo)",  kcal:140, protein:5,   carbs:10,  fat:9    },
   { cat:"entrada", name:"Ensalada caprese",            kcal:180, protein:10,  carbs:5,   fat:13   },
   { cat:"entrada", name:"Tabla de fiambres",           kcal:280, protein:16,  carbs:2,   fat:24   },
   { cat:"entrada", name:"Bruschetta (2 piezas)",       kcal:180, protein:5,   carbs:28,  fat:5    },
   { cat:"entrada", name:"Empanada de carne",           kcal:290, protein:12,  carbs:28,  fat:14,  unit:true, unitWeight:110 },
-  { cat:"entrada", name:"Empanada de jam�n y queso",   kcal:310, protein:14,  carbs:30,  fat:14,  unit:true, unitWeight:110 },
+  { cat:"entrada", name:"Empanada de jamón y queso",   kcal:310, protein:14,  carbs:30,  fat:14,  unit:true, unitWeight:110 },
   { cat:"entrada", name:"Empanada de verdura",         kcal:250, protein:7,   carbs:30,  fat:11,  unit:true, unitWeight:100 },
   { cat:"entrada", name:"Empanada de humita",          kcal:240, protein:6,   carbs:34,  fat:9,   unit:true, unitWeight:100 },
   { cat:"entrada", name:"Provoleta (100g)",            kcal:320, protein:22,  carbs:1,   fat:26   },
@@ -2070,7 +2070,7 @@ const FOOD_DB = [
   { cat:"entrada", name:"Gazpacho (200ml)",            kcal:50,  protein:1.5, carbs:10,  fat:0.5  },
   { cat:"entrada", name:"Ceviche (150g)",              kcal:100, protein:14,  carbs:8,   fat:1    },
   { cat:"entrada", name:"Croquetas de papa (x3)",      kcal:210, protein:4,   carbs:28,  fat:9    },
-  { cat:"entrada", name:"Sopa paraguaya (porci�n)",    kcal:280, protein:8,   carbs:32,  fat:13   },
+  { cat:"entrada", name:"Sopa paraguaya (porción)",    kcal:280, protein:8,   carbs:32,  fat:13   },
   { cat:"entrada", name:"Tabla de verduras asadas",    kcal:90,  protein:2.5, carbs:15,  fat:3    },
   { cat:"entrada", name:"Canelones de ricota",         kcal:210, protein:9,   carbs:22,  fat:9    },
   // -- Platos principales ---------------------------------------
@@ -2086,40 +2086,40 @@ const FOOD_DB = [
   { cat:"principal", name:"Pollo al horno con papa",     kcal:155, protein:14,  carbs:14,  fat:4.5  },
   { cat:"principal", name:"Pollo al verdeo",             kcal:190, protein:20,  carbs:4,   fat:10   },
   { cat:"principal", name:"Pollo a la cacerola",         kcal:175, protein:18,  carbs:6,   fat:8    },
-  { cat:"principal", name:"Pollo al lim�n",              kcal:160, protein:20,  carbs:3,   fat:7    },
+  { cat:"principal", name:"Pollo al limón",              kcal:160, protein:20,  carbs:3,   fat:7    },
   { cat:"principal", name:"Pollo teriyaki con arroz",    kcal:210, protein:18,  carbs:25,  fat:4    },
   { cat:"principal", name:"Fideos con salsa bolognesa",  kcal:180, protein:10,  carbs:22,  fat:5    },
   { cat:"principal", name:"Fideos con manteca",          kcal:200, protein:6,   carbs:28,  fat:7    },
   { cat:"principal", name:"Tallarines con pesto",        kcal:210, protein:7,   carbs:26,  fat:9    },
-  { cat:"principal", name:"�oquis con salsa",            kcal:190, protein:6,   carbs:30,  fat:5    },
+  { cat:"principal", name:"Ñoquis con salsa",            kcal:190, protein:6,   carbs:30,  fat:5    },
   { cat:"principal", name:"Ravioles de carne",           kcal:220, protein:11,  carbs:26,  fat:7    },
   { cat:"principal", name:"Canelones de carne",          kcal:230, protein:14,  carbs:20,  fat:9    },
-  { cat:"principal", name:"Lasa�a de carne",             kcal:250, protein:15,  carbs:22,  fat:11   },
-  { cat:"principal", name:"Pizza mozzarella (porci�n)",  kcal:272, protein:12,  carbs:32,  fat:10   },
+  { cat:"principal", name:"Lasaña de carne",             kcal:250, protein:15,  carbs:22,  fat:11   },
+  { cat:"principal", name:"Pizza mozzarella (porción)",  kcal:272, protein:12,  carbs:32,  fat:10   },
   { cat:"principal", name:"Hamburguesa casera s/pan",    kcal:290, protein:26,  carbs:0,   fat:20,  unit:true, unitWeight:120 },
   { cat:"principal", name:"Hamburguesa completa",        kcal:550, protein:28,  carbs:40,  fat:28,  unit:true, unitWeight:200 },
-  { cat:"principal", name:"S�ndwich de milanesa",        kcal:420, protein:28,  carbs:38,  fat:14,  unit:true, unitWeight:220 },
-  { cat:"principal", name:"S�ndwich de pollo y lechuga", kcal:280, protein:22,  carbs:28,  fat:8,   unit:true, unitWeight:160 },
-  { cat:"principal", name:"S�ndwich de jam�n y queso",   kcal:310, protein:18,  carbs:30,  fat:12,  unit:true, unitWeight:150 },
-  { cat:"principal", name:"S�ndwich de at�n",            kcal:265, protein:20,  carbs:28,  fat:7,   unit:true, unitWeight:150 },
-  { cat:"principal", name:"Tarta de verduras (porci�n)", kcal:220, protein:7,   carbs:20,  fat:12,  unit:true, unitWeight:150 },
-  { cat:"principal", name:"Tarta de jam�n y queso",      kcal:280, protein:12,  carbs:22,  fat:16,  unit:true, unitWeight:170 },
-  { cat:"principal", name:"Tarta de pollo (porci�n)",    kcal:260, protein:14,  carbs:20,  fat:13,  unit:true, unitWeight:160 },
-  { cat:"principal", name:"Tarta de at�n",               kcal:245, protein:15,  carbs:20,  fat:11,  unit:true, unitWeight:155 },
+  { cat:"principal", name:"Sándwich de milanesa",        kcal:420, protein:28,  carbs:38,  fat:14,  unit:true, unitWeight:220 },
+  { cat:"principal", name:"Sándwich de pollo y lechuga", kcal:280, protein:22,  carbs:28,  fat:8,   unit:true, unitWeight:160 },
+  { cat:"principal", name:"Sándwich de jamón y queso",   kcal:310, protein:18,  carbs:30,  fat:12,  unit:true, unitWeight:150 },
+  { cat:"principal", name:"Sándwich de atún",            kcal:265, protein:20,  carbs:28,  fat:7,   unit:true, unitWeight:150 },
+  { cat:"principal", name:"Tarta de verduras (porción)", kcal:220, protein:7,   carbs:20,  fat:12,  unit:true, unitWeight:150 },
+  { cat:"principal", name:"Tarta de jamón y queso",      kcal:280, protein:12,  carbs:22,  fat:16,  unit:true, unitWeight:170 },
+  { cat:"principal", name:"Tarta de pollo (porción)",    kcal:260, protein:14,  carbs:20,  fat:13,  unit:true, unitWeight:160 },
+  { cat:"principal", name:"Tarta de atún",               kcal:245, protein:15,  carbs:20,  fat:11,  unit:true, unitWeight:155 },
   { cat:"principal", name:"Tarta de zapallitos",         kcal:195, protein:7,   carbs:18,  fat:10,  unit:true, unitWeight:145 },
   { cat:"principal", name:"Tarta de acelga",             kcal:200, protein:8,   carbs:19,  fat:10,  unit:true, unitWeight:150 },
-  { cat:"principal", name:"Pizza mozzarella (porci�n)",  kcal:272, protein:12,  carbs:32,  fat:10,  unit:true, unitWeight:120 },
-  { cat:"principal", name:"Pizza de jam�n y morr�n",     kcal:290, protein:13,  carbs:33,  fat:11,  unit:true, unitWeight:125 },
-  { cat:"principal", name:"Pizza fugazzeta (porci�n)",   kcal:300, protein:11,  carbs:35,  fat:12,  unit:true, unitWeight:130 },
+  { cat:"principal", name:"Pizza mozzarella (porción)",  kcal:272, protein:12,  carbs:32,  fat:10,  unit:true, unitWeight:120 },
+  { cat:"principal", name:"Pizza de jamón y morrón",     kcal:290, protein:13,  carbs:33,  fat:11,  unit:true, unitWeight:125 },
+  { cat:"principal", name:"Pizza fugazzeta (porción)",   kcal:300, protein:11,  carbs:35,  fat:12,  unit:true, unitWeight:130 },
   { cat:"principal", name:"Pizza de calabresa",          kcal:285, protein:12,  carbs:32,  fat:12,  unit:true, unitWeight:125 },
-  { cat:"principal", name:"Chorip�n",                    kcal:480, protein:18,  carbs:36,  fat:28,  unit:true, unitWeight:180 },
-  { cat:"principal", name:"Pebete de jam�n",             kcal:300, protein:14,  carbs:34,  fat:11,  unit:true, unitWeight:140 },
-  { cat:"principal", name:"Tortilla de papas (porci�n)", kcal:195, protein:9,   carbs:18,  fat:9,   unit:true, unitWeight:130 },
-  { cat:"principal", name:"S�ndwich de lomito",          kcal:480, protein:30,  carbs:40,  fat:20,  unit:true, unitWeight:230 },
-  { cat:"principal", name:"S�ndwich club",               kcal:420, protein:25,  carbs:36,  fat:18,  unit:true, unitWeight:200 },
-  { cat:"principal", name:"S�ndwich de pavita",          kcal:270, protein:20,  carbs:28,  fat:8,   unit:true, unitWeight:155 },
-  { cat:"principal", name:"S�ndwich de roast beef",      kcal:380, protein:28,  carbs:32,  fat:14,  unit:true, unitWeight:190 },
-  { cat:"principal", name:"S�ndwich de queso y tomate",  kcal:240, protein:10,  carbs:30,  fat:9,   unit:true, unitWeight:140 },
+  { cat:"principal", name:"Choripán",                    kcal:480, protein:18,  carbs:36,  fat:28,  unit:true, unitWeight:180 },
+  { cat:"principal", name:"Pebete de jamón",             kcal:300, protein:14,  carbs:34,  fat:11,  unit:true, unitWeight:140 },
+  { cat:"principal", name:"Tortilla de papas (porción)", kcal:195, protein:9,   carbs:18,  fat:9,   unit:true, unitWeight:130 },
+  { cat:"principal", name:"Sándwich de lomito",          kcal:480, protein:30,  carbs:40,  fat:20,  unit:true, unitWeight:230 },
+  { cat:"principal", name:"Sándwich club",               kcal:420, protein:25,  carbs:36,  fat:18,  unit:true, unitWeight:200 },
+  { cat:"principal", name:"Sándwich de pavita",          kcal:270, protein:20,  carbs:28,  fat:8,   unit:true, unitWeight:155 },
+  { cat:"principal", name:"Sándwich de roast beef",      kcal:380, protein:28,  carbs:32,  fat:14,  unit:true, unitWeight:190 },
+  { cat:"principal", name:"Sándwich de queso y tomate",  kcal:240, protein:10,  carbs:30,  fat:9,   unit:true, unitWeight:140 },
   { cat:"principal", name:"Locro (plato 300g)",          kcal:270, protein:14,  carbs:30,  fat:9    },
   { cat:"principal", name:"Guiso de lentejas",           kcal:130, protein:8,   carbs:18,  fat:3    },
   { cat:"principal", name:"Guiso de arroz con pollo",    kcal:155, protein:12,  carbs:20,  fat:4    },
@@ -2127,49 +2127,49 @@ const FOOD_DB = [
   { cat:"principal", name:"Curry de pollo",              kcal:185, protein:17,  carbs:10,  fat:8    },
   { cat:"principal", name:"Carbonada",                   kcal:170, protein:10,  carbs:20,  fat:6    },
   { cat:"principal", name:"Cazuela de mariscos",         kcal:145, protein:14,  carbs:10,  fat:5    },
-  { cat:"principal", name:"Salm�n al horno (200g)",      kcal:416, protein:40,  carbs:0,   fat:26   },
+  { cat:"principal", name:"Salmón al horno (200g)",      kcal:416, protein:40,  carbs:0,   fat:26   },
   { cat:"principal", name:"Pescado a la plancha (200g)", kcal:164, protein:34,  carbs:0,   fat:2    },
-  { cat:"principal", name:"Pur� de papas (con leche)",   kcal:104, protein:2.5, carbs:19,  fat:2.5  },
-  { cat:"principal", name:"Bowl de arroz y at�n",        kcal:148, protein:15,  carbs:18,  fat:1.5  },
+  { cat:"principal", name:"Puré de papas (con leche)",   kcal:104, protein:2.5, carbs:19,  fat:2.5  },
+  { cat:"principal", name:"Bowl de arroz y atún",        kcal:148, protein:15,  carbs:18,  fat:1.5  },
   { cat:"principal", name:"Bowl proteico (arroz+pollo+verdura)", kcal:185, protein:22, carbs:20, fat:3 },
   { cat:"principal", name:"Ensalada de pollo",           kcal:135, protein:15,  carbs:6,   fat:5    },
   { cat:"principal", name:"Wok de verduras con pollo",   kcal:118, protein:13,  carbs:8,   fat:3.5  },
   { cat:"principal", name:"Wrap de pollo",               kcal:230, protein:18,  carbs:24,  fat:6,   unit:true, unitWeight:180 },
-  { cat:"principal", name:"Shawarma/wrap �rabe",         kcal:420, protein:22,  carbs:42,  fat:16,  unit:true, unitWeight:250 },
+  { cat:"principal", name:"Shawarma/wrap árabe",         kcal:420, protein:22,  carbs:42,  fat:16,  unit:true, unitWeight:250 },
   { cat:"principal", name:"Burrito",                     kcal:490, protein:22,  carbs:60,  fat:16,  unit:true, unitWeight:280 },
   { cat:"principal", name:"Sushi (6 piezas)",            kcal:250, protein:12,  carbs:45,  fat:2    },
-  { cat:"principal", name:"Risotto de champi�ones",      kcal:180, protein:5,   carbs:28,  fat:6    },
+  { cat:"principal", name:"Risotto de champiñones",      kcal:180, protein:5,   carbs:28,  fat:6    },
   { cat:"principal", name:"Paella de mariscos",          kcal:165, protein:12,  carbs:22,  fat:4    },
   { cat:"principal", name:"Arroz con pollo y verduras",  kcal:148, protein:13,  carbs:17,  fat:3    },
   { cat:"principal", name:"Arroz con zapallo",           kcal:120, protein:2.5, carbs:26,  fat:0.5  },
-  { cat:"principal", name:"Arroz con at�n y ma�z",       kcal:145, protein:13,  carbs:20,  fat:2    },
+  { cat:"principal", name:"Arroz con atún y maíz",       kcal:145, protein:13,  carbs:20,  fat:2    },
   { cat:"principal", name:"Fideos con salsa de tomate",  kcal:155, protein:5.5, carbs:28,  fat:2    },
   { cat:"principal", name:"Cazuela de pollo con verduras",kcal:160, protein:16,  carbs:12,  fat:5    },
-  { cat:"principal", name:"Medall�n de pollo (c/u)",     kcal:190, protein:20,  carbs:10,  fat:7,   unit:true, unitWeight:100 },
+  { cat:"principal", name:"Medallón de pollo (c/u)",     kcal:190, protein:20,  carbs:10,  fat:7,   unit:true, unitWeight:100 },
   { cat:"principal", name:"Nuggets de pollo (x6)",       kcal:290, protein:18,  carbs:22,  fat:14   },
   { cat:"principal", name:"Suprema a la Maryland",       kcal:380, protein:35,  carbs:20,  fat:16,  unit:true, unitWeight:200 },
   // -- Postres --------------------------------------------------
-  { cat:"postre", name:"Flan casero (porci�n)",        kcal:150, protein:5,   carbs:24,  fat:4    },
+  { cat:"postre", name:"Flan casero (porción)",        kcal:150, protein:5,   carbs:24,  fat:4    },
   { cat:"postre", name:"Flan con dulce de leche",      kcal:220, protein:5,   carbs:38,  fat:5    },
   { cat:"postre", name:"Mousse de chocolate",          kcal:260, protein:4,   carbs:28,  fat:15   },
-  { cat:"postre", name:"Torta de chocolate (porci�n)", kcal:380, protein:5,   carbs:50,  fat:18   },
-  { cat:"postre", name:"Torta de queso (porci�n)",     kcal:320, protein:6,   carbs:30,  fat:20   },
-  { cat:"postre", name:"Torta de manzana (porci�n)",   kcal:280, protein:3,   carbs:42,  fat:11   },
+  { cat:"postre", name:"Torta de chocolate (porción)", kcal:380, protein:5,   carbs:50,  fat:18   },
+  { cat:"postre", name:"Torta de queso (porción)",     kcal:320, protein:6,   carbs:30,  fat:20   },
+  { cat:"postre", name:"Torta de manzana (porción)",   kcal:280, protein:3,   carbs:42,  fat:11   },
   { cat:"postre", name:"Helado de crema (2 bochas)",   kcal:260, protein:4,   carbs:32,  fat:13   },
   { cat:"postre", name:"Helado de agua (palito)",      kcal:80,  protein:0,   carbs:20,  fat:0    },
-  { cat:"postre", name:"Tiramisu (porci�n)",           kcal:330, protein:6,   carbs:36,  fat:18   },
-  { cat:"postre", name:"Cheesecake (porci�n)",         kcal:350, protein:6,   carbs:32,  fat:23   },
-  { cat:"postre", name:"Brownie (porci�n 50g)",        kcal:220, protein:3,   carbs:28,  fat:11   },
+  { cat:"postre", name:"Tiramisu (porción)",           kcal:330, protein:6,   carbs:36,  fat:18   },
+  { cat:"postre", name:"Cheesecake (porción)",         kcal:350, protein:6,   carbs:32,  fat:23   },
+  { cat:"postre", name:"Brownie (porción 50g)",        kcal:220, protein:3,   carbs:28,  fat:11   },
   { cat:"postre", name:"Muffin de chocolate",          kcal:280, protein:4,   carbs:38,  fat:12,  unit:true, unitWeight:80  },
   { cat:"postre", name:"Churros (3 unid)",             kcal:240, protein:4,   carbs:34,  fat:10   },
   { cat:"postre", name:"Palitos de dulce de leche (c/u)",kcal:70,protein:1,   carbs:11,  fat:2.5, unit:true, unitWeight:20  },
   { cat:"postre", name:"Arroz con leche (150g)",       kcal:185, protein:5,   carbs:34,  fat:3.5  },
-  { cat:"postre", name:"Bud�n de pan (porci�n)",       kcal:230, protein:6,   carbs:38,  fat:7    },
+  { cat:"postre", name:"Budín de pan (porción)",       kcal:230, protein:6,   carbs:38,  fat:7    },
   { cat:"postre", name:"Panqueques con dulce de leche",kcal:380, protein:9,   carbs:58,  fat:12   },
   { cat:"postre", name:"Ensalada de frutas (200g)",    kcal:100, protein:1.5, carbs:25,  fat:0.5  },
   { cat:"postre", name:"Dulce de membrillo (30g)",     kcal:78,  protein:0.2, carbs:20,  fat:0    },
   // -- Bebidas --------------------------------------------------
-  { cat:"bebida", name:"Caf� con leche (200ml)",       kcal:64,  protein:4,   carbs:6,   fat:2    },
+  { cat:"bebida", name:"Café con leche (200ml)",       kcal:64,  protein:4,   carbs:6,   fat:2    },
   { cat:"bebida", name:"Mate cocido con leche",        kcal:55,  protein:3.5, carbs:5.5, fat:2    },
   { cat:"bebida", name:"Jugo de naranja natural",      kcal:45,  protein:0.7, carbs:10,  fat:0.2  },
   { cat:"bebida", name:"Jugo de manzana (200ml)",      kcal:90,  protein:0.2, carbs:23,  fat:0.2  },
@@ -2177,32 +2177,32 @@ const FOOD_DB = [
   { cat:"bebida", name:"Leche chocolatada (250ml)",    kcal:160, protein:6,   carbs:27,  fat:3    },
   { cat:"bebida", name:"Batido de frutas (300ml)",     kcal:130, protein:2,   carbs:30,  fat:0.5  },
   { cat:"bebida", name:"Licuado de banana y leche",    kcal:220, protein:7,   carbs:38,  fat:4    },
-  { cat:"bebida", name:"Gatorade/isot�nica (500ml)",   kcal:140, protein:0,   carbs:35,  fat:0    },
+  { cat:"bebida", name:"Gatorade/isotónica (500ml)",   kcal:140, protein:0,   carbs:35,  fat:0    },
   { cat:"bebida", name:"Agua con gas (500ml)",         kcal:0,   protein:0,   carbs:0,   fat:0    },
   { cat:"bebida", name:"Coca-Cola (350ml)",            kcal:140, protein:0,   carbs:39,  fat:0    },
   { cat:"bebida", name:"Coca-Cola Zero (350ml)",       kcal:1,   protein:0,   carbs:0,   fat:0    },
   { cat:"bebida", name:"Cerveza (330ml)",              kcal:155, protein:1.6, carbs:13,  fat:0    },
   { cat:"bebida", name:"Vino tinto (150ml)",           kcal:125, protein:0.1, carbs:4,   fat:0    },
   { cat:"bebida", name:"Vino blanco (150ml)",          kcal:121, protein:0.1, carbs:3.8, fat:0    },
-  { cat:"bebida", name:"T� fr�o (500ml)",              kcal:60,  protein:0,   carbs:15,  fat:0    },
+  { cat:"bebida", name:"Té frío (500ml)",              kcal:60,  protein:0,   carbs:15,  fat:0    },
   // -- Suplementos ----------------------------------------------
   { cat:"suplemento", name:"Whey protein (scoop 30g)", kcal:120, protein:24,  carbs:3,   fat:2    },
   { cat:"suplemento", name:"Creatina (5g)",             kcal:0,   protein:0,   carbs:0,   fat:0    },
   { cat:"suplemento", name:"BCAA (10g)",                kcal:40,  protein:9,   carbs:0,   fat:0    },
-  { cat:"suplemento", name:"Case�na (30g)",             kcal:110, protein:22,  carbs:4,   fat:1    },
+  { cat:"suplemento", name:"Caseína (30g)",             kcal:110, protein:22,  carbs:4,   fat:1    },
   { cat:"suplemento", name:"Mass gainer (100g)",        kcal:380, protein:25,  carbs:60,  fat:4    },
-  // -- Comidas r�pidas ------------------------------------------
-  { cat:"rapida", name:"Papas fritas (porci�n)",       kcal:320, protein:4,   carbs:40,  fat:16   },
+  // -- Comidas rápidas ------------------------------------------
+  { cat:"rapida", name:"Papas fritas (porción)",       kcal:320, protein:4,   carbs:40,  fat:16   },
   { cat:"rapida", name:"Pancho/hot dog",               kcal:310, protein:12,  carbs:28,  fat:17,  unit:true, unitWeight:120 },
   { cat:"rapida", name:"Taco",                         kcal:210, protein:10,  carbs:22,  fat:9,   unit:true, unitWeight:100 },
-  { cat:"rapida", name:"S�ndwich vegetal",             kcal:220, protein:8,   carbs:32,  fat:6,   unit:true, unitWeight:160 },
+  { cat:"rapida", name:"Sándwich vegetal",             kcal:220, protein:8,   carbs:32,  fat:6,   unit:true, unitWeight:160 },
   { cat:"rapida", name:"Empanada frita (c/u)",         kcal:330, protein:11,  carbs:28,  fat:19,  unit:true, unitWeight:115 },
   { cat:"rapida", name:"Medialunas fritas (c/u)",      kcal:170, protein:3,   carbs:20,  fat:8.5, unit:true, unitWeight:55  },
   { cat:"rapida", name:"Sorrentinos de ricota (x4)",   kcal:280, protein:11,  carbs:36,  fat:9    },
   { cat:"rapida", name:"Porciones de pizza al corte",  kcal:270, protein:11,  carbs:33,  fat:10,  unit:true, unitWeight:120 },
   { cat:"rapida", name:"Hamburguesa doble (fast food)",kcal:590, protein:30,  carbs:44,  fat:30,  unit:true, unitWeight:230 },
   { cat:"rapida", name:"Pollo frito (presa c/u)",      kcal:290, protein:22,  carbs:12,  fat:17,  unit:true, unitWeight:130 },
-  { cat:"rapida", name:"Papas en bast�n al horno",     kcal:160, protein:2.5, carbs:26,  fat:5    },
+  { cat:"rapida", name:"Papas en bastón al horno",     kcal:160, protein:2.5, carbs:26,  fat:5    },
   // -- Desayunos adicionales -------------------------------------
   { cat:"desayuno", name:"Bizcochos de grasa (c/u)",   kcal:130, protein:2.5, carbs:18,  fat:5.5, unit:true, unitWeight:45  },
   { cat:"desayuno", name:"Medialunas de grasa (c/u)",  kcal:145, protein:3,   carbs:19,  fat:6,   unit:true, unitWeight:45  },
@@ -2216,12 +2216,12 @@ const FOOD_DB = [
   { cat:"desayuno", name:"Waffles (x2)",               kcal:310, protein:8,   carbs:42,  fat:12,  unit:true, unitWeight:130 },
   // -- Colaciones adicionales -------------------------------------
   { cat:"colacion", name:"Frutas secas mix (20g)",     kcal:114, protein:3,   carbs:6,   fat:9    },
-  { cat:"colacion", name:"Barra de cereal y man�",     kcal:135, protein:3.5, carbs:20,  fat:5,   unit:true, unitWeight:35  },
-  { cat:"colacion", name:"Galleta de arroz con man�",  kcal:95,  protein:3,   carbs:13,  fat:4    },
+  { cat:"colacion", name:"Barra de cereal y maní",     kcal:135, protein:3.5, carbs:20,  fat:5,   unit:true, unitWeight:35  },
+  { cat:"colacion", name:"Galleta de arroz con maní",  kcal:95,  protein:3,   carbs:13,  fat:4    },
   { cat:"colacion", name:"Yogur bebible (200ml)",      kcal:120, protein:4.5, carbs:19,  fat:2    },
   { cat:"colacion", name:"Rollitos de pavo con queso", kcal:80,  protein:9,   carbs:1,   fat:4.5  },
-  { cat:"colacion", name:"Manzana con manteca de man�",kcal:170, protein:3.5, carbs:22,  fat:8    },
-  { cat:"colacion", name:"Aceitunas + queso (colaci�n)",kcal:120, protein:5,   carbs:2,   fat:10   },
+  { cat:"colacion", name:"Manzana con manteca de maní",kcal:170, protein:3.5, carbs:22,  fat:8    },
+  { cat:"colacion", name:"Aceitunas + queso (colación)",kcal:120, protein:5,   carbs:2,   fat:10   },
   { cat:"colacion", name:"Quesillo (50g)",             kcal:70,  protein:6.5, carbs:1,   fat:4.5  },
   { cat:"colacion", name:"Gelatina light (150g)",      kcal:15,  protein:3,   carbs:0.5, fat:0    },
   { cat:"colacion", name:"Palomitas sin sal (25g)",    kcal:95,  protein:2.5, carbs:17,  fat:2.5  },
@@ -2233,24 +2233,24 @@ const FOOD_DB = [
   { cat:"entrada", name:"Ensalada de lentejas",        kcal:140, protein:8,   carbs:20,  fat:3    },
   { cat:"entrada", name:"Ensalada griega",             kcal:150, protein:5,   carbs:8,   fat:11   },
   { cat:"entrada", name:"Sopa de arvejas",             kcal:110, protein:6,   carbs:18,  fat:1.5  },
-  { cat:"entrada", name:"Tortilla espa�ola (porci�n)", kcal:190, protein:8,   carbs:15,  fat:10,  unit:true, unitWeight:130 },
+  { cat:"entrada", name:"Tortilla española (porción)", kcal:190, protein:8,   carbs:15,  fat:10,  unit:true, unitWeight:130 },
   // -- Postres adicionales ---------------------------------------
   { cat:"postre", name:"Facturas de crema (c/u)",      kcal:220, protein:3.5, carbs:28,  fat:10,  unit:true, unitWeight:70  },
   { cat:"postre", name:"Medialunas rellenas (c/u)",    kcal:195, protein:4,   carbs:26,  fat:8,   unit:true, unitWeight:65  },
   { cat:"postre", name:"Vigilante (queso+dulce membrillo)",kcal:210,protein:8, carbs:24,  fat:9    },
-  { cat:"postre", name:"Pastafrola (porci�n)",         kcal:280, protein:4,   carbs:40,  fat:12,  unit:true, unitWeight:100 },
+  { cat:"postre", name:"Pastafrola (porción)",         kcal:280, protein:4,   carbs:40,  fat:12,  unit:true, unitWeight:100 },
   { cat:"postre", name:"Facturas de hojaldre+crema",   kcal:240, protein:3.5, carbs:26,  fat:14,  unit:true, unitWeight:80  },
   { cat:"postre", name:"Copa de helado (3 bochas)",    kcal:380, protein:6,   carbs:48,  fat:18   },
   { cat:"postre", name:"Profiterol (x3)",              kcal:270, protein:5,   carbs:28,  fat:15   },
-  { cat:"postre", name:"Lemon pie (porci�n)",          kcal:320, protein:4,   carbs:46,  fat:13,  unit:true, unitWeight:120 },
-  { cat:"postre", name:"Rogel (porci�n)",              kcal:350, protein:4.5, carbs:48,  fat:16,  unit:true, unitWeight:100 },
-  { cat:"postre", name:"Chocotorta (porci�n)",         kcal:390, protein:5,   carbs:52,  fat:18,  unit:true, unitWeight:120 },
-  { cat:"postre", name:"Bud�n de banana (porci�n)",    kcal:240, protein:3.5, carbs:36,  fat:9,   unit:true, unitWeight:90  },
-  { cat:"postre", name:"Petit four / bomb�n (c/u)",    kcal:65,  protein:0.8, carbs:8,   fat:3.5, unit:true, unitWeight:18  },
+  { cat:"postre", name:"Lemon pie (porción)",          kcal:320, protein:4,   carbs:46,  fat:13,  unit:true, unitWeight:120 },
+  { cat:"postre", name:"Rogel (porción)",              kcal:350, protein:4.5, carbs:48,  fat:16,  unit:true, unitWeight:100 },
+  { cat:"postre", name:"Chocotorta (porción)",         kcal:390, protein:5,   carbs:52,  fat:18,  unit:true, unitWeight:120 },
+  { cat:"postre", name:"Budín de banana (porción)",    kcal:240, protein:3.5, carbs:36,  fat:9,   unit:true, unitWeight:90  },
+  { cat:"postre", name:"Petit four / bombón (c/u)",    kcal:65,  protein:0.8, carbs:8,   fat:3.5, unit:true, unitWeight:18  },
   // -- Meriendas adicionales -------------------------------------
   { cat:"merienda", name:"Tostado de pavita",          kcal:310, protein:17,  carbs:30,  fat:12,  unit:true, unitWeight:140 },
   { cat:"merienda", name:"Tostado vegetal",            kcal:270, protein:10,  carbs:30,  fat:11,  unit:true, unitWeight:130 },
-  { cat:"merienda", name:"Bud�n de naranja (porci�n)", kcal:240, protein:3.5, carbs:35,  fat:10   },
+  { cat:"merienda", name:"Budín de naranja (porción)", kcal:240, protein:3.5, carbs:35,  fat:10   },
   { cat:"merienda", name:"Scone (c/u)",                kcal:210, protein:4,   carbs:28,  fat:9,   unit:true, unitWeight:70  },
   { cat:"merienda", name:"Bizcochitos de queso (x5)",  kcal:165, protein:4.5, carbs:20,  fat:7.5  },
   { cat:"merienda", name:"Wrap de queso y verdura",    kcal:200, protein:8,   carbs:24,  fat:7,   unit:true, unitWeight:130 },
@@ -2260,18 +2260,18 @@ const FOOD_DB = [
   { cat:"bebida", name:"Leche de avena+cacao (250ml)", kcal:145, protein:3.5, carbs:25,  fat:4    },
   { cat:"bebida", name:"Agua de coco (250ml)",         kcal:45,  protein:0.5, carbs:11,  fat:0.5  },
   { cat:"bebida", name:"Jugo de pomelo natural",       kcal:38,  protein:0.5, carbs:9,   fat:0.1  },
-  { cat:"bebida", name:"Mate (sin az�car)",            kcal:4,   protein:0.3, carbs:0.5, fat:0    },
-  { cat:"bebida", name:"T� (sin az�car)",              kcal:2,   protein:0,   carbs:0.4, fat:0    },
+  { cat:"bebida", name:"Mate (sin azúcar)",            kcal:4,   protein:0.3, carbs:0.5, fat:0    },
+  { cat:"bebida", name:"Té (sin azúcar)",              kcal:2,   protein:0,   carbs:0.4, fat:0    },
   { cat:"bebida", name:"Sprite/Fanta (350ml)",         kcal:142, protein:0,   carbs:38,  fat:0    },
   { cat:"bebida", name:"Jugo en caja (200ml)",         kcal:90,  protein:0.3, carbs:22,  fat:0    },
   // -- Suplementos adicionales -----------------------------------
-  { cat:"suplemento", name:"Col�geno hidrolizado (10g)",kcal:38, protein:9,   carbs:0,   fat:0    },
+  { cat:"suplemento", name:"Colágeno hidrolizado (10g)",kcal:38, protein:9,   carbs:0,   fat:0    },
   { cat:"suplemento", name:"Pre-entreno (1 scoop)",    kcal:20,  protein:2,   carbs:3,   fat:0    },
   { cat:"suplemento", name:"Glutamina (5g)",           kcal:20,  protein:5,   carbs:0,   fat:0    },
-  { cat:"suplemento", name:"Omega 3 (1g c�psula)",     kcal:9,   protein:0,   carbs:0,   fat:1    },
-  { cat:"suplemento", name:"Prote�na de arroz (30g)",  kcal:113, protein:22,  carbs:3,   fat:2    },
-  { cat:"suplemento", name:"Prote�na de guisante (30g)",kcal:110,protein:21,  carbs:4,   fat:1.5  },
-  // -- Cl�sicos argentinos -----------------------------------
+  { cat:"suplemento", name:"Omega 3 (1g cápsula)",     kcal:9,   protein:0,   carbs:0,   fat:1    },
+  { cat:"suplemento", name:"Proteína de arroz (30g)",  kcal:113, protein:22,  carbs:3,   fat:2    },
+  { cat:"suplemento", name:"Proteína de guisante (30g)",kcal:110,protein:21,  carbs:4,   fat:1.5  },
+  // -- Clásicos argentinos -----------------------------------
   { cat:"principal", name:"Matambre arrollado (100g)",    kcal:185, protein:20,  carbs:2,   fat:11   },
   { cat:"principal", name:"Revuelto gramajo",             kcal:210, protein:14,  carbs:18,  fat:9    },
   { cat:"principal", name:"Mondongo guisado (300g)",      kcal:220, protein:18,  carbs:14,  fat:9    },
@@ -2282,7 +2282,7 @@ const FOOD_DB = [
   { cat:"principal", name:"Churrasco a la plancha",       kcal:215, protein:30,  carbs:0,   fat:10,  unit:true, unitWeight:180 },
   { cat:"principal", name:"Bifecito de paleta",           kcal:170, protein:26,  carbs:0,   fat:7,   unit:true, unitWeight:150 },
   { cat:"principal", name:"Matambre a la pizza",          kcal:280, protein:24,  carbs:6,   fat:18   },
-  { cat:"principal", name:"Tarta pascualina (porci�n)",   kcal:230, protein:9,   carbs:22,  fat:12,  unit:true, unitWeight:160 },
+  { cat:"principal", name:"Tarta pascualina (porción)",   kcal:230, protein:9,   carbs:22,  fat:12,  unit:true, unitWeight:160 },
   { cat:"principal", name:"Humitas (c/u)",                kcal:190, protein:5,   carbs:30,  fat:6,   unit:true, unitWeight:130 },
   { cat:"principal", name:"Tamales (c/u)",                kcal:220, protein:8,   carbs:28,  fat:9,   unit:true, unitWeight:140 },
   { cat:"principal", name:"Sopa de cebolla gratinada",    kcal:180, protein:8,   carbs:18,  fat:8    },
@@ -2291,25 +2291,25 @@ const FOOD_DB = [
   { cat:"entrada",   name:"Picada variada",               kcal:280, protein:13,  carbs:12,  fat:22   },
   { cat:"entrada",   name:"Matambre con chimichurri",     kcal:220, protein:22,  carbs:2,   fat:14   },
   { cat:"entrada",   name:"Ensalada rusa (150g)",         kcal:160, protein:3,   carbs:18,  fat:9    },
-  { cat:"postre",    name:"Pionono relleno (porci�n)",    kcal:300, protein:5,   carbs:40,  fat:13,  unit:true, unitWeight:110 },
-  { cat:"colacion",  name:"Man� con pasas de uva (30g)",  kcal:155, protein:4.5, carbs:16,  fat:8    },
-  { cat:"colacion",  name:"Quesillo con miel (porci�n)",  kcal:130, protein:8,   carbs:12,  fat:6    },
-  { cat:"bebida",    name:"Terer� (500ml)",               kcal:5,   protein:0.3, carbs:1,   fat:0,   drink:true },
-  { cat:"bebida",    name:"Mate con az�car",              kcal:20,  protein:0.3, carbs:5,   fat:0,   drink:true },
+  { cat:"postre",    name:"Pionono relleno (porción)",    kcal:300, protein:5,   carbs:40,  fat:13,  unit:true, unitWeight:110 },
+  { cat:"colacion",  name:"Maní con pasas de uva (30g)",  kcal:155, protein:4.5, carbs:16,  fat:8    },
+  { cat:"colacion",  name:"Quesillo con miel (porción)",  kcal:130, protein:8,   carbs:12,  fat:6    },
+  { cat:"bebida",    name:"Tereré (500ml)",               kcal:5,   protein:0.3, carbs:1,   fat:0,   drink:true },
+  { cat:"bebida",    name:"Mate con azúcar",              kcal:20,  protein:0.3, carbs:5,   fat:0,   drink:true },
   { cat:"bebida",    name:"Licuado de durazno (300ml)",   kcal:135, protein:3.5, carbs:26,  fat:2    },
-  { cat:"carbohidrato", name:"Chipa guaz� (porci�n)",     kcal:220, protein:7,   carbs:24,  fat:10   },
+  { cat:"carbohidrato", name:"Chipa guazú (porción)",     kcal:220, protein:7,   carbs:24,  fat:10   },
   { cat:"carbohidrato", name:"Pan casero (rebanada)",     kcal:200, protein:5,   carbs:38,  fat:3    },
   { cat:"carbohidrato", name:"Tortilla de campo (c/u)",   kcal:190, protein:5,   carbs:32,  fat:5,   unit:true, unitWeight:80  },
   { cat:"proteina",  name:"Asado de tira (100g)",         kcal:280, protein:23,  carbs:0,   fat:20   },
   { cat:"proteina",  name:"Morcilla (100g)",              kcal:355, protein:15,  carbs:2,   fat:32   },
   { cat:"proteina",  name:"Chorizo parrillero (c/u)",     kcal:290, protein:13,  carbs:2,   fat:25,  unit:true, unitWeight:100 },
-  { cat:"proteina",  name:"Cordero patag�nico (100g)",    kcal:258, protein:25,  carbs:0,   fat:17   },
+  { cat:"proteina",  name:"Cordero patagónico (100g)",    kcal:258, protein:25,  carbs:0,   fat:17   },
   { cat:"proteina",  name:"Chinchulines (100g)",          kcal:230, protein:16,  carbs:0,   fat:18   },
   { cat:"proteina",  name:"Molleja (100g)",               kcal:250, protein:18,  carbs:0,   fat:19   },
 ];
 
-// --- Plan de alimentaci�n generator ----------------------------------------
-const DAY_NAMES_PLAN = ["Lunes","Martes","Mi�rcoles","Jueves","Viernes","S�bado","Domingo"];
+// --- Plan de alimentación generator ----------------------------------------
+const DAY_NAMES_PLAN = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
 
 const SLOT_DEFS = {
   3: [
@@ -2326,16 +2326,16 @@ const SLOT_DEFS = {
   5: [
     { id:"desayuno", label:"Desayuno",  factor:0.20, cats:["desayuno","lacteo","fruta"] },
     { id:"almuerzo", label:"Almuerzo",  factor:0.30, cats:["principal","proteina","carbohidrato","legumbre"] },
-    { id:"colacion", label:"Colaci�n",  factor:0.12, cats:["colacion","fruta","lacteo"] },
+    { id:"colacion", label:"Colación",  factor:0.12, cats:["colacion","fruta","lacteo"] },
     { id:"merienda", label:"Merienda",  factor:0.13, cats:["merienda","colacion","fruta"] },
     { id:"cena",     label:"Cena",      factor:0.25, cats:["principal","proteina","verdura","legumbre"] },
   ],
   6: [
     { id:"desayuno", label:"Desayuno",    factor:0.18, cats:["desayuno","lacteo","fruta"] },
-    { id:"colacion1",label:"Colaci�n AM", factor:0.10, cats:["colacion","fruta"] },
+    { id:"colacion1",label:"Colación AM", factor:0.10, cats:["colacion","fruta"] },
     { id:"almuerzo", label:"Almuerzo",    factor:0.28, cats:["principal","proteina","carbohidrato"] },
     { id:"merienda", label:"Merienda",     factor:0.12, cats:["merienda","colacion","fruta","lacteo"] },
-    { id:"colacion2",label:"Colaci�n PM", factor:0.10, cats:["colacion","proteina"] },
+    { id:"colacion2",label:"Colación PM", factor:0.10, cats:["colacion","proteina"] },
     { id:"cena",     label:"Cena",        factor:0.22, cats:["principal","proteina","verdura","legumbre"] },
   ],
 };
@@ -2349,15 +2349,15 @@ function generateNutritionPlan(config, tdee, targetCal, proteinG, carbG, fatG) {
   const { days, mealsPerDay, goal, restrictions, likedCats, allergies, cuisine, prepTime, budget, seed } = config;
   const slots = SLOT_DEFS[mealsPerDay] || SLOT_DEFS[4];
 
-  const MEAT_KEYWORDS = ["pollo","carne","pavo","cerdo","jam�n","salame","vac�o","entra�a","asado","bife","lomo","cuadril","nalga","tapa","costilla","chorizo","lomito","roast beef"];
-  const GLUTEN_KEYWORDS = ["pan","pasta","fideos","tallarines","�oquis","ravioles","canelones","lasa�a","tostada","alfajor","galletita","medialunas","bizcochuelo","pizza","empanada","galleta","gallet�n","cracker","pancho","panecillo","panqueque","panqueque","panque", "s�mola", "cusc�s", "trigo", "cebada", "centeno", "avena", "espelta"];
+  const MEAT_KEYWORDS = ["pollo","carne","pavo","cerdo","jamón","salame","vacío","entraña","asado","bife","lomo","cuadril","nalga","tapa","costilla","chorizo","lomito","roast beef"];
+  const GLUTEN_KEYWORDS = ["pan","pasta","fideos","tallarines","Ñoquis","ravioles","canelones","lasaña","tostada","alfajor","galletita","medialunas","bizcochuelo","pizza","empanada","galleta","galletón","cracker","pancho","panecillo","panqueque","panqueque","panque", "sémola", "cuscús", "trigo", "cebada", "centeno", "avena", "espelta"];
   const ALLERGEN_KEYWORDS = {
-    frutos_secos: ["nuez","almendra","cacahuate","man�","mani","casta�a","avellana","pistacho","pec�n","pecan","macadamia","nueces","nueces de","crema de man�","crema de cacahuate","manteca de man�","crema de almendras","pasta de man�"],
-    huevo: ["huevo","huevos","omelette","tortilla","mayonesa","mayonesa","merengue","flan","bud�n","budin","crema pastelera","crema de huevo","clara de huevo","yema"],
-    pescado: ["pescado","pescados","merluza","salm�n","at�n","caballa","jurel","corvina","lenguado","br�tola","trucha","abadejo","bacalao","rape","pejerrey"],
-    mariscos: ["camar�n","camarones","langostino","langosta","cangrejo","mejill�n","mejillones","almeja","almejas","pulpo","calamar","chipirones","vieira","ostra","ostras","berberecho"],
-    soja: ["tofu","soja","soya","edamame","miso","tempeh","salsa de soja","sillao","shoyu","prote�na de soja","leche de soja","yogur de soja"],
-    mani: ["man�","mani","cacahuate","manteca de man�","crema de cacahuate","pasta de man�","cacahuetes"],
+    frutos_secos: ["nuez","almendra","cacahuate","maní","mani","castaña","avellana","pistacho","pecán","pecan","macadamia","nueces","nueces de","crema de maní","crema de cacahuate","manteca de maní","crema de almendras","pasta de maní"],
+    huevo: ["huevo","huevos","omelette","tortilla","mayonesa","mayonesa","merengue","flan","budín","budin","crema pastelera","crema de huevo","clara de huevo","yema"],
+    pescado: ["pescado","pescados","merluza","salmón","atún","caballa","jurel","corvina","lenguado","brótola","trucha","abadejo","bacalao","rape","pejerrey"],
+    mariscos: ["camarón","camarones","langostino","langosta","cangrejo","mejillón","mejillones","almeja","almejas","pulpo","calamar","chipirones","vieira","ostra","ostras","berberecho"],
+    soja: ["tofu","soja","soya","edamame","miso","tempeh","salsa de soja","sillao","shoyu","proteína de soja","leche de soja","yogur de soja"],
+    mani: ["maní","mani","cacahuate","manteca de maní","crema de cacahuate","pasta de maní","cacahuetes"],
   };
 
   function foodAllowed(f) {
@@ -2400,7 +2400,7 @@ function generateNutritionPlan(config, tdee, targetCal, proteinG, carbG, fatG) {
     }
   }
 
-  // Seeded PRNG � includes random seed so each generation produces unique plans
+  // Seeded PRNG — includes random seed so each generation produces unique plans
   let rngSeed = days * 31 + mealsPerDay * 7 + (cuisine ? cuisine.charCodeAt(0) : 0) + (seed || 0);
   function rng() { rngSeed = (rngSeed * 16807 + 0) % 2147483647; return (rngSeed - 1) / 2147483646; }
 
@@ -2500,7 +2500,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
   const [expandedPlanDay, setExpandedPlanDay] = useState(null);
   // Wizard state
   const [wizStep, setWizStep] = useState(0);
-  const [wizDays, setWizDays] = useState(7); // default 7 d�as
+  const [wizDays, setWizDays] = useState(7); // default 7 días
   const [wizMeals, setWizMeals] = useState(4);
   const [wizGoal, setWizGoal] = useState("mantener");
   const [wizRestrictions, setWizRestrictions] = useState([]);
@@ -2542,7 +2542,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
       const dayMeals = mealLog.filter(m => m.date === dateStr);
       result.push({
         date: dateStr,
-        label: ["Dom","Lun","Mar","Mi�","Jue","Vie","S�b"][d.getDay()],
+        label: ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"][d.getDay()],
         kcal: dayMeals.reduce((s,m) => s + Number(m.kcal||0), 0),
         protein: dayMeals.reduce((s,m) => s + Number(m.protein||0), 0),
         isToday: dateStr === todayStr,
@@ -2616,7 +2616,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
     setBarcodeScanning(true);
     try {
       if (!("BarcodeDetector" in window)) {
-        setBarcodeError("Tu navegador no soporta escaneo de c�digo de barras. Prob� Chrome o Samsung Browser.");
+        setBarcodeError("Tu navegador no soporta escaneo de código de barras. Probá Chrome o Samsung Browser.");
         setBarcodeScanning(false);
         return;
       }
@@ -2653,14 +2653,14 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
               fat: String(Math.round((n.fat_100g || 0) * 10) / 10),
             }));
           } else {
-            setBarcodeError("Producto no encontrado. Complet� los datos manualmente.");
+            setBarcodeError("Producto no encontrado. Completá los datos manualmente.");
           }
         }
       }
       stream.getTracks().forEach(t => t.stop());
-      if (!found) setBarcodeError("No se detect� c�digo. Intent� de nuevo con m�s luz.");
+      if (!found) setBarcodeError("No se detectó código. Intentá de nuevo con más luz.");
     } catch (err) {
-      setBarcodeError("Error al acceder a la c�mara: " + (err.message || "permiso denegado"));
+      setBarcodeError("Error al acceder a la cámara: " + (err.message || "permiso denegado"));
     }
     setBarcodeScanning(false);
   }
@@ -2671,7 +2671,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
   const sex   = profile?.sex || "M";
   const age   = dob ? Math.floor((Date.now() - new Date(dob + "T12:00:00")) / (365.25 * 86400000)) : 28;
 
-  // Estimar % grasa desde pliegues (Durnin-Womersley) si est�n disponibles
+  // Estimar % grasa desde pliegues (Durnin-Womersley) si están disponibles
   const hasSkinfolds = profile?.triceps_mm && profile?.subscapular_mm && profile?.biceps_mm && profile?.iliac_crest_mm;
   const bodyFatPct = hasSkinfolds ? (() => {
     const sum4 = Number(profile.triceps_mm) + Number(profile.subscapular_mm) + Number(profile.biceps_mm) + Number(profile.iliac_crest_mm);
@@ -2681,12 +2681,12 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
       ? 1.1581 - 0.0720 * logSum
       : 1.1620 - 0.0630 * logSum;
     const pct = ((4.95 / density) - 4.5) * 100;
-    return Math.max(3, Math.min(50, pct)); // clamp a rango fisiol�gico
+    return Math.max(3, Math.min(50, pct)); // clamp a rango fisiológico
   })() : null;
 
   const lbm = bodyFatPct !== null ? weight * (1 - bodyFatPct / 100) : null;
 
-  // BMR: Katch-McArdle (m�s precisa para atletas) si hay LBM; si no, Mifflin-St Jeor
+  // BMR: Katch-McArdle (más precisa para atletas) si hay LBM; si no, Mifflin-St Jeor
   const bmr = lbm !== null
     ? Math.round(370 + 21.6 * lbm)   // Katch-McArdle
     : sex === "F"
@@ -2698,65 +2698,65 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
     ligero:      { label: "Ligero (1-2x/sem)", factor: 1.375 },
     moderado:    { label: "Moderado (3-5x)",   factor: 1.55  },
     activo:      { label: "Activo (6-7x)",     factor: 1.725 },
-    muy_activo:  { label: "Muy activo (2x/d�a)",factor: 1.9  },
+    muy_activo:  { label: "Muy activo (2x/día)",factor: 1.9  },
   };
   const tdee = Math.round(bmr * (ACTIVITY[activityLevel]?.factor ?? ACTIVITY.moderado.factor));
 
-  // -- Ajuste cal�rico por objetivo --------------------------------------------
-  // Volumen: +200-300 kcal (lean bulk; Precision Nutrition / Hall et al.) � super�vit modesto
-  // para minimizar acumulaci�n de grasa. En sujetos con %BF >20 reducir a +150 kcal.
-  // Definici�n: d�ficit 300-500 kcal ? p�rdida de 0.5-1% peso/semana (ISSN 2017, Helms et al.)
+  // -- Ajuste calórico por objetivo --------------------------------------------
+  // Volumen: +200-300 kcal (lean bulk; Precision Nutrition / Hall et al.) — superávit modesto
+  // para minimizar acumulación de grasa. En sujetos con %BF >20 reducir a +150 kcal.
+  // Definición: déficit 300-500 kcal ? pérdida de 0.5-1% peso/semana (ISSN 2017, Helms et al.)
   // Mantenimiento / rendimiento: TDEE sin ajuste de base
   const bfHigh = bodyFatPct !== null && bodyFatPct > 20;
   const surplusTarget = bfHigh ? 150 : 250; // lean bulk conservador si ya hay grasa
   const deficitTarget = Math.min(500, Math.max(300, Math.round(tdee * 0.15))); // 300-500 kcal
   const baseAdj = userGoal === "volumen" ? surplusTarget : userGoal === "definicion" ? -deficitTarget : 0;
-  // Carb cycling ligero: d�a de entreno +100 kcal en carbs; descanso -100 kcal
+  // Carb cycling ligero: día de entreno +100 kcal en carbs; descanso -100 kcal
   const dayAdj = macroDay === "entreno" ? 100 : -100;
-  // M�nimo absoluto: 1400 kcal mujeres, 1600 kcal hombres (abajo del basal = catabolismo)
+  // Mínimo absoluto: 1400 kcal mujeres, 1600 kcal hombres (abajo del basal = catabolismo)
   const calFloor = sex === "F" ? 1400 : 1600;
   const targetCal = Math.max(calFloor, tdee + baseAdj + dayAdj);
 
-  // -- Prote�na ----------------------------------------------------------------
+  // -- Proteína ----------------------------------------------------------------
   // Base: masa magra (LBM) si disponible; si no, peso corporal total.
   // Rangos ISSN 2017 / Morton et al. 2018 / Stokes et al. 2018:
-  //   � D�ficit cal�rico: 2.3�3.1 g/kg LBM (preservar masa magra; Helms et al. 2014)
-  //   � Volumen/hipertrofia: 1.6�2.2 g/kg peso; ceiling en 2.4 g/kg para hiperresponders
-  //   � Mantenimiento/rendimiento: 1.6�2.0 g/kg peso
-  // Se usa el extremo alto del rango por ser poblaci�n activa de gimnasio.
+  //   — Déficit calórico: 2.3–3.1 g/kg LBM (preservar masa magra; Helms et al. 2014)
+  //   — Volumen/hipertrofia: 1.6–2.2 g/kg peso; ceiling en 2.4 g/kg para hiperresponders
+  //   — Mantenimiento/rendimiento: 1.6–2.0 g/kg peso
+  // Se usa el extremo alto del rango por ser población activa de gimnasio.
   const proteinBase = lbm !== null ? lbm : weight;
   const proteinFactor = userGoal === "definicion"
     ? (lbm !== null ? 3.1 : 2.4)   // 3.1g/kg LBM en corte (Helms 2014); 2.4g/kg total si no hay LBM
     : userGoal === "volumen"
-      ? 2.2                          // 2.2g/kg � dentro del rango ISSN con margen para variaci�n individual
+      ? 2.2                          // 2.2g/kg — dentro del rango ISSN con margen para variación individual
       : 2.0;                         // mantenimiento / rendimiento
   const proteinG = Math.round(proteinBase * proteinFactor);
 
   // -- Grasa --------------------------------------------------------------------
-  // M�nimo 20% de kcal para s�ntesis hormonal (testosterona, estradiol).
+  // Mínimo 20% de kcal para síntesis hormonal (testosterona, estradiol).
   // Target: 25% en volumen (permite mayor palatabilidad y saciedad),
-  //         20-22% en definici�n (libera m�s calor�as para carbs y prote�na).
+  //         20-22% en definición (libera más calorías para carbs y proteína).
   const fatPct = userGoal === "definicion" ? 0.22 : 0.25;
   const fatG   = Math.max(Math.round((targetCal * 0.20) / 9), Math.round((targetCal * fatPct) / 9));
 
   // -- Carbohidratos ------------------------------------------------------------
-  // El resto de calor�as van a carbs. ISSN recomienda 3�5 g/kg peso para atletas de fuerza;
-  // se respeta autom�ticamente si prote�na y grasa est�n bien calibradas.
+  // El resto de calorías van a carbs. ISSN recomienda 3–5 g/kg peso para atletas de fuerza;
+  // se respeta automáticamente si proteína y grasa están bien calibradas.
   const carbG = Math.max(0, Math.round((targetCal - proteinG * 4 - fatG * 9) / 4));
 
   // -- Fibra --------------------------------------------------------------------
-  // 14g / 1000 kcal (Academy of Nutrition and Dietetics; WHO: 25-38g/d�a m�nimo)
+  // 14g / 1000 kcal (Academy of Nutrition and Dietetics; WHO: 25-38g/día mínimo)
   const fiberG = Math.max(25, Math.round(targetCal / 1000 * 14));
 
   // -- Nutrient timing ---------------------------------------------------------
-  // La "ventana anab�lica" post-entreno es m�s amplia de lo que se cre�a:
-  // cualquier momento en un margen de ~2 h es efectivo (Schoenfeld & Aragon 2018 meta-an�lisis;
-  // confirmado en meta-an�lisis 2024 PMC12250900).
-  // Lo que S� importa: dosis por comida de 0.4 g/kg (~20-40g) para saturar s�ntesis proteica
-  // (Moore et al. 2009; Witard et al. 2014) y distribuci�n cada 3-4h durante el d�a.
+  // La "ventana anabólica" post-entreno es más amplia de lo que se creía:
+  // cualquier momento en un margen de ~2 h es efectivo (Schoenfeld & Aragon 2018 meta-análisis;
+  // confirmado en meta-análisis 2024 PMC12250900).
+  // Lo que Sí importa: dosis por comida de 0.4 g/kg (~20-40g) para saturar síntesis proteica
+  // (Moore et al. 2009; Witard et al. 2014) y distribución cada 3-4h durante el día.
   const postWorkoutProtein = Math.min(40, Math.max(20, Math.round(weight * 0.4))); // 0.4g/kg, capped 20-40g
   const preWorkoutCarbs    = Math.round(carbG * 0.20); // 20% carbs pre-entreno (~1 g/kg)
-  // Pre-sue�o: 20-40g case�na mejora s�ntesis proteica nocturna (Res et al. 2012; Snijders et al. 2015)
+  // Pre-sueño: 20-40g caseína mejora síntesis proteica nocturna (Res et al. 2012; Snijders et al. 2015)
   const preSleepProtein = Math.min(40, Math.max(20, Math.round(weight * 0.3)));
 
   const hasMeasurements = profile?.weight_kg && profile?.height_cm;
@@ -2766,10 +2766,10 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
     if (!todayMacros.kcal) return null;
     const pct = todayMacros.kcal / targetCal;
     const diff = todayMacros.kcal - targetCal;
-    if (pct >= 0.90 && pct <= 1.10) return { color:"#22c55e", label:"En objetivo", icon:"??", tip:"Perfecto, segu� as�.", diff };
+    if (pct >= 0.90 && pct <= 1.10) return { color:"#22c55e", label:"En objetivo", icon:"??", tip:"Perfecto, seguí así.", diff };
     if (pct < 0.90 && pct >= 0.70)  return { color:"#f59e0b", label:"Por debajo", icon:"??", tip:`Faltan ~${Math.round(targetCal - todayMacros.kcal)} kcal para el objetivo de hoy.`, diff };
     if (pct > 1.10 && pct <= 1.25)  return { color:"#f59e0b", label:"Levemente alto", icon:"??", tip:`Superaste el objetivo por ${Math.round(todayMacros.kcal - targetCal)} kcal.`, diff };
-    if (pct < 0.70) return { color:"#ef4444", label:"Muy bajo", icon:"??", tip:`Consumiste solo el ${Math.round(pct*100)}% del objetivo. Riesgo de d�ficit excesivo.`, diff };
+    if (pct < 0.70) return { color:"#ef4444", label:"Muy bajo", icon:"??", tip:`Consumiste solo el ${Math.round(pct*100)}% del objetivo. Riesgo de déficit excesivo.`, diff };
     return { color:"#ef4444", label:"Excedido", icon:"??", tip:`Superaste el objetivo por ${Math.round(todayMacros.kcal - targetCal)} kcal.`, diff };
   })();
 
@@ -2807,7 +2807,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
     const now = new Date();
     const msToMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0).getTime() - now.getTime();
     const timeout = setTimeout(() => {
-      // Trigger re-render � useStore re-sub will pick up new date
+      // Trigger re-render — useStore re-sub will pick up new date
       setExpandedPlanDay(null);
       if (nutritionPlan?.planStartDate) {
         const start = new Date(nutritionPlan.planStartDate + "T12:00:00");
@@ -2845,12 +2845,12 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
       {!hasMeasurements && (
         <div style={{ background:"rgba(245,158,11,.08)", border:"1px solid rgba(245,158,11,.3)", borderRadius:14, padding:"14px 16px", marginBottom:16 }}>
           <p style={{ margin:0, fontSize:13, color:"#f59e0b" }}>
-            ? Para c�lculos precisos, agreg� tu peso y altura en <b>Mediciones</b>.
+            ? Para cálculos precisos, agregá tu peso y altura en <b>Mediciones</b>.
           </p>
         </div>
       )}
 
-      {/* -- Sem�foro cal�rico ---------------------------------- */}
+      {/* -- Semáforo calórico ---------------------------------- */}
       {caloricSemaphore && (
         <div style={{ display:"flex", alignItems:"center", gap:12, background:"var(--panel)", borderRadius:14, padding:"12px 14px", marginBottom:14, border:`1px solid ${caloricSemaphore.color}44` }}>
           <span style={{ fontSize:28, lineHeight:1 }}>{caloricSemaphore.icon}</span>
@@ -2869,7 +2869,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
       {/* -- Daily macro rings ----------------------------------- */}
       {(todayMacros.kcal > 0 || todayMacros.protein > 0) && (() => {
         const rings = [
-          { label:"Prote�na", val: todayMacros.protein, target: proteinG, color:"#a855f7", unit:"g" },
+          { label:"Proteína", val: todayMacros.protein, target: proteinG, color:"#a855f7", unit:"g" },
           { label:"Kcal",     val: todayMacros.kcal,    target: targetCal, color:"#f59e0b", unit:"" },
           { label:"Carbs",    val: todayMacros.carbs,   target: carbG,    color:"#60a5fa", unit:"g" },
           { label:"Grasas",   val: todayMacros.fat,     target: fatG,     color:"#fb923c", unit:"g" },
@@ -2877,7 +2877,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
         const R = 22, CIRC = 2 * Math.PI * R;
         return (
           <div style={{ background:"var(--panel)", borderRadius:16, padding:"16px", marginBottom:14 }}>
-            <p style={{ margin:"0 0 12px", fontSize:11, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em" }}>Hoy � progreso</p>
+            <p style={{ margin:"0 0 12px", fontSize:11, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em" }}>Hoy — progreso</p>
             <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:8 }}>
               {rings.map(({ label, val, target, color, unit }) => {
                 const pct = Math.min(1, target > 0 ? val / target : 0);
@@ -2911,7 +2911,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
         <div style={{ background:"rgba(34,197,94,.07)", border:"1px solid rgba(34,197,94,.3)", borderRadius:16, padding:"14px 16px", marginBottom:14 }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
             <span style={{ fontSize:12, fontWeight:700, color:"var(--green)", textTransform:"uppercase", letterSpacing:"0.06em" }}>
-              Hoy � {nutritionPlan.days[currentPlanDayIdx].dayName}
+              Hoy — {nutritionPlan.days[currentPlanDayIdx].dayName}
             </span>
             <span style={{ fontSize:13, fontWeight:900, color:"var(--text)" }}>
               {Math.round(nutritionPlan.days[currentPlanDayIdx].kcal)} kcal
@@ -2939,7 +2939,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
             {nutritionPlan.days[currentPlanDayIdx].meals?.map(meal => (
               <button key={meal.slot} onClick={() => { logMeal({ name: meal.items.map(i=>i.name).join(" + "), kcal: Math.round(meal.kcal), protein: Math.round(meal.protein), carbs: Math.round(meal.carbs), fat: Math.round(meal.fat) }); if (window.__showToast) window.__showToast("? Comida registrada"); }}
                 style={{ background:"rgba(34,197,94,.1)", border:"1px solid rgba(34,197,94,.25)", borderRadius:8, padding:"4px 10px", cursor:"pointer", fontSize:11, color:"var(--text)" }}>
-                A�adir {meal.label}
+                Añadir {meal.label}
               </button>
             ))}
           </div>
@@ -2950,12 +2950,12 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
       {adaptiveTDEE && (
         <div style={{ background:"rgba(96,165,250,.07)", border:"1px solid rgba(96,165,250,.25)", borderRadius:14, padding:"12px 14px", marginBottom:14 }}>
           <p style={{ margin:"0 0 6px", fontSize:13, fontWeight:700, color:"var(--text)" }}>
-            {adaptiveTDEE.suggestion > 0 ? "? Sub� tus calor�as" : "? Baj� tus calor�as"}
+            {adaptiveTDEE.suggestion > 0 ? "? Subí tus calorías" : "? Bajó tus calorías"}
           </p>
           <p style={{ margin:"0 0 6px", fontSize:12, color:"var(--muted)", lineHeight:1.5 }}>
-            Tus �ltimas semanas muestran {adaptiveTDEE.weeklyChange > 0 ? "+" : ""}{adaptiveTDEE.weeklyChange}kg/sem
+            Tus últimas semanas muestran {adaptiveTDEE.weeklyChange > 0 ? "+" : ""}{adaptiveTDEE.weeklyChange}kg/sem
             (objetivo: {adaptiveTDEE.targetWeekly > 0 ? "+" : ""}{adaptiveTDEE.targetWeekly}kg/sem).
-            Ajust� en aprox. <b style={{ color:"#60a5fa" }}>{adaptiveTDEE.suggestion > 0 ? "+" : ""}{adaptiveTDEE.suggestion} kcal/d�a</b>.
+            Ajustá en aprox. <b style={{ color:"#60a5fa" }}>{adaptiveTDEE.suggestion > 0 ? "+" : ""}{adaptiveTDEE.suggestion} kcal/día</b>.
           </p>
         </div>
       )}
@@ -2972,11 +2972,11 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
         return (
           <div style={{ background:"var(--panel)", borderRadius:14, padding:"12px 14px", marginBottom:14 }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-              <span style={{ fontSize:12, color:"var(--muted)", fontWeight:600 }}>Balance semanal ({daysLogged} d�as)</span>
+              <span style={{ fontSize:12, color:"var(--muted)", fontWeight:600 }}>Balance semanal ({daysLogged} días)</span>
               <span style={{ fontSize:18, fontWeight:900, color }}>{balance > 0 ? "+" : ""}{Math.round(balance)} kcal</span>
             </div>
             <div style={{ fontSize:11, color:"var(--muted)", marginTop:4 }}>
-              Consumido: {Math.round(weeklyBalance)} � Objetivo: {Math.round(weekTarget)}
+              Consumido: {Math.round(weeklyBalance)} — Objetivo: {Math.round(weekTarget)}
             </div>
             <div style={{ height:4, background:"var(--panel2)", borderRadius:2, marginTop:8, overflow:"hidden" }}>
               <div style={{ height:"100%", width:`${Math.min(100, (weeklyBalance/weekTarget)*100)}%`, background:color, borderRadius:2, transition:"width .3s" }} />
@@ -2985,7 +2985,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
         );
       })()}
 
-      {/* -- Calor�as quemadas por entreno ----------------------- */}
+      {/* -- Calorías quemadas por entreno ----------------------- */}
       {(() => {
         const recentWorkouts = (workouts || []).slice(0, 5);
         if (!recentWorkouts.length) return null;
@@ -2993,7 +2993,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
         const totalBurned = recentWorkouts.reduce((s, w) => s + calcWorkoutCalories(w, bw), 0);
         return (
           <div style={{ background:"var(--panel)", borderRadius:14, padding:"12px 14px", marginBottom:14 }}>
-            <p style={{ margin:"0 0 10px", fontSize:11, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em" }}>Calor�as quemadas � �ltimos entrenos</p>
+            <p style={{ margin:"0 0 10px", fontSize:11, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em" }}>Calorías quemadas — últimos entrenos</p>
             <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
               {recentWorkouts.map(w => {
                 const kcal = calcWorkoutCalories(w, bw);
@@ -3003,7 +3003,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                   <div key={w.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                     <div>
                       <span style={{ fontSize:13, fontWeight:700, color:"var(--text)" }}>{w.type || "Entreno"}</span>
-                      <span style={{ fontSize:11, color:"var(--muted)", marginLeft:6 }}>{date} � {dur} min</span>
+                      <span style={{ fontSize:11, color:"var(--muted)", marginLeft:6 }}>{date} — {dur} min</span>
                     </div>
                     <span style={{ fontSize:14, fontWeight:900, color:"#f59e0b" }}>~{kcal} kcal</span>
                   </div>
@@ -3015,7 +3015,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
               <span style={{ fontSize:16, fontWeight:900, color:"#f59e0b" }}>~{totalBurned} kcal</span>
             </div>
             <p style={{ margin:"6px 0 0", fontSize:10, color:"var(--muted)", lineHeight:1.5 }}>
-              Estimado por MET � peso corporal � duraci�n. Basado en intensidad media del entreno.
+              Estimado por MET — peso corporal — duración. Basado en intensidad media del entreno.
             </p>
           </div>
         );
@@ -3023,7 +3023,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
 
       {/* Training day / rest day toggle */}
       <div style={{ display:"flex", gap:4, background:"var(--panel)", borderRadius:14, padding:4, marginBottom:14 }}>
-        {[{id:"entreno", label:"D�a de entreno"}, {id:"descanso", label:"D�a de descanso"}].map(({id, label}) => (
+        {[{id:"entreno", label:"Día de entreno"}, {id:"descanso", label:"Día de descanso"}].map(({id, label}) => (
           <button key={id} onClick={() => setMacroDay(id)} style={{
             flex:1, padding:"9px 6px", fontSize:12, fontWeight:700, borderRadius:10, border:"none", cursor:"pointer",
             background: macroDay === id ? "var(--green)" : "transparent",
@@ -3034,37 +3034,37 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
 
       {/* Nutrient timing card */}
       <div style={{ background:"rgba(168,85,247,.07)", border:"1px solid rgba(168,85,247,.2)", borderRadius:14, padding:"12px 14px", marginBottom:14 }}>
-        <p style={{ margin:"0 0 8px", fontSize:11, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em" }}>Timing de nutrici�n</p>
+        <p style={{ margin:"0 0 8px", fontSize:11, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em" }}>Timing de nutrición</p>
         {macroDay === "entreno" ? (
           <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
             <div style={{ display:"flex", justifyContent:"space-between" }}>
               <span style={{ fontSize:12, color:"var(--text)" }}>Pre-entreno <small style={{ color:"var(--muted)" }}>(1-2h antes)</small></span>
-              <span style={{ fontSize:12, fontWeight:800, color:"#60a5fa" }}>{preWorkoutCarbs}g carbs + {Math.round(weight * 0.2)}g prote�na</span>
+              <span style={{ fontSize:12, fontWeight:800, color:"#60a5fa" }}>{preWorkoutCarbs}g carbs + {Math.round(weight * 0.2)}g proteína</span>
             </div>
             <div style={{ display:"flex", justifyContent:"space-between" }}>
               <span style={{ fontSize:12, color:"var(--text)" }}>Post-entreno <small style={{ color:"var(--muted)" }}>(dentro de 2h)</small></span>
-              <span style={{ fontSize:12, fontWeight:800, color:"#a855f7" }}>{postWorkoutProtein}g prote�na</span>
+              <span style={{ fontSize:12, fontWeight:800, color:"#a855f7" }}>{postWorkoutProtein}g proteína</span>
             </div>
             <div style={{ display:"flex", justifyContent:"space-between" }}>
-              <span style={{ fontSize:12, color:"var(--text)" }}>Resto del d�a <small style={{ color:"var(--muted)" }}>(en comidas cada 3-4h)</small></span>
-              <span style={{ fontSize:12, fontWeight:800, color:"var(--text)" }}>{Math.max(0, proteinG - postWorkoutProtein - Math.round(weight * 0.2))}g prote�na</span>
+              <span style={{ fontSize:12, color:"var(--text)" }}>Resto del día <small style={{ color:"var(--muted)" }}>(en comidas cada 3-4h)</small></span>
+              <span style={{ fontSize:12, fontWeight:800, color:"var(--text)" }}>{Math.max(0, proteinG - postWorkoutProtein - Math.round(weight * 0.2))}g proteína</span>
             </div>
             <div style={{ display:"flex", justifyContent:"space-between" }}>
-              <span style={{ fontSize:12, color:"var(--text)" }}>Pre-sue�o <small style={{ color:"var(--muted)" }}>(30 min antes)</small></span>
-              <span style={{ fontSize:12, fontWeight:800, color:"#f59e0b" }}>{preSleepProtein}g prote�na lenta</span>
+              <span style={{ fontSize:12, color:"var(--text)" }}>Pre-sueño <small style={{ color:"var(--muted)" }}>(30 min antes)</small></span>
+              <span style={{ fontSize:12, fontWeight:800, color:"#f59e0b" }}>{preSleepProtein}g proteína lenta</span>
             </div>
             <p style={{ margin:"6px 0 0", fontSize:10, color:"var(--muted)", lineHeight:1.4 }}>
-              ?? La ventana post-entreno dura ~2h, no minutos. La distribuci�n a lo largo del d�a (cada 3-4h) es igual o m�s importante que el timing exacto. �
+              ?? La ventana post-entreno dura ~2h, no minutos. La distribución a lo largo del día (cada 3-4h) es igual o más importante que el timing exacto. —
             </p>
           </div>
         ) : (
           <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
             <p style={{ margin:"0 0 4px", fontSize:12, color:"var(--muted)", lineHeight:1.5 }}>
-              D�a de descanso: prioriz� prote�na distribuida en 4 comidas (~{Math.round(proteinG/4)}g c/u cada 3-4h) y carbohidratos complejos. Reduc�s ~200 kcal vs d�a de entreno.
+              Día de descanso: priorizá proteína distribuida en 4 comidas (~{Math.round(proteinG/4)}g c/u cada 3-4h) y carbohidratos complejos. Reducís ~200 kcal vs día de entreno.
             </p>
             <div style={{ display:"flex", justifyContent:"space-between" }}>
-              <span style={{ fontSize:12, color:"var(--text)" }}>Pre-sue�o <small style={{ color:"var(--muted)" }}>(30 min antes)</small></span>
-              <span style={{ fontSize:12, fontWeight:800, color:"#f59e0b" }}>{preSleepProtein}g case�na o yogur griego</span>
+              <span style={{ fontSize:12, color:"var(--text)" }}>Pre-sueño <small style={{ color:"var(--muted)" }}>(30 min antes)</small></span>
+              <span style={{ fontSize:12, fontWeight:800, color:"#f59e0b" }}>{preSleepProtein}g caseína o yogur griego</span>
             </div>
           </div>
         )}
@@ -3096,8 +3096,8 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
           }}>
             <p style={{ margin: 0, fontSize: 12, color: userGoal === "volumen" ? "#c084fc" : "#f87171", lineHeight: 1.5 }}>
               {userGoal === "volumen"
-                ? `Con super�vit de +${surplusTarget} kcal. Ajust� tu actividad seg�n tus d�as de entreno.`
-                : `Con d�ficit de -${deficitTarget} kcal. Mayor actividad = m�s calor�as permitidas.`}
+                ? `Con superávit de +${surplusTarget} kcal. Ajustá tu actividad según tus días de entreno.`
+                : `Con déficit de -${deficitTarget} kcal. Mayor actividad = más calorías permitidas.`}
             </p>
           </div>
         )}
@@ -3105,14 +3105,14 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
           <div style={{ background:"var(--panel2)", borderRadius:12, padding:"12px", textAlign:"center" }}>
             <div style={{ fontSize:10, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em" }}>TDEE (mantenimiento)</div>
             <div style={{ fontSize:28, fontWeight:900, color:"var(--green)", margin:"4px 0 2px" }}>{tdee}</div>
-            <div style={{ fontSize:10, color:"var(--muted)" }}>kcal/d�a</div>
+            <div style={{ fontSize:10, color:"var(--muted)" }}>kcal/día</div>
           </div>
           <div style={{ background:"var(--panel2)", borderRadius:12, padding:"12px", textAlign:"center" }}>
             <div style={{ fontSize:10, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em" }}>
               Objetivo {userGoal === "volumen" ? `(+${surplusTarget})` : userGoal === "definicion" ? `(-${deficitTarget})` : "(=)"}
             </div>
             <div style={{ fontSize:28, fontWeight:900, color: userGoal === "definicion" ? "#f87171" : userGoal === "volumen" ? "#a855f7" : "var(--text)", margin:"4px 0 2px" }}>{targetCal}</div>
-            <div style={{ fontSize:10, color:"var(--muted)" }}>kcal/d�a</div>
+            <div style={{ fontSize:10, color:"var(--muted)" }}>kcal/día</div>
           </div>
         </div>
       </div>
@@ -3123,9 +3123,9 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
           Macronutrientes diarios
         </p>
         {[
-          { label:"Prote�na",      g:proteinG, cal:proteinG*4, color:"#a855f7",  pct:Math.round(proteinG*4/targetCal*100), desc:"M�sculo y recuperaci�n" },
-          { label:"Carbohidratos", g:carbG,    cal:carbG*4,    color:"#60a5fa",  pct:Math.round(carbG*4/targetCal*100),    desc:"Energ�a y rendimiento" },
-          { label:"Grasas",        g:fatG,     cal:fatG*9,     color:"#f59e0b",  pct:Math.round(fatG*9/targetCal*100),     desc:"Hormonas y recuperaci�n" },
+          { label:"Proteína",      g:proteinG, cal:proteinG*4, color:"#a855f7",  pct:Math.round(proteinG*4/targetCal*100), desc:"Músculo y recuperación" },
+          { label:"Carbohidratos", g:carbG,    cal:carbG*4,    color:"#60a5fa",  pct:Math.round(carbG*4/targetCal*100),    desc:"Energía y rendimiento" },
+          { label:"Grasas",        g:fatG,     cal:fatG*9,     color:"#f59e0b",  pct:Math.round(fatG*9/targetCal*100),     desc:"Hormonas y recuperación" },
         ].map(m => (
           <div key={m.label} style={{ marginBottom:12 }}>
             <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
@@ -3149,30 +3149,30 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
       <div style={{ background:"var(--panel)", borderRadius:12, padding:"12px 16px", marginBottom:12, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
         <div>
           <span style={{ fontSize:13, fontWeight:800, color:"var(--text)" }}>Fibra</span>
-          <span style={{ fontSize:11, color:"var(--muted)", marginLeft:8 }}>Digesti�n y saciedad</span>
+          <span style={{ fontSize:11, color:"var(--muted)", marginLeft:8 }}>Digestión y saciedad</span>
         </div>
         <span style={{ fontSize:16, fontWeight:900, color:"#4ade80" }}>{fiberG}g</span>
       </div>
 
       <div style={{ background:"rgba(168,85,247,.06)", border:"1px solid rgba(168,85,247,.2)", borderRadius:12, padding:"12px 16px", marginBottom:16 }}>
         <p style={{ margin:0, fontSize:12, color:"var(--muted)", lineHeight:1.6 }}>
-          {lbm !== null ? `Katch-McArdle � LBM ${Math.round(lbm)}kg${bodyFatPct !== null ? ` (${Math.round(bodyFatPct)}% grasa)` : ""}` : "Mifflin-St Jeor"} � {weight}kg � {height}cm � {age} a�os � {sex === "M" ? "Masculino" : "Femenino"}<br/>
-          Para mayor precisi�n actualiz� tu peso en <b>Mediciones</b> regularmente.
+          {lbm !== null ? `Katch-McArdle — LBM ${Math.round(lbm)}kg${bodyFatPct !== null ? ` (${Math.round(bodyFatPct)}% grasa)` : ""}` : "Mifflin-St Jeor"} — {weight}kg — {height}cm — {age} años — {sex === "M" ? "Masculino" : "Femenino"}<br/>
+          Para mayor precisión actualizó tu peso en <b>Mediciones</b> regularmente.
         </p>
       </div>
 
       {/* -- Protein distribution guide -------------------------- */}
       <div style={{ background:"var(--panel)", borderRadius:16, padding:"16px", marginBottom:12 }}>
-        <p style={{ margin:"0 0 10px", fontSize:11, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em" }}>Distribuci�n de prote�na � 4 comidas</p>
+        <p style={{ margin:"0 0 10px", fontSize:11, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em" }}>Distribución de proteína — 4 comidas</p>
         {(() => {
           const perMeal = Math.round(proteinG / 4);
-          const leucineThreshold = 3; // grams of leucine to trigger MPS (� ~30g protein)
+          const leucineThreshold = 3; // grams of leucine to trigger MPS (— ~30g protein)
           const mealsOk = perMeal >= 30;
           const meals = [
             { time: "Desayuno", pct: 25, tip: "Huevos, yogur griego, queso cottage" },
             { time: macroDay === "entreno" ? "Pre-entreno (2h)" : "Almuerzo", pct: 20, tip: macroDay === "entreno" ? "Pollo, arroz integral" : "Carne, verduras, legumbres" },
-            { time: macroDay === "entreno" ? "Post-entreno (1h)" : "Merienda", pct: 30, tip: macroDay === "entreno" ? "Prote�na whey + fruta" : "At�n, yogur" },
-            { time: "Cena", pct: 25, tip: "Carne, salm�n, tofu, legumbres" },
+            { time: macroDay === "entreno" ? "Post-entreno (1h)" : "Merienda", pct: 30, tip: macroDay === "entreno" ? "Proteína whey + fruta" : "Atún, yogur" },
+            { time: "Cena", pct: 25, tip: "Carne, salmón, tofu, legumbres" },
           ];
           return (
             <div>
@@ -3193,7 +3193,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
               <div style={{ background:"rgba(168,85,247,.06)", borderRadius:10, padding:"8px 10px", marginTop:4, display:"flex", gap:8, alignItems:"flex-start" }}>
                 <span style={{ fontSize:12, flexShrink:0 }}>??</span>
                 <p style={{ margin:0, fontSize:11, color:"var(--muted)", lineHeight:1.5 }}>
-                  Umbral de leucina: necesit�s ={leucineThreshold}g leucina por comida (~{mealsOk ? "? alcanzado" : `? ${perMeal}g es bajo � apunt� a 30g+`}) para activar la s�ntesis proteica muscular.
+                  Umbral de leucina: necesitás ={leucineThreshold}g leucina por comida (~{mealsOk ? "? alcanzado" : `? ${perMeal}g es bajo — apuntá a 30g+`}) para activar la síntesis proteica muscular.
                 </p>
               </div>
             </div>
@@ -3208,36 +3208,36 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
             reps:"1-6 reps al 80-90% 1RM",
             rest:"2-3 min entre series (ACSM 2026 =2 min para cargas pesadas)",
             exercises:"Dominan movimientos fundamentales: sentadilla, peso muerto, press banca, press militar, remo. Ratio 80% compound / 20% isolation.",
-            rir:"Trabaj� cerca del fallo pero no a fallo � 1-3 RIR (PMC9935748: sin ventaja de entrenar a fallo vs 1-3 RIR).",
-            overload:"Progresi�n lineal semanal (+2.5kg) en principiantes. En intermedios, ondulaci�n de cargas (wave loading).",
-            freq:"2x/semana por grupo muscular m�nimo (Schoenfeld 2016 meta-an�lisis)." },
+            rir:"Trabajá cerca del fallo pero no a fallo — 1-3 RIR (PMC9935748: sin ventaja de entrenar a fallo vs 1-3 RIR).",
+            overload:"Progresión lineal semanal (+2.5kg) en principiantes. En intermedios, ondulación de cargas (wave loading).",
+            freq:"2x/semana por grupo muscular mínimo (Schoenfeld 2016 meta-análisis)." },
           hipertrofia:  { icon:"???", color:"#a855f7", label:"Hipertrofia / Masa",
-            reps:"6-20 reps (rango amplio � lo clave es el volumen total de series cerca del fallo)",
-            rest:"60-90 s entre series es suficiente para hipertrofia (PMC11349676 2024 meta-an�lisis bayesiano). Para series pesadas, 2 min.",
-            exercises:"70-80% compuestos + 20-30% aislamiento para completar volumen. Compuestos solos (~6-8 series/m�sculo) no alcanzan el MAV.",
-            rir:"Termin� la serie con 1-3 RIR. Entrenar a fallo tiene efecto trivial adicional (ES=0.19, PMC9935748) y aumenta fatiga innecesaria.",
-            overload:"Doble progresi�n: primero sub� reps hasta el tope del rango, luego sub� peso. Ej: 3x8-12 ? cuando lleg�s a 3x12 con buena t�cnica, sum� 2.5kg (PMC9528903).",
-            freq:"2x/semana por grupo muscular. El volumen total semanal importa m�s que la frecuencia (10-20 series/m�sculo/semana, ACSM 2026)." },
-          definicion:   { icon:"??", color:"#38bdf8", label:"Definici�n",
-            reps:"8-15 reps. No reduzcas el peso � el entrenamiento con carga preserva el m�sculo en d�ficit cal�rico.",
-            rest:"45-75 s para mayor gasto cal�rico y estr�s metab�lico.",
-            exercises:"Misma base de compuestos + aislamiento. No cambi�s el programa de masa � solo ajust� nutrici�n.",
-            rir:"1-3 RIR. Alta prote�na (3.1g/kg LBM, Helms 2014) es lo m�s cr�tico para preservar m�sculo en d�ficit.",
-            overload:"Manten� las cargas o intent� progresar � la p�rdida de fuerza en d�ficit indica p�rdida muscular.",
-            freq:"Manten� o aument� frecuencia para preservar m�sculo. Cardio adicional va separado del pesas o post-entreno." },
+            reps:"6-20 reps (rango amplio — lo clave es el volumen total de series cerca del fallo)",
+            rest:"60-90 s entre series es suficiente para hipertrofia (PMC11349676 2024 meta-análisis bayesiano). Para series pesadas, 2 min.",
+            exercises:"70-80% compuestos + 20-30% aislamiento para completar volumen. Compuestos solos (~6-8 series/músculo) no alcanzan el MAV.",
+            rir:"Terminó la serie con 1-3 RIR. Entrenar a fallo tiene efecto trivial adicional (ES=0.19, PMC9935748) y aumenta fatiga innecesaria.",
+            overload:"Doble progresión: primero subí reps hasta el tope del rango, luego subí peso. Ej: 3x8-12 ? cuando llegás a 3x12 con buena técnica, sumá 2.5kg (PMC9528903).",
+            freq:"2x/semana por grupo muscular. El volumen total semanal importa más que la frecuencia (10-20 series/músculo/semana, ACSM 2026)." },
+          definicion:   { icon:"??", color:"#38bdf8", label:"Definición",
+            reps:"8-15 reps. No reduzcas el peso — el entrenamiento con carga preserva el músculo en déficit calórico.",
+            rest:"45-75 s para mayor gasto calórico y estrés metabólico.",
+            exercises:"Misma base de compuestos + aislamiento. No cambiás el programa de masa — solo ajustá nutrición.",
+            rir:"1-3 RIR. Alta proteína (3.1g/kg LBM, Helms 2014) es lo más crítico para preservar músculo en déficit.",
+            overload:"Mantené las cargas o intentá progresar — la pérdida de fuerza en déficit indica pérdida muscular.",
+            freq:"Mantené o aumentá frecuencia para preservar músculo. Cardio adicional va separado del pesas o post-entreno." },
           rendimiento:  { icon:"?", color:"#34d399", label:"Fuerza",
-            reps:"2-6 reps al 80-95% 1RM. Series pesadas con t�cnica impecable.",
-            rest:"3-5 min entre series � la recuperaci�n completa del fosf�geno es clave para fuerza m�xima.",
-            exercises:"Prioriz� los Big 4: sentadilla, press banca, peso muerto, press militar. Aislamiento secundario.",
-            rir:"0-2 RIR en los trabajos principales. Dej� m�s RIR en ejercicios auxiliares para no acumular fatiga.",
-            overload:"Progresi�n lineal o por bloques (ondulada). Sub� peso apenas complet�s todas las series en el tope del rango.",
-            freq:"2-3x/semana por patr�n de movimiento. Necesit�s frecuencia para pr�ctica del gesto t�cnico." },
+            reps:"2-6 reps al 80-95% 1RM. Series pesadas con técnica impecable.",
+            rest:"3-5 min entre series — la recuperación completa del fosfógeno es clave para fuerza máxima.",
+            exercises:"Priorizá los Big 4: sentadilla, press banca, peso muerto, press militar. Aislamiento secundario.",
+            rir:"0-2 RIR en los trabajos principales. Dejá más RIR en ejercicios auxiliares para no acumular fatiga.",
+            overload:"Progresión lineal o por bloques (ondulada). Subí peso apenas completás todas las series en el tope del rango.",
+            freq:"2-3x/semana por patrón de movimiento. Necesitás frecuencia para práctica del gesto técnico." },
           mantenimiento: { icon:"??", color:"#94a3b8", label:"Salud general",
-            reps:"8-15 reps (rango vers�til, bajo estr�s articular, buena respuesta hipertr�fica).",
+            reps:"8-15 reps (rango versátil, bajo estrés articular, buena respuesta hipertrófica).",
             rest:"60-90 s.",
-            exercises:"Balance entre compuestos e isolation. Prioriz� los ejercicios donde ten�s m�s margen de progresi�n.",
-            rir:"1-3 RIR � entrenamiento productivo sin acumular fatiga innecesaria.",
-            overload:"Si no pod�s progresar en reps ni peso por 3+ sesiones consecutivas ? revis� sue�o, calor�as o agreg� deload.",
+            exercises:"Balance entre compuestos e isolation. Priorizá los ejercicios donde tenés más margen de progresión.",
+            rir:"1-3 RIR — entrenamiento productivo sin acumular fatiga innecesaria.",
+            overload:"Si no podés progresar en reps ni peso por 3+ sesiones consecutivas ? revisá sueño, calorías o agregá deload.",
             freq:"2x/semana por grupo muscular. Revisar deload cada 4-8 semanas." },
         };
         const key = (userGoal || "mantenimiento").toLowerCase();
@@ -3247,14 +3247,14 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
             <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12 }}>
               <span style={{ fontSize:22 }}>{g.icon}</span>
               <div>
-                <p style={{ margin:0, fontSize:11, color:g.color, fontWeight:800, textTransform:"uppercase", letterSpacing:"0.06em" }}>Gu�a de entrenamiento</p>
+                <p style={{ margin:0, fontSize:11, color:g.color, fontWeight:800, textTransform:"uppercase", letterSpacing:"0.06em" }}>Guía de entrenamiento</p>
                 <p style={{ margin:0, fontSize:15, fontWeight:900, color:"var(--text)" }}>{g.label}</p>
               </div>
             </div>
             {[
               { icon:"??", label:"Rango de repeticiones", val:g.reps },
               { icon:"?", label:"Descanso entre series", val:g.rest },
-              { icon:"???", label:"Selecci�n de ejercicios", val:g.exercises },
+              { icon:"???", label:"Selección de ejercicios", val:g.exercises },
               { icon:"??", label:"Proximidad al fallo (RIR)", val:g.rir },
               { icon:"??", label:"Sobrecarga progresiva", val:g.overload },
               { icon:"???", label:"Frecuencia semanal", val:g.freq },
@@ -3267,12 +3267,12 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                 </div>
               </div>
             ))}
-            {/* Recomposici�n corporal para principiantes */}
+            {/* Recomposición corporal para principiantes */}
             {(bodyFatPct === null || bodyFatPct > 15) && (workouts.length < 30 || (bodyFatPct !== null && bodyFatPct > 20)) && (
               <div style={{ background:"rgba(52,211,153,.06)", border:"1px solid rgba(52,211,153,.2)", borderRadius:10, padding:"9px 11px", marginTop:6 }}>
-                <p style={{ margin:"0 0 2px", fontSize:11, fontWeight:800, color:"#34d399" }}>?? Recomposici�n corporal posible</p>
+                <p style={{ margin:"0 0 2px", fontSize:11, fontWeight:800, color:"#34d399" }}>?? Recomposición corporal posible</p>
                 <p style={{ margin:0, fontSize:11, color:"var(--muted)", lineHeight:1.45 }}>
-                  Principiantes y personas con BF elevado pueden ganar m�sculo y perder grasa simult�neamente. Clave: prote�na 2.3-3.1g/kg masa magra, entrenamiento con carga progresiva y d�ficit cal�rico moderado (�200 kcal).
+                  Principiantes y personas con BF elevado pueden ganar músculo y perder grasa simultáneamente. Clave: proteína 2.3-3.1g/kg masa magra, entrenamiento con carga progresiva y déficit calórico moderado (±200 kcal).
                 </p>
               </div>
             )}
@@ -3282,16 +3282,16 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
 
       {/* -- Supplement protocol -------------------------------- */}
       <div style={{ background:"var(--panel)", borderRadius:16, padding:"16px", marginBottom:12 }}>
-        <p style={{ margin:"0 0 10px", fontSize:11, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em" }}>Suplementaci�n recomendada</p>
+        <p style={{ margin:"0 0 10px", fontSize:11, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em" }}>Suplementación recomendada</p>
         {[
-          { name:"Creatina monohidrato", dose:"3-5g/d�a", timing:"Cualquier momento del d�a � consistencia > timing (Lanhers et al. 2017)", benefit:"El suplemento m�s respaldado: fuerza +5-15%, potencia, volumen muscular, recuperaci�n entre series" },
-          { name:"Prote�na whey", dose:`${postWorkoutProtein}g post-entreno o entre comidas`, timing:"Dentro de ~2h post-entreno o cuando no lleg�s a la prote�na diaria con comida", benefit:"Prote�na de alta biodisponibilidad. Prioritario si la comida no cubre los ${proteinG}g diarios objetivo" },
-          { name:"Case�na micelar", dose:`${preSleepProtein}g pre-sue�o`, timing:"30 min antes de dormir � digesti�n lenta 7-8h (Snijders et al. 2015)", benefit:"Aumenta s�ntesis proteica nocturna, reduce catabolismo muscular durante el ayuno de sue�o" },
-          ...(userGoal === "definicion" ? [{ name:"Cafe�na", dose:"3-6 mg/kg peso (~200-400mg)", timing:"45-60 min pre-entreno � no post-3pm si afecta sue�o (Burke 2008)", benefit:"Rendimiento +3-7%, reduce percepci�n del esfuerzo, moviliza �cidos grasos libres" }] : []),
-          ...(userGoal === "volumen" ? [{ name:"Beta-alanina", dose:"3.2-6.4g/d�a (en dosis de 0.8g)", timing:"Repartido durante el d�a para minimizar parestesia (Hobson et al. 2012)", benefit:"Aumenta carnosina muscular ? retrasa fatiga en series de 8-15 reps, mejora capacidad de trabajo" }] : []),
-          { name:"Omega 3 (EPA+DHA)", dose:"2-4g/d�a", timing:"Con comida principal para mejor absorci�n", benefit:"Reduce inflamaci�n muscular post-entreno, mejora sensibilidad a la insulina, salud cardiovascular (Smith et al. 2011)" },
-          { name:"Vitamina D3 + K2", dose:"2000-4000 UI D3 + 100mcg K2", timing:"Con comida que contenga grasa", benefit:"Testosterona, absorci�n de calcio, funci�n inmune. D�ficit muy com�n en poblaci�n indoor" },
-          { name:"Magnesio glicinato/malato", dose:"300-400mg/d�a", timing:"Antes de dormir � mejora calidad del sue�o", benefit:"Relajaci�n muscular, reduce calambres nocturnos, mejor recuperaci�n. Forma glicinato > �xido para absorci�n" },
+          { name:"Creatina monohidrato", dose:"3-5g/día", timing:"Cualquier momento del día — consistencia > timing (Lanhers et al. 2017)", benefit:"El suplemento más respaldado: fuerza +5-15%, potencia, volumen muscular, recuperación entre series" },
+          { name:"Proteína whey", dose:`${postWorkoutProtein}g post-entreno o entre comidas`, timing:"Dentro de ~2h post-entreno o cuando no llegás a la proteína diaria con comida", benefit:"Proteína de alta biodisponibilidad. Prioritario si la comida no cubre los ${proteinG}g diarios objetivo" },
+          { name:"Caseína micelar", dose:`${preSleepProtein}g pre-sueño`, timing:"30 min antes de dormir — digestión lenta 7-8h (Snijders et al. 2015)", benefit:"Aumenta síntesis proteica nocturna, reduce catabolismo muscular durante el ayuno de sueño" },
+          ...(userGoal === "definicion" ? [{ name:"Cafeína", dose:"3-6 mg/kg peso (~200-400mg)", timing:"45-60 min pre-entreno — no post-3pm si afecta sueño (Burke 2008)", benefit:"Rendimiento +3-7%, reduce percepción del esfuerzo, moviliza ácidos grasos libres" }] : []),
+          ...(userGoal === "volumen" ? [{ name:"Beta-alanina", dose:"3.2-6.4g/día (en dosis de 0.8g)", timing:"Repartido durante el día para minimizar parestesia (Hobson et al. 2012)", benefit:"Aumenta carnosina muscular ? retrasa fatiga en series de 8-15 reps, mejora capacidad de trabajo" }] : []),
+          { name:"Omega 3 (EPA+DHA)", dose:"2-4g/día", timing:"Con comida principal para mejor absorción", benefit:"Reduce inflamación muscular post-entreno, mejora sensibilidad a la insulina, salud cardiovascular (Smith et al. 2011)" },
+          { name:"Vitamina D3 + K2", dose:"2000-4000 UI D3 + 100mcg K2", timing:"Con comida que contenga grasa", benefit:"Testosterona, absorción de calcio, función inmune. Déficit muy común en población indoor" },
+          { name:"Magnesio glicinato/malato", dose:"300-400mg/día", timing:"Antes de dormir — mejora calidad del sueño", benefit:"Relajación muscular, reduce calambres nocturnos, mejor recuperación. Forma glicinato > óxido para absorción" },
         ].map(({ name, dose, timing, benefit }) => (
           <div key={name} style={{ marginBottom:10, paddingBottom:10, borderBottom:"1px solid rgba(255,255,255,.05)" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:8 }}>
@@ -3309,7 +3309,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
         const maxKcal = Math.max(...weeklyMacroData.map(d => d.kcal), 1);
         return (
           <div style={{ background:"var(--panel)", borderRadius:16, padding:"16px", marginBottom:12 }}>
-            <p style={{ margin:"0 0 12px", fontSize:11, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em" }}>Calor�as � �ltimos 7 d�as</p>
+            <p style={{ margin:"0 0 12px", fontSize:11, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em" }}>Calorías — últimos 7 días</p>
             <div style={{ display:"flex", gap:4, alignItems:"flex-end", height:64 }}>
               {weeklyMacroData.map(d => (
                 <div key={d.date} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:3 }}>
@@ -3334,7 +3334,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
             </div>
             <div style={{ display:"flex", gap:12, marginTop:6, fontSize:10, color:"var(--muted)" }}>
               <span style={{ display:"flex", alignItems:"center", gap:4 }}><span style={{ width:8, height:8, borderRadius:2, background:"#f59e0b", display:"inline-block" }}/>Kcal</span>
-              <span style={{ display:"flex", alignItems:"center", gap:4 }}><span style={{ width:8, height:8, borderRadius:2, background:"rgba(168,85,247,.7)", display:"inline-block" }}/>Prote�na</span>
+              <span style={{ display:"flex", alignItems:"center", gap:4 }}><span style={{ width:8, height:8, borderRadius:2, background:"rgba(168,85,247,.7)", display:"inline-block" }}/>Proteína</span>
             </div>
           </div>
         );
@@ -3361,8 +3361,8 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
           </div>
         </div>
         <div style={{ display:"flex", alignItems:"center", gap:4 }} onClick={e => e.stopPropagation()}>
-          <button onClick={() => shiftDay(-1)} style={{ background:"none", border:"1px solid var(--line)", borderRadius:8, width:28, height:28, cursor:"pointer", color:"var(--muted)", fontSize:14, display:"flex", alignItems:"center", justifyContent:"center" }}>�</button>
-          <button onClick={() => shiftDay(1)} disabled={isToday} style={{ background:"none", border:"1px solid var(--line)", borderRadius:8, width:28, height:28, cursor:"pointer", color: isToday ? "rgba(255,255,255,.15)" : "var(--muted)", fontSize:14, display:"flex", alignItems:"center", justifyContent:"center" }}>�</button>
+          <button onClick={() => shiftDay(-1)} style={{ background:"none", border:"1px solid var(--line)", borderRadius:8, width:28, height:28, cursor:"pointer", color:"var(--muted)", fontSize:14, display:"flex", alignItems:"center", justifyContent:"center" }}>‹</button>
+          <button onClick={() => shiftDay(1)} disabled={isToday} style={{ background:"none", border:"1px solid var(--line)", borderRadius:8, width:28, height:28, cursor:"pointer", color: isToday ? "rgba(255,255,255,.15)" : "var(--muted)", fontSize:14, display:"flex", alignItems:"center", justifyContent:"center" }}>›</button>
           <span style={{ color:"var(--muted)", fontSize:14, marginLeft:4 }}>{showDiary ? "?" : "?"}</span>
         </div>
       </button>
@@ -3381,7 +3381,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
               <div style={{ background:"var(--panel)", borderRadius:14, padding:"14px 16px", marginBottom:12 }}>
                 {/* Calories */}
                 <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
-                  <span style={{ fontSize:13, fontWeight:700 }}>Calor�as</span>
+                  <span style={{ fontSize:13, fontWeight:700 }}>Calorías</span>
                   <span style={{ fontSize:13, fontWeight:900, color: over ? "#f87171" : "var(--green)" }}>{consumed} / {targetCal} kcal</span>
                 </div>
                 <div style={{ height:8, background:"var(--panel2)", borderRadius:4, overflow:"hidden", marginBottom:14 }}>
@@ -3389,7 +3389,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                 </div>
                 {/* Per-macro progress bars */}
                 {[
-                  { label:"Prote�na",      consumed:consumedP, target:proteinG, color:"#a855f7" },
+                  { label:"Proteína",      consumed:consumedP, target:proteinG, color:"#a855f7" },
                   { label:"Carbohidratos", consumed:consumedC, target:carbG,    color:"#60a5fa" },
                   { label:"Grasas",        consumed:consumedF, target:fatG,     color:"#f59e0b" },
                 ].map(mac => {
@@ -3420,9 +3420,9 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                     <div style={{ fontSize:13, fontWeight:700 }}>{m.name}</div>
                     <div style={{ fontSize:11, color:"var(--muted)" }}>
                       {m.kcal} kcal
-                      {m.protein ? ` � P: ${m.protein}g` : ""}
-                      {m.carbs ? ` � C: ${m.carbs}g` : ""}
-                      {m.fat ? ` � G: ${m.fat}g` : ""}
+                      {m.protein ? ` — P: ${m.protein}g` : ""}
+                      {m.carbs ? ` — C: ${m.carbs}g` : ""}
+                      {m.fat ? ` — G: ${m.fat}g` : ""}
                     </div>
                   </div>
                   <button onClick={() => deleteMeal(m.id)}
@@ -3477,7 +3477,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                       <div style={{ flex:1 }}>
                         <div style={{ fontSize:13, fontWeight:700 }}>{combo.name}</div>
                         <div style={{ fontSize:11, color:"var(--muted)" }}>
-                          {combo.meals.length} �tems � {totalKcal} kcal � P: {Math.round(totalP)}g
+                          {combo.meals.length} ítems — {totalKcal} kcal — P: {Math.round(totalP)}g
                         </div>
                       </div>
                       <button
@@ -3507,15 +3507,15 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
             if (!isToday2 || pct >= 0.8) return null;
             return (
               <div style={{ background:"rgba(239,68,68,.07)", border:"1px solid rgba(239,68,68,.25)", borderRadius:12, padding:"10px 14px", marginBottom:10, fontSize:13 }}>
-                <b style={{ color:"var(--danger)" }}>? Poco prote�na hoy</b>
+                <b style={{ color:"var(--danger)" }}>? Poco proteína hoy</b>
                 <p style={{ margin:"4px 0 0", color:"var(--muted)" }}>
-                  {todayP}g de {targetP}g meta ({Math.round(pct*100)}%). Agreg� {targetP-todayP}g m�s hoy.
+                  {todayP}g de {targetP}g meta ({Math.round(pct*100)}%). Agregá {targetP-todayP}g más hoy.
                 </p>
               </div>
             );
           })()}
 
-          {/* Add meal form � only for today */}
+          {/* Add meal form — only for today */}
           {isToday && <div style={{ background:"var(--panel)", borderRadius:14, padding:"14px 16px" }}>
             {/* Mode selector */}
             <div style={{ display:"flex", gap:6, marginBottom:12 }}>
@@ -3539,7 +3539,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
             {buildPlate && plateParts.length === 0 && (
               <div style={{ background:"rgba(168,85,247,.07)", border:"1px dashed rgba(168,85,247,.3)", borderRadius:10, padding:"10px 12px", marginBottom:10, textAlign:"center" }}>
                 <p style={{ margin:0, fontSize:12, color:"var(--muted)", lineHeight:1.5 }}>
-                  Busc� cada ingrediente y agregalo al plato.<br/>
+                  Buscá cada ingrediente y agregalo al plato.<br/>
                   <span style={{ color:"var(--text)", fontStyle:"italic" }}>Ej: arroz + pollo + cabutia ? "Arroz con pollo"</span>
                 </p>
               </div>
@@ -3597,7 +3597,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                           style={{ width:56, background:"var(--panel)", border:"1px solid var(--border)", borderRadius:7, padding:"3px 8px", color:"var(--text)", fontSize:12 }}
                         />
                         <span style={{ fontSize:11, color:"var(--muted)" }}>{part.unit ? `unid.` : "g"}</span>
-                        <span style={{ fontSize:11, color:"var(--muted)" }}>{part.kcal} kcal � P{part.protein}g</span>
+                        <span style={{ fontSize:11, color:"var(--muted)" }}>{part.kcal} kcal — P{part.protein}g</span>
                       </div>
                     </div>
                     <button onClick={() => setPlateParts(ps => ps.filter((_,j)=>j!==i))}
@@ -3651,7 +3651,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                 <button
                   onClick={scanBarcode}
                   disabled={barcodeScanning}
-                  title="Escanear c�digo de barras"
+                  title="Escanear código de barras"
                   style={{ background:"var(--panel2)", border:"1.5px solid var(--border)", borderRadius:10, padding:"10px 12px", cursor:"pointer", color:"var(--text)", fontSize:18, flexShrink:0 }}>
                   {barcodeScanning ? "?" : "??"}
                 </button>
@@ -3681,8 +3681,8 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                     <span style={{ fontSize:13, color:"var(--text)", fontWeight:600 }}>{cleanFoodName(f.name)}</span>
                     <span style={{ fontSize:11, color:"var(--muted)" }}>
                       {f.unit
-                        ? `${Math.round(f.kcal*(f.unitWeight||100)/100)} kcal/u � P${Math.round(f.protein*(f.unitWeight||100)/100)}g`
-                        : `${f.kcal} kcal/100g � P${f.protein}g`}
+                        ? `${Math.round(f.kcal*(f.unitWeight||100)/100)} kcal/u — P${Math.round(f.protein*(f.unitWeight||100)/100)}g`
+                        : `${f.kcal} kcal/100g — P${f.protein}g`}
                     </span>
                   </button>
                 ))}
@@ -3770,7 +3770,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                     style={{ background:"var(--panel2)", border:"1.5px solid var(--border)", borderRadius:10, padding:"10px 12px", color:"var(--text)", fontSize:14 }} />
                   <input type="number" inputMode="numeric" value={newMeal.protein}
                     onChange={e => setNewMeal(m => ({ ...m, protein: e.target.value }))}
-                    placeholder="Prote�na (g)"
+                    placeholder="Proteína (g)"
                     style={{ background:"var(--panel2)", border:"1.5px solid var(--border)", borderRadius:10, padding:"10px 12px", color:"var(--text)", fontSize:14 }} />
                 </div>
                 <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:12 }}>
@@ -3808,7 +3808,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
         <div>
           {!nutritionPlan ? (
             <div style={{ textAlign:"center", padding:"32px 0" }}>
-              <p style={{ color:"var(--muted)", fontSize:14, marginBottom:20 }}>No ten�s un plan todav�a.</p>
+              <p style={{ color:"var(--muted)", fontSize:14, marginBottom:20 }}>No tenés un plan todavía.</p>
               <button className="primary" onClick={() => setSubPage("wizard")}>Crear mi plan</button>
             </div>
           ) : (
@@ -3816,10 +3816,10 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
                 <div>
                   <div style={{ fontSize:13, fontWeight:800, color:"var(--text)" }}>
-                    {nutritionPlan.config?.days} d�as � {nutritionPlan.config?.mealsPerDay} comidas/d�a
+                    {nutritionPlan.config?.days} días — {nutritionPlan.config?.mealsPerDay} comidas/día
                   </div>
                   <div style={{ fontSize:11, color:"var(--muted)" }}>
-                    ~{Math.round(nutritionPlan.dailyKcal)} kcal � {Math.round(nutritionPlan.dailyProtein)}g prot
+                    ~{Math.round(nutritionPlan.dailyKcal)} kcal — {Math.round(nutritionPlan.dailyProtein)}g prot
                   </div>
                 </div>
                 <button onClick={() => { clearNutritionPlan(); }}
@@ -3833,7 +3833,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                 <div key={day.dayIdx} style={{ marginBottom:8 }}>
                   <button onClick={() => setExpandedPlanDay(expandedPlanDay === day.dayIdx ? null : day.dayIdx)}
                     style={{ width:"100%", background: isToday ? "rgba(34,197,94,.08)" : "var(--panel)", border: isToday ? "1px solid rgba(34,197,94,.4)" : "1px solid var(--border)", borderRadius:14, padding:"12px 14px", cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                    <span style={{ fontSize:14, fontWeight:800, color: isToday ? "var(--green)" : "var(--text)" }}>{isToday ? "Hoy � " : ""}{day.dayName}</span>
+                    <span style={{ fontSize:14, fontWeight:800, color: isToday ? "var(--green)" : "var(--text)" }}>{isToday ? "Hoy — " : ""}{day.dayName}</span>
                     <div style={{ display:"flex", alignItems:"center", gap:8 }}>
                       <span style={{ fontSize:12, color:"var(--muted)" }}>{Math.round(day.kcal)} kcal</span>
                       <span style={{ color:"var(--muted)" }}>{expandedPlanDay === day.dayIdx ? "?" : "?"}</span>
@@ -3847,19 +3847,19 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                             <span style={{ fontSize:12, fontWeight:700, color:"var(--muted)" }}>{meal.label}</span>
                             <button onClick={() => { logMeal({ name: meal.items.map(i=>i.name).join(" + "), kcal: Math.round(meal.kcal), protein: Math.round(meal.protein), carbs: Math.round(meal.carbs), fat: Math.round(meal.fat) }); if (window.__showToast) window.__showToast("? Comida registrada"); }}
                               style={{ background:"rgba(34,197,94,.1)", border:"1px solid rgba(34,197,94,.25)", borderRadius:6, padding:"2px 8px", cursor:"pointer", fontSize:10, color:"var(--green)", fontWeight:700 }}>
-                              A�adir
+                              Añadir
                             </button>
                           </div>
                           {meal.items?.map((item, i) => (
                             <div key={i} style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
                               <span style={{ fontSize:13, color:"var(--text)" }}>{item.name}</span>
                               <span style={{ fontSize:11, color:"var(--muted)" }}>
-                                {item.ml ? `${item.ml}ml` : item.unit ? `${item.qty}${item.unitLabel || " u"}` : `${item.grams}g`} � {Math.round(item.kcal)} kcal
+                                {item.ml ? `${item.ml}ml` : item.unit ? `${item.qty}${item.unitLabel || " u"}` : `${item.grams}g`} — {Math.round(item.kcal)} kcal
                               </span>
                             </div>
                           ))}
                           <div style={{ fontSize:11, color:"#f59e0b", marginTop:4 }}>
-                            {Math.round(meal.kcal)} kcal � P{Math.round(meal.protein)}g � C{Math.round(meal.carbs)}g � G{Math.round(meal.fat)}g
+                            {Math.round(meal.kcal)} kcal — P{Math.round(meal.protein)}g — C{Math.round(meal.carbs)}g — G{Math.round(meal.fat)}g
                           </div>
                         </div>
                       ))}
@@ -3878,8 +3878,8 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
         <div>
           {wizStep === 0 && (
             <div>
-              <p style={{ fontSize:15, fontWeight:800, marginBottom:4 }}>�Cu�ntos d�as quer�s planificar?</p>
-              <p style={{ fontSize:12, color:"var(--muted)", marginBottom:16 }}>Eleg� la duraci�n del plan.</p>
+              <p style={{ fontSize:15, fontWeight:800, marginBottom:4 }}>¿Cuántos días querés planificar?</p>
+              <p style={{ fontSize:12, color:"var(--muted)", marginBottom:16 }}>Elegí la duración del plan.</p>
               <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:24 }}>
                 {[7,15,30,60].map(d => (
                   <button key={d} onClick={() => setWizDays(d)}
@@ -3896,7 +3896,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
           )}
           {wizStep === 1 && (
             <div>
-              <p style={{ fontSize:15, fontWeight:800, marginBottom:4 }}>�Cu�ntas comidas por d�a?</p>
+              <p style={{ fontSize:15, fontWeight:800, marginBottom:4 }}>¿Cuántas comidas por día?</p>
               <p style={{ fontSize:12, color:"var(--muted)", marginBottom:16 }}>Incluye desayuno, almuerzo, merienda, cena y colaciones.</p>
               <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:24 }}>
                 {[{v:3,l:"3 comidas"},{v:4,l:"4 comidas"},{v:5,l:"5 comidas"},{v:6,l:"6 comidas"}].map(({v,l}) => (
@@ -3910,16 +3910,16 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                 ))}
               </div>
               <div style={{ display:"flex", gap:8 }}>
-                <button style={{ flex:1, padding:"12px", borderRadius:10, border:"1px solid var(--border)", background:"var(--panel)", color:"var(--muted)", cursor:"pointer" }} onClick={() => setWizStep(0)}>? Atr�s</button>
+                <button style={{ flex:1, padding:"12px", borderRadius:10, border:"1px solid var(--border)", background:"var(--panel)", color:"var(--muted)", cursor:"pointer" }} onClick={() => setWizStep(0)}>? Atrás</button>
                 <button className="primary" style={{ flex:2 }} onClick={() => setWizStep(2)}>Siguiente ?</button>
               </div>
             </div>
           )}
           {wizStep === 2 && (
             <div>
-              <p style={{ fontSize:15, fontWeight:800, marginBottom:4 }}>�Cu�l es tu objetivo?</p>
+              <p style={{ fontSize:15, fontWeight:800, marginBottom:4 }}>¿Cuál es tu objetivo?</p>
               <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:24 }}>
-                {[{v:"definicion",l:"?? Definici�n",d:"D�ficit cal�rico, mantener m�sculo"},{v:"mantener",l:"?? Mantenimiento",d:"Calor�as de mantenimiento"},{v:"volumen",l:"?? Volumen",d:"Super�vit para ganar m�sculo"}].map(({v,l,d}) => (
+                {[{v:"definicion",l:"?? Definición",d:"Déficit calórico, mantener músculo"},{v:"mantener",l:"?? Mantenimiento",d:"Calorías de mantenimiento"},{v:"volumen",l:"?? Volumen",d:"Superávit para ganar músculo"}].map(({v,l,d}) => (
                   <button key={v} onClick={() => setWizGoal(v)}
                     style={{ padding:"12px 14px", borderRadius:10, border:"1.5px solid", cursor:"pointer", textAlign:"left",
                       borderColor: wizGoal === v ? "var(--green)" : "var(--border)",
@@ -3930,17 +3930,17 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                 ))}
               </div>
               <div style={{ display:"flex", gap:8 }}>
-                <button style={{ flex:1, padding:"12px", borderRadius:10, border:"1px solid var(--border)", background:"var(--panel)", color:"var(--muted)", cursor:"pointer" }} onClick={() => setWizStep(1)}>? Atr�s</button>
+                <button style={{ flex:1, padding:"12px", borderRadius:10, border:"1px solid var(--border)", background:"var(--panel)", color:"var(--muted)", cursor:"pointer" }} onClick={() => setWizStep(1)}>? Atrás</button>
                 <button className="primary" style={{ flex:2 }} onClick={() => setWizStep(3)}>Siguiente ?</button>
               </div>
             </div>
           )}
           {wizStep === 3 && (
             <div>
-              <p style={{ fontSize:15, fontWeight:800, marginBottom:4 }}>�Ten�s restricciones alimentarias?</p>
-              <p style={{ fontSize:12, color:"var(--muted)", marginBottom:16 }}>Opcional. Seleccion� todas las que apliquen.</p>
+              <p style={{ fontSize:15, fontWeight:800, marginBottom:4 }}>¿Tenés restricciones alimentarias?</p>
+              <p style={{ fontSize:12, color:"var(--muted)", marginBottom:16 }}>Opcional. Seleccioná todas las que apliquen.</p>
               <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:16 }}>
-                {[{v:"vegano",l:"?? Vegano"},{v:"vegetariano",l:"?? Vegetariano"},{v:"sin_lacteos",l:"?? Sin l�cteos"},{v:"sin_gluten",l:"?? Sin gluten"}].map(({v,l}) => {
+                {[{v:"vegano",l:"?? Vegano"},{v:"vegetariano",l:"?? Vegetariano"},{v:"sin_lacteos",l:"?? Sin lácteos"},{v:"sin_gluten",l:"?? Sin gluten"}].map(({v,l}) => {
                   const on = wizRestrictions.includes(v);
                   return (
                     <button key={v} onClick={() => setWizRestrictions(r => on ? r.filter(x=>x!==v) : [...r,v])}
@@ -3961,7 +3961,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                   {v:"pescado",l:"?? Pescado"},
                   {v:"mariscos",l:"?? Mariscos"},
                   {v:"soja",l:"?? Soja"},
-                  {v:"mani",l:"?? Man�"},
+                  {v:"mani",l:"?? Maní"},
                 ].map(({v,l}) => {
                   const on = wizAllergies.includes(v);
                   return (
@@ -3976,21 +3976,21 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                 })}
               </div>
               <div style={{ display:"flex", gap:8 }}>
-                <button style={{ flex:1, padding:"12px", borderRadius:10, border:"1px solid var(--border)", background:"var(--panel)", color:"var(--muted)", cursor:"pointer" }} onClick={() => setWizStep(2)}>? Atr�s</button>
+                <button style={{ flex:1, padding:"12px", borderRadius:10, border:"1px solid var(--border)", background:"var(--panel)", color:"var(--muted)", cursor:"pointer" }} onClick={() => setWizStep(2)}>? Atrás</button>
                 <button className="primary" style={{ flex:2 }} onClick={() => setWizStep(4)}>Siguiente ?</button>
               </div>
             </div>
           )}
           {wizStep === 4 && (
             <div>
-              <p style={{ fontSize:15, fontWeight:800, marginBottom:4 }}>�Qu� tipo de comidas prefer�s?</p>
-              <p style={{ fontSize:12, color:"var(--muted)", marginBottom:16 }}>Opcional. El plan priorizar� estas categor�as.</p>
+              <p style={{ fontSize:15, fontWeight:800, marginBottom:4 }}>¿Qué tipo de comidas preferís?</p>
+              <p style={{ fontSize:12, color:"var(--muted)", marginBottom:16 }}>Opcional. El plan priorizará estas categorías.</p>
               <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginBottom:24 }}>
                 {[
                   {v:"principal",l:"?? Principales"},{v:"desayuno",l:"? Desayunos"},
-                  {v:"proteina",l:"?? Prote�nas"},{v:"legumbre",l:"?? Legumbres"},
+                  {v:"proteina",l:"?? Proteínas"},{v:"legumbre",l:"?? Legumbres"},
                   {v:"verdura",l:"?? Verduras"},{v:"fruta",l:"?? Frutas"},
-                  {v:"lacteo",l:"?? L�cteos"},{v:"carbohidrato",l:"?? Carbohidratos"},
+                  {v:"lacteo",l:"?? Lácteos"},{v:"carbohidrato",l:"?? Carbohidratos"},
                   {v:"colacion",l:"?? Colaciones"},{v:"merienda",l:"?? Meriendas"},
                 ].map(({v,l}) => {
                   const on = wizLikedCats.includes(v);
@@ -4007,23 +4007,23 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
               </div>
               <div style={{ background:"rgba(34,197,94,.06)", border:"1px solid rgba(34,197,94,.2)", borderRadius:12, padding:"12px 14px", marginBottom:20, fontSize:12, color:"var(--muted)" }}>
                 <b style={{ color:"var(--text)", display:"block", marginBottom:4 }}>Resumen del plan</b>
-                {wizDays} d�as � {wizMeals} comidas/d�a � ~{Math.round(targetCal)} kcal/d�a � {Math.round(proteinG)}g prote�na
+                {wizDays} días — {wizMeals} comidas/día — ~{Math.round(targetCal)} kcal/día — {Math.round(proteinG)}g proteína
               </div>
               <div style={{ display:"flex", gap:8 }}>
-                <button style={{ flex:1, padding:"12px", borderRadius:10, border:"1px solid var(--border)", background:"var(--panel)", color:"var(--muted)", cursor:"pointer" }} onClick={() => setWizStep(3)}>? Atr�s</button>
+                <button style={{ flex:1, padding:"12px", borderRadius:10, border:"1px solid var(--border)", background:"var(--panel)", color:"var(--muted)", cursor:"pointer" }} onClick={() => setWizStep(3)}>? Atrás</button>
                 <button className="primary" style={{ flex:2 }} onClick={() => setWizStep(5)}>Siguiente ?</button>
               </div>
             </div>
           )}
           {wizStep === 5 && (
             <div>
-              <p style={{ fontSize:15, fontWeight:800, marginBottom:4 }}>�Cu�nto tiempo ten�s para preparar cada comida?</p>
+              <p style={{ fontSize:15, fontWeight:800, marginBottom:4 }}>¿Cuánto tiempo tenés para preparar cada comida?</p>
               <p style={{ fontSize:12, color:"var(--muted)", marginBottom:16 }}>Esto ayuda a personalizar las recetas del plan.</p>
               <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:24 }}>
                 {[
-                  {v:"rapido",    l:"? R�pido",            d:"Menos de 15 minutos"},
+                  {v:"rapido",    l:"? Rápido",            d:"Menos de 15 minutos"},
                   {v:"30min",     l:"?? Normal",             d:"Hasta 30 minutos"},
-                  {v:"elaborado", l:"????? Me gusta cocinar", d:"Sin l�mite de tiempo"},
+                  {v:"elaborado", l:"????? Me gusta cocinar", d:"Sin límite de tiempo"},
                 ].map(({v,l,d}) => (
                   <button key={v} onClick={() => setWizPrepTime(v)}
                     style={{ padding:"12px 14px", borderRadius:10, border:"1.5px solid", cursor:"pointer", textAlign:"left",
@@ -4035,19 +4035,19 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                 ))}
               </div>
               <div style={{ display:"flex", gap:8 }}>
-                <button style={{ flex:1, padding:"12px", borderRadius:10, border:"1px solid var(--border)", background:"var(--panel)", color:"var(--muted)", cursor:"pointer" }} onClick={() => setWizStep(4)}>? Atr�s</button>
+                <button style={{ flex:1, padding:"12px", borderRadius:10, border:"1px solid var(--border)", background:"var(--panel)", color:"var(--muted)", cursor:"pointer" }} onClick={() => setWizStep(4)}>? Atrás</button>
                 <button className="primary" style={{ flex:2 }} onClick={() => setWizStep(6)}>Siguiente ?</button>
               </div>
             </div>
           )}
           {wizStep === 6 && (
             <div>
-              <p style={{ fontSize:15, fontWeight:800, marginBottom:4 }}>�Cu�l es tu presupuesto semanal para comida?</p>
-              <p style={{ fontSize:12, color:"var(--muted)", marginBottom:16 }}>El plan se adaptar� a tus posibilidades econ�micas.</p>
+              <p style={{ fontSize:15, fontWeight:800, marginBottom:4 }}>¿Cuál es tu presupuesto semanal para comida?</p>
+              <p style={{ fontSize:12, color:"var(--muted)", marginBottom:16 }}>El plan se adaptará a tus posibilidades económicas.</p>
               <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:24 }}>
                 {[
-                  {v:"economico", l:"?? Econ�mico",         d:"Legumbres, huevos, arroz"},
-                  {v:"moderado",  l:"?? Moderado",           d:"Carnes, l�cteos, variado"},
+                  {v:"economico", l:"?? Económico",         d:"Legumbres, huevos, arroz"},
+                  {v:"moderado",  l:"?? Moderado",           d:"Carnes, lácteos, variado"},
                   {v:"amplio",    l:"? Sin restricciones",  d:"Todo tipo de alimentos"},
                 ].map(({v,l,d}) => (
                   <button key={v} onClick={() => setWizBudget(v)}
@@ -4060,7 +4060,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                 ))}
               </div>
               <div style={{ display:"flex", gap:8 }}>
-                <button style={{ flex:1, padding:"12px", borderRadius:10, border:"1px solid var(--border)", background:"var(--panel)", color:"var(--muted)", cursor:"pointer" }} onClick={() => setWizStep(5)}>? Atr�s</button>
+                <button style={{ flex:1, padding:"12px", borderRadius:10, border:"1px solid var(--border)", background:"var(--panel)", color:"var(--muted)", cursor:"pointer" }} onClick={() => setWizStep(5)}>? Atrás</button>
                 <button className="primary" style={{ flex:2 }} onClick={() => setWizStep(7)}>Siguiente ?</button>
               </div>
             </div>
@@ -4068,9 +4068,9 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
           {wizStep === 7 && (
             <div>
               <p style={{ fontSize:15, fontWeight:800, marginBottom:4 }}>Preferencias de cocina</p>
-              <p style={{ fontSize:12, color:"var(--muted)", marginBottom:16 }}>Opcional. Eleg� un estilo de cocina para el plan.</p>
+              <p style={{ fontSize:12, color:"var(--muted)", marginBottom:16 }}>Opcional. Elegí un estilo de cocina para el plan.</p>
               <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginBottom:20 }}>
-                {[{v:"",l:"Sin preferencia"},{v:"italiana",l:"?? Italiana"},{v:"mexicana",l:"?? Mexicana"},{v:"japonesa",l:"?? Japonesa"},{v:"mediterr�nea",l:"?? Mediterr�nea"},{v:"argentina",l:"?? Argentina"},{v:"vegetal",l:"?? Vegetal"},{v:"asi�tica",l:"?? Asi�tica"}].map(({v,l}) => (
+                {[{v:"",l:"Sin preferencia"},{v:"italiana",l:"?? Italiana"},{v:"mexicana",l:"?? Mexicana"},{v:"japonesa",l:"?? Japonesa"},{v:"mediterránea",l:"?? Mediterránea"},{v:"argentina",l:"?? Argentina"},{v:"vegetal",l:"?? Vegetal"},{v:"asiática",l:"?? Asiática"}].map(({v,l}) => (
                   <button key={v} onClick={() => setWizCuisine(v)}
                     style={{ padding:"8px 14px", borderRadius:20, border:"1.5px solid", cursor:"pointer", fontSize:13, fontWeight:700,
                       borderColor: wizCuisine === v ? "var(--green)" : "var(--border)",
@@ -4082,14 +4082,14 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
               </div>
               <div style={{ background:"rgba(34,197,94,.06)", border:"1px solid rgba(34,197,94,.2)", borderRadius:12, padding:"12px 14px", marginBottom:20, fontSize:12, color:"var(--muted)" }}>
                 <b style={{ color:"var(--text)", display:"block", marginBottom:4 }}>Resumen del plan</b>
-                {wizDays} d�as � {wizMeals} comidas/d�a � ~{Math.round(targetCal)} kcal/d�a � {Math.round(proteinG)}g prote�na
-                {wizRestrictions.length > 0 && <span> � {wizRestrictions.length} restricci�n(es)</span>}
-                {wizCuisine && <span> � Cocina {wizCuisine}</span>}
-                {" � "}{wizPrepTime === "rapido" ? "? Preparaci�n r�pida" : wizPrepTime === "elaborado" ? "????? Cocina elaborada" : "?? Preparaci�n normal"}
-                {" � "}{wizBudget === "economico" ? "?? Presupuesto econ�mico" : wizBudget === "amplio" ? "? Sin restricci�n econ�mica" : "?? Presupuesto moderado"}
+                {wizDays} días — {wizMeals} comidas/día — ~{Math.round(targetCal)} kcal/día — {Math.round(proteinG)}g proteína
+                {wizRestrictions.length > 0 && <span> — {wizRestrictions.length} restricción(es)</span>}
+                {wizCuisine && <span> — Cocina {wizCuisine}</span>}
+                {" — "}{wizPrepTime === "rapido" ? "? Preparación rápida" : wizPrepTime === "elaborado" ? "????? Cocina elaborada" : "?? Preparación normal"}
+                {" — "}{wizBudget === "economico" ? "?? Presupuesto económico" : wizBudget === "amplio" ? "? Sin restricción económica" : "?? Presupuesto moderado"}
               </div>
               <div style={{ display:"flex", gap:8 }}>
-                <button style={{ flex:1, padding:"12px", borderRadius:10, border:"1px solid var(--border)", background:"var(--panel)", color:"var(--muted)", cursor:"pointer" }} onClick={() => setWizStep(6)}>? Atr�s</button>
+                <button style={{ flex:1, padding:"12px", borderRadius:10, border:"1px solid var(--border)", background:"var(--panel)", color:"var(--muted)", cursor:"pointer" }} onClick={() => setWizStep(6)}>? Atrás</button>
                 <button className="primary" style={{ flex:2 }} onClick={handleWizardFinish}>? Generar plan</button>
               </div>
             </div>
@@ -4159,7 +4159,7 @@ function HolisticSummary({ workouts, prs, userAge, bodyWeight, bodyFatPct, lbm, 
         <div style={{ flex:1 }}>
           <p style={{ margin:"0 0 4px", fontSize:15, fontWeight:800, color:"var(--text)" }}>Score de consistencia</p>
           <p style={{ margin:"0 0 8px", fontSize:12, color:"var(--muted)" }}>
-            {consistency >= 80 ? "Excelente � segu� as�." : consistency >= 50 ? "Buena base � intent� sumar un d�a m�s/semana." : "Falta constancia � la clave es la frecuencia."}
+            {consistency >= 80 ? "Excelente — seguí así." : consistency >= 50 ? "Buena base — intentá sumar un día más/semana." : "Falta constancia — la clave es la frecuencia."}
           </p>
           <div style={{ display:"flex", gap:14 }}>
             <div><span style={{ fontSize:11, color:"var(--muted)" }}>Promedio/semana</span><b style={{ display:"block", fontSize:16, color:"var(--green)" }}>{avgPerWeek}x</b></div>
@@ -4171,7 +4171,7 @@ function HolisticSummary({ workouts, prs, userAge, bodyWeight, bodyFatPct, lbm, 
 
       {/* Volumen 4 semanas */}
       <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:14, padding:"14px 14px 10px", marginBottom:14 }}>
-        <p style={{ margin:"0 0 12px", fontSize:13, fontWeight:700 }}>?? Volumen �ltimas 4 semanas</p>
+        <p style={{ margin:"0 0 12px", fontSize:13, fontWeight:700 }}>?? Volumen últimas 4 semanas</p>
         <div style={{ display:"flex", gap:6, alignItems:"flex-end", height:52 }}>
           {weeklyVols.map((v, i) => {
             const h = Math.max(4, (v / maxVol) * 44);
@@ -4194,24 +4194,24 @@ function HolisticSummary({ workouts, prs, userAge, bodyWeight, bodyFatPct, lbm, 
         <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:14, padding:"12px 14px", marginBottom:12 }}>
           <p style={{ margin:"0 0 8px", fontSize:13, fontWeight:700 }}>?? Tu perfil de entrenamiento</p>
           <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
-            {userAge && <div style={{ background:"var(--panel2)", borderRadius:10, padding:"6px 12px", fontSize:12 }}><span style={{ color:"var(--muted)" }}>Edad � </span><b>{userAge} a�os</b></div>}
-            {bodyWeight && <div style={{ background:"var(--panel2)", borderRadius:10, padding:"6px 12px", fontSize:12 }}><span style={{ color:"var(--muted)" }}>Peso � </span><b>{bodyWeight}kg</b></div>}
-            {bodyFatPct !== null && <div style={{ background:"var(--panel2)", borderRadius:10, padding:"6px 12px", fontSize:12 }}><span style={{ color:"var(--muted)" }}>Grasa � </span><b>{bodyFatPct.toFixed(1)}%</b></div>}
-            {lbm !== null && <div style={{ background:"var(--panel2)", borderRadius:10, padding:"6px 12px", fontSize:12 }}><span style={{ color:"var(--muted)" }}>LBM � </span><b>{lbm.toFixed(1)}kg</b></div>}
+            {userAge && <div style={{ background:"var(--panel2)", borderRadius:10, padding:"6px 12px", fontSize:12 }}><span style={{ color:"var(--muted)" }}>Edad — </span><b>{userAge} años</b></div>}
+            {bodyWeight && <div style={{ background:"var(--panel2)", borderRadius:10, padding:"6px 12px", fontSize:12 }}><span style={{ color:"var(--muted)" }}>Peso — </span><b>{bodyWeight}kg</b></div>}
+            {bodyFatPct !== null && <div style={{ background:"var(--panel2)", borderRadius:10, padding:"6px 12px", fontSize:12 }}><span style={{ color:"var(--muted)" }}>Grasa — </span><b>{bodyFatPct.toFixed(1)}%</b></div>}
+            {lbm !== null && <div style={{ background:"var(--panel2)", borderRadius:10, padding:"6px 12px", fontSize:12 }}><span style={{ color:"var(--muted)" }}>LBM — </span><b>{lbm.toFixed(1)}kg</b></div>}
             {bodyWeight && (
               <div style={{ background:"rgba(168,85,247,.07)", borderRadius:10, padding:"6px 12px", fontSize:12, border:"1px solid rgba(168,85,247,.15)" }}>
-                <span style={{ color:"var(--muted)" }}>Prote�na � </span>
-                <b style={{ color:"var(--green)" }}>{Math.round(bodyWeight*(userGoal==="definicion"?2.4:userGoal==="volumen"?2.0:1.8))}�{Math.round(bodyWeight*(userGoal==="definicion"?2.8:userGoal==="volumen"?2.4:2.2))}g/d�a</b>
+                <span style={{ color:"var(--muted)" }}>Proteína — </span>
+                <b style={{ color:"var(--green)" }}>{Math.round(bodyWeight*(userGoal==="definicion"?2.4:userGoal==="volumen"?2.0:1.8))}–{Math.round(bodyWeight*(userGoal==="definicion"?2.8:userGoal==="volumen"?2.4:2.2))}g/día</b>
               </div>
             )}
-            {topMuscle && <div style={{ background:"var(--panel2)", borderRadius:10, padding:"6px 12px", fontSize:12 }}><span style={{ color:"var(--muted)" }}>Grupo favorito � </span><b>{topMuscle[0]}</b></div>}
+            {topMuscle && <div style={{ background:"var(--panel2)", borderRadius:10, padding:"6px 12px", fontSize:12 }}><span style={{ color:"var(--muted)" }}>Grupo favorito — </span><b>{topMuscle[0]}</b></div>}
           </div>
           {userAge && (
             <p style={{ margin:"10px 0 0", fontSize:12, color:"var(--muted)", lineHeight:1.5 }}>
-              {userAge >= 50 ? "? A los 50+ el foco debe ser t�cnica perfecta, recuperaci�n y prote�na alta. Deload cada 4 semanas."
-                : userAge >= 40 ? "? La recuperaci�n entre sesiones es clave. Prote�na elevada y deload cada 5�6 semanas."
-                : userAge >= 30 ? "? Momento �ptimo para volumen progresivo. Deload cada 6�8 semanas."
-                : "?? Pico anab�lico � prioriz� volumen progresivo y suma cargas semana a semana."}
+              {userAge >= 50 ? "? A los 50+ el foco debe ser técnica perfecta, recuperación y proteína alta. Deload cada 4 semanas."
+                : userAge >= 40 ? "? La recuperación entre sesiones es clave. Proteína elevada y deload cada 5–6 semanas."
+                : userAge >= 30 ? "? Momento óptimo para volumen progresivo. Deload cada 6–8 semanas."
+                : "?? Pico anabólico — priorizá volumen progresivo y suma cargas semana a semana."}
             </p>
           )}
         </div>
@@ -4240,8 +4240,8 @@ function FeaturedReport({ report, prs = [] }) {
       <div className="coach-feature-head">
         <div className="arrow-logo"><Icon name="ArrowRight" size={24} strokeWidth={3} /></div>
         <div>
-          <small>{report.sessionType || report.title} � {formatDate(report.date)}</small>
-          <h2>{report.title || "�ltimo an�lisis"}</h2>
+          <small>{report.sessionType || report.title} — {formatDate(report.date)}</small>
+          <h2>{report.title || "último análisis"}</h2>
         </div>
       </div>
 
@@ -4251,7 +4251,7 @@ function FeaturedReport({ report, prs = [] }) {
           <div className="coach-pr-list">
             {prs.map((pr, i) => (
               <span key={i} className="coach-pr-badge">
-                <Icon name="TrendingUp" size={12} /> {pr.exercise}: {pr.weight}kg � {pr.reps}
+                <Icon name="TrendingUp" size={12} /> {pr.exercise}: {pr.weight}kg — {pr.reps}
               </span>
             ))}
           </div>
@@ -4290,7 +4290,7 @@ function FeaturedReport({ report, prs = [] }) {
 
       <div className="notice compact">
         <b>Recordatorio</b>
-        <p>El peso corporal no define todo: mir� fuerza, cintura, volumen y constancia semanal.</p>
+        <p>El peso corporal no define todo: miró fuerza, cintura, volumen y constancia semanal.</p>
       </div>
     </div>
   );

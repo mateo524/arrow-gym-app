@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+ï»¿import { useState, useMemo, useEffect } from "react";
 import { useShallow } from "zustand/react/shallow";
 import useStore from "../store/useStore.js";
 import useAuthStore from "../store/useAuthStore.js";
@@ -65,22 +65,23 @@ export default function HomePage() {
   // Daily streak: consecutive days with at least 1 workout or cardio
   // If today hasn't been trained yet, we look backwards from yesterday so the streak isn't broken mid-day
   const streak = useMemo(() => {
-    const trainedDates = new Set([
+    const activeDates = new Set([
       ...(workouts || []).map(w => w.date?.slice(0,10)),
       ...(cardioHistory || []).map(c => c.date?.slice(0,10)),
+      ...(restDays || []).map(r => r.date?.slice(0,10)),
     ].filter(Boolean));
-    if (!trainedDates.size) return 0;
+    if (!activeDates.size) return 0;
     const today = new Date();
     const todayStr = dateToLocal(today);
-    const startI = trainedDates.has(todayStr) ? 0 : 1;
+    const startI = activeDates.has(todayStr) ? 0 : 1;
     let count = 0;
     for (let i = startI; i < 365; i++) {
       const d = new Date(today);
       d.setDate(today.getDate() - i);
-      if (trainedDates.has(dateToLocal(d))) { count++; } else { break; }
+      if (activeDates.has(dateToLocal(d))) { count++; } else { break; }
     }
     return count;
-  }, [workouts, cardioHistory]);
+  }, [workouts, cardioHistory, restDays]);
 
   const consistencyScore = useMemo(() => {
     if (!workouts?.length) return null;
@@ -93,7 +94,7 @@ export default function HomePage() {
       const key = dateToLocal(monday).slice(0, 10);
       weeks[key] = (weeks[key] || 0) + 1;
     });
-    const weekKeys = Object.keys(weeks).sort().slice(-8); // últimas 8 semanas
+    const weekKeys = Object.keys(weeks).sort().slice(-8); // Ãºltimas 8 semanas
     if (weekKeys.length < 2) return null;
     const achieved = weekKeys.filter(k => weeks[k] >= goal).length;
     return Math.round((achieved / weekKeys.length) * 100);
@@ -129,9 +130,9 @@ export default function HomePage() {
     if (workouts.length < 3) return null;
     const normalize = t => {
       const l = (t || "").toLowerCase();
-      if (/push|pecho|chest|hombro|trícep|tricep/.test(l)) return "Push";
-      if (/pull|espalda|back|bícep|bicep/.test(l)) return "Pull";
-      if (/leg|pierna|cuádric|isquio|sentadilla/.test(l)) return "Legs";
+      if (/push|pecho|chest|hombro|trÃ­cep|tricep/.test(l)) return "Push";
+      if (/pull|espalda|back|bÃ­cep|bicep/.test(l)) return "Pull";
+      if (/leg|pierna|cuÃ¡dric|isquio|sentadilla/.test(l)) return "Legs";
       if (/upper|superior/.test(l)) return "Upper";
       if (/lower|inferior/.test(l)) return "Lower";
       if (/full|completo/.test(l)) return "Full Body";
@@ -150,7 +151,7 @@ export default function HomePage() {
     return checkCycle(["Push", "Pull", "Legs"]) || checkCycle(["Upper", "Lower"]) || null;
   }, [workouts]);
 
-  // Weekly summary — last Mon?Sun
+  // Weekly summary â€” last Mon?Sun
   const monthDays = useMemo(() => {
     const prefix = todayLocal().slice(0,7);
     return new Set(workouts.filter(w => w.date?.startsWith(prefix)).map(w => w.date?.slice(0,10))).size;
@@ -168,7 +169,7 @@ export default function HomePage() {
     const cardioDates = new Set((cardioHistory || []).map(c => c.date?.slice(0,10)).filter(Boolean));
     const today = new Date();
     const todayStr = dateToLocal(today);
-    const DAY_NAMES = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+    const DAY_NAMES = ["Dom","Lun","Mar","MiÃ©","Jue","Vie","SÃ¡b"];
     const dayOfWeek = today.getDay();
     const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
     return Array.from({ length: 7 }, (_, i) => {
@@ -179,7 +180,7 @@ export default function HomePage() {
     });
   }, [workouts, cardioHistory]);
 
-  // Feature 2: "Casi llegás" — 1 or 2 workouts away from weekly goal
+  // Feature 2: "Casi llegÃ¡s" â€” 1 or 2 workouts away from weekly goal
   const almostThere = useMemo(() => {
     const goal = adaptedWeeklyGoal;
     const done = weekCalendar.filter(d => d.trained || d.cardio).length;
@@ -188,7 +189,7 @@ export default function HomePage() {
     return remaining; // 1 or 2
   }, [adaptedWeeklyGoal, weekCalendar]);
 
-  // Upcoming achievements — earned achievements with next tier within reach
+  // Upcoming achievements â€” earned achievements with next tier within reach
   const upcomingAchievements = useMemo(() => {
     const earned = getAchievements(workouts, prs, mealLog, weightLog, restDays);
     const candidates = earned
@@ -213,7 +214,7 @@ export default function HomePage() {
 
   // -- Presentation helpers (no business logic) --
   const hour = new Date().getHours();
-  const greeting = hour < 6 ? "Buenas noches" : hour < 13 ? "Buenos días" : hour < 20 ? "Buenas tardes" : "Buenas noches";
+  const greeting = hour < 6 ? "Buenas noches" : hour < 13 ? "Buenos dÃ­as" : hour < 20 ? "Buenas tardes" : "Buenas noches";
   const firstName = name.split(" ")[0];
 
   // Motivational status line derived from existing data
@@ -222,10 +223,10 @@ export default function HomePage() {
   const trainedToday = weekCalendar.some(d => d.isToday && (d.trained || d.cardio));
   const statusLine = (() => {
     if (workouts.length === 0) return "Tu primer entrenamiento te espera";
-    if (weekDone >= adaptedWeeklyGoal) return "Semana completa — seguí sumando ??";
-    if (trainedToday) return "Ya entrenaste hoy, bien ahí ??";
+    if (weekDone >= adaptedWeeklyGoal) return "Semana completa â€” seguÃ­ sumando ??";
+    if (trainedToday) return "Ya entrenaste hoy, bien ahÃ­ ??";
     if (streak > 0) return `Tu semana va al ${weekPct}%`;
-    return "Arrancá una nueva racha hoy";
+    return "ArrancÃ¡ una nueva racha hoy";
   })();
 
   return (
@@ -258,26 +259,26 @@ export default function HomePage() {
             try {
               const { supabase } = await import("../lib/supabase.js");
               const { data, error } = await supabase.functions.invoke("mp-create-subscription");
-              if (data?.already_active) { window.__showToast?.("Ya tenés una suscripción activa.", "info"); return; }
+              if (data?.already_active) { window.__showToast?.("Ya tenÃ©s una suscripciÃ³n activa.", "info"); return; }
               if (!error && data?.init_point) window.location.href = data.init_point;
-              else window.__showToast?.("No se pudo iniciar el pago. Intentá de nuevo.", "error");
-            } catch { window.__showToast?.("Error de conexión.", "error"); }
+              else window.__showToast?.("No se pudo iniciar el pago. IntentÃ¡ de nuevo.", "error");
+            } catch { window.__showToast?.("Error de conexiÃ³n.", "error"); }
           }}
           style={{ background: "linear-gradient(135deg, rgba(168,85,247,.15), rgba(99,102,241,.12))", border: "1px solid rgba(168,85,247,.3)", borderRadius: 14, padding: "12px 16px", marginBottom: 16, cursor: "pointer", display: "flex", alignItems: "center", gap: 12 }}
         >
           <span style={{ fontSize: 24, flexShrink: 0 }}>??</span>
           <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 700, fontSize: 13, color: "var(--text)" }}>Desbloqueá el Coach IA y Nutrición</div>
-            <div style={{ fontSize: 12, color: "var(--muted)" }}>$10.000/mes · renovación automática · cancelá cuando quieras</div>
+            <div style={{ fontWeight: 700, fontSize: 13, color: "var(--text)" }}>DesbloqueÃ¡ el Coach IA y NutriciÃ³n</div>
+            <div style={{ fontSize: 12, color: "var(--muted)" }}>$10.000/mes â€” renovaciÃ³n automÃ¡tica â€” cancelÃ¡ cuando quieras</div>
           </div>
-          <span style={{ fontSize: 18, color: "var(--muted)" }}>›</span>
+          <span style={{ fontSize: 18, color: "var(--muted)" }}>â€º</span>
         </div>
       )}
 
       {/* Dashboard principal */}
       {(
         <>
-          {/* CTA principal — primer elemento visible */}
+          {/* CTA principal â€” primer elemento visible */}
           <div style={{ marginBottom: 16, marginTop: 4 }}>
             <button
               className={`primary big${!activeWorkout ? " home-cta-pulse" : ""}`}
@@ -288,7 +289,7 @@ export default function HomePage() {
             </button>
             {f.deload_alert && deload && (
               <div style={{ background:"rgba(245,158,11,.1)", border:"1px solid rgba(245,158,11,.3)", borderRadius:12, padding:"10px 12px", fontSize:13, marginTop:10 }}>
-                ?? <b>Semana de descarga sugerida</b> — bajá los pesos al 60% esta semana.
+                ?? <b>Semana de descarga sugerida</b> â€” bajÃ¡ los pesos al 60% esta semana.
               </div>
             )}
           </div>
@@ -297,14 +298,14 @@ export default function HomePage() {
           {comebackDays !== null && (
             <div style={{ background: comebackDays >= 7 ? "rgba(168,85,247,.07)" : "rgba(239,68,68,.07)", border: comebackDays >= 7 ? "1px solid rgba(168,85,247,.25)" : "1px solid rgba(239,68,68,.3)", borderRadius: 16, padding: "16px 16px", marginBottom: 14 }}>
               <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 6 }}>
-                {comebackDays >= 7 ? "Bienvenido de vuelta" : comebackDays >= 4 ? "? La adaptación muscular se frena" : "?? Tu racha te espera"}
+                {comebackDays >= 7 ? "Bienvenido de vuelta" : comebackDays >= 4 ? "? La adaptaciÃ³n muscular se frena" : "?? Tu racha te espera"}
               </div>
               <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 12 }}>
                 {comebackDays >= 7
-                  ? <>Retomá donde lo dejaste. <b style={{ color: "var(--text)" }}>Una sesión corta hoy cuenta igual.</b></>
+                  ? <>RetomÃ¡ donde lo dejaste. <b style={{ color: "var(--text)" }}>Una sesiÃ³n corta hoy cuenta igual.</b></>
                   : comebackDays >= 4
-                  ? <><b style={{ color: "var(--text)" }}>{comebackDays} días</b> sin entrenar. La masa muscular empieza a perder adaptación después de 5-7 días.</>
-                  : <><b style={{ color: "var(--text)" }}>{comebackDays} días</b> sin entrenar. Tu racha espera — hoy la reiniciás.</>
+                  ? <><b style={{ color: "var(--text)" }}>{comebackDays} dÃ­as</b> sin entrenar. La masa muscular empieza a perder adaptaciÃ³n despuÃ©s de 5-7 dÃ­as.</>
+                  : <><b style={{ color: "var(--text)" }}>{comebackDays} dÃ­as</b> sin entrenar. Tu racha espera â€” hoy la reiniciÃ¡s.</>
                 }
               </div>
               <button className="primary" style={{ fontSize: 13, padding: "8px 16px" }} onClick={() => setPage("start")}>
@@ -318,7 +319,7 @@ export default function HomePage() {
             {/* Racha */}
             {f.streak_pressure && (() => {
               const isMilestone = streak > 0 && [3,7,14,21,30,60,90,100,365].includes(streak);
-              const milestoneMsg = streak >= 365 ? "¡Leyenda! ??" : streak >= 100 ? "¡Centenario! ??" : streak >= 60 ? "¡Imparable!" : streak >= 30 ? "¡Un mes! ??" : streak >= 21 ? "¡3 semanas!" : streak >= 14 ? "¡2 semanas!" : streak >= 7 ? "¡Una semana!" : "¡3 días! ??";
+              const milestoneMsg = streak >= 365 ? "Â¡Leyenda! ??" : streak >= 100 ? "Â¡Centenario! ??" : streak >= 60 ? "Â¡Imparable!" : streak >= 30 ? "Â¡Un mes! ??" : streak >= 21 ? "Â¡3 semanas!" : streak >= 14 ? "Â¡2 semanas!" : streak >= 7 ? "Â¡Una semana!" : "Â¡3 dÃ­as! ??";
               const todayStr2 = todayLocal();
               const isRestToday = (restDays || []).some(r => r.date === todayStr2);
               return (
@@ -334,7 +335,7 @@ export default function HomePage() {
                     <div>
                       <div style={{ fontWeight:900, fontSize:"clamp(28px, 8vw, 42px)", color: streak>=30?"#ef4444":streak>=7?"#f97316":"#f59e0b", lineHeight:1 }}>{streak}</div>
                       <div style={{ fontSize:11, color: isMilestone ? "#f59e0b" : "var(--muted)", marginTop:2, fontWeight: isMilestone ? 700 : 400 }}>
-                        {streak === 0 ? "sin racha" : isMilestone ? milestoneMsg : `día${streak !== 1 ? "s" : ""} de racha`}
+                        {streak === 0 ? "sin racha" : isMilestone ? milestoneMsg : `dÃ­a${streak !== 1 ? "s" : ""} de racha`}
                       </div>
                       {consistencyScore !== null && (
                         <span style={{ fontSize: 10, color: 'var(--muted)', display: 'block' }}>
@@ -351,7 +352,7 @@ export default function HomePage() {
                         onClick={() => logRestDay && logRestDay()}
                         style={{ background:"rgba(6,182,212,.1)", border:"1px solid rgba(6,182,212,.3)", borderRadius:8, padding:"3px 8px", fontSize:10, color:"#06b6d4", fontWeight:600, cursor:"pointer", alignSelf:"flex-start" }}
                       >
-                        + Registrar día libre
+                        + Registrar dÃ­a libre
                       </button>
                   }
                 </div>
@@ -375,7 +376,7 @@ export default function HomePage() {
                   <div>
                     <div style={{ fontSize:13, fontWeight:700, color:"var(--text)" }}>Objetivo semanal</div>
                     <div style={{ fontSize:11, color:"var(--muted)", marginTop:2 }}>
-                      {goal - done > 0 ? `${goal - done} entrenos restantes` : "¡Meta cumplida! ??"}
+                      {goal - done > 0 ? `${goal - done} entrenos restantes` : "Â¡Meta cumplida! ??"}
                     </div>
                     {done > goal && (
                       <div style={{ fontSize:10, color:"var(--green)", marginTop:2, fontWeight:600 }}>+{done - goal} entrenamiento{done - goal !== 1 ? "s" : ""} extra esta semana</div>
@@ -387,7 +388,7 @@ export default function HomePage() {
           </div>
 
 
-          {/* Próxima meta */}
+          {/* PrÃ³xima meta */}
           {(() => {
             if (!prs.length) return null;
             const latest = [...prs].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')))[0];
@@ -397,20 +398,20 @@ export default function HomePage() {
               <div style={{ background:"rgba(168,85,247,.06)", border:"1px solid rgba(168,85,247,.2)", borderRadius:14, padding:"10px 14px", marginBottom:12, display:"flex", alignItems:"center", gap:10 }}>
                 <span style={{ fontSize:20 }}>??</span>
                 <div>
-                  <div style={{ fontSize:13, fontWeight:700 }}>Próxima meta</div>
+                  <div style={{ fontSize:13, fontWeight:700 }}>PrÃ³xima meta</div>
                   <div style={{ fontSize:12, color:"var(--muted)" }}>{latest.exercise}: <b style={{ color:"var(--green)" }}>{nextGoal}kg</b></div>
                 </div>
               </div>
             );
           })()}
 
-          {/* Feature 2: "Casi llegás" */}
+          {/* Feature 2: "Casi llegÃ¡s" */}
           {almostThere !== null && (
             <div style={{ background: "rgba(168,85,247,.08)", border: "1px solid rgba(168,85,247,.25)", borderRadius: 14, padding: "10px 14px", marginBottom: 12, display: "flex", alignItems: "center", gap: 10 }}>
               <span style={{ fontSize: 20 }}>??</span>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>
-                  {almostThere === 2 ? "Dos más para tu objetivo" : "¡Una más para completar tu semana!"}
+                  {almostThere === 2 ? "Dos mÃ¡s para tu objetivo" : "Â¡Una mÃ¡s para completar tu semana!"}
                 </div>
               </div>
               <button className="primary" style={{ fontSize: 12, padding: "6px 12px", flexShrink: 0 }} onClick={() => setPage("start")}>
@@ -444,9 +445,9 @@ export default function HomePage() {
                 </div>
                 {/* Daily calories */}
                 <div className="home-stat-card" style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:16, padding:"14px 14px 12px" }}>
-                  <div style={{ fontSize:10, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:6 }}>Calorías hoy</div>
+                  <div style={{ fontSize:10, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:6 }}>CalorÃ­as hoy</div>
                   <div style={{ fontSize:20, fontWeight:900, color:todayKcal>0?"#f59e0b":"var(--muted)", marginBottom:8, lineHeight:1 }}>
-                    {todayKcal>0?todayKcal:"—"}{todayKcal>0&&<span style={{ fontSize:12, fontWeight:400, color:"var(--muted)", marginLeft:3 }}>kcal</span>}
+                    {todayKcal>0?todayKcal:"â€”"ï¿½"}{todayKcal>0&&<span style={{ fontSize:12, fontWeight:400, color:"var(--muted)", marginLeft:3 }}>kcal</span>}
                   </div>
                   {/* Mini weekly bars */}
                   <div style={{ display:"flex", gap:3, alignItems:"flex-end", height:20 }}>
@@ -465,7 +466,7 @@ export default function HomePage() {
           {monthlyVolume.current > 0 && (() => {
             const vol = monthlyVolume.current;
             const prev = monthlyVolume.prev;
-            const volStr = vol >= 10000 ? `${(vol / 1000).toFixed(1)} t` : `${vol.toLocaleString("es-AR")} kg`;
+            const volStr = vol >= 1000 ? `${(vol / 1000).toFixed(1)} k` : `${vol.toLocaleString("es-AR")} kg`;
             let comparison = null;
             if (prev > 0) {
               const pct = Math.round(((vol - prev) / prev) * 100);
@@ -511,7 +512,7 @@ export default function HomePage() {
                   const def = achMap.get(a.id);
                   if (!def) return null;
                   return (
-                    <div key={a.id} style={{ flexShrink:0, background:"var(--panel)", border:"1px solid rgba(34,211,120,.25)", borderRadius:14, padding:"10px 14px", textAlign:"center", minWidth:80 }}>
+                    <div key={a.id} onClick={() => setPage("badges")} style={{ flexShrink:0, background:"var(--panel)", border:"1px solid rgba(34,211,120,.25)", borderRadius:14, padding:"10px 14px", textAlign:"center", minWidth:80, cursor:"pointer" }}>
                       <div style={{ fontSize:24 }}>{def.icon}</div>
                       <div style={{ fontSize:11, color:"var(--text)", fontWeight:600, marginTop:4 }}>{def.title}</div>
                     </div>
@@ -521,12 +522,12 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* Próximos logros — goal-gradient progress bars */}
+          {/* PrÃ³ximos logros â€” goal-gradient progress bars */}
           {recentAch.length === 0 && upcomingAchievements.length === 0 && (
             <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:14, padding:"14px 16px", marginBottom:14, textAlign:"center" }}>
               <div style={{ fontSize:28, marginBottom:6 }}>??</div>
-              <div style={{ fontSize:13, fontWeight:700, marginBottom:4 }}>Tus logros aparecen acá</div>
-              <div style={{ fontSize:12, color:"var(--muted)", lineHeight:1.5 }}>Completá tu primer entreno para empezar a desbloquear badges y ver tu progreso.</div>
+              <div style={{ fontSize:13, fontWeight:700, marginBottom:4 }}>Tus logros aparecen acÃ¡</div>
+              <div style={{ fontSize:12, color:"var(--muted)", lineHeight:1.5 }}>CompletÃ¡ tu primer entreno para empezar a desbloquear badges y ver tu progreso.</div>
               <button className="primary" style={{ marginTop:12, fontSize:13, padding:"8px 20px" }} onClick={() => setPage("start")}>
                 Empezar ahora ?
               </button>
@@ -534,12 +535,12 @@ export default function HomePage() {
           )}
           {upcomingAchievements.length > 0 && (
             <div style={{ marginBottom:14 }}>
-              <p className="section-label">Próximos logros</p>
+              <p className="section-label">PrÃ³ximos logros</p>
               <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
                 {upcomingAchievements.map((ach, i) => {
                   const pct = Math.min(100, Math.round(ach.ratio * 100));
                   return (
-                    <div key={i} style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:12, padding:"10px 12px" }}>
+                    <div key={i} onClick={() => setPage("badges")} style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:12, padding:"10px 12px", cursor:"pointer" }}>
                       <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:6 }}>
                         <span style={{ fontSize:18 }}>{ach.icon}</span>
                         <div style={{ flex:1, minWidth:0 }}>
@@ -561,7 +562,7 @@ export default function HomePage() {
 
           {/* Mapa muscular semanal */}
           {f.muscle_map && <div style={{ marginTop: 14 }}>
-            <p className="section-label">Mapa muscular — esta semana</p>
+            <p className="section-label">Mapa muscular â€” esta semana</p>
             <AdvancedMuscleDiagram
               workouts={workouts}
               onMuscleClick={(muscle) => setActiveMuscle(activeMuscle === muscle ? null : muscle)}
@@ -582,16 +583,16 @@ export default function HomePage() {
             )}
           </div>}
 
-          {/* Último entrenamiento */}
+          {/* Ãºltimo entrenamiento */}
           {last && (
             <div>
-              <p className="section-label">Último entrenamiento</p>
+              <p className="section-label">Ãºltimo entrenamiento</p>
               <button className="card as-button" style={{ marginTop:0 }} onClick={() => useStore.getState().openWorkout(last.id)}>
                 <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
                   <div>
                     <h2 style={{ margin:"0 0 3px", fontSize:16 }}>{last.type}</h2>
                     <p style={{ margin:"0 0 4px", fontSize:12 }}>{formatDate(last.date)}</p>
-                    <strong>{last.sets?.length ?? 0} series · {Math.round(getWorkoutVolume(last))} kg</strong>
+                    <strong>{last.sets?.length ?? 0} series â€” {Math.round(getWorkoutVolume(last))} kg</strong>
                   </div>
                   <Icon name="ChevronRight" size={16} style={{ color:"var(--muted)", flexShrink:0, marginTop:2 }} />
                 </div>
@@ -610,7 +611,7 @@ export default function HomePage() {
 
       {/* Quick access grid */}
       <div style={{ marginTop: 14, marginBottom: 4 }}>
-        <p className="section-label">Accesos rápidos</p>
+        <p className="section-label">Accesos rÃ¡pidos</p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
           {[
             { id: "history",      icon: "BarChart2",     label: "Historial",  color: "var(--accent)" },
@@ -630,7 +631,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Acceso rápido admin/trainer */}
+      {/* Acceso rÃ¡pido admin/trainer */}
       {(isAdmin || isTrainer) && (
         <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
           {(isTrainer || isAdmin) && (
@@ -663,4 +664,8 @@ export default function HomePage() {
     </section>
   );
 }
+
+
+
+
 

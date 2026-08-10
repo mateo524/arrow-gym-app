@@ -3063,6 +3063,7 @@ input, select, textarea,
 .ex-name-input, .field-mini input, .session-notes {
   background: rgba(255,255,255,.04);
   border: 1px solid rgba(255,255,255,.1);
+  color: var(--text);
   transition: border-color var(--dur) var(--ease-out), box-shadow var(--dur) var(--ease-out), background var(--dur) var(--ease-out);
 }
 input:focus, select:focus, textarea:focus,

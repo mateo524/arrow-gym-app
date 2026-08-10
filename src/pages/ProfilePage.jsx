@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+ï»¿import { useState, useRef, useEffect } from "react";
 import useStore from "../store/useStore.js";
 import useAuthStore from "../store/useAuthStore.js";
 import { supabase } from "../lib/supabase.js";
@@ -8,8 +8,8 @@ import { parseImportFile } from "../lib/importCSV.js";
 import { subscribeToPush, requestPushPermission, isPushSupported, isIosNotInstalled } from "../lib/pushNotifications.js";
 
 const GOALS = [
-  { id: "volumen",       label: "Ganar músculo",  icon: "??" },
-  { id: "definicion",    label: "Definición",     icon: "??" },
+  { id: "volumen",       label: "Ganar mÃ¡sculo",  icon: "??" },
+  { id: "definicion",    label: "DefiniciÃ³n",     icon: "??" },
   { id: "mantenimiento", label: "Salud general",  icon: "?" },
   { id: "rendimiento",   label: "Fuerza",         icon: "?" },
 ];
@@ -130,17 +130,17 @@ export default function ProfilePage() {
             localStorage.setItem("pushSubscription", JSON.stringify(sub));
             setNotifEnabled(true);
           } else {
-            alert("No se pudo activar. Verificá que la app esté instalada como PWA y volvé a intentar.");
+            alert("No se pudo activar. VerificÃ¡ que la app estÃ¡ instalada como PWA y volvÃ¡ a intentar.");
           }
         } else if (permission === "denied") {
-          alert("Notificaciones bloqueadas. Habilitá los permisos del navegador en Configuración del sistema.");
+          alert("Notificaciones bloqueadas. HabilitÃ¡ los permisos del navegador en ConfiguraciÃ³n del sistema.");
         } else {
-          alert("Permiso no otorgado. Tocá Permitir cuando el navegador te lo solicite.");
+          alert("Permiso no otorgado. TocÃ¡ Permitir cuando el navegador te lo solicite.");
         }
       }
     } catch (e) {
       console.error("Toggle notifications error:", e);
-      alert("Error al activar notificaciones. Intentá de nuevo.");
+      alert("Error al activar notificaciones. IntentÃ¡ de nuevo.");
     }
     setNotifLoading(false);
   }
@@ -160,7 +160,7 @@ export default function ProfilePage() {
   async function generateTrainerInvite() {
     if (trainerInviteLoading) return;
     setTrainerInviteLoading(true);
-    // Reusar código existente no usado si hay uno vigente
+    // Reusar cÃ³digo existente no usado si hay uno vigente
     const { data: existing } = await supabase.from("trainer_invites")
       .select("code, expires_at")
       .eq("created_by", profile.id)
@@ -277,7 +277,7 @@ export default function ProfilePage() {
     const trimmed = newName.trim();
     if (!trimmed) return;
     const uid = profile?.id || user?.id;
-    if (!uid) { setNameMsg("Error: sesión no válida"); return; }
+    if (!uid) { setNameMsg("Error: sesiÃ³n no vÃ¡lida"); return; }
     const { error } = await supabase.from("profiles").update({ name: trimmed }).eq("id", uid);
     if (error) {
       setNameMsg("Error: " + error.message);
@@ -290,8 +290,8 @@ export default function ProfilePage() {
 
   async function handleChangePwd(e) {
     e.preventDefault();
-    if (newPwd !== confirmPwd) { setPwdMsg("Las contraseñas no coinciden."); return; }
-    if (newPwd.length < 8) { setPwdMsg("Mínimo 8 caracteres."); return; }
+    if (newPwd !== confirmPwd) { setPwdMsg("Las contraseÃ±as no coinciden."); return; }
+    if (newPwd.length < 8) { setPwdMsg("MÃ­nimo 8 caracteres."); return; }
     setSavingPwd(true);
     setPwdMsg("");
     const { error } = await supabase.auth.updateUser({ password: newPwd });
@@ -299,7 +299,7 @@ export default function ProfilePage() {
     if (error) {
       setPwdMsg("Error: " + error.message);
     } else {
-      setPwdMsg("? Contraseña actualizada");
+      setPwdMsg("? ContraseÃ±a actualizada");
       setNewPwd(""); setConfirmPwd("");
       setTimeout(() => { setShowChangePwd(false); setPwdMsg(""); }, 1500);
     }
@@ -349,7 +349,7 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Subscription status — only for regular users */}
+        {/* Subscription status â€” only for regular users */}
         {role === "user" && (() => {
           const isActive = profile?.subscription_status === "active";
           const hasPreapproval = !!profile?.mp_preapproval_id;
@@ -360,29 +360,29 @@ export default function ProfilePage() {
             try {
               const { data, error } = await supabase.functions.invoke("mp-create-subscription");
               if (data?.already_active) {
-                window.__showToast?.("Ya tenés una suscripción activa.", "info");
+                window.__showToast?.("Ya tenÃ©s una suscripciÃ³n activa.", "info");
                 return;
               }
               if (!error && data?.init_point) {
                 window.location.href = data.init_point;
               } else {
-                window.__showToast?.("No se pudo iniciar el pago. Intentá de nuevo.", "error");
+                window.__showToast?.("No se pudo iniciar el pago. IntentÃ¡ de nuevo.", "error");
               }
             } catch {
-              window.__showToast?.("Error de conexión.", "error");
+              window.__showToast?.("Error de conexiÃ³n.", "error");
             }
           };
 
           const handleCancel = async () => {
-            if (!confirm("¿Cancelar tu suscripción mensual? Seguirá activa hasta el próximo vencimiento.")) return;
+            if (!confirm("Â¿Cancelar tu suscripciÃ³n mensual? SeguirÃ¡ activa hasta el prÃ³ximo vencimiento.")) return;
             try {
               const { data, error } = await supabase.functions.invoke("mp-cancel-subscription");
               if (!error && data?.ok) {
-                window.__showToast?.("Suscripción cancelada. Seguirá activa hasta el vencimiento.", "info");
+                window.__showToast?.("SuscripciÃ³n cancelada. SeguirÃ¡ activa hasta el vencimiento.", "info");
               } else {
-                window.__showToast?.("No se pudo cancelar. Intentá de nuevo.", "error");
+                window.__showToast?.("No se pudo cancelar. IntentÃ¡ de nuevo.", "error");
               }
-            } catch { window.__showToast?.("Error de conexión.", "error"); }
+            } catch { window.__showToast?.("Error de conexiÃ³n.", "error"); }
           };
 
           return (
@@ -391,32 +391,32 @@ export default function ProfilePage() {
                 <span style={{ fontSize: 22 }}>{isActive ? "?" : "??"}</span>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 700, fontSize: 14 }}>
-                    {isActive ? (hasPreapproval ? "Suscripción mensual activa" : "Suscripción activa") : "Sin suscripción activa"}
+                    {isActive ? (hasPreapproval ? "SuscripciÃ³n mensual activa" : "SuscripciÃ³n activa") : "Sin suscripciÃ³n activa"}
                   </div>
                   <div style={{ fontSize: 12, color: "var(--muted)" }}>
                     {isActive
                       ? hasPreapproval
-                        ? `Se renueva automáticamente${daysUntilRenewal !== null ? ` · vence en ${daysUntilRenewal} día${daysUntilRenewal !== 1 ? "s" : ""}` : ""}`
-                        : `Plan mensual $10.000 ARS${daysUntilRenewal !== null ? ` · vence en ${daysUntilRenewal} día${daysUntilRenewal !== 1 ? "s" : ""}` : ""}`
-                      : "Accedé al Coach IA y Nutrición · $10.000/mes"}
+                        ? `Se renueva automÃ¡ticamente${daysUntilRenewal !== null ? ` â€” vence en ${daysUntilRenewal} dÃ­a${daysUntilRenewal !== 1 ? "s" : ""}` : ""}`
+                        : `Plan mensual $10.000 ARS${daysUntilRenewal !== null ? ` â€” vence en ${daysUntilRenewal} dÃ­a${daysUntilRenewal !== 1 ? "s" : ""}` : ""}`
+                      : "AccedÃ¡ al Coach IA y NutriciÃ³n â€” $10.000/mes"}
                   </div>
                 </div>
               </div>
               {!isActive && (
                 <button className="primary" style={{ width: "100%", padding: "11px", borderRadius: 12, fontSize: 13, marginTop: 8 }} onClick={handleSubscribe}>
-                  Suscribirme — $10.000/mes · renovación automática
+                  Suscribirme â€” $10.000/mes â€” renovaciÃ³n automÃ¡tica
                 </button>
               )}
               {isActive && hasPreapproval && (
                 <button onClick={handleCancel} style={{ background: "none", border: "none", color: "var(--muted)", fontSize: 12, cursor: "pointer", padding: "4px 0", textDecoration: "underline" }}>
-                  Cancelar suscripción
+                  Cancelar suscripciÃ³n
                 </button>
               )}
             </div>
           );
         })()}
 
-        {/* Referral card — only for students (not trainers/admins) */}
+        {/* Referral card â€” only for students (not trainers/admins) */}
         {role === "user" && profile?.referral_code && (() => {
           const converted = (referralCount || []).filter(r => r.converted_at).length;
           const pending   = (referralCount || []).filter(r => !r.converted_at).length;
@@ -427,7 +427,7 @@ export default function ProfilePage() {
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
                 <span style={{ fontSize: 22 }}>??</span>
                 <div>
-                  <h2 style={{ margin: 0, fontSize: 15 }}>Invitá amigos, ganá semanas gratis</h2>
+                  <h2 style={{ margin: 0, fontSize: 15 }}>InvitÃ¡ amigos, ganÃ¡ semanas gratis</h2>
                   <p style={{ margin: 0, fontSize: 12, color: "var(--muted)" }}>Cada amigo que se suscribe = 1 semana gratis. 5 = mes gratis.</p>
                 </div>
               </div>
@@ -458,36 +458,36 @@ export default function ProfilePage() {
               <button
                 onClick={copyReferralLink}
                 style={{ width: "100%", padding: "12px", borderRadius: 12, background: referralCopied ? "rgba(52,211,153,.2)" : "rgba(168,85,247,.15)", border: `1px solid ${referralCopied ? "rgba(52,211,153,.5)" : "rgba(168,85,247,.4)"}`, color: referralCopied ? "#34d399" : "var(--green)", fontSize: 14, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                {referralCopied ? "? Link copiado!" : "?? Copiar mi link de invitación"}
+                {referralCopied ? "? Link copiado!" : "?? Copiar mi link de invitaciÃ³n"}
               </button>
             </div>
           );
         })()}
 
-        {/* Trainer invite panel — solo para trainers y admins */}
+        {/* Trainer invite panel â€” solo para trainers y admins */}
         {(role === "trainer" || role === "admin" || role === "superadmin") && (
           <div style={{ background:"var(--panel)", borderRadius:16, padding:"14px 16px", marginBottom:12 }}>
             <div style={{ fontWeight:700, fontSize:14, marginBottom:4 }}>?? Invitaciones</div>
             <p style={{ fontSize:12, color:"var(--muted)", marginBottom:12, lineHeight:1.5 }}>
-              Generá links para incorporar alumnos o colegas entrenadores.
+              GenerÃ¡ links para incorporar alumnos o colegas entrenadores.
             </p>
             <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
               <button
                 onClick={generateStudentInvite}
                 disabled={studentInviteLoading}
                 style={{ padding:"11px 14px", borderRadius:12, background: studentInviteCopied ? "rgba(52,211,153,.2)" : "rgba(52,211,153,.1)", border:`1px solid ${studentInviteCopied ? "rgba(52,211,153,.6)" : "rgba(52,211,153,.3)"}`, color: studentInviteCopied ? "#34d399" : "#34d399", fontSize:13, fontWeight:700, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
-                {studentInviteLoading ? "Generando…" : studentInviteCopied ? "? Link de alumno copiado!" : "?? Copiar link para alumno"}
+                {studentInviteLoading ? "Generandoâ€¦" : studentInviteCopied ? "? Link de alumno copiado!" : "?? Copiar link para alumno"}
               </button>
               <button
                 onClick={generateTrainerInvite}
                 disabled={trainerInviteLoading}
                 style={{ padding:"11px 14px", borderRadius:12, background: trainerInviteCopied ? "rgba(168,85,247,.2)" : "rgba(168,85,247,.1)", border:`1px solid ${trainerInviteCopied ? "rgba(168,85,247,.6)" : "rgba(168,85,247,.3)"}`, color: trainerInviteCopied ? "#c084fc" : "#a855f7", fontSize:13, fontWeight:700, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
-                {trainerInviteLoading ? "Generando…" : trainerInviteCopied ? "? Link de entrenador copiado!" : "??? Copiar link para entrenador colega"}
+                {trainerInviteLoading ? "Generandoâ€¦" : trainerInviteCopied ? "? Link de entrenador copiado!" : "??? Copiar link para entrenador colega"}
               </button>
             </div>
             {(trainerInviteCode || studentInviteCode) && (
               <p style={{ fontSize:11, color:"var(--muted)", marginTop:8, textAlign:"center" }}>
-                Los links de entrenador expiran en 7 días y son de un solo uso.
+                Los links de entrenador expiran en 7 dÃ­as y son de un solo uso.
               </p>
             )}
           </div>
@@ -517,18 +517,18 @@ export default function ProfilePage() {
 
           {bodyMetrics.length > 0 && (
             <div style={{ fontSize:12, color:"var(--muted)", marginTop:6 }}>
-              Último registro: {bodyMetrics[bodyMetrics.length-1].weight}kg el {bodyMetrics[bodyMetrics.length-1].date}
+              Ãºltimo registro: {bodyMetrics[bodyMetrics.length-1].weight}kg el {bodyMetrics[bodyMetrics.length-1].date}
             </div>
           )}
         </div>
 
         {/* Settings */}
         <div className="card">
-          <h2>Configuración</h2>
+          <h2>ConfiguraciÃ³n</h2>
 
           {/* Font size control */}
           <div className="settings-row" style={{ alignItems: "center" }}>
-            <div><label>Tamaño de letra</label><small>Ajustá el zoom de toda la app</small></div>
+            <div><label>TamaÃ±o de letra</label><small>AjustÃ¡ el zoom de toda la app</small></div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <button
                 onClick={() => setFontScale(Math.max(0.8, Math.round((fontScale - 0.1) * 10) / 10))}
@@ -565,7 +565,7 @@ export default function ProfilePage() {
             <div className="settings-row">
               <div>
                 <label>Notificaciones push</label>
-                <small>{notifEnabled ? "Activas — te avisamos cuando termina el descanso" : "Desactivadas"}</small>
+                <small>{notifEnabled ? "Activas â€” te avisamos cuando termina el descanso" : "Desactivadas"}</small>
               </div>
               <button
                 onClick={toggleNotifications}
@@ -581,14 +581,14 @@ export default function ProfilePage() {
             <div className="settings-row">
               <div>
                 <label>Notificaciones push</label>
-                <small>Para activarlas en iOS, instalá la app: tocá Compartir ? "Añadir a inicio"</small>
+                <small>Para activarlas en iOS, instalÃ¡ la app: tocÃ¡ Compartir ? "Agregar al inicio"</small>
               </div>
             </div>
           )}
 
           {mutedHintTypes.length > 0 && (
             <div className="settings-row" style={{ flexDirection: "column", alignItems: "flex-start", gap: 8 }}>
-              <div><label>Alertas silenciadas</label><small>Tocá para reactivar</small></div>
+              <div><label>Alertas silenciadas</label><small>TocÃ¡ para reactivar</small></div>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {mutedHintTypes.map(type => (
                   <button key={type} onClick={() => toggleMutedHintType(type)}
@@ -601,7 +601,7 @@ export default function ProfilePage() {
           )}
 
           <div className="settings-row" style={{ flexDirection: "column", alignItems: "flex-start", gap: 8 }}>
-            <div><label>Objetivo</label><small>Define cómo el coach adapta sus consejos y rangos de repeticiones</small></div>
+            <div><label>Objetivo</label><small>Define cÃ³mo el coach adapta sus consejos y rangos de repeticiones</small></div>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               { GOALS.map(g => (
                 <button key={g.id} onClick={() => {
@@ -618,11 +618,11 @@ export default function ProfilePage() {
             {(() => {
               const repRanges = { volumen: "8-12 reps", definicion: "10-15 reps", mantenimiento: "8-15 reps", rendimiento: "1-6 reps" };
               const restTimes = { volumen: "90 seg", definicion: "45-60 seg", mantenimiento: "75 seg", rendimiento: "3-5 min" };
-              const freqSugg = { volumen: "3-4 días/sem", definicion: "4-5 días/sem", mantenimiento: "3 días/sem", rendimiento: "3-4 días/sem" };
+              const freqSugg = { volumen: "3-4 dÃ­as/sem", definicion: "4-5 dÃ­as/sem", mantenimiento: "3 dÃ­as/sem", rendimiento: "3-4 dÃ­as/sem" };
               return (
                 <div style={{ fontSize: 12, color: "var(--muted)", background: "var(--panel2)", borderRadius: 8, padding: "6px 10px", marginTop: 2 }}>
                   <b style={{ color: "var(--text)" }}>{GOALS.find(g => g.id === userGoal)?.label}:</b>{" "}
-                  {repRanges[userGoal]} · descanso {restTimes[userGoal]} · {freqSugg[userGoal]}
+                  {repRanges[userGoal]} â€” descanso {restTimes[userGoal]} â€” {freqSugg[userGoal]}
                 </div>
               );
             })()}
@@ -632,7 +632,7 @@ export default function ProfilePage() {
           <div className="settings-row" style={{ alignItems: "center" }}>
             <div style={{ flex: 1 }}>
               <label>Sugerencias del coach</label>
-              <small>Desactivá si solo querés registrar sin recibir análisis</small>
+              <small>DesactivÃ¡ si solo querÃ©s registrar sin recibir anÃ¡lisis</small>
             </div>
             <button onClick={async () => {
               if (!profile?.id) return;
@@ -656,10 +656,10 @@ export default function ProfilePage() {
 
           {/* -- Modo de app -- */}
           <div className="settings-row" style={{ flexDirection: "column", alignItems: "flex-start", gap: 8 }}>
-            <div><label>¿Cómo querés usar Loop?</label><small>Podés cambiarlo cuando quieras — afecta qué funciones ves</small></div>
+            <div><label>Â¿CÃ³mo querÃ©s usar Loop?</label><small>PodÃ©s cambiarlo cuando quieras â€” afecta quÃ¡ funciones ves</small></div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6, width: "100%" }}>
               {[
-                { id: "simple",   icon: "??", label: "Solo registrar",   sub: "Sin sugerencias ni análisis extra" },
+                { id: "simple",   icon: "??", label: "Solo registrar",   sub: "Sin sugerencias ni anÃ¡lisis extra" },
                 { id: "standard", icon: "??", label: "Registrar + coach", sub: "El coach te avisa si algo no avanza" },
                 { id: "advanced", icon: "??", label: "Control total",     sub: "Volumen, cargas, RPE, semanas de descarga" },
               ].map(opt => {
@@ -691,7 +691,7 @@ export default function ProfilePage() {
           </div>
 
           <div className="settings-row" style={{ flexDirection: "column", alignItems: "flex-start", gap: 8 }}>
-            <div><label>Actividad diaria</label><small>Afecta la meta de entrenamientos semanales y el cálculo calórico</small></div>
+            <div><label>Actividad diaria</label><small>Afecta la meta de entrenamientos semanales y el cÃ¡lculo calÃ³rico</small></div>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               {LEVELS.map(l => (
                 <button key={l.id} onClick={() => setActivityLevel(l.id)}
@@ -721,7 +721,7 @@ export default function ProfilePage() {
 
           {role === "user" && (
             <div className="settings-row" style={{ flexDirection: "column", alignItems: "flex-start", gap: 8 }}>
-              <div><label>¿Sos entrenador?</label><small>Activá el panel de entrenador para gestionar alumnos y generar links de invitación</small></div>
+              <div><label>Â¿Sos entrenador?</label><small>ActivÃ¡ el panel de entrenador para gestionar alumnos y generar links de invitaciÃ³n</small></div>
               <button
                 className="primary"
                 style={{ fontSize: 13, padding: "10px 18px", borderRadius: 12 }}
@@ -730,9 +730,9 @@ export default function ProfilePage() {
                   try {
                     const { error } = await supabase.rpc("request_trainer_role");
                     if (error) throw error;
-                    window.__showToast?.("Solicitud enviada. Un admin la revisará pronto.", "success");
+                    window.__showToast?.("Solicitud enviada. Un admin la revisarÃ¡ pronto.", "success");
                   } catch {
-                    window.__showToast?.("Error al enviar la solicitud. Intentá de nuevo.", "error");
+                    window.__showToast?.("Error al enviar la solicitud. IntentÃ¡ de nuevo.", "error");
                     e.currentTarget.disabled = false;
                   }
                 }}
@@ -745,13 +745,13 @@ export default function ProfilePage() {
           <div className="settings-row" style={{ flexDirection:"column", alignItems:"flex-start", gap:8 }}>
             <div>
               <label>?? Modo competencia</label>
-              <small>Definí una fecha meta y el coach adapta tu plan</small>
+              <small>DefinÃ¡ una fecha meta y el coach adapta tu plan</small>
             </div>
             {competitionDate ? (
               <div style={{ display:"flex", gap:8, alignItems:"center", width:"100%" }}>
                 <div style={{ flex:1, background:"var(--panel2)", borderRadius:10, padding:"8px 12px" }}>
                   <div style={{ fontSize:13, fontWeight:700, color:"var(--green)" }}>{competitionName || "Meta"}</div>
-                  <div style={{ fontSize:12, color:"var(--muted)" }}>{competitionDate} · {(() => { const d = Math.ceil((new Date(competitionDate)-new Date())/86400000); return d > 0 ? `${d} días` : d === 0 ? "¡Hoy!" : "Fecha pasada"; })()}</div>
+                  <div style={{ fontSize:12, color:"var(--muted)" }}>{competitionDate} â€” {(() => { const d = Math.ceil((new Date(competitionDate)-new Date())/86400000); return d > 0 ? `${d} dÃ­as` : d === 0 ? "Â¡Hoy!" : "Fecha pasada"; })()}</div>
                 </div>
                 <button onClick={clearCompetitionMode} className="ghost" style={{ padding:"8px 12px", fontSize:13 }}>?</button>
               </div>
@@ -770,14 +770,14 @@ export default function ProfilePage() {
           </div>
 
           <div className="settings-row">
-            <div><label>?? Mediciones corporales</label><small>Peso, pliegues, perímetros y más</small></div>
+            <div><label>?? Mediciones corporales</label><small>Peso, pliegues, perÃ­metros y mÃ¡s</small></div>
             <button className="ghost" style={{ padding: "8px 14px", fontSize: 13 }} onClick={() => setPage("measurements")}>
               Ver
             </button>
           </div>
 
           <div className="settings-row">
-            <div><label>Contraseña</label><small>Cambiá tu contraseña</small></div>
+            <div><label>ContraseÃ±a</label><small>CambiÃ¡ tu contraseÃ±a</small></div>
             <button className="ghost" style={{ padding: "8px 14px", fontSize: 13 }}
               onClick={() => { setShowChangePwd(!showChangePwd); setPwdMsg(""); }}>
               Cambiar
@@ -787,14 +787,14 @@ export default function ProfilePage() {
           {showChangePwd && (
             <form onSubmit={handleChangePwd} style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 10 }}>
               <div className="field-group">
-                <label>Nueva contraseña</label>
+                <label>Nueva contraseÃ±a</label>
                 <input type="password" value={newPwd} onChange={(e) => setNewPwd(e.target.value)}
-                  placeholder="Mínimo 8 caracteres" autoComplete="new-password" required minLength={8} />
+                  placeholder="MÃ­nimo 8 caracteres" autoComplete="new-password" required minLength={8} />
               </div>
               <div className="field-group">
-                <label>Confirmar contraseña</label>
+                <label>Confirmar contraseÃ±a</label>
                 <input type="password" value={confirmPwd} onChange={(e) => setConfirmPwd(e.target.value)}
-                  placeholder="Repetí la contraseña" autoComplete="new-password" required />
+                  placeholder="RepetÃ¡ la contraseÃ±a" autoComplete="new-password" required />
               </div>
               {pwdMsg && (
                 <div className={pwdMsg.startsWith("?") ? "success-msg" : "login-error"}>
@@ -803,7 +803,7 @@ export default function ProfilePage() {
                 </div>
               )}
               <button type="submit" className="primary" style={{ width: "100%" }} disabled={savingPwd}>
-                {savingPwd ? "Guardando…" : "Guardar contraseña"}
+                {savingPwd ? "Guardandoâ€¦" : "Guardar contraseÃ±a"}
               </button>
             </form>
           )}
@@ -813,7 +813,7 @@ export default function ProfilePage() {
         <div className="card" style={{ marginTop: 14 }}>
           <h2>Datos</h2>
           <div className="settings-row">
-            <div><label>Exportar mis datos</label><small>Descargá todo tu historial en formato JSON</small></div>
+            <div><label>Exportar mis datos</label><small>DescargÃ¡ todo tu historial en formato JSON</small></div>
             <button className="ghost" style={{ padding: "8px 14px", fontSize: 13 }} onClick={() => {
               const state = useStore.getState();
               const data = {
@@ -841,8 +841,8 @@ export default function ProfilePage() {
           <p className="settings-label">Importar historial</p>
           <div style={{ background: "var(--panel2)", borderRadius: 14, padding: "14px 16px" }}>
             <p style={{ margin: "0 0 10px", fontSize: 13, color: "var(--muted)", lineHeight: 1.5 }}>
-              Traé tus entrenamientos desde <b style={{ color: "var(--text)" }}>Strong</b> o <b style={{ color: "var(--text)" }}>Hevy</b>.<br />
-              Exportá el CSV desde la app y subilo acá.
+              TraÃ¡ tus entrenamientos desde <b style={{ color: "var(--text)" }}>Strong</b> o <b style={{ color: "var(--text)" }}>Hevy</b>.<br />
+              ExportÃ¡ el CSV desde la app y subilo acÃ¡.
             </p>
             <input
               ref={fileInputRef}
@@ -866,7 +866,7 @@ export default function ProfilePage() {
             {importDone !== null && (
               <div style={{ marginTop: 10, background: "rgba(52,211,153,.1)", border: "1px solid rgba(52,211,153,.3)", borderRadius: 10, padding: "10px 14px" }}>
                 <p style={{ margin: 0, fontSize: 13, color: "#34d399", fontWeight: 700 }}>
-                  ? {importDone === 0 ? "No había entrenamientos nuevos (ya estaban importados)" : `${importDone} entrenamientos importados`}
+                  ? {importDone === 0 ? "No habÃ­a entrenamientos nuevos (ya estaban importados)" : `${importDone} entrenamientos importados`}
                 </p>
               </div>
             )}
@@ -874,7 +874,7 @@ export default function ProfilePage() {
             {importPreview && (
               <div style={{ marginTop: 10, background: "rgba(168,85,247,.07)", border: "1px solid rgba(168,85,247,.25)", borderRadius: 12, padding: "12px 14px" }}>
                 <p style={{ margin: "0 0 4px", fontSize: 12, fontWeight: 700, color: "var(--green)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                  Vista previa · {importPreview.format === "strong" ? "Strong" : "Hevy"}
+                  Vista previa â€” {importPreview.format === "strong" ? "Strong" : "Hevy"}
                 </p>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, margin: "8px 0 12px" }}>
                   {[
@@ -889,7 +889,7 @@ export default function ProfilePage() {
                   ))}
                 </div>
                 <p style={{ margin: "0 0 10px", fontSize: 11, color: "var(--muted)" }}>
-                  Los entrenamientos que ya existían en Loop no se duplican.
+                  Los entrenamientos que ya existÃ­an en Loop no se duplican.
                 </p>
                 <div style={{ display: "flex", gap: 8 }}>
                   <button className="ghost" style={{ flex: 1, fontSize: 13, padding: "9px 0" }} onClick={() => setImportPreview(null)}>
@@ -907,7 +907,7 @@ export default function ProfilePage() {
         {/* Logout */}
         <button className="ghost danger-btn" style={{ width: "100%", marginTop: 10 }}
           onClick={() => setShowLogoutConfirm(true)}>
-          <Icon name="LogOut" size={16} /> Cerrar sesión
+          <Icon name="LogOut" size={16} /> Cerrar sesiÃ³n
         </button>
 
         {/* Delete account */}
@@ -930,7 +930,7 @@ export default function ProfilePage() {
                   <div style={{ fontSize: 40, marginBottom: 8 }}>??</div>
                   <h2 style={{ margin: "0 0 6px", color: "var(--danger)" }}>Eliminar cuenta</h2>
                   <p style={{ color: "var(--muted)", fontSize: 14, margin: 0, lineHeight: 1.6 }}>
-                    Se borrarán permanentemente todos tus entrenamientos, mediciones, PRs y datos. <b style={{ color: "var(--text)" }}>Esta acción no se puede deshacer.</b>
+                    Se borrarÃ³n permanentemente todos tus entrenamientos, mediciones, PRs y datos. <b style={{ color: "var(--text)" }}>Esta acciÃ³n no se puede deshacer.</b>
                   </p>
                 </div>
                 <div style={{ display: "flex", gap: 10 }}>
@@ -949,9 +949,9 @@ export default function ProfilePage() {
               <>
                 <div style={{ textAlign: "center", padding: "8px 0 16px" }}>
                   <div style={{ fontSize: 40, marginBottom: 8 }}>???</div>
-                  <h2 style={{ margin: "0 0 6px" }}>¿Estás seguro?</h2>
+                  <h2 style={{ margin: "0 0 6px" }}>Â¿EstÃ¡s seguro?</h2>
                   <p style={{ color: "var(--muted)", fontSize: 14, margin: 0 }}>
-                    No hay vuelta atrás. Tu historial de entrenamiento se perderá para siempre.
+                    No hay vuelta atrÃ¡s. Tu historial de entrenamiento se perderÃ¡ para siempre.
                   </p>
                 </div>
                 {deleteError && (
@@ -970,7 +970,7 @@ export default function ProfilePage() {
                       try {
                         const { data, error } = await supabase.functions.invoke("delete-account");
                         if (error || data?.error) {
-                          setDeleteError("Error al eliminar. Intentá de nuevo o contactá soporte.");
+                          setDeleteError("Error al eliminar. IntentÃ¡ de nuevo o contactÃ¡ soporte.");
                           setDeleting(false);
                           return;
                         }
@@ -979,12 +979,12 @@ export default function ProfilePage() {
                         await supabase.auth.signOut();
                         useAuthStore.getState().logout();
                       } catch {
-                        setDeleteError("Error de conexión. Intentá de nuevo.");
+                        setDeleteError("Error de conexiÃ³n. IntentÃ¡ de nuevo.");
                         setDeleting(false);
                       }
                     }}
                   >
-                    {deleting ? "Eliminando…" : "Sí, eliminar todo"}
+                    {deleting ? "Eliminandoâ€¦" : "SÃ­, eliminar todo"}
                   </button>
                 </div>
               </>
@@ -999,7 +999,7 @@ export default function ProfilePage() {
           <div className="modal-card confirm-modal" onClick={(e) => e.stopPropagation()}>
             <div style={{ textAlign: "center", padding: "8px 0 16px" }}>
               <Icon name="LogOut" size={32} style={{ color: "var(--danger)" }} />
-              <h2 style={{ margin: "12px 0 6px" }}>¿Cerrar sesión?</h2>
+              <h2 style={{ margin: "12px 0 6px" }}>Â¿Cerrar sesiÃ³n?</h2>
               <p style={{ color: "var(--muted)", fontSize: 14, margin: 0 }}>
                 Vas a salir de tu cuenta en este dispositivo.
               </p>
@@ -1019,4 +1019,10 @@ export default function ProfilePage() {
     </>
   );
 }
+
+
+
+
+
+
 
