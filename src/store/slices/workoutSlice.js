@@ -1,4 +1,5 @@
 import { ROUTINES } from "../../data/seedData.js";
+import { T } from "../../lib/telemetry.js";
 import { buildCoachReport, hydrateSet, calcEffective1RM, getPersonalizedChallenge } from "../../lib/analytics.js";
 import { loadInitialWorkouts, normalizeSet } from "../../lib/storageMigration.js";
 import { syncWorkoutUp, syncAllWorkoutsUp, fetchWorkoutsFromDB, mergeWorkouts } from "../../lib/workoutSync.js";
@@ -179,6 +180,7 @@ export const createWorkoutSlice = (set, get) => ({
     const workouts = get().workouts || [];
     const adj = get().activePlanAdjustment;
     const factor = adj && new Date(adj.expiresAt) >= new Date() ? adj.factor : 1;
+    T.workoutStarted({ type, workout_number: workouts.length + 1 });
     set({
       activeWorkout: {
         id: uid("workout"), type, date: today(), startedAt: Date.now(),
@@ -250,11 +252,17 @@ export const createWorkoutSlice = (set, get) => ({
     set({ activeWorkout: { ...active, sets: [...active.sets, next] } });
   },
 
-  updateActiveSet: (id, patch) => set((s) => ({
-    activeWorkout: s.activeWorkout
-      ? { ...s.activeWorkout, sets: s.activeWorkout.sets.map((setItem) => setItem.id === id ? hydrateSet({ ...setItem, ...patch }) : setItem) }
-      : s.activeWorkout,
-  })),
+  updateActiveSet: (id, patch) => {
+    if (patch.done === true) {
+      const setItem = (get().activeWorkout?.sets || []).find(s => s.id === id);
+      T.setLogged({ exercise: setItem?.exercise, weight: patch.weight ?? setItem?.weight, reps: patch.reps ?? setItem?.reps });
+    }
+    set((s) => ({
+      activeWorkout: s.activeWorkout
+        ? { ...s.activeWorkout, sets: s.activeWorkout.sets.map((setItem) => setItem.id === id ? hydrateSet({ ...setItem, ...patch }) : setItem) }
+        : s.activeWorkout,
+    }));
+  },
 
   repeatSet: (id) => {
     const active = get().activeWorkout;
@@ -364,16 +372,17 @@ export const createWorkoutSlice = (set, get) => ({
       prs: [...newPrsList, ...existingPrs].slice(0, 200),
       ...planUpdate,
     }));
-    // PostHog: workout completed
-    try {
-      import('posthog-js').then(({ default: ph }) => {
-        ph.capture('workout_completed', {
-          duration_mins: Math.round((clean.durationMin || 0)),
-          total_sets: (clean.sets || []).length,
-          prs_hit: newPrsList.length,
-        });
-      });
-    } catch {}
+    // Telemetría: workout terminado + hitos de activación
+    const totalWorkouts = get().workouts.length; // ya incluye el actual
+    T.workoutFinished({
+      duration_mins: Math.round(clean.durationMin || 0),
+      total_sets: (clean.sets || []).length,
+      prs_hit: newPrsList.length,
+      workout_number: totalWorkouts,
+    });
+    if (totalWorkouts === 2 || totalWorkouts === 4 || totalWorkouts === 8) {
+      T.workoutN(totalWorkouts, { prs_total: (get().prs || []).length });
+    }
 
     // "El Grito": show PR card and notify trainer when a new PR is hit
     if (newPrsList.length > 0) {
