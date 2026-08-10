@@ -308,7 +308,7 @@ export default function OnboardingModal() {
                     disabled={connectingTrainer || !inviteCode.trim()}
                     style={{ padding: "12px 16px", borderRadius: 12, flexShrink: 0 }}
                   >
-                    {connectingTrainer ? "… : "Conectar"}
+                    {connectingTrainer ? "…" : "Conectar"}
                   </button>
                 </div>
                 {inviteMsg && (

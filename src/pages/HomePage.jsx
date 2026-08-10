@@ -447,7 +447,7 @@ export default function HomePage() {
                 <div className="home-stat-card" style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:16, padding:"14px 14px 12px" }}>
                   <div style={{ fontSize:10, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:6 }}>Calorías hoy</div>
                   <div style={{ fontSize:20, fontWeight:900, color:todayKcal>0?"#f59e0b":"var(--muted)", marginBottom:8, lineHeight:1 }}>
-                    {todayKcal>0?todayKcal:"—"�"}{todayKcal>0&&<span style={{ fontSize:12, fontWeight:400, color:"var(--muted)", marginLeft:3 }}>kcal</span>}
+                    {todayKcal>0?todayKcal:"—"}{todayKcal>0&&<span style={{ fontSize:12, fontWeight:400, color:"var(--muted)", marginLeft:3 }}>kcal</span>}
                   </div>
                   {/* Mini weekly bars */}
                   <div style={{ display:"flex", gap:3, alignItems:"flex-end", height:20 }}>
