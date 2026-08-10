@@ -628,6 +628,42 @@ export default function ProfilePage() {
             })()}
           </div>
 
+          {/* ── Modo de app ── */}
+          <div className="settings-row" style={{ flexDirection: "column", alignItems: "flex-start", gap: 8 }}>
+            <div><label>¿Cómo querés usar Loop?</label><small>Podés cambiarlo cuando quieras — afecta qué funciones ves</small></div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, width: "100%" }}>
+              {[
+                { id: "simple",   icon: "📝", label: "Solo registrar",   sub: "Sin sugerencias ni análisis extra" },
+                { id: "standard", icon: "💪", label: "Registrar + coach", sub: "El coach te avisa si algo no avanza" },
+                { id: "advanced", icon: "🔬", label: "Control total",     sub: "Volumen, cargas, RPE, semanas de descarga" },
+              ].map(opt => {
+                const isActive = (profile?.ui_mode ?? "standard") === opt.id;
+                return (
+                  <button key={opt.id} onClick={async () => {
+                    if (!profile?.id) return;
+                    const { error } = await supabase.from("profiles").update({ ui_mode: opt.id }).eq("id", profile.id);
+                    if (!error) {
+                      useAuthStore.setState(s => ({ profile: { ...s.profile, ui_mode: opt.id } }));
+                      window.__showToast?.("Modo actualizado", "success");
+                    }
+                  }} style={{
+                    display: "flex", alignItems: "center", gap: 10, textAlign: "left",
+                    padding: "10px 12px", borderRadius: 12, cursor: "pointer",
+                    border: `1.5px solid ${isActive ? "var(--green)" : "var(--line)"}`,
+                    background: isActive ? "rgba(34,211,120,.08)" : "var(--panel2)",
+                  }}>
+                    <span style={{ fontSize: 20, flexShrink: 0 }}>{opt.icon}</span>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: isActive ? "var(--green)" : "var(--text)" }}>{opt.label}</div>
+                      <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>{opt.sub}</div>
+                    </div>
+                    {isActive && <span style={{ marginLeft: "auto", fontSize: 16, color: "var(--green)" }}>✓</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="settings-row" style={{ flexDirection: "column", alignItems: "flex-start", gap: 8 }}>
             <div><label>Actividad diaria</label><small>Afecta la meta de entrenamientos semanales y el cálculo calórico</small></div>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
