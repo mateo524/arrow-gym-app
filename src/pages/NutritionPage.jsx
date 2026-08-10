@@ -74,29 +74,36 @@ export default function NutritionPage() {
   const today = todayLocal();
   const bodyWeight = Number([...weightLog].sort((a,b) => String(b.date).localeCompare(String(a.date)))[0]?.kg) || null;
 
-  // TDEE estimate
+  // TDEE estimate — Harris-Benedict simplificado sin altura/sexo
+  // Multipliers: mantenimiento=sedentario-leve, volumen=moderado, definicion=moderado, rendimiento=activo
   const tdee = useMemo(() => {
     if (!bodyWeight) return null;
-    const base = bodyWeight * 24; // rough RMR
-    const multipliers = { mantenimiento:1.5, volumen:1.6, definicion:1.45, rendimiento:1.65 };
-    return Math.round(base * (multipliers[userGoal] ?? 1.5));
+    // RMR aproximado: 22 kcal/kg (promedio hombre+mujer sin datos de composición)
+    const rmr = bodyWeight * 22;
+    const multipliers = { mantenimiento:1.55, volumen:1.65, definicion:1.50, rendimiento:1.70 };
+    return Math.round(rmr * (multipliers[userGoal] ?? 1.55));
   }, [bodyWeight, userGoal]);
 
-  // Macro targets
+  // Macro targets — consenso deportivo para gym-goers
+  // Proteína: 1.6g/kg mant, 2.0g/kg volumen, 2.2g/kg definición, 1.8g/kg rendimiento
+  // (el mínimo OMS de 0.8g/kg es para sedentarios; para gym el estándar es 1.6-2.2g/kg)
   const targets = useMemo(() => {
-    if (!bodyWeight) return { kcal: tdee || 2000, protein: 160, carbs: 250, fat: 65 };
+    const bw = bodyWeight || 70; // fallback 70kg si no hay peso registrado
     const goalMap = {
-      volumen:       { proteinFactor:2.2, carbFactor:4, fatFactor:1.0 },
-      definicion:    { proteinFactor:2.4, carbFactor:2.5, fatFactor:0.8 },
-      mantenimiento: { proteinFactor:1.8, carbFactor:3.5, fatFactor:0.9 },
-      rendimiento:   { proteinFactor:2.0, carbFactor:5, fatFactor:0.9 },
+      volumen:       { proteinFactor:2.0, carbFactor:4.0, fatFactor:1.0 },
+      definicion:    { proteinFactor:2.2, carbFactor:2.5, fatFactor:0.8 },
+      mantenimiento: { proteinFactor:1.6, carbFactor:3.5, fatFactor:1.0 },
+      rendimiento:   { proteinFactor:1.8, carbFactor:5.0, fatFactor:1.0 },
     };
     const g = goalMap[userGoal] ?? goalMap.mantenimiento;
-    const protein = Math.round(bodyWeight * g.proteinFactor);
-    const carbs   = Math.round(bodyWeight * g.carbFactor);
-    const fat     = Math.round(bodyWeight * g.fatFactor);
-    const kcal    = protein*4 + carbs*4 + fat*9;
-    return { kcal, protein, carbs, fat };
+    const protein = Math.round(bw * g.proteinFactor);
+    const fat     = Math.round(bw * g.fatFactor);
+    // Carbs se calculan para cerrar las calorías desde el TDEE
+    const kcalBase = tdee || Math.round(bw * 22 * 1.55);
+    const carbsKcal = kcalBase - (protein * 4) - (fat * 9);
+    const carbs = Math.max(Math.round(carbsKcal / 4), Math.round(bw * g.carbFactor));
+    const kcal  = protein*4 + carbs*4 + fat*9;
+    return { kcal, protein, carbs, fat, proteinPerKg: g.proteinFactor };
   }, [bodyWeight, userGoal, tdee]);
 
   const todayMeals = useMemo(() => mealLog.filter(m => m.date === today), [mealLog, today]);
@@ -286,43 +293,105 @@ export default function NutritionPage() {
 
       {/* ── PLAN ── */}
       {tab === "plan" && (<>
+        {/* Targets card */}
         <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:16, padding:"16px", marginBottom:14 }}>
-          <div style={{ fontSize:13, fontWeight:700, marginBottom:12 }}>Targets calculados para vos</div>
+          <div style={{ fontSize:13, fontWeight:700, marginBottom:4 }}>Targets diarios — {goalLabels[userGoal]}</div>
           {!bodyWeight && (
-            <div style={{ background:"rgba(245,158,11,.1)", border:"1px solid rgba(245,158,11,.3)", borderRadius:10, padding:"10px 12px", fontSize:13, marginBottom:12 }}>
-              ⚠️ Registrá tu peso en <b>Mediciones</b> para que los targets sean precisos.
-              <button onClick={() => setPage("measurements")} style={{ background:"none", border:"none", cursor:"pointer", color:"var(--green)", fontWeight:700, fontSize:13, marginLeft:6 }}>Ir →</button>
+            <div style={{ background:"rgba(245,158,11,.1)", border:"1px solid rgba(245,158,11,.3)", borderRadius:10, padding:"10px 12px", fontSize:12, marginBottom:12 }}>
+              ⚠️ Registrá tu peso en <b>Mediciones</b> para targets precisos.
+              <button onClick={() => setPage("measurements")} style={{ background:"none", border:"none", cursor:"pointer", color:"var(--green)", fontWeight:700, fontSize:12, marginLeft:6 }}>Ir →</button>
             </div>
           )}
-          <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:10 }}>
             {[
-              { label:`Calorías (${goalLabels[userGoal]})`, val:`${targets.kcal} kcal`, color:"var(--green)" },
-              { label:"Proteína",   val:`${targets.protein}g`, color:"#60a5fa" },
-              { label:"Carbohidratos", val:`${targets.carbs}g`, color:"#f59e0b" },
-              { label:"Grasas",     val:`${targets.fat}g`,     color:"#f87171" },
+              { label:"Calorías",      val:`${targets.kcal}`, unit:"kcal", color:"var(--green)" },
+              { label:"Proteína",      val:`${targets.protein}`, unit:`g · ${targets.proteinPerKg}g/kg`, color:"#60a5fa" },
+              { label:"Carbohidratos", val:`${targets.carbs}`, unit:"g", color:"#f59e0b" },
+              { label:"Grasas",        val:`${targets.fat}`, unit:"g", color:"#f87171" },
             ].map(row => (
-              <div key={row.label} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:"1px solid var(--line)" }}>
-                <span style={{ fontSize:13, color:"var(--muted)" }}>{row.label}</span>
-                <span style={{ fontSize:14, fontWeight:800, color:row.color }}>{row.val}</span>
+              <div key={row.label} style={{ background:"var(--panel2)", borderRadius:12, padding:"10px" }}>
+                <div style={{ fontSize:10, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:4 }}>{row.label}</div>
+                <div style={{ fontSize:20, fontWeight:900, color:row.color, lineHeight:1 }}>{row.val}</div>
+                <div style={{ fontSize:10, color:"var(--muted)", marginTop:2 }}>{row.unit}</div>
               </div>
             ))}
           </div>
-          {bodyWeight && <div style={{ fontSize:11, color:"var(--muted)", marginTop:10 }}>Basado en {bodyWeight}kg · objetivo {goalLabels[userGoal].toLowerCase()}</div>}
+          {bodyWeight && (
+            <div style={{ fontSize:11, color:"var(--muted)", background:"rgba(255,255,255,.03)", borderRadius:8, padding:"6px 10px" }}>
+              Basado en <b style={{ color:"var(--text)" }}>{bodyWeight}kg</b> · proteína: {targets.proteinPerKg}g/kg (rango gym: 1.6–2.2g/kg)
+            </div>
+          )}
         </div>
 
-        <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:16, padding:"16px" }}>
-          <div style={{ fontSize:13, fontWeight:700, marginBottom:8 }}>Distribución por comida</div>
+        {/* Distribución por comida */}
+        <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:16, padding:"16px", marginBottom:14 }}>
+          <div style={{ fontSize:13, fontWeight:700, marginBottom:10 }}>Distribución diaria sugerida</div>
           {[
-            ["Desayuno", "25%", Math.round(targets.kcal*0.25)],
-            ["Almuerzo", "35%", Math.round(targets.kcal*0.35)],
-            ["Merienda", "15%", Math.round(targets.kcal*0.15)],
-            ["Cena",     "25%", Math.round(targets.kcal*0.25)],
-          ].map(([name,pct,kcal]) => (
-            <div key={name} style={{ display:"flex", justifyContent:"space-between", padding:"7px 0", borderBottom:"1px solid var(--line)", fontSize:13 }}>
-              <span style={{ color:"var(--muted)" }}>{name}</span>
-              <span>{pct} · <b style={{ color:"var(--green)" }}>{kcal} kcal</b></span>
-            </div>
-          ))}
+            { name:"Desayuno", pct:0.25, icon:"🌅", hint:"Carbos + proteína para arrancar" },
+            { name:"Almuerzo", pct:0.35, icon:"☀️", hint:"La comida más completa del día" },
+            { name:"Merienda", pct:0.15, icon:"🍎", hint:"Snack pre/post entreno" },
+            { name:"Cena",     pct:0.25, icon:"🌙", hint:"Proteína + vegetales, menos carbos" },
+          ].map(({ name, pct, icon, hint }) => {
+            const kcal  = Math.round(targets.kcal * pct);
+            const prot  = Math.round(targets.protein * pct);
+            return (
+              <div key={name} style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 0", borderBottom:"1px solid var(--line)" }}>
+                <span style={{ fontSize:22, width:28, textAlign:"center", flexShrink:0 }}>{icon}</span>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:13, fontWeight:700 }}>{name}</div>
+                  <div style={{ fontSize:11, color:"var(--muted)" }}>{hint}</div>
+                </div>
+                <div style={{ textAlign:"right" }}>
+                  <div style={{ fontSize:14, fontWeight:800, color:"var(--green)" }}>{kcal} kcal</div>
+                  <div style={{ fontSize:10, color:"#60a5fa" }}>{prot}g prot.</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Plan semanal — 7 días con progresión */}
+        <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:16, padding:"16px" }}>
+          <div style={{ fontSize:13, fontWeight:700, marginBottom:4 }}>Plan semanal</div>
+          <div style={{ fontSize:11, color:"var(--muted)", marginBottom:12 }}>Variación de calorías según días de entreno</div>
+          {(() => {
+            const days = ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
+            // Patrón: días de entreno más carbos, descanso menos
+            const patterns = {
+              volumen:       [1.05, 1.0,  1.05, 1.0,  1.05, 1.0, 0.90],
+              definicion:    [1.0,  0.90, 1.0,  0.90, 1.0, 0.85, 0.85],
+              mantenimiento: [1.0,  1.0,  1.0,  1.0,  1.0,  0.95, 0.95],
+              rendimiento:   [1.10, 1.0,  1.10, 1.0,  1.10, 1.0,  0.90],
+            };
+            const mults = patterns[userGoal] ?? patterns.mantenimiento;
+            const trainDays = { volumen:[0,2,4], definicion:[0,2,4], mantenimiento:[0,2,4], rendimiento:[0,2,4,6] };
+            const isTrain = trainDays[userGoal] ?? [0,2,4];
+            return days.map((day, i) => {
+              const kcal  = Math.round(targets.kcal * mults[i]);
+              const prot  = Math.round(targets.protein * (isTrain.includes(i) ? 1.0 : 0.95));
+              const carbs = Math.round(targets.carbs * mults[i]);
+              const isTrainDay = isTrain.includes(i);
+              return (
+                <div key={day} style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 0", borderBottom: i < 6 ? "1px solid var(--line)" : "none" }}>
+                  <div style={{ width:28, fontSize:12, fontWeight:700, color: isTrainDay ? "var(--green)" : "var(--muted)" }}>{day}</div>
+                  <div style={{ flex:1 }}>
+                    <div style={{ height:5, background:"rgba(255,255,255,.07)", borderRadius:3, overflow:"hidden" }}>
+                      <div style={{ width:`${Math.round(mults[i]*100)}%`, height:"100%", background: isTrainDay ? "var(--green)" : "rgba(255,255,255,.2)", borderRadius:3 }} />
+                    </div>
+                  </div>
+                  <div style={{ textAlign:"right", minWidth:90 }}>
+                    <span style={{ fontSize:13, fontWeight:800, color: isTrainDay ? "var(--green)" : "var(--text)" }}>{kcal} kcal</span>
+                    <span style={{ fontSize:10, color:"var(--muted)", marginLeft:6 }}>{prot}g P</span>
+                  </div>
+                  {isTrainDay && <span style={{ fontSize:10, fontWeight:700, color:"var(--green)", background:"rgba(52,211,153,.1)", borderRadius:6, padding:"2px 6px", flexShrink:0 }}>Entreno</span>}
+                  {!isTrainDay && <span style={{ fontSize:10, color:"var(--muted)", width:52, textAlign:"center", flexShrink:0 }}>Descanso</span>}
+                </div>
+              );
+            });
+          })()}
+          <div style={{ fontSize:11, color:"var(--muted)", marginTop:10, padding:"8px 10px", background:"rgba(255,255,255,.03)", borderRadius:8 }}>
+            En días de entreno: más carbohidratos para energía. En descanso: menos calorías totales, proteína similar.
+          </div>
         </div>
       </>)}
 
