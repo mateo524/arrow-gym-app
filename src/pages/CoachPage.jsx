@@ -7,6 +7,7 @@ import { supabase } from "../lib/supabase.js";
 import { shareWorkout } from "../lib/shareWorkout.js";
 import { todayLocal, dateToLocal } from "../lib/dates.js";
 import { buildCoachReport, formatDate, getPeriodizationPhase, getWeeklyFatigueScore, getWeightPrescriptions, getSkippedGroups, getOneRMHistory, getCycleComparison, getMuscleBalance, getWeekComparison, getWorkoutVolume, VOLUME_LANDMARKS, getStagnantExercises, getWeeklyActionableFeedback, calcWorkoutCalories } from "../lib/analytics.js";
+import { features } from "../config/features.js";
 export default function CoachPage() {
   const reports = useStore((state) => state.coachReports) ?? [];
   const workouts = useStore((state) => state.workouts) ?? [];
@@ -50,6 +51,7 @@ export default function CoachPage() {
       </section>
     );
   }
+  const f = features(profile);
   const userAge = profile?.age ? Number(profile.age) : null;
   const weightLog = useStore((state) => state.weightLog) || [];
   const userGoal = useStore((state) => state.userGoal) || "mantenimiento";
@@ -1277,7 +1279,7 @@ export default function CoachPage() {
               })()}
 
               {/* ── Coach insights adaptativos ── */}
-              {(() => {
+              {f.coach_insights && (() => {
                 const hoy = todayLocal();
                 const wDates = [...new Set((workouts||[]).map(w => w.date?.slice(0,10)).filter(Boolean))].sort().reverse();
                 // Streak

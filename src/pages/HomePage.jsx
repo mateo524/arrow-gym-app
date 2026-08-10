@@ -6,6 +6,7 @@ import { todayLocal, dateToLocal } from "../lib/dates.js";
 import { getWorkoutVolume, formatDate, getMuscleIntensity, filterCurrentWeek, getNextWorkoutSuggestion, getDeloadSuggestion, ACHIEVEMENTS_DEF, getAchievements } from "../lib/analytics.js";
 import AdvancedMuscleDiagram from "../components/AdvancedMuscleDiagram.jsx";
 import Icon from "../components/Icon.jsx";
+import { features } from "../config/features.js";
 
 export default function HomePage() {
   const { workouts, restDays, setPage, activeWorkout, achievements, prs, cardioHistory, weeklyGoal, logRestDay, mealLog, weightLog } = useStore(
@@ -39,6 +40,7 @@ export default function HomePage() {
   const role = profile?.role;
   const isAdmin = role === "superadmin" || role === "admin";
   const isTrainer = role === "trainer";
+  const f = features(profile);
 
   const userGoal = useStore((s) => s.userGoal) || "mantenimiento";
   const activityLevel = useStore((s) => s.activityLevel) || "moderado";
@@ -284,7 +286,7 @@ export default function HomePage() {
             >
               {activeWorkout ? "▶ Continuar entrenamiento" : "▶ Empezar entrenamiento"}
             </button>
-            {deload && (
+            {f.deload_alert && deload && (
               <div style={{ background:"rgba(245,158,11,.1)", border:"1px solid rgba(245,158,11,.3)", borderRadius:12, padding:"10px 12px", fontSize:13, marginTop:10 }}>
                 ⚠️ <b>Semana de descarga sugerida</b> — bajá los pesos al 60% esta semana.
               </div>
@@ -312,9 +314,9 @@ export default function HomePage() {
           )}
 
           {/* ── Top metrics row: racha + objetivo semanal ── */}
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginTop:14, marginBottom:14 }}>
+          <div style={{ display:"grid", gridTemplateColumns: f.streak_pressure ? "1fr 1fr" : "1fr", gap:10, marginTop:14, marginBottom:14 }}>
             {/* Racha */}
-            {(() => {
+            {f.streak_pressure && (() => {
               const isMilestone = streak > 0 && [3,7,14,21,30,60,90,100,365].includes(streak);
               const milestoneMsg = streak >= 365 ? "¡Leyenda! 🐐" : streak >= 100 ? "¡Centenario! 💎" : streak >= 60 ? "¡Imparable!" : streak >= 30 ? "¡Un mes! 🥇" : streak >= 21 ? "¡3 semanas!" : streak >= 14 ? "¡2 semanas!" : streak >= 7 ? "¡Una semana!" : "¡3 días! 💪";
               const todayStr2 = todayLocal();
@@ -418,7 +420,7 @@ export default function HomePage() {
           )}
 
           {/* Animated stats */}
-          {(() => {
+          {f.volume_chart && (() => {
             const weekStart = new Date();
             const dow = weekStart.getDay(); const off = dow===0?-6:1-dow;
             weekStart.setDate(weekStart.getDate()+off); weekStart.setHours(0,0,0,0);
@@ -558,7 +560,7 @@ export default function HomePage() {
 
 
           {/* Mapa muscular semanal */}
-          <div style={{ marginTop: 14 }}>
+          {f.muscle_map && <div style={{ marginTop: 14 }}>
             <p className="section-label">Mapa muscular — esta semana</p>
             <AdvancedMuscleDiagram
               workouts={workouts}
@@ -578,7 +580,7 @@ export default function HomePage() {
                 </div>
               </div>
             )}
-          </div>
+          </div>}
 
           {/* Último entrenamiento */}
           {last && (

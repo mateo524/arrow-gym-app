@@ -13,6 +13,7 @@ import ExerciseIllustration from "../components/ExerciseIllustration.jsx";
 import { findExerciseMeta, EXERCISE_DATABASE } from "../data/exerciseDatabase.js";
 import ShareWorkoutCard from "../components/ShareWorkoutCard.jsx";
 import WorkoutPDF from "../components/WorkoutPDF.jsx";
+import { features } from "../config/features.js";
 import { scheduleRestTimerPush } from '../lib/pushNotifications';
 
 function groupSetsByExercise(sets) {
@@ -167,6 +168,7 @@ export default function WorkoutPage() {
     return Number(sorted[0]?.kg || 0);
   }, [weightLog]);
   const profile = useAuthStore((state) => state.profile);
+  const f = features(profile);
   const goal = (userGoal || profile?.goal || "volumen").toLowerCase();
   const prs = useStore(s => s.prs) || [];
   const saveWorkoutDraft = useStore(s => s.saveWorkoutDraft);
@@ -1147,6 +1149,7 @@ export default function WorkoutPage() {
             )}
 
             {/* RPE */}
+            {f.rpe_field && (
             <div style={{ background: "var(--panel)", borderRadius: 14, padding: "12px 14px", marginBottom: 10 }}>
               <p style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 8px" }}>Esfuerzo (RPE)</p>
               <div style={{ display: "flex", gap: 6 }}>
@@ -1160,6 +1163,7 @@ export default function WorkoutPage() {
                 ))}
               </div>
             </div>
+            )}
 
             {/* Notes */}
             <textarea
