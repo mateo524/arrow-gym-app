@@ -64,7 +64,8 @@ export default function NutritionPage() {
   const weightLog      = useStore(s => s.weightLog) || [];
   const userGoal       = useStore(s => s.userGoal) || "mantenimiento";
 
-  const [tab, setTab]         = useState("hoy");    // "hoy" | "semana" | "plan"
+  const [tab, setTab]         = useState("hoy");    // "hoy" | "semana" | "plan" (plan hidden in simple)
+
   const [showForm, setShowForm] = useState(false);
   const [showQuick, setShowQuick] = useState(false);
   const [form, setForm]       = useState({ type:"Almuerzo", name:"", kcal:"", protein:"", carbs:"", fat:"" });
@@ -161,7 +162,7 @@ export default function NutritionPage() {
 
       {/* Tabs */}
       <div style={{ display:"flex", gap:6, marginBottom:16 }}>
-        {[["hoy","Hoy"],["semana","Semana"],["plan","Plan"]].map(([id,label]) => (
+        {[["hoy","Hoy"],["semana","Semana"],...(f.coach_insights ? [["plan","Plan"]] : [])].map(([id,label]) => (
           <button key={id} onClick={() => setTab(id)} style={{
             padding:"6px 14px", borderRadius:20, border:"none", cursor:"pointer", fontSize:13, fontWeight:600,
             background: tab===id ? "var(--green)" : "var(--panel2)", color: tab===id ? "#fff" : "var(--muted)",
@@ -191,8 +192,8 @@ export default function NutritionPage() {
           {macroBar(todayTotals.kcal, targets.kcal, "var(--green)")}
         </div>
 
-        {/* Macros */}
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:14 }}>
+        {/* Macros — hidden in simple mode */}
+        {f.coach_insights && <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:14 }}>
           {[
             { label:"Proteína", val:todayTotals.protein, target:targets.protein, unit:"g", color:"#60a5fa" },
             { label:"Carbs",    val:todayTotals.carbs,   target:targets.carbs,   unit:"g", color:"#f59e0b" },
@@ -205,7 +206,7 @@ export default function NutritionPage() {
               {macroBar(m.val, m.target, m.color)}
             </div>
           ))}
-        </div>
+        </div>}
 
         {/* Quick combos */}
         {savedCombos.length > 0 && (
@@ -255,7 +256,12 @@ export default function NutritionPage() {
         <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:16, padding:"16px", marginBottom:14 }}>
           <div style={{ fontSize:11, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:8 }}>Promedio últimos 7 días</div>
           <div style={{ fontSize:32, fontWeight:900, color:"var(--green)" }}>{weekAvg} <span style={{ fontSize:14, fontWeight:400, color:"var(--muted)" }}>kcal/día</span></div>
-          {tdee && <div style={{ fontSize:12, color:"var(--muted)", marginTop:6 }}>Tu TDEE estimado: <b style={{ color:"var(--text)" }}>{tdee} kcal</b> · objetivo: <b style={{ color:"var(--green)" }}>{goalLabels[userGoal]}</b></div>}
+          {tdee && <div style={{ fontSize:12, color:"var(--muted)", marginTop:6 }}>
+            {f.coach_insights
+              ? <>Tu TDEE estimado: <b style={{ color:"var(--text)" }}>{tdee} kcal</b> · objetivo: <b style={{ color:"var(--green)" }}>{goalLabels[userGoal]}</b></>
+              : <>Meta diaria sugerida: <b style={{ color:"var(--green)" }}>{tdee} kcal</b></>
+            }
+          </div>}
         </div>
         <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
           {Array.from({length:7},(_,i) => {
