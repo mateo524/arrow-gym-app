@@ -212,6 +212,30 @@ export const FOOD_DB = [
   { id:"cn3", cat:"Condimentos",name:"Salsa de tomate",       serving:"2 cdas 30g",  grams:30,  kcal:20,  protein:1,  carbs:4,  fat:0 },
   { id:"cn4", cat:"Condimentos",name:"Hummus",                serving:"2 cdas 30g",  grams:30,  kcal:70,  protein:2,  carbs:6,  fat:5 },
   { id:"cn5", cat:"Condimentos",name:"Salsa chimichurri",     serving:"1 cda 15g",   grams:15,  kcal:40,  protein:0,  carbs:1,  fat:4 },
+
+  // ── BEBIDAS E INFUSIONES ─────────────────────────────────────────────
+  { id:"bv1",  cat:"Bebidas",    name:"Agua",                  serving:"1 vaso 250ml",  grams:250, kcal:0,   protein:0,  carbs:0,  fat:0 },
+  { id:"bv2",  cat:"Bebidas",    name:"Mate (sin azúcar)",     serving:"1 cebadura",    grams:250, kcal:2,   protein:0,  carbs:0,  fat:0 },
+  { id:"bv3",  cat:"Bebidas",    name:"Mate con azúcar",       serving:"1 cebadura",    grams:250, kcal:20,  protein:0,  carbs:5,  fat:0 },
+  { id:"bv4",  cat:"Bebidas",    name:"Café negro",            serving:"1 taza 200ml",  grams:200, kcal:5,   protein:0,  carbs:0,  fat:0 },
+  { id:"bv5",  cat:"Bebidas",    name:"Café con leche",        serving:"1 taza 250ml",  grams:250, kcal:80,  protein:4,  carbs:8,  fat:3 },
+  { id:"bv6",  cat:"Bebidas",    name:"Cortado",               serving:"1 taza 100ml",  grams:100, kcal:30,  protein:2,  carbs:3,  fat:1 },
+  { id:"bv7",  cat:"Bebidas",    name:"Té negro (sin azúcar)", serving:"1 taza 240ml",  grams:240, kcal:2,   protein:0,  carbs:0,  fat:0 },
+  { id:"bv8",  cat:"Bebidas",    name:"Té verde (sin azúcar)", serving:"1 taza 240ml",  grams:240, kcal:2,   protein:0,  carbs:0,  fat:0 },
+  { id:"bv9",  cat:"Bebidas",    name:"Té de manzanilla",      serving:"1 taza 240ml",  grams:240, kcal:2,   protein:0,  carbs:0,  fat:0 },
+  { id:"bv10", cat:"Bebidas",    name:"Jugo de naranja natural",serving:"1 vaso 250ml", grams:250, kcal:110, protein:2,  carbs:26, fat:0 },
+  { id:"bv11", cat:"Bebidas",    name:"Jugo de manzana",       serving:"1 vaso 250ml",  grams:250, kcal:115, protein:0,  carbs:28, fat:0 },
+  { id:"bv12", cat:"Bebidas",    name:"Leche chocolatada",     serving:"1 vaso 250ml",  grams:250, kcal:160, protein:6,  carbs:28, fat:3 },
+  { id:"bv13", cat:"Bebidas",    name:"Gaseosa cola",          serving:"1 lata 354ml",  grams:354, kcal:140, protein:0,  carbs:38, fat:0 },
+  { id:"bv14", cat:"Bebidas",    name:"Gaseosa light/zero",    serving:"1 lata 354ml",  grams:354, kcal:0,   protein:0,  carbs:0,  fat:0 },
+  { id:"bv15", cat:"Bebidas",    name:"Agua saborizada",       serving:"1 botella 500ml",grams:500,kcal:40,  protein:0,  carbs:10, fat:0 },
+  { id:"bv16", cat:"Bebidas",    name:"Bebida isotónica (Gatorade)", serving:"1 botella 500ml", grams:500, kcal:130, protein:0, carbs:34, fat:0 },
+  { id:"bv17", cat:"Bebidas",    name:"Bebida energizante",    serving:"1 lata 250ml",  grams:250, kcal:110, protein:1,  carbs:27, fat:0 },
+  { id:"bv18", cat:"Bebidas",    name:"Cerveza",               serving:"1 lata 354ml",  grams:354, kcal:150, protein:1,  carbs:13, fat:0 },
+  { id:"bv19", cat:"Bebidas",    name:"Vino tinto",            serving:"1 copa 150ml",  grams:150, kcal:125, protein:0,  carbs:4,  fat:0 },
+  { id:"bv20", cat:"Bebidas",    name:"Licuado de banana",     serving:"1 vaso 300ml",  grams:300, kcal:220, protein:8,  carbs:38, fat:3 },
+  { id:"bv21", cat:"Bebidas",    name:"Proteína en polvo (shake)", serving:"1 scoop 30g", grams:30, kcal:120, protein:24, carbs:3, fat:2 },
+  { id:"bv22", cat:"Bebidas",    name:"Yerba mate (infusión)", serving:"1 litro",       grams:1000,kcal:8,   protein:0,  carbs:2,  fat:0 },
 ];
 
 // ── Búsqueda con score de relevancia ────────────────────────────────────────
