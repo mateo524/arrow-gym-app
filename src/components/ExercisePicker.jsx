@@ -143,7 +143,7 @@ export default function ExercisePicker({ onPick, compact = false, query: queryPr
             color: showFavoritesOnly ? "#f59e0b" : "var(--muted)"
           }}
         >
-          ⭐ Favoritos {favoriteExercises.length > 0 && `(${favoriteExercises.length})`}
+          <Icon name="Star" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> Favoritos {favoriteExercises.length > 0 && `(${favoriteExercises.length})`}
         </button>
       </div>
 

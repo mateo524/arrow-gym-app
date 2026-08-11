@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import useStore from "../store/useStore";
 import { todayLocal } from "../lib/dates.js";
+import Icon from "../components/Icon.jsx";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -162,7 +163,7 @@ export default function CalendarPage() {
         <div style={styles.panel}>
           <div style={styles.panelHeader}>
             <span style={styles.panelDate}>{formatDate(selected.date)}</span>
-            <button onClick={() => setSelected(null)} style={styles.closeBtn} aria-label="Cerrar">✕</button>
+            <button onClick={() => setSelected(null)} style={styles.closeBtn} aria-label="Cerrar"><Icon name="X" size={16} style={{display:'inline-block',verticalAlign:'middle'}} /></button>
           </div>
 
           {selected.workouts.map((w, i) => {

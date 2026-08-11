@@ -44,7 +44,7 @@ export default function ChallengesPage() {
                     <div style={{ fontSize:15, fontWeight:800 }}>{ch.exercise}</div>
                     <div style={{ fontSize:12, color:"var(--muted)" }}>Día {done}/{ch.targetDays} · Empezó {ch.startDate}</div>
                   </div>
-                  <button onClick={() => deleteChallenge(ch.id)} style={{ background:"none", border:"none", color:"var(--muted)", cursor:"pointer", fontSize:16 }}>✕</button>
+                  <button onClick={() => deleteChallenge(ch.id)} style={{ background:"none", border:"none", color:"var(--muted)", cursor:"pointer", fontSize:16 }}><Icon name="X" size={16} style={{display:'inline-block',verticalAlign:'middle'}} /></button>
                 </div>
                 <div style={{ height:8, background:"var(--panel2)", borderRadius:4, overflow:"hidden", marginBottom:10 }}>
                   <div style={{ height:"100%", width:`${pct}%`, background: pct>=100 ? "var(--green)" : "#60a5fa", borderRadius:4, transition:"width .4s" }} />
@@ -59,11 +59,11 @@ export default function ChallengesPage() {
                 </div>
                 {!doneToday && done < ch.targetDays && (
                   <button className="primary" style={{ width:"100%" }} onClick={() => markChallengeDay(ch.id)}>
-                    ✓ Marcar hoy como completado
+                    <Icon name="Check" size={14} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> Marcar hoy como completado
                   </button>
                 )}
-                {doneToday && <div style={{ textAlign:"center", color:"var(--green)", fontWeight:700, fontSize:13 }}>✓ Completado hoy</div>}
-                {done >= ch.targetDays && <div style={{ textAlign:"center", color:"var(--green)", fontWeight:900, fontSize:15 }}>🎉 ¡Reto completado!</div>}
+                {doneToday && <div style={{ textAlign:"center", color:"var(--green)", fontWeight:700, fontSize:13 }}><Icon name="Check" size={14} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> Completado hoy</div>}
+                {done >= ch.targetDays && <div style={{ textAlign:"center", color:"var(--green)", fontWeight:900, fontSize:15 }}><Icon name="Sparkles" size={15} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> ¡Reto completado!</div>}
               </div>
             );
           })}

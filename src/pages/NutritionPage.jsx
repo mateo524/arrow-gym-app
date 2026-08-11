@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
 import useStore from "../store/useStore.js";
 import useAuthStore from "../store/useAuthStore.js";
+import Icon from "../components/Icon";
 import { todayLocal } from "../lib/dates.js";
 import { features, vocab } from "../config/features.js";
 import { searchFoods } from "../data/foodDatabase.js";
@@ -321,7 +322,7 @@ export default function NutritionPage() {
           <div style={{ fontSize:13, fontWeight:700, marginBottom:4 }}>Targets diarios — {goalLabels[userGoal]}</div>
           {!bodyWeight && (
             <div style={{ background:"rgba(245,158,11,.1)", border:"1px solid rgba(245,158,11,.3)", borderRadius:10, padding:"10px 12px", fontSize:12, marginBottom:12 }}>
-              ⚠️ Registrá tu peso en <b>Mediciones</b> para targets precisos.
+              <Icon name="AlertTriangle" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> Registrá tu peso en <b>Mediciones</b> para targets precisos.
               <button onClick={() => setPage("measurements")} style={{ background:"none", border:"none", cursor:"pointer", color:"var(--green)", fontWeight:700, fontSize:12, marginLeft:6 }}>Ir →</button>
             </div>
           )}
@@ -462,7 +463,7 @@ export default function NutritionPage() {
 
             {/* Quick foods toggle */}
             <button onClick={() => setShowQuick(p => !p)} style={{ width:"100%", background:"rgba(34,211,120,.08)", border:"1px solid rgba(34,211,120,.2)", borderRadius:12, padding:"10px", fontSize:13, fontWeight:600, cursor:"pointer", color:"var(--green)", marginBottom:14 }}>
-              {showQuick ? "▲ Ocultar alimentos rápidos" : "⚡ Alimentos frecuentes"}
+              {showQuick ? <><Icon name="ChevronUp" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> Ocultar alimentos rápidos</> : <><Icon name="Zap" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> Alimentos frecuentes</>}
             </button>
 
             {showQuick && (

@@ -133,7 +133,7 @@ export default function WorkoutDetailPage() {
       {/* Best set highlight */}
       {bestSet && (
         <div style={{ background:"rgba(168,85,247,.07)", border:"1px solid rgba(168,85,247,.2)", borderRadius:14, padding:"12px 14px", marginBottom:16, display:"flex", alignItems:"center", gap:10 }}>
-          <span style={{ fontSize:22 }}>🏆</span>
+          <Icon name="Trophy" size={22} style={{ display:'inline-block', verticalAlign:'middle' }} />
           <div>
             <p style={{ margin:"0 0 2px", fontSize:11, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.05em" }}>Mejor serie</p>
             <p style={{ margin:0, fontSize:14, fontWeight:800 }}>{bestSet.exercise}</p>

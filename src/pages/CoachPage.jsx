@@ -925,13 +925,17 @@ export default function CoachPage() {
               {periodization.phase !== "unknown" && (() => {
                 const isDeload = periodization.needsDeload || periodization.phase === "deload";
                 const isAccum  = periodization.phase === "accumulation";
+                const planType = isDeload ? "deload" : isAccum ? "volume_up" : "intensity_up";
+                const isDeclined = activePlanAdjustment?.type === planType && activePlanAdjustment?.declined;
+                if (isDeclined) return null;
+                const isActive = activePlanAdjustment?.type === planType && !activePlanAdjustment?.declined && (activePlanAdjustment?.expiresAt == null || new Date(activePlanAdjustment?.expiresAt) >= new Date());
                 const accent   = isDeload ? "#ef4444" : isAccum ? "var(--green)" : "var(--cyan)";
                 const bg       = isDeload ? "rgba(239,68,68,.07)" : isAccum ? "rgba(168,85,247,.07)" : "rgba(117,217,255,.07)";
                 const border   = isDeload ? "rgba(239,68,68,.25)" : isAccum ? "rgba(168,85,247,.2)" : "rgba(117,217,255,.2)";
                 const icon     = isDeload ? "RotateCcw" : isAccum ? "TrendingUp" : "Dumbbell";
                 const label    = periodization.needsDeload ? "Deload recomendado" : isAccum ? "Fase de acumulación" : periodization.phase === "deload" ? "Fase de descarga" : "Fase de intensificación";
                 const desc     = periodization.needsDeload
-                  ? "Llevas 3+ semanas subiendo volumen. Esta semana bajó el peso al 60% y aumentá las repeticiones (12-20 reps por serie) para que el cuerpo se recupere sin perder calidad."
+                  ? "Llevas 3+ semanas subiendo volumen. Esta semana bajá el peso al 60% y aumentá las repeticiones (12-20 reps por serie) para que el cuerpo se recupere sin perder calidad."
                   : isAccum ? "Volumen en alza — buena señal. Priorizá técnica perfecta antes de seguir subiendo cargas."
                   : periodization.phase === "deload" ? "Volumen bajando. Si es planificado, perfecto. Si no, revisá fatiga o motivación."
                   : "Volumen estable — momento ideal para subir la intensidad (más kg, mismas series).";
@@ -945,38 +949,25 @@ export default function CoachPage() {
                       </div>
                     </div>
                     <p style={{ margin:0, fontSize:13, color:"var(--muted)", lineHeight:1.55, marginBottom:12 }}>{desc}</p>
-                    {/* Active adjustment banner */}
-                    {(() => {
-                      const planType = isDeload ? "deload" : isAccum ? "volume_up" : "intensity_up";
-                      const isActive = activePlanAdjustment?.type === planType && !activePlanAdjustment?.declined && (activePlanAdjustment?.expiresAt == null || new Date(activePlanAdjustment?.expiresAt) >= new Date());
-                      const isDeclined = activePlanAdjustment?.type === planType && activePlanAdjustment?.declined;
-                      if (isActive) return (
-                        <div style={{ background:"rgba(168,85,247,.1)", border:"1px solid rgba(168,85,247,.3)", borderRadius:10, padding:"8px 12px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-                          <span style={{ fontSize:12, color:"var(--green)", fontWeight:700 }}><Icon name="CheckCircle" size={12} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> Ajuste activo hasta {activePlanAdjustment.expiresAt}</span>
-                          <button onClick={clearPlanAdjustment} style={{ background:"none", border:"none", color:"var(--muted)", fontSize:11, cursor:"pointer" }}>Cancelar</button>
-                        </div>
-                      );
-                      if (isDeclined) return (
-                        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-                          <p style={{ margin:0, fontSize:12, color:"var(--muted)" }}>Recomendación declinada.</p>
-                          <button onClick={clearPlanAdjustment} style={{ background:"none", border:"none", color:"rgba(168,85,247,.7)", fontSize:11, cursor:"pointer", textDecoration:"underline" }}>Reactivar</button>
-                        </div>
-                      );
-                      return (
-                        <div style={{ display:"flex", gap:8 }}>
-                          <button
-                            onClick={() => acceptPlanRecommendation(planType, isDeload ? 0.6 : 1)}
-                            style={{ flex:1, background:"rgba(168,85,247,.12)", border:"1px solid rgba(168,85,247,.3)", borderRadius:10, padding:"9px", cursor:"pointer", fontSize:13, fontWeight:700, color:"var(--green)" }}>
-                            <Icon name="CheckCircle" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:4}} /> Aceptar
-                          </button>
-                          <button
-                            onClick={() => declinePlanRecommendation(planType)}
-                            style={{ flex:1, background:"rgba(255,255,255,.04)", border:"1px solid var(--line)", borderRadius:10, padding:"9px", cursor:"pointer", fontSize:13, fontWeight:700, color:"var(--muted)" }}>
-                            <Icon name="X" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:4}} /> Declinar
-                          </button>
-                        </div>
-                      );
-                    })()}
+                    {isActive ? (
+                      <div style={{ background:"rgba(168,85,247,.1)", border:"1px solid rgba(168,85,247,.3)", borderRadius:10, padding:"8px 12px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                        <span style={{ fontSize:12, color:"var(--green)", fontWeight:700 }}><Icon name="CheckCircle" size={12} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> Ajuste activo hasta {activePlanAdjustment.expiresAt}</span>
+                        <button onClick={clearPlanAdjustment} style={{ background:"none", border:"none", color:"var(--muted)", fontSize:11, cursor:"pointer" }}>Cancelar</button>
+                      </div>
+                    ) : (
+                      <div style={{ display:"flex", gap:8 }}>
+                        <button
+                          onClick={() => acceptPlanRecommendation(planType, isDeload ? 0.6 : 1)}
+                          style={{ flex:1, background:"rgba(168,85,247,.12)", border:"1px solid rgba(168,85,247,.3)", borderRadius:10, padding:"9px", cursor:"pointer", fontSize:13, fontWeight:700, color:"var(--green)" }}>
+                          <Icon name="CheckCircle" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:4}} /> Aceptar
+                        </button>
+                        <button
+                          onClick={() => declinePlanRecommendation(planType)}
+                          style={{ flex:1, background:"rgba(255,255,255,.04)", border:"1px solid var(--line)", borderRadius:10, padding:"9px", cursor:"pointer", fontSize:13, fontWeight:700, color:"var(--muted)" }}>
+                          <Icon name="X" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:4}} /> No ahora
+                        </button>
+                      </div>
+                    )}
                   </div>
                 );
               })()}
@@ -3258,7 +3249,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
               { icon:"Calendar", label:"Frecuencia semanal", val:g.freq },
             ].map(({ icon, label, val }) => (
               <div key={label} style={{ display:"flex", gap:10, marginBottom:8, alignItems:"flex-start" }}>
-                <span style={{ fontSize:14, flexShrink:0, marginTop:1 }}>{icon}</span>
+                <Icon name={icon} size={14} style={{display:'inline-block',verticalAlign:'middle',flexShrink:0,marginTop:1}} />
                 <div>
                   <p style={{ margin:"0 0 1px", fontSize:11, fontWeight:800, color:"var(--text)" }}>{label}</p>
                   <p style={{ margin:0, fontSize:12, color:"var(--muted)", lineHeight:1.45 }}>{val}</p>
@@ -3268,7 +3259,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
             {/* Recomposición corporal para principiantes */}
             {(bodyFatPct === null || bodyFatPct > 15) && (workouts.length < 30 || (bodyFatPct !== null && bodyFatPct > 20)) && (
               <div style={{ background:"rgba(52,211,153,.06)", border:"1px solid rgba(52,211,153,.2)", borderRadius:10, padding:"9px 11px", marginTop:6 }}>
-                <p style={{ margin:"0 0 2px", fontSize:11, fontWeight:800, color:"#34d399" }}>⚡ Recomposición corporal posible</p>
+                <p style={{ margin:"0 0 2px", fontSize:11, fontWeight:800, color:"#34d399" }}><Icon name="Zap" size={11} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> Recomposición corporal posible</p>
                 <p style={{ margin:0, fontSize:11, color:"var(--muted)", lineHeight:1.45 }}>
                   Principiantes y personas con BF elevado pueden ganar másculo y perder grasa simultáneamente. Clave: proteína 2.3-3.1g/kg masa magra, entrenamiento con carga progresiva y déficit calórico moderado (±200 kcal).
                 </p>
@@ -3296,8 +3287,8 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
               <span style={{ fontSize:13, fontWeight:700, color:"var(--text)" }}>{name}</span>
               <span style={{ fontSize:12, fontWeight:800, color:"#a855f7", flexShrink:0 }}>{dose}</span>
             </div>
-            <div style={{ fontSize:11, color:"var(--muted)", marginTop:2 }}>⏱️ {timing}</div>
-            <div style={{ fontSize:11, color:"rgba(255,255,255,.45)", marginTop:1 }}>✅ {benefit}</div>
+            <div style={{ fontSize:11, color:"var(--muted)", marginTop:2 }}><Icon name="Timer" size={11} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> {timing}</div>
+            <div style={{ fontSize:11, color:"rgba(255,255,255,.45)", marginTop:1 }}><Icon name="CheckCircle" size={11} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> {benefit}</div>
           </div>
         ))}
       </div>
@@ -3350,7 +3341,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
           display:"flex", alignItems:"center", justifyContent:"space-between",
         }}>
         <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-          <span style={{ fontSize:20 }}>📓</span>
+          <Icon name="BookOpen" size={20} style={{display:'inline-block',verticalAlign:'middle'}} />
           <div style={{ textAlign:"left" }}>
             <div style={{ fontSize:14, fontWeight:700, color:"var(--text)" }}>{isToday ? "Diario de hoy" : diaryDate}</div>
             <div style={{ fontSize:11, color:"var(--muted)" }}>
@@ -3456,7 +3447,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                       saveMealCombo(comboName, todayMeals.map(({ name, kcal, protein, carbs, fat }) => ({ name, kcal, protein, carbs, fat })));
                       setShowSaveCombo(false);
                     }}>Guardar</button>
-                  <button className="ghost" style={{ padding:"8px 10px" }} onClick={() => setShowSaveCombo(false)}>✕</button>
+                  <button className="ghost" style={{ padding:"8px 10px" }} onClick={() => setShowSaveCombo(false)}><Icon name="X" size={13} style={{display:'inline-block',verticalAlign:'middle'}} /></button>
                 </div>
               )}
             </div>
@@ -3505,7 +3496,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
             if (!isToday2 || pct >= 0.8) return null;
             return (
               <div style={{ background:"rgba(239,68,68,.07)", border:"1px solid rgba(239,68,68,.25)", borderRadius:12, padding:"10px 14px", marginBottom:10, fontSize:13 }}>
-                <b style={{ color:"var(--danger)" }}>⚠️ Poco proteína hoy</b>
+                <b style={{ color:"var(--danger)" }}><Icon name="AlertTriangle" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> Poco proteína hoy</b>
                 <p style={{ margin:"4px 0 0", color:"var(--muted)" }}>
                   {todayP}g de {targetP}g meta ({Math.round(pct*100)}%). Agregá {targetP-todayP}g más hoy.
                 </p>
@@ -3531,7 +3522,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                   borderColor: buildPlate ? "var(--green)" : "var(--border)",
                   background: buildPlate ? "rgba(168,85,247,.12)" : "var(--panel2)",
                   color: buildPlate ? "var(--green)" : "var(--muted)" }}>
-                🔗 Combinar ingredientes
+                <Icon name="Link2" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:4}} /> Combinar ingredientes
               </button>
             </div>
             {buildPlate && plateParts.length === 0 && (
@@ -3599,7 +3590,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                       </div>
                     </div>
                     <button onClick={() => setPlateParts(ps => ps.filter((_,j)=>j!==i))}
-                      style={{ background:"none", border:"none", color:"var(--muted)", fontSize:14, cursor:"pointer", padding:2 }}>✕</button>
+                      style={{ background:"none", border:"none", color:"var(--muted)", fontSize:14, cursor:"pointer", padding:2 }}><Icon name="X" size={13} style={{display:'inline-block',verticalAlign:'middle'}} /></button>
                   </div>
                 ))}
                 {(() => {
@@ -3651,7 +3642,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                   disabled={barcodeScanning}
                   title="Escanear código de barras"
                   style={{ background:"var(--panel2)", border:"1.5px solid var(--border)", borderRadius:10, padding:"10px 12px", cursor:"pointer", color:"var(--text)", fontSize:18, flexShrink:0 }}>
-                  {barcodeScanning ? "⏳" : "📷"}
+                  {barcodeScanning ? <Icon name="Clock" size={18} style={{display:'inline-block',verticalAlign:'middle'}} /> : <Icon name="Camera" size={18} style={{display:'inline-block',verticalAlign:'middle'}} />}
                 </button>
               )}
             </div>
@@ -3688,7 +3679,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                   <button
                     onClick={() => setShowSuggestions(false)}
                     style={{ width:"100%", padding:"8px 12px", background:"rgba(255,255,255,.04)", border:"none", cursor:"pointer", textAlign:"left", fontSize:12, color:"var(--muted)" }}>
-                    ✏️ Ingresar macros manualmente →
+                    <Icon name="Pencil" size={12} style={{display:'inline-block',verticalAlign:'middle',marginRight:4}} /> Ingresar macros manualmente →
                   </button>
                 )}
               </div>
@@ -3917,7 +3908,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
             <div>
               <p style={{ fontSize:15, fontWeight:800, marginBottom:4 }}>¿Cuál es tu objetivo?</p>
               <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:24 }}>
-                {[{v:"definicion",l:"🔥 Definición",d:"Déficit calórico, mantener másculo"},{v:"mantener",l:"⚖️ Mantenimiento",d:"Calorías de mantenimiento"},{v:"volumen",l:"💪 Volumen",d:"Superávit para ganar másculo"}].map(({v,l,d}) => (
+                {[{v:"definicion",l:<><Icon name="Flame" size={14} style={{display:'inline-block',verticalAlign:'middle',marginRight:4}} /> Definición</>,d:"Déficit calórico, mantener másculo"},{v:"mantener",l:<><Icon name="Scale" size={14} style={{display:'inline-block',verticalAlign:'middle',marginRight:4}} /> Mantenimiento</>,d:"Calorías de mantenimiento"},{v:"volumen",l:<><Icon name="Dumbbell" size={14} style={{display:'inline-block',verticalAlign:'middle',marginRight:4}} /> Volumen</>,d:"Superávit para ganar másculo"}].map(({v,l,d}) => (
                   <button key={v} onClick={() => setWizGoal(v)}
                     style={{ padding:"12px 14px", borderRadius:10, border:"1.5px solid", cursor:"pointer", textAlign:"left",
                       borderColor: wizGoal === v ? "var(--green)" : "var(--border)",
@@ -3938,7 +3929,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
               <p style={{ fontSize:15, fontWeight:800, marginBottom:4 }}>¿Tenés restricciones alimentarias?</p>
               <p style={{ fontSize:12, color:"var(--muted)", marginBottom:16 }}>Opcional. Seleccioná todas las que apliquen.</p>
               <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:16 }}>
-                {[{v:"vegano",l:"🌱 Vegano"},{v:"vegetariano",l:"🥗 Vegetariano"},{v:"sin_lacteos",l:"🥛 Sin lácteos"},{v:"sin_gluten",l:"🌾 Sin gluten"}].map(({v,l}) => {
+                {[{v:"vegano",l:<><Icon name="Leaf" size={14} style={{display:'inline-block',verticalAlign:'middle',marginRight:4}} /> Vegano</>},{v:"vegetariano",l:"🥗 Vegetariano"},{v:"sin_lacteos",l:"🥛 Sin lácteos"},{v:"sin_gluten",l:"🌾 Sin gluten"}].map(({v,l}) => {
                   const on = wizRestrictions.includes(v);
                   return (
                     <button key={v} onClick={() => setWizRestrictions(r => on ? r.filter(x=>x!==v) : [...r,v])}
@@ -3946,7 +3937,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                         borderColor: on ? "var(--green)" : "var(--border)",
                         background: on ? "rgba(34,197,94,.08)" : "var(--panel)",
                         color: on ? "var(--green)" : "var(--text)", fontWeight:700, fontSize:14 }}>
-                      {l} {on ? "✅" : ""}
+                      {l} {on ? <Icon name="CheckCircle" size={13} style={{display:'inline-block',verticalAlign:'middle'}} /> : ""}
                     </button>
                   );
                 })}
@@ -3968,7 +3959,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                         borderColor: on ? "#ef4444" : "var(--border)",
                         background: on ? "rgba(239,68,68,.1)" : "var(--panel)",
                         color: on ? "#ef4444" : "var(--text)" }}>
-                      {l} {on ? "✅" : ""}
+                      {l} {on ? <Icon name="CheckCircle" size={13} style={{display:'inline-block',verticalAlign:'middle'}} /> : ""}
                     </button>
                   );
                 })}
@@ -4019,8 +4010,8 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
               <p style={{ fontSize:12, color:"var(--muted)", marginBottom:16 }}>Esto ayuda a personalizar las recetas del plan.</p>
               <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:24 }}>
                 {[
-                  {v:"rapido",    l:"⚡ Rápido",            d:"Menos de 15 minutos"},
-                  {v:"30min",     l:"⏱️ Normal",             d:"Hasta 30 minutos"},
+                  {v:"rapido",    l:<><Icon name="Zap" size={14} style={{display:'inline-block',verticalAlign:'middle',marginRight:4}} /> Rápido</>,            d:"Menos de 15 minutos"},
+                  {v:"30min",     l:<><Icon name="Timer" size={14} style={{display:'inline-block',verticalAlign:'middle',marginRight:4}} /> Normal</>,             d:"Hasta 30 minutos"},
                   {v:"elaborado", l:"👨‍🍳 Me gusta cocinar", d:"Sin límite de tiempo"},
                 ].map(({v,l,d}) => (
                   <button key={v} onClick={() => setWizPrepTime(v)}
@@ -4044,9 +4035,9 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
               <p style={{ fontSize:12, color:"var(--muted)", marginBottom:16 }}>El plan se adaptará a tus posibilidades económicas.</p>
               <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:24 }}>
                 {[
-                  {v:"economico", l:"💰 Económico",         d:"Legumbres, huevos, arroz"},
-                  {v:"moderado",  l:"💳 Moderado",           d:"Carnes, lácteos, variado"},
-                  {v:"amplio",    l:"🌟 Sin restricciones",  d:"Todo tipo de alimentos"},
+                  {v:"economico", l:<><Icon name="DollarSign" size={14} style={{display:'inline-block',verticalAlign:'middle',marginRight:4}} /> Económico</>,         d:"Legumbres, huevos, arroz"},
+                  {v:"moderado",  l:<><Icon name="CreditCard" size={14} style={{display:'inline-block',verticalAlign:'middle',marginRight:4}} /> Moderado</>,           d:"Carnes, lácteos, variado"},
+                  {v:"amplio",    l:<><Icon name="Star" size={14} style={{display:'inline-block',verticalAlign:'middle',marginRight:4}} /> Sin restricciones</>,  d:"Todo tipo de alimentos"},
                 ].map(({v,l,d}) => (
                   <button key={v} onClick={() => setWizBudget(v)}
                     style={{ padding:"12px 14px", borderRadius:10, border:"1.5px solid", cursor:"pointer", textAlign:"left",
@@ -4083,12 +4074,12 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                 {wizDays} días — {wizMeals} comidas/día — ~{Math.round(targetCal)} kcal/día — {Math.round(proteinG)}g proteína
                 {wizRestrictions.length > 0 && <span> — {wizRestrictions.length} restricción(es)</span>}
                 {wizCuisine && <span> — Cocina {wizCuisine}</span>}
-                {" — "}{wizPrepTime === "rapido" ? "⚡ Preparación rápida" : wizPrepTime === "elaborado" ? "👨‍🍳 Cocina elaborada" : "⏱️ Preparación normal"}
-                {" — "}{wizBudget === "economico" ? "💰 Presupuesto económico" : wizBudget === "amplio" ? "🌟 Sin restricción económica" : "💳 Presupuesto moderado"}
+                {" — "}{wizPrepTime === "rapido" ? <><Icon name="Zap" size={11} style={{display:'inline-block',verticalAlign:'middle',marginRight:2}} /> Preparación rápida</> : wizPrepTime === "elaborado" ? "👨‍🍳 Cocina elaborada" : <><Icon name="Timer" size={11} style={{display:'inline-block',verticalAlign:'middle',marginRight:2}} /> Preparación normal</>}
+                {" — "}{wizBudget === "economico" ? <><Icon name="DollarSign" size={11} style={{display:'inline-block',verticalAlign:'middle',marginRight:2}} /> Presupuesto económico</> : wizBudget === "amplio" ? <><Icon name="Star" size={11} style={{display:'inline-block',verticalAlign:'middle',marginRight:2}} /> Sin restricción económica</> : <><Icon name="CreditCard" size={11} style={{display:'inline-block',verticalAlign:'middle',marginRight:2}} /> Presupuesto moderado</>}
               </div>
               <div style={{ display:"flex", gap:8 }}>
                 <button style={{ flex:1, padding:"12px", borderRadius:10, border:"1px solid var(--border)", background:"var(--panel)", color:"var(--muted)", cursor:"pointer" }} onClick={() => setWizStep(6)}>← Atrás</button>
-                <button className="primary" style={{ flex:2 }} onClick={handleWizardFinish}>✨ Generar plan</button>
+                <button className="primary" style={{ flex:2 }} onClick={handleWizardFinish}><Icon name="Sparkles" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:4}} /> Generar plan</button>
               </div>
             </div>
           )}
@@ -4169,7 +4160,7 @@ function HolisticSummary({ workouts, prs, userAge, bodyWeight, bodyFatPct, lbm, 
 
       {/* Volumen 4 semanas */}
       <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:14, padding:"14px 14px 10px", marginBottom:14 }}>
-        <p style={{ margin:"0 0 12px", fontSize:13, fontWeight:700 }}>📊 Volumen últimas 4 semanas</p>
+        <p style={{ margin:"0 0 12px", fontSize:13, fontWeight:700 }}><Icon name="BarChart2" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:4}} /> Volumen últimas 4 semanas</p>
         <div style={{ display:"flex", gap:6, alignItems:"flex-end", height:52 }}>
           {weeklyVols.map((v, i) => {
             const h = Math.max(4, (v / maxVol) * 44);
@@ -4190,7 +4181,7 @@ function HolisticSummary({ workouts, prs, userAge, bodyWeight, bodyFatPct, lbm, 
       {/* Perfil + recomendaciones */}
       {(userAge || bodyWeight) && (
         <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:14, padding:"12px 14px", marginBottom:12 }}>
-          <p style={{ margin:"0 0 8px", fontSize:13, fontWeight:700 }}>💪 Tu perfil de entrenamiento</p>
+          <p style={{ margin:"0 0 8px", fontSize:13, fontWeight:700 }}><Icon name="Dumbbell" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:4}} /> Tu perfil de entrenamiento</p>
           <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
             {userAge && <div style={{ background:"var(--panel2)", borderRadius:10, padding:"6px 12px", fontSize:12 }}><span style={{ color:"var(--muted)" }}>Edad — </span><b>{userAge} años</b></div>}
             {bodyWeight && <div style={{ background:"var(--panel2)", borderRadius:10, padding:"6px 12px", fontSize:12 }}><span style={{ color:"var(--muted)" }}>Peso — </span><b>{bodyWeight}kg</b></div>}
@@ -4206,10 +4197,10 @@ function HolisticSummary({ workouts, prs, userAge, bodyWeight, bodyFatPct, lbm, 
           </div>
           {userAge && (
             <p style={{ margin:"10px 0 0", fontSize:12, color:"var(--muted)", lineHeight:1.5 }}>
-              {userAge >= 50 ? "🧠 A los 50+ el foco debe ser técnica perfecta, recuperación y proteína alta. Deload cada 4 semanas."
-                : userAge >= 40 ? "⏱️ La recuperación entre sesiones es clave. Proteína elevada y deload cada 5–6 semanas."
-                : userAge >= 30 ? "📈 Momento óptimo para volumen progresivo. Deload cada 6–8 semanas."
-                : "⚡ Pico anabólico — priorizá volumen progresivo y suma cargas semana a semana."}
+              {userAge >= 50 ? <><Icon name="BrainCircuit" size={12} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> A los 50+ el foco debe ser técnica perfecta, recuperación y proteína alta. Deload cada 4 semanas.</>
+                : userAge >= 40 ? <><Icon name="Timer" size={12} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> La recuperación entre sesiones es clave. Proteína elevada y deload cada 5–6 semanas.</>
+                : userAge >= 30 ? <><Icon name="TrendingUp" size={12} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> Momento óptimo para volumen progresivo. Deload cada 6–8 semanas.</>
+                : <><Icon name="Zap" size={12} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> Pico anabólico — priorizá volumen progresivo y suma cargas semana a semana.</>}
             </p>
           )}
         </div>

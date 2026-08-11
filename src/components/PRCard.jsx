@@ -178,7 +178,7 @@ export default function PRCard({ pr, totalWorkouts, onClose }) {
       padding: 16, flexDirection: "column", gap: 16,
     }}>
       {/* Trophy animation */}
-      <div style={{ fontSize: 64, animation: "bounce 0.6s ease" }}>🏆</div>
+      <div style={{ animation: "bounce 0.6s ease" }}><Icon name="Trophy" size={64} style={{display:'inline-block',verticalAlign:'middle',color:'#f59e0b'}} /></div>
 
       <canvas ref={canvasRef} style={{
         borderRadius: 16, maxWidth: "100%", width: "min(540px, 100%)",

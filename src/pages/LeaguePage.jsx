@@ -4,7 +4,10 @@ import useAuthStore from "../store/useAuthStore.js";
 import useStore from "../store/useStore.js";
 import Icon from "../components/Icon.jsx";
 
-const MEDALS = ["🥇", "🥈", "🥉"];
+const MEDAL_COLORS = ['#f59e0b', '#94a3b8', '#b45309'];
+function renderMedal(rank, size = 16) {
+  return <Icon name="Trophy" size={size} style={{ color: MEDAL_COLORS[rank], display: 'inline-block', verticalAlign: 'middle' }} />;
+}
 
 function daysSince(dateStr) {
   if (!dateStr) return null;
@@ -94,7 +97,7 @@ export default function LeaguePage() {
 
         {noLeague && (
           <div className="card" style={{ textAlign: "center", padding: 32 }}>
-            <div style={{ fontSize: 48, marginBottom: 12 }}>🏆</div>
+            <div style={{ fontSize: 48, marginBottom: 12 }}><Icon name="Trophy" size={48} style={{display:'inline-block',verticalAlign:'middle'}} /></div>
             <h3 style={{ margin: "0 0 8px", fontSize: 17 }}>Liga no disponible</h3>
             <p style={{ color: "var(--muted)", fontSize: 13, lineHeight: 1.5, margin: 0 }}>
               Tu entrenador todavía no tiene alumnos suficientes para armar la liga, o no estás vinculado a ningún entrenador.
@@ -117,7 +120,7 @@ export default function LeaguePage() {
                 gap: 12,
               }}>
                 <div style={{ fontSize: 28, flexShrink: 0 }}>
-                  {myRank < 3 ? MEDALS[myRank] : `#${myRank + 1}`}
+                  {myRank < 3 ? renderMedal(myRank, 24) : `#${myRank + 1}`}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ margin: 0, fontWeight: 700, fontSize: 15 }}>Tu posición esta semana</p>
@@ -148,7 +151,7 @@ export default function LeaguePage() {
                       alignItems: "center", justifyContent: "center", gap: 4,
                       position: "relative",
                     }}>
-                      <span style={{ fontSize: 20 }}>{MEDALS[realRank]}</span>
+                      <span style={{ fontSize: 20 }}>{renderMedal(realRank, 20)}</span>
                       <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text)", textAlign: "center", padding: "0 4px", lineHeight: 1.2 }}>
                         {entry.display_name.split(" ")[0]}
                       </span>
@@ -187,7 +190,7 @@ export default function LeaguePage() {
                       fontWeight: idx < 3 ? 700 : 500,
                       color: idx < 3 ? "var(--text)" : "var(--muted)",
                     }}>
-                      {idx < 3 ? MEDALS[idx] : `${idx + 1}`}
+                      {idx < 3 ? renderMedal(idx, 16) : `${idx + 1}`}
                     </div>
 
                     {/* Status dot */}

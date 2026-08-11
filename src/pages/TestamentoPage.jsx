@@ -221,7 +221,7 @@ export default function TestamentoPage() {
           <div style={{ textAlign: "center", padding: 40 }}><Icon name="Loader" size={24} className="spin" /></div>
         ) : responses.length === 0 ? (
           <div className="card" style={{ textAlign: "center", padding: 32 }}>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>📝</div>
+            <div style={{ marginBottom: 12 }}><Icon name="ClipboardList" size={40} style={{ opacity: 0.5 }} /></div>
             <p style={{ color: "var(--muted)", fontSize: 14, margin: 0 }}>
               Aún no tenés respuestas grabadas.<br/>Agregá las preguntas más frecuentes de tus alumnos.
             </p>
@@ -252,7 +252,7 @@ export default function TestamentoPage() {
         {responses.length > 0 && responses.length < 5 && (
           <div className="card" style={{ background: "rgba(251,191,36,.06)", border: "1px solid rgba(251,191,36,.2)", marginTop: 8 }}>
             <p style={{ fontSize: 12, color: "var(--muted)", margin: 0 }}>
-              💡 Recomendamos al menos <b>10 respuestas</b> para que el modo funcione bien. Tenés {responses.length}/10.
+              <Icon name="Lightbulb" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> Recomendamos al menos <b>10 respuestas</b> para que el modo funcione bien. Tenés {responses.length}/10.
             </p>
           </div>
         )}

@@ -1,5 +1,6 @@
 ﻿import { useMemo, useState } from "react";
 import useStore from "../store/useStore.js";
+import Icon from "../components/Icon.jsx";
 
 export default function ExerciseHistoryPage({ exerciseName, onClose }) {
   const workouts = useStore(s => s.workouts) || [];
@@ -50,7 +51,7 @@ export default function ExerciseHistoryPage({ exerciseName, onClose }) {
             <h2 style={{ margin:"0 0 2px", fontSize:18 }}>{exerciseName}</h2>
             <span style={{ fontSize:12, color:"var(--muted)" }}>{history.length} sesiones registradas</span>
           </div>
-          <button className="ghost" onClick={onClose} style={{ padding:"6px 10px", fontSize:16 }}>✕</button>
+          <button className="ghost" onClick={onClose} style={{ padding:"6px 10px", fontSize:16 }}><Icon name="X" size={16} style={{display:'inline-block',verticalAlign:'middle'}} /></button>
         </div>
 
         {history.length === 0 ? (

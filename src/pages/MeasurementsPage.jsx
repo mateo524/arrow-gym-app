@@ -417,7 +417,7 @@ export default function MeasurementsPage() {
           const weeklyRate = (diff / days) * 7;
           if (weeklyRate > 1.5) return (
             <div style={{ background:"rgba(239,68,68,.08)", border:"1px solid rgba(239,68,68,.25)", borderRadius:12, padding:"10px 14px", marginBottom:10, fontSize:13 }}>
-              <b style={{ color:"var(--danger)" }}>⚠ Bajás muy rápido</b>
+              <b style={{ color:"var(--danger)" }}><Icon name="AlertTriangle" size={14} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> Bajás muy rápido</b>
               <p style={{ margin:"4px 0 0", color:"var(--muted)" }}>~{weeklyRate.toFixed(1)}kg/semana. Podés perder masa muscular. Lo ideal es 0.5–1kg/semana.</p>
             </div>
           );
@@ -452,7 +452,7 @@ export default function MeasurementsPage() {
 
       {/* Hidratación */}
       <div className="card" style={{ marginBottom:14 }}>
-        <h2 style={{ marginBottom:12 }}>💧 Hidratación hoy</h2>
+        <h2 style={{ marginBottom:12 }}><Icon name="Droplet" size={16} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> Hidratación hoy</h2>
         <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:10 }}>
           <div style={{ flex:1 }}>
             <div style={{ fontSize:22, fontWeight:900, color:"#60a5fa" }}>{todayWater}<span style={{ fontSize:14, fontWeight:400, color:"var(--muted)" }}>/{waterGoal} vasos</span></div>
@@ -464,7 +464,7 @@ export default function MeasurementsPage() {
         <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
           {[1,2,3].map(n => (
             <button key={n} onClick={() => logWater(todayWater + n)} className="ghost" style={{ fontSize:13, padding:"7px 14px" }}>
-              +{n} 💧
+              +{n} <Icon name="Droplet" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:0}} />
             </button>
           ))}
           {todayWater > 0 && (
@@ -477,12 +477,12 @@ export default function MeasurementsPage() {
 
       {/* Sueño */}
       <div className="card" style={{ marginBottom:14 }}>
-        <h2 style={{ marginBottom:12 }}>😴 Sueño de anoche</h2>
+        <h2 style={{ marginBottom:12 }}><Icon name="Moon" size={16} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> Sueño de anoche</h2>
         {todaySleepEntry ? (
           <div style={{ fontSize:20, fontWeight:900, color:"#60a5fa", marginBottom:8 }}>
             {todaySleepEntry.hours}h
             <span style={{ fontSize:13, fontWeight:400, color:"var(--muted)", marginLeft:6 }}>
-              {todaySleepEntry.hours >= 8 ? "✓ Óptimo" : todaySleepEntry.hours >= 7 ? "Bueno" : todaySleepEntry.hours >= 6 ? "Regular" : "⚠ Insuficiente"}
+              {todaySleepEntry.hours >= 8 ? <><Icon name="Check" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> Óptimo</> : todaySleepEntry.hours >= 7 ? "Bueno" : todaySleepEntry.hours >= 6 ? "Regular" : <><Icon name="AlertTriangle" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> Insuficiente</>}
             </span>
           </div>
         ) : null}
@@ -514,7 +514,7 @@ export default function MeasurementsPage() {
             { id: "basico", label: "Básico" },
             { id: "pliegues", label: "Pliegues" },
             { id: "perimetros", label: "Perímetros" },
-            { id: "fotos", label: "📷 Fotos" },
+            { id: "fotos", label: <><Icon name="Camera" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> Fotos</> },
           ].map(({ id, label }) => (
             <button
               key={id}
@@ -835,7 +835,7 @@ export default function MeasurementsPage() {
               Subí fotos mensuales para comparar tu progreso visual.
             </p>
             <label style={{ display:"block", background:"rgba(168,85,247,.07)", border:"2px dashed rgba(168,85,247,.3)", borderRadius:14, padding:"18px", textAlign:"center", cursor:"pointer", marginBottom:14 }}>
-              <span style={{ fontSize:28 }}>📷</span>
+              <Icon name="Camera" size={28} style={{display:'inline-block',verticalAlign:'middle'}} />
               <p style={{ margin:"6px 0 0", fontSize:13, color:"var(--green)", fontWeight:700 }}>Agregar foto</p>
               <p style={{ margin:"2px 0 0", fontSize:11, color:"var(--muted)" }}>Tocá para seleccionar una imagen</p>
               <input type="file" accept="image/*" style={{ display:"none" }} onChange={e => {
@@ -866,7 +866,7 @@ export default function MeasurementsPage() {
                     </div>
                     <button onClick={() => deleteProgressPhoto(photo.id)}
                       style={{ position:"absolute", top:6, right:6, background:"rgba(0,0,0,.6)", border:"none", borderRadius:8, width:26, height:26, cursor:"pointer", color:"#fff", fontSize:13, display:"flex", alignItems:"center", justifyContent:"center" }}>
-                      ✕
+                      <Icon name="X" size={13} style={{display:'inline-block',verticalAlign:'middle'}} />
                     </button>
                   </div>
                 ))}

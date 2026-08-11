@@ -255,9 +255,9 @@ export default function RoutinesPage() {
               <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 12 }}>{n.body}</div>
               <div style={{ display: "flex", gap: 8 }}>
                 <button className="primary" style={{ flex: 1, padding: "8px 0", fontSize: 13 }}
-                  onClick={() => respondNotification(n, true)}>✓ Aceptar</button>
+                  onClick={() => respondNotification(n, true)}><Icon name="Check" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> Aceptar</button>
                 <button className="ghost" style={{ flex: 1, padding: "8px 0", fontSize: 13, color: "var(--danger)", borderColor: "var(--danger)" }}
-                  onClick={() => respondNotification(n, false)}>✕ Rechazar</button>
+                  onClick={() => respondNotification(n, false)}><Icon name="X" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> Rechazar</button>
               </div>
             </div>
           ))}

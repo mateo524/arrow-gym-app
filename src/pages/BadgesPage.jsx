@@ -2,6 +2,7 @@
 import useStore from "../store/useStore.js";
 import useAuthStore from "../store/useAuthStore.js";
 import { getAchievements, ACHIEVEMENTS_DEF, getStreak } from "../lib/analytics.js";
+import Icon from "../components/Icon";
 
 const TIER_COLORS = {
   1: { bg: "rgba(205,127,50,.15)", border: "rgba(205,127,50,.5)", text: "#cd7f32", label: "Bronce" },
@@ -61,14 +62,14 @@ export default function BadgesPage() {
             const c = TIER_COLORS[lvl];
             return (
               <div key={lvl} style={{ flex: 1, textAlign: "center", background: c.bg, border: `1px solid ${c.border}`, borderRadius: 12, padding: "10px 0" }}>
-                <div style={{ fontSize: 22 }}>{lvl===1?"🥉":lvl===2?"🥈":"🥇"}</div>
+                <div style={{ fontSize: 22 }}>{lvl===1?<Icon name="Trophy" size={22} style={{color:'#b45309',display:'inline-block',verticalAlign:'middle'}} />:lvl===2?<Icon name="Trophy" size={22} style={{color:'#94a3b8',display:'inline-block',verticalAlign:'middle'}} />:<Icon name="Trophy" size={22} style={{color:'#f59e0b',display:'inline-block',verticalAlign:'middle'}} />}</div>
                 <div style={{ fontSize: 18, fontWeight: 800, color: c.text }}>{count}</div>
                 <div style={{ fontSize: 11, color: "var(--muted)" }}>{c.label}</div>
               </div>
             );
           })}
           <div style={{ flex: 1, textAlign: "center", background: "var(--panel2)", borderRadius: 12, padding: "10px 0" }}>
-            <div style={{ fontSize: 22 }}>🔥</div>
+            <div style={{ fontSize: 22 }}><Icon name="Flame" size={22} style={{display:'inline-block',verticalAlign:'middle'}} /></div>
             <div style={{ fontSize: 18, fontWeight: 800, color: "var(--text)" }}>{streak}</div>
             <div style={{ fontSize: 11, color: "var(--muted)" }}>Racha</div>
           </div>
@@ -110,7 +111,7 @@ export default function BadgesPage() {
                     <span style={{ fontWeight: 800, fontSize: 15 }}>{def.title}</span>
                     {currentLevel > 0 && (
                       <span style={{ fontSize: 11, fontWeight: 700, color: c.text, background: c.bg, border: `1px solid ${c.border}`, borderRadius: 8, padding: "2px 8px" }}>
-                        {isMaxed ? "🥇 ORO" : c.label}
+                        {isMaxed ? <><Icon name="Trophy" size={13} style={{color:'#f59e0b',display:'inline-block',verticalAlign:'middle',marginRight:3}} /> ORO</> : c.label}
                       </span>
                     )}
                     <span style={{ fontSize: 11, color: "var(--muted)", marginLeft: "auto" }}>{def.cat}</span>
@@ -134,16 +135,16 @@ export default function BadgesPage() {
                   {/* Current desc or next goal */}
                   {currentLevel > 0 && (
                     <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 4 }}>
-                      ✓ {def.tiers[currentLevel - 1].desc}
+                      <Icon name="Check" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> {def.tiers[currentLevel - 1].desc}
                     </div>
                   )}
                   {!isMaxed && (
                     <div style={{ fontSize: 12, color: "var(--text)", opacity: 0.7 }}>
-                      {currentLevel === 0 ? "🔒" : "→"} Siguiente: {nextTier?.desc}
+                      {currentLevel === 0 ? <Icon name="Lock" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> : "→"} Siguiente: {nextTier?.desc}
                     </div>
                   )}
                   {isMaxed && (
-                    <div style={{ fontSize: 12, color: "#ffd700" }}>✨ Nivel máximo alcanzado</div>
+                    <div style={{ fontSize: 12, color: "#ffd700" }}><Icon name="Sparkles" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> Nivel máximo alcanzado</div>
                   )}
                 </div>
               </div>

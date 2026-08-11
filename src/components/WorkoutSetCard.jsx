@@ -65,7 +65,7 @@ export default function WorkoutSetCard({ setItem, index, onUpdate, onApplyToNext
       <div className="set-head">
         {/* Set number badge — display only */}
         <span className={`set-done-btn${done ? " done" : ""}`} style={{ cursor: "default", pointerEvents: "none" }}>
-          {done ? "✓" : index || 1}
+          {done ? <Icon name="Check" size={13} style={{display:'inline-block',verticalAlign:'middle'}} /> : index || 1}
         </span>
         <div style={{ flex:1, minWidth:0 }}>
           {Number(setItem.weight) > 0 && prData?.bestWeight && Number(setItem.weight) > prData.bestWeight && (
@@ -83,7 +83,7 @@ export default function WorkoutSetCard({ setItem, index, onUpdate, onApplyToNext
           <button className="set-delete-btn" style={{ color: "var(--muted)" }} onClick={() => setFlipped(true)} aria-label="Ver récords">
             <Icon name="BarChart2" size={13} />
           </button>
-          <button className="set-delete-btn" style={{ color: "var(--danger)" }} onClick={onRemove} aria-label="Borrar">✕</button>
+          <button className="set-delete-btn" style={{ color: "var(--danger)" }} onClick={onRemove} aria-label="Borrar"><Icon name="X" size={13} style={{display:'inline-block',verticalAlign:'middle'}} /></button>
         </div>
       </div>
 
@@ -102,7 +102,7 @@ export default function WorkoutSetCard({ setItem, index, onUpdate, onApplyToNext
       )}
       {!editingNote && note && (
         <p style={{ margin:"2px 0 6px", fontSize:11, color:"var(--green)", background:"rgba(168,85,247,.07)", borderRadius:8, padding:"4px 8px" }}>
-          📝 {note}
+          <Icon name="ClipboardList" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> {note}
         </p>
       )}
 
@@ -123,11 +123,11 @@ export default function WorkoutSetCard({ setItem, index, onUpdate, onApplyToNext
       )}
       {coachSuggestion && coachSuggestion.dir === null && (
         <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(52,211,153,.07)", border: "1px solid rgba(52,211,153,.2)", borderRadius: 10, padding: "5px 10px", marginBottom: 6 }}>
-          <span style={{ fontSize: 13, color: "#34d399", fontWeight: 700 }}>✓</span>
+          <span style={{ fontSize: 13, color: "#34d399", fontWeight: 700 }}><Icon name="Check" size={13} style={{display:'inline-block',verticalAlign:'middle'}} /></span>
           <span style={{ fontSize: 12, color: "var(--muted)", flex: 1 }}>{coachSuggestion.reason}</span>
           {coachSuggestion.rest && (
             <span style={{ fontSize: 11, color: "rgba(117,217,255,.8)", fontWeight: 700, flexShrink: 0 }}>
-              ⏱ {coachSuggestion.rest < 60 ? `${coachSuggestion.rest}s` : `${coachSuggestion.rest/60}min`} descanso
+              <Icon name="Timer" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> {coachSuggestion.rest < 60 ? `${coachSuggestion.rest}s` : `${coachSuggestion.rest/60}min`} descanso
             </span>
           )}
         </div>
@@ -286,7 +286,7 @@ export default function WorkoutSetCard({ setItem, index, onUpdate, onApplyToNext
               color: "#34d399", display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
             }}
           >
-            ✓ Hecho
+            <Icon name="Check" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> Hecho
           </button>
         )}
         {done && (

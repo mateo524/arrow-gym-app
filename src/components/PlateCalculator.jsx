@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import Icon from "./Icon.jsx";
 
 const BAR_WEIGHTS = [
   { label:"Barra olímpica 20kg", value:20 },
@@ -33,7 +34,7 @@ export default function PlateCalculator({ target, onSelect, onClose }) {
       <div className="plate-calc" onClick={(e) => e.stopPropagation()}>
         <div className="plate-calc-head">
           <b>Calculadora de discos</b>
-          <button className="ghost" onClick={onClose} aria-label="Close">✕</button>
+          <button className="ghost" onClick={onClose} aria-label="Close"><Icon name="X" size={16} style={{display:'inline-block',verticalAlign:'middle'}} /></button>
         </div>
 
         <div className="plate-calc-body">

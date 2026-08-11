@@ -147,7 +147,7 @@ export default function ReferralPage() {
                       : `Llevá ${PAYING_GOAL} alumnos pagando → 1 mes premium gratis`}
                   </p>
                 </div>
-                {rewardReached && <span style={{ fontSize: 28 }}>🏆</span>}
+                {rewardReached && <Icon name="Trophy" size={28} style={{ display:'inline-block', verticalAlign:'middle' }} />}
               </div>
 
               {/* Barra de progreso */}
@@ -210,7 +210,7 @@ export default function ReferralPage() {
             {/* Conversiones via link de invitación */}
             {conversions.length > 0 && (
               <div className="card" style={{ marginBottom: 16 }}>
-                <p className="section-label" style={{ marginBottom: 10 }}>🎯 Conversiones via tu link</p>
+                <p className="section-label" style={{ marginBottom: 10 }}><Icon name="Target" size={14} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> Conversiones via tu link</p>
                 {conversions.map(c => {
                   const name = c.profiles?.name || c.profiles?.email?.split("@")[0] || "Alumno";
                   const date = new Date(c.created_at).toLocaleDateString("es-AR", { day: "numeric", month: "short" });
@@ -244,7 +244,7 @@ export default function ReferralPage() {
             {/* Info de comisiones */}
             <div className="card" style={{ background: "rgba(168,85,247,.06)", border: "1px solid rgba(168,85,247,.15)" }}>
               <p style={{ fontSize: 13, color: "var(--muted)", margin: 0, lineHeight: 1.6 }}>
-                💡 <b style={{ color: "var(--text)" }}>¿Cómo funcionan las comisiones?</b><br/>
+                <Icon name="Lightbulb" size={14} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> <b style={{ color: "var(--text)" }}>¿Cómo funcionan las comisiones?</b><br/>
                 Cada alumno que se suscribe a través de tu link genera una comisión para vos.
                 Las comisiones se acreditan mensualmente. Con 5 alumnos pagando, desbloqueás 1 mes de acceso premium.
               </p>

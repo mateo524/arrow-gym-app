@@ -300,9 +300,9 @@ export default function AdminPage() {
                 <small>{u.email}</small>
                 {tab === "clients" && (
                   <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 3 }}>
-                    {u.trainer && <span className="tag-trainer">🏋 {u.trainer.name}</span>}
+                    {u.trainer && <span className="tag-trainer"><Icon name="Dumbbell" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> {u.trainer.name}</span>}
                     {u.weight_kg && <span className="tag-trainer" style={{ color: "var(--muted)", background: "rgba(255,255,255,.05)" }}>{u.weight_kg}kg · {u.height_cm}cm · {u.age}a</span>}
-                    {u.shoulder_alert && <span className="tag-trainer" style={{ color: "var(--yellow)", background: "rgba(232,247,119,.1)" }}>⚠ hombro</span>}
+                    {u.shoulder_alert && <span className="tag-trainer" style={{ color: "var(--yellow)", background: "rgba(232,247,119,.1)" }}><Icon name="AlertTriangle" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> hombro</span>}
                   </div>
                 )}
               </div>
