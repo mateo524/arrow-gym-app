@@ -27,7 +27,7 @@ export default function CoachPage() {
   if (profile && !isSubscribed) {
     return (
       <section className="page" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "48px 24px" }}>
-        <span style={{ fontSize: 56, marginBottom: 16 }}>??</span>
+        <span style={{ fontSize: 56, marginBottom: 16 }}>🔒</span>
         <h2 style={{ margin: "0 0 8px", fontSize: 22 }}>Coach IA</h2>
         <p style={{ color: "var(--muted)", fontSize: 14, marginBottom: 28, maxWidth: 280 }}>
           Analizá tu progreso, recibí recomendaciones personalizadas y optimizá tu entrenamiento con inteligencia artificial.
@@ -57,7 +57,7 @@ export default function CoachPage() {
   if (profile && (profile.coach_enabled === false)) {
     return (
       <section className="page" style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", textAlign:"center", padding:"48px 24px" }}>
-        <span style={{ fontSize:56, marginBottom:16 }}>??</span>
+        <span style={{ fontSize:56, marginBottom:16 }}>⏸️</span>
         <h2 style={{ margin:"0 0 8px", fontSize:22 }}>Coach pausado</h2>
         <p style={{ color:"var(--muted)", fontSize:14, marginBottom:28, maxWidth:280 }}>
           Las sugerencias del coach están desactivadas. Activalas desde Configuración cuando quieras.
@@ -281,7 +281,7 @@ export default function CoachPage() {
       } else if (bodyFatPct > bfModThresh) {
         alerts.push({ type: "bodyfat_mod", msg: `% grasa moderadamente elevado (${bodyFatPct.toFixed(1)}%). Considerá una fase de definición con déficit conservador (300 kcal/día) para llegar al rango óptimo (15-20% hombres, 22-28% mujeres) antes de un ciclo de volumen.` });
       } else if (bodyFatPct < bfEssential) {
-        alerts.push({ type: "bodyfat_critical", msg: `?? % grasa crítico (${bodyFatPct.toFixed(1)}%). Por debajo de la grasa esencial (5% hombres, 10% mujeres). Riesgo serio de disfunción hormonal, amenorrea e inmunodepresión (Friedl et al. 1994). Aumentá calorías de inmediato.` });
+        alerts.push({ type: "bodyfat_critical", msg: `⚠️ % grasa crítico (${bodyFatPct.toFixed(1)}%). Por debajo de la grasa esencial (5% hombres, 10% mujeres). Riesgo serio de disfunción hormonal, amenorrea e inmunodepresión (Friedl et al. 1994). Aumentá calorías de inmediato.` });
       } else if (bodyFatPct < bfLowRisk) {
         alerts.push({ type: "bodyfat_low", msg: `% grasa muy bajo (${bodyFatPct.toFixed(1)}%). Valores <8% en hombres (<14% mujeres) pueden comprometer testosterona y rendimiento (Friedl et al. 1994). Priorizar calorías suficientes y proteína =2g/kg.` });
       }
@@ -460,7 +460,7 @@ export default function CoachPage() {
       const minW = Math.min(...weights);
       // Signal 1: consistently high RPE with no weight gain = stuck at ceiling
       if (highRPE >= 3 && maxW === minW) {
-        alerts.push({ exercise: ex, rpe: recent[0].rpe, msg: `? ${ex}: RPE 9+ en ${highRPE} sesiones sin subir peso (${maxW}kg). Considerá una semana de menor intensidad antes de progresar.` });
+        alerts.push({ exercise: ex, rpe: recent[0].rpe, msg: `📉 ${ex}: RPE 9+ en ${highRPE} sesiones sin subir peso (${maxW}kg). Considerá una semana de menor intensidad antes de progresar.` });
       }
       // Signal 2: RPE trending up while weight constant or only slightly up — efficiency declining
       if (recent.length >= 4) {
@@ -472,7 +472,7 @@ export default function CoachPage() {
         const weightRise = lateW - earlyW;
         // RPE went up >=1.5 points but weight barely moved (<5% increase)
         if (rpeRise >= 1.5 && weightRise < earlyW * 0.05 && lateRPE >= 8) {
-          alerts.push({ exercise: ex, rpe: Math.round(lateRPE * 10) / 10, msg: `?? ${ex}: RPE subió ${rpeRise.toFixed(1)} puntos sin ganancia de carga (${earlyW.toFixed(1)}?${lateW.toFixed(1)}kg). Tu eficiencia bajó — es señal de fatiga acumulada.` });
+          alerts.push({ exercise: ex, rpe: Math.round(lateRPE * 10) / 10, msg: `⚠️ ${ex}: RPE subió ${rpeRise.toFixed(1)} puntos sin ganancia de carga (${earlyW.toFixed(1)}→${lateW.toFixed(1)}kg). Tu eficiencia bajó — es señal de fatiga acumulada.` });
         }
       }
     });
@@ -518,7 +518,7 @@ export default function CoachPage() {
     // Tip mejorado con datos de sueño
     const sleepHours = todaySleep?.hours || 0;
     const sleepTip = sleepHours > 0 && sleepHours < 6
-      ? ` ?? Dormiste ${sleepHours}h — síntesis proteica reducida ~18% (PMC12610528). Bajá el RPE objetivo 1-2 puntos.`
+      ? ` 😴 Dormiste ${sleepHours}h — síntesis proteica reducida ~18% (PMC12610528). Bajá el RPE objetivo 1-2 puntos.`
       : sleepHours >= 6 && sleepHours < 7 ? " Dormiste algo menos de lo ideal (7-9h recomendadas)." : "";
     const tip   = (score >= 80 ? "Ideal para entrenar fuerte hoy." : score >= 60 ? "Buen estado — entrenamiento normal." : score >= 40 ? "Reducé el volumen un 15-20% hoy." : "Priorizá recuperación — descanso activo o día libre.") + sleepTip;
     return { score, label, color, tip };
@@ -587,9 +587,9 @@ export default function CoachPage() {
           {/* -- Medidas -- */}
           <div style={{ background:"var(--panel)", borderRadius:16, padding:"12px 14px", marginBottom:14 }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
-              <p style={{ margin:0, fontSize:13, fontWeight:700, color:"var(--text)" }}>?? Medidas</p>
+              <p style={{ margin:0, fontSize:13, fontWeight:700, color:"var(--text)" }}>📏 Medidas</p>
               <button className="ghost" style={{ fontSize:11, color:"var(--green)", fontWeight:600, padding:"2px 8px" }} onClick={() => setPage("measurements")}>
-                Ver todo ?
+                Ver todo →
               </button>
             </div>
             <div style={{ display:"flex", gap:8, overflow:"auto", flexWrap:"nowrap" }}>
@@ -696,7 +696,7 @@ export default function CoachPage() {
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:4 }}>
                 <span style={{ fontSize:11, color:"var(--muted)" }}>{weeklyChallenge.doneCount}/{weeklyChallenge.targetCount}</span>
                 <span style={{ fontSize:11, color: weeklyChallenge.doneCount >= weeklyChallenge.targetCount ? "var(--green)" : "var(--muted)" }}>
-                  {weeklyChallenge.doneCount >= weeklyChallenge.targetCount ? "? Completado" : "En progreso"}
+                  {weeklyChallenge.doneCount >= weeklyChallenge.targetCount ? "✅ Completado" : "En progreso"}
                 </span>
               </div>
               <div style={{ background:"var(--panel2)", borderRadius:6, height:8, overflow:"hidden" }}>
@@ -705,10 +705,10 @@ export default function CoachPage() {
             </div>
           )}
 
-          {/* ? Análisis avanzado (colapsable) */}
+          {/* 📊 Análisis avanzado (colapsable) */}
           <button onClick={() => setShowAdvanced(s => !s)}
             style={{ width:"100%", padding:"8px", borderRadius:10, border:"1px solid var(--line)", background:"var(--panel)", cursor:"pointer", fontSize:12, fontWeight:600, color:"var(--muted)", marginBottom:12 }}>
-            {showAdvanced ? "? Ocultar análisis avanzado" : "? Ver análisis avanzado"}
+            {showAdvanced ? "🔼 Ocultar análisis avanzado" : "🔽 Ver análisis avanzado"}
           </button>
 
           {showAdvanced && (<>
@@ -787,14 +787,14 @@ export default function CoachPage() {
             return (
               <div className="card" style={{ marginBottom:14 }}>
                 <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 }}>
-                  <h2 style={{ margin:0 }}>?? Tu {year} en Loop</h2>
+                  <h2 style={{ margin:0 }}>🏆 Tu {year} en Loop</h2>
                   <button
                     className="ghost"
                     style={{ fontSize:12, padding:"4px 10px", display:"flex", alignItems:"center", gap:5 }}
                     onClick={async () => {
                       const volStr = totalVol >= 1000000 ? (totalVol/1000000).toFixed(1)+"M" : totalVol >= 1000 ? (totalVol/1000).toFixed(0)+"k" : String(totalVol);
                       const prsCount = (prs||[]).filter(p=>(p.date||"").startsWith(String(year))).length;
-                      const text = `??? Mi ${year} en Loop Gym:\n?? ${yearWorkouts.length} entrenamientos\n?? ${prsCount} PRs nuevos\n?? ${volStr}kg de volumen\n? Ejercicio favorito: ${topEx?.[0] || "–"}\n\nDescargá Loop Gym ?? loop-gym.vercel.app`;
+                      const text = `🏆 Mi ${year} en Loop Gym:\n💪 ${yearWorkouts.length} entrenamientos\n🥇 ${prsCount} PRs nuevos\n📊 ${volStr}kg de volumen\n🔥 Ejercicio favorito: ${topEx?.[0] || "–"}\n\nDescargá Loop Gym 🏋️ loop-gym.vercel.app`;
                       try {
                         if (navigator.share) {
                           await navigator.share({ text });
@@ -844,14 +844,14 @@ export default function CoachPage() {
                 background: "linear-gradient(135deg, rgba(168,85,247,.2), rgba(251,191,36,.15))",
                 display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22,
               }}>
-                ??
+                🏅
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ margin: 0, fontWeight: 700, fontSize: 14 }}>Liga del Gimnasio</p>
                 <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--muted)" }}>
                   Posición {leaguePreview.rank}/{leaguePreview.total} esta semana —{" "}
                   {leaguePreview.myWorkouts} entreno{leaguePreview.myWorkouts !== 1 ? "s" : ""}
-                  {leaguePreview.rank === 1 ? " ??" : leaguePreview.rank === 2 ? " ??" : leaguePreview.rank === 3 ? " ??" : ""}
+                  {leaguePreview.rank === 1 ? " 🥇" : leaguePreview.rank === 2 ? " 🥈" : leaguePreview.rank === 3 ? " 🥉" : ""}
                 </p>
               </div>
               <Icon name="ChevronRight" size={16} style={{ color: "var(--muted)", flexShrink: 0 }} />
@@ -870,7 +870,7 @@ export default function CoachPage() {
               gap: 10,
               alignItems: "flex-start",
             }}>
-              <span style={{ fontSize: 20, flexShrink: 0, marginTop: 1 }}>??</span>
+              <span style={{ fontSize: 20, flexShrink: 0, marginTop: 1 }}>🤖</span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ margin: "0 0 2px", fontWeight: 700, fontSize: 13, color: "var(--accent, #a855f7)" }}>
                   {coachNotif.title || "Coach IA"}
@@ -915,7 +915,7 @@ export default function CoachPage() {
           ) : (
           workouts.length < 3 ? (
             <div style={{ textAlign:"center", padding:"40px 20px" }}>
-              <div style={{ fontSize:48, marginBottom:12 }}>??</div>
+              <div style={{ fontSize:48, marginBottom:12 }}>🏗️</div>
               <h3 style={{ margin:"0 0 8px", fontSize:17 }}>Plan en construcción</h3>
               <p style={{ color:"var(--muted)", fontSize:13, lineHeight:1.5, margin:0 }}>Completá al menos 3 entrenamientos para que el coach genere tu plan personalizado.</p>
             </div>
@@ -928,7 +928,7 @@ export default function CoachPage() {
                 const accent   = isDeload ? "#ef4444" : isAccum ? "var(--green)" : "var(--cyan)";
                 const bg       = isDeload ? "rgba(239,68,68,.07)" : isAccum ? "rgba(168,85,247,.07)" : "rgba(117,217,255,.07)";
                 const border   = isDeload ? "rgba(239,68,68,.25)" : isAccum ? "rgba(168,85,247,.2)" : "rgba(117,217,255,.2)";
-                const icon     = isDeload ? "??" : isAccum ? "??" : "?";
+                const icon     = isDeload ? "🔄" : isAccum ? "📈" : "💪";
                 const label    = periodization.needsDeload ? "Deload recomendado" : isAccum ? "Fase de acumulación" : periodization.phase === "deload" ? "Fase de descarga" : "Fase de intensificación";
                 const desc     = periodization.needsDeload
                   ? "Llevas 3+ semanas subiendo volumen. Esta semana bajó el peso al 60% y aumentá las repeticiones (12-20 reps por serie) para que el cuerpo se recupere sin perder calidad."
@@ -952,7 +952,7 @@ export default function CoachPage() {
                       const isDeclined = activePlanAdjustment?.type === planType && activePlanAdjustment?.declined;
                       if (isActive) return (
                         <div style={{ background:"rgba(168,85,247,.1)", border:"1px solid rgba(168,85,247,.3)", borderRadius:10, padding:"8px 12px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-                          <span style={{ fontSize:12, color:"var(--green)", fontWeight:700 }}>? Ajuste activo hasta {activePlanAdjustment.expiresAt}</span>
+                          <span style={{ fontSize:12, color:"var(--green)", fontWeight:700 }}>✅ Ajuste activo hasta {activePlanAdjustment.expiresAt}</span>
                           <button onClick={clearPlanAdjustment} style={{ background:"none", border:"none", color:"var(--muted)", fontSize:11, cursor:"pointer" }}>Cancelar</button>
                         </div>
                       );
@@ -967,12 +967,12 @@ export default function CoachPage() {
                           <button
                             onClick={() => acceptPlanRecommendation(planType, isDeload ? 0.6 : 1)}
                             style={{ flex:1, background:"rgba(168,85,247,.12)", border:"1px solid rgba(168,85,247,.3)", borderRadius:10, padding:"9px", cursor:"pointer", fontSize:13, fontWeight:700, color:"var(--green)" }}>
-                            ? Aceptar
+                            ✅ Aceptar
                           </button>
                           <button
                             onClick={() => declinePlanRecommendation(planType)}
                             style={{ flex:1, background:"rgba(255,255,255,.04)", border:"1px solid var(--line)", borderRadius:10, padding:"9px", cursor:"pointer", fontSize:13, fontWeight:700, color:"var(--muted)" }}>
-                            ? Declinar
+                            ✕ Declinar
                           </button>
                         </div>
                       );
@@ -997,7 +997,7 @@ export default function CoachPage() {
                       color: fatigueScore.overreaching ? "var(--danger)" : fatigueScore.pctChange > 0 ? "var(--green)" : "var(--muted)",
                       border: `1px solid ${fatigueScore.overreaching ? "rgba(239,68,68,.25)" : fatigueScore.pctChange > 0 ? "rgba(168,85,247,.2)" : "var(--line)"}`,
                     }}>
-                      {fatigueScore.pctChange > 0 ? "?" : fatigueScore.pctChange < 0 ? "?" : "="} {Math.abs(fatigueScore.pctChange || 0)}%
+                      {fatigueScore.pctChange > 0 ? "↑" : fatigueScore.pctChange < 0 ? "↓" : "="} {Math.abs(fatigueScore.pctChange || 0)}%
                     </span>
                   </div>
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
@@ -1067,7 +1067,7 @@ export default function CoachPage() {
                 return (
                   <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:18, padding:"14px 16px", marginBottom:12 }}>
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
-                      <p style={{ margin:0, fontSize:14, fontWeight:800 }}>?? Adherencia al plan</p>
+                      <p style={{ margin:0, fontSize:14, fontWeight:800 }}>🎯 Adherencia al plan</p>
                       <span style={{ fontSize:20, fontWeight:900, color }}>{avgAdherence}%</span>
                     </div>
                     <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:6 }}>
@@ -1100,10 +1100,10 @@ export default function CoachPage() {
                   : null;
                 if (daysSince === null) return null;
                 const color = daysSince === 0 ? "var(--green)" : daysSince <= 2 ? "#60a5fa" : daysSince <= 4 ? "#f59e0b" : "#ef4444";
-                const msg = daysSince === 0 ? "Entrenaste hoy ??" : daysSince === 1 ? "Ayer fue el último entreno" : `Hace ${daysSince} días sin entrenar`;
+                const msg = daysSince === 0 ? "Entrenaste hoy 🎉" : daysSince === 1 ? "Ayer fue el último entreno" : `Hace ${daysSince} días sin entrenar`;
                 return (
                   <div style={{ display:"flex", alignItems:"center", gap:12, background:"var(--panel)", border:`1px solid ${color}33`, borderRadius:14, padding:"12px 14px", marginBottom:12 }}>
-                    <span style={{ fontSize:24 }}>{daysSince === 0 ? "??" : daysSince <= 2 ? "?" : daysSince <= 4 ? "?" : "??"}</span>
+                    <span style={{ fontSize:24 }}>{daysSince === 0 ? "🔥" : daysSince <= 2 ? "✅" : daysSince <= 4 ? "⚠️" : "❌"}</span>
                     <div>
                       <p style={{ margin:"0 0 2px", fontSize:14, fontWeight:800, color }}>{msg}</p>
                       {last?.type && <p style={{ margin:0, fontSize:12, color:"var(--muted)" }}>último: {last.type}</p>}
@@ -1134,7 +1134,7 @@ export default function CoachPage() {
                 return (
                   <div style={{ background:"var(--panel)", border:"1px solid rgba(96,165,250,.3)", borderRadius:18, padding:"14px 16px", marginBottom:12 }}>
                     <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
-                      <span style={{ fontSize:20 }}>??</span>
+                      <span style={{ fontSize:20 }}>🏆</span>
                       <p style={{ margin:0, fontSize:14, fontWeight:800 }}>Mejor sesión esta semana</p>
                     </div>
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
@@ -1180,7 +1180,7 @@ export default function CoachPage() {
                 }).reverse();
                 return (
                   <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:18, padding:"14px 16px", marginBottom:12 }}>
-                    <p style={{ margin:"0 0 12px", fontSize:14, fontWeight:800 }}>?? últimas 4 semanas</p>
+                    <p style={{ margin:"0 0 12px", fontSize:14, fontWeight:800 }}>📅 últimas 4 semanas</p>
                     <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:6 }}>
                       {weeks.map(w => (
                         <div key={w.label} style={{ background:"var(--panel2)", borderRadius:12, padding:"10px 8px", textAlign:"center" }}>
@@ -1201,7 +1201,7 @@ export default function CoachPage() {
               {skippedGroups.length > 0 && (
                 <div style={{ background:"rgba(239,68,68,.06)", border:"1px solid rgba(239,68,68,.2)", borderRadius:14, padding:"14px 16px" }}>
                   <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
-                    <span style={{ fontSize:20 }}>??</span>
+                    <span style={{ fontSize:20 }}>⚠️</span>
                     <p style={{ margin:0, fontSize:14, fontWeight:800 }}>Grupos sin entrenar (últimas 4 semanas)</p>
                   </div>
                   <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
@@ -1216,7 +1216,7 @@ export default function CoachPage() {
               {/* Ejercicios sugeridos para grupos débiles */}
               {skippedGroups && skippedGroups.length > 0 && (
                 <div className="card" style={{ marginBottom:14, marginTop:12 }}>
-                  <h2 style={{ marginBottom:10 }}>?? Ejercicios sugeridos</h2>
+                  <h2 style={{ marginBottom:10 }}>💡 Ejercicios sugeridos</h2>
                   {skippedGroups.slice(0,3).map(g => {
                     const suggestions = {
                       "Espalda": ["Dominadas", "Remo con barra", "Jalón al pecho"],
@@ -1250,7 +1250,7 @@ export default function CoachPage() {
         <div>
           {!progression.length && !topExercises.length && !prs.length ? (
             <div style={{ textAlign:"center", padding:"40px 20px" }}>
-              <div style={{ fontSize:48, marginBottom:12 }}>??</div>
+              <div style={{ fontSize:48, marginBottom:12 }}>📊</div>
               <h3 style={{ margin:"0 0 8px", fontSize:17 }}>Sin datos aún</h3>
               <p style={{ color:"var(--muted)", fontSize:13, lineHeight:1.5, margin:0 }}>Completá más entrenamientos para ver tu progresión por ejercicio y grupo muscular.</p>
             </div>
@@ -1349,35 +1349,35 @@ export default function CoachPage() {
 
                 const insights = [];
                 // Consistency
-                if (racha >= 3) insights.push({ icon:"??", text:`Racha de ${racha} días entrenando`, color:"var(--green)" });
-                else if (semana > 0) insights.push({ icon:"??", text:`${semana} días esta semana (prom. ${avgSem}/sem)`, color:"var(--text)" });
-                else insights.push({ icon:"?", text:"Sin entrenos esta semana", color:"var(--muted)" });
+                if (racha >= 3) insights.push({ icon:"🔥", text:`Racha de ${racha} días entrenando`, color:"var(--green)" });
+                else if (semana > 0) insights.push({ icon:"📅", text:`${semana} días esta semana (prom. ${avgSem}/sem)`, color:"var(--text)" });
+                else insights.push({ icon:"❌", text:"Sin entrenos esta semana", color:"var(--muted)" });
 
                 // Weight trend vs goal
                 if (wTrend !== null && Math.abs(Number(wTrend)) >= 0.3) {
                   const dir = Number(wTrend) > 0 ? "subiste" : "bajaste";
-                  const emoji = userGoal === "definicion" && Number(wTrend) < 0 ? "?" :
-                    userGoal === "volumen" && Number(wTrend) > 0 ? "?" : "??";
-                  insights.push({ icon:emoji, text:`${dir} ${Math.abs(Number(wTrend))}kg en 30 días`, color:emoji === "?" ? "var(--green)" : "#f59e0b" });
+                  const emoji = userGoal === "definicion" && Number(wTrend) < 0 ? "✅" :
+                    userGoal === "volumen" && Number(wTrend) > 0 ? "✅" : "⚠️";
+                  insights.push({ icon:emoji, text:`${dir} ${Math.abs(Number(wTrend))}kg en 30 días`, color:emoji === "✅" ? "var(--green)" : "#f59e0b" });
                 }
                 // Sleep
                 if (sleepAvg !== null) {
                   const ok = Number(sleepAvg) >= 7;
-                  insights.push({ icon:ok ? "??" : "??", text:`Sueño: ${sleepAvg}h promedio${ok ? " — óptimo" : " — ideal =7h"}`, color:ok ? "var(--green)" : "#f59e0b" });
+                  insights.push({ icon:ok ? "😴" : "😴", text:`Sueño: ${sleepAvg}h promedio${ok ? " — óptimo" : " — ideal =7h"}`, color:ok ? "var(--green)" : "#f59e0b" });
                 }
                 // Volume trend
                 if (volTrend !== null && !isNaN(volTrend)) {
-                  const dir = volTrend > 0 ? "?" : "?";
-                  insights.push({ icon:"??", text:`Volumen ${dir} ${Math.abs(volTrend)}% vs semana pasada`, color:volTrend > 0 ? "var(--green)" : "var(--muted)" });
+                  const dir = volTrend > 0 ? "↑" : "↓";
+                  insights.push({ icon:"📈", text:`Volumen ${dir} ${Math.abs(volTrend)}% vs semana pasada`, color:volTrend > 0 ? "var(--green)" : "var(--muted)" });
                 }
                 // Water
                 if (waterAvg !== null && waterGoal) {
                   const ok = waterAvg >= waterGoal;
-                  insights.push({ icon:"??", text:`Agua: ${waterAvg.toFixed(0)}/${waterGoal} vasos${ok ? " ?" : ""}`, color:ok ? "var(--green)" : "#f59e0b" });
+                  insights.push({ icon:"💧", text:`Agua: ${waterAvg.toFixed(0)}/${waterGoal} vasos${ok ? " ✅" : ""}`, color:ok ? "var(--green)" : "#f59e0b" });
                 }
                 // Body composition
                 if (bodyFatPct !== null && lbm !== null) {
-                  insights.push({ icon:"??", text:`Grasa: ${bodyFatPct.toFixed(1)}% — Masa magra: ${lbm.toFixed(1)}kg`, color:"var(--text)" });
+                  insights.push({ icon:"⚖️", text:`Grasa: ${bodyFatPct.toFixed(1)}% — Masa magra: ${lbm.toFixed(1)}kg`, color:"var(--text)" });
                 }
 
                 return (
@@ -1459,7 +1459,7 @@ export default function CoachPage() {
                 }
                 return (
                   <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:18, padding:"14px 16px", marginBottom:12 }}>
-                    <p style={{ margin:"0 0 12px", fontSize:14, fontWeight:800 }}>?? Consistencia</p>
+                    <p style={{ margin:"0 0 12px", fontSize:14, fontWeight:800 }}>📅 Consistencia</p>
                     <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
                       <div style={{ background:"var(--panel2)", borderRadius:12, padding:"12px", textAlign:"center" }}>
                         <div style={{ fontSize:11, color:"var(--muted)", marginBottom:4 }}>Racha semanal</div>
@@ -1497,7 +1497,7 @@ export default function CoachPage() {
                 return (
                   <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:18, padding:"14px 16px", marginBottom:12 }}>
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
-                      <p style={{ margin:0, fontSize:14, fontWeight:800 }}>?? Series por grupo este mes</p>
+                      <p style={{ margin:0, fontSize:14, fontWeight:800 }}>💪 Series por grupo este mes</p>
                       <span style={{ fontSize:12, color:"var(--muted)" }}>{total} series total</span>
                     </div>
                     <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
@@ -1533,7 +1533,7 @@ export default function CoachPage() {
                 const favDay = counts.indexOf(Math.max(...counts));
                 return (
                   <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:18, padding:"14px 16px", marginBottom:12 }}>
-                    <p style={{ margin:"0 0 12px", fontSize:14, fontWeight:800 }}>?? Días más activos</p>
+                    <p style={{ margin:"0 0 12px", fontSize:14, fontWeight:800 }}>📅 Días más activos</p>
                     <div style={{ display:"flex", gap:4, alignItems:"flex-end", height:52 }}>
                       {DAY_NAMES.map((day, i) => {
                         const h = Math.max(8, Math.round((counts[i] / maxCount) * 44));
@@ -1616,7 +1616,7 @@ export default function CoachPage() {
               borderRadius:14, padding:"14px 16px", marginBottom:10
             }}>
               <span style={{ fontSize:20, flexShrink:0 }}>
-                {alert.type === "stall" ? "??" : alert.type === "volume" ? "??" : alert.type === "rest" ? "??" : alert.type === "neglect" ? "??" : alert.type === "frequency" ? "??" : alert.type === "bodyfat_high" ? "??" : alert.type === "bodyfat_low" ? "??" : "??"}
+                {alert.type === "stall" ? "📉" : alert.type === "volume" ? "📊" : alert.type === "rest" ? "😴" : alert.type === "neglect" ? "🦵" : alert.type === "frequency" ? "📅" : alert.type === "bodyfat_high" ? "⚠️" : alert.type === "bodyfat_low" ? "⚠️" : "⚖️"}
               </span>
               <div>
                 <p style={{ margin:"0 0 3px", fontSize:14, fontWeight:700, color:"var(--text)" }}>
@@ -1635,7 +1635,7 @@ export default function CoachPage() {
               border:"1px solid rgba(245,158,11,.3)",
               borderRadius:14, padding:"14px 16px", marginBottom:10
             }}>
-              <span style={{ fontSize:20, flexShrink:0 }}>??</span>
+              <span style={{ fontSize:20, flexShrink:0 }}>📉</span>
               <div>
                 <p style={{ margin:"0 0 3px", fontSize:14, fontWeight:700, color:"var(--text)" }}>
                   Estancamiento: {item.exercise}
@@ -1656,7 +1656,7 @@ export default function CoachPage() {
               border:"1px solid rgba(168,85,247,.25)",
               borderRadius:14, padding:"14px 16px", marginBottom:10
             }}>
-              <span style={{ fontSize:20, flexShrink:0 }}>?</span>
+              <span style={{ fontSize:20, flexShrink:0 }}>💜</span>
               <div>
                 <p style={{ margin:0, fontSize:13, color:"var(--muted)", lineHeight:1.5 }}>{msg}</p>
               </div>
@@ -1666,7 +1666,7 @@ export default function CoachPage() {
           {/* RPE fatigue alerts */}
           {rpeFatigueAlerts.map((alert, i) => (
             <div key={i} style={{ display:"flex", gap:10, alignItems:"flex-start", background:"rgba(168,85,247,.07)", border:"1px solid rgba(168,85,247,.25)", borderRadius:14, padding:"14px 16px", marginBottom:10 }}>
-              <span style={{ fontSize:20, flexShrink:0 }}>?</span>
+              <span style={{ fontSize:20, flexShrink:0 }}>⚡</span>
               <div>
                 <p style={{ margin:"0 0 3px", fontSize:14, fontWeight:700, color:"var(--text)" }}>Fatiga acumulada por RPE</p>
                 <p style={{ margin:0, fontSize:13, color:"var(--muted)", lineHeight:1.5 }}>{alert.msg}</p>
@@ -1677,7 +1677,7 @@ export default function CoachPage() {
           {/* Skipped muscle groups */}
           {skippedGroups.length > 0 && (
             <div style={{ display:"flex", gap:10, alignItems:"flex-start", background:"rgba(239,68,68,.07)", border:"1px solid rgba(239,68,68,.25)", borderRadius:14, padding:"14px 16px", marginBottom:10 }}>
-              <span style={{ fontSize:20, flexShrink:0 }}>??</span>
+              <span style={{ fontSize:20, flexShrink:0 }}>⚠️</span>
               <div>
                 <p style={{ margin:"0 0 3px", fontSize:14, fontWeight:700, color:"var(--text)" }}>Grupos sin entrenar</p>
                 <p style={{ margin:0, fontSize:13, color:"var(--muted)", lineHeight:1.5 }}>
@@ -1716,7 +1716,7 @@ export default function CoachPage() {
                       <div style={{ display:"flex", justifyContent:"space-between", marginBottom:3, alignItems:"center" }}>
                         <span style={{ fontSize:12, fontWeight:600 }}>{group}</span>
                         <span style={{ fontSize:11, color: barColor, fontWeight:700 }}>
-                          {sets} series — {status === "overtrained" ? "? Exceso" : status === "optimal" ? "? óptimo" : status === "undertrained" ? "? Bajo" : "Sin entrenar"}
+                          {sets} series — {status === "overtrained" ? "⚠️ Exceso" : status === "optimal" ? "✅ óptimo" : status === "undertrained" ? "📉 Bajo" : "Sin entrenar"}
                         </span>
                       </div>
                       <div style={{ position:"relative", height:6, background:"var(--panel2)", borderRadius:3, overflow:"visible" }}>
@@ -1751,7 +1751,7 @@ export default function CoachPage() {
               </div>
               {activePlanAdjustment?.type === "deload" && !activePlanAdjustment?.declined && new Date(activePlanAdjustment?.expiresAt) >= new Date() ? (
                 <div style={{ background:"rgba(168,85,247,.1)", border:"1px solid rgba(168,85,247,.3)", borderRadius:10, padding:"8px 12px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-                  <span style={{ fontSize:12, color:"var(--green)", fontWeight:700 }}>? Deload activo — pesos reducidos al 60% hasta {activePlanAdjustment.expiresAt}</span>
+                  <span style={{ fontSize:12, color:"var(--green)", fontWeight:700 }}>✅ Deload activo — pesos reducidos al 60% hasta {activePlanAdjustment.expiresAt}</span>
                   <button onClick={clearPlanAdjustment} style={{ background:"none", border:"none", color:"var(--muted)", fontSize:11, cursor:"pointer" }}>Cancelar</button>
                 </div>
               ) : activePlanAdjustment?.type === "deload" && activePlanAdjustment?.declined ? (
@@ -1763,11 +1763,11 @@ export default function CoachPage() {
                 <div style={{ display:"flex", gap:8 }}>
                   <button onClick={() => acceptPlanRecommendation("deload", 0.6)}
                     style={{ flex:1, background:"rgba(245,158,11,.15)", border:"1px solid rgba(245,158,11,.4)", borderRadius:10, padding:"9px", cursor:"pointer", fontSize:13, fontWeight:700, color:"#f59e0b" }}>
-                    ? Aceptar deload (60% peso, 12-20 reps)
+                    ✅ Aceptar deload (60% peso, 12-20 reps)
                   </button>
                   <button onClick={() => declinePlanRecommendation("deload")}
                     style={{ flex:1, background:"rgba(255,255,255,.04)", border:"1px solid var(--line)", borderRadius:10, padding:"9px", cursor:"pointer", fontSize:13, fontWeight:700, color:"var(--muted)" }}>
-                    ? Declinar
+                    ✕ Declinar
                   </button>
                 </div>
               )}
@@ -2766,11 +2766,11 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
     if (!todayMacros.kcal) return null;
     const pct = todayMacros.kcal / targetCal;
     const diff = todayMacros.kcal - targetCal;
-    if (pct >= 0.90 && pct <= 1.10) return { color:"#22c55e", label:"En objetivo", icon:"??", tip:"Perfecto, seguí así.", diff };
-    if (pct < 0.90 && pct >= 0.70)  return { color:"#f59e0b", label:"Por debajo", icon:"??", tip:`Faltan ~${Math.round(targetCal - todayMacros.kcal)} kcal para el objetivo de hoy.`, diff };
-    if (pct > 1.10 && pct <= 1.25)  return { color:"#f59e0b", label:"Levemente alto", icon:"??", tip:`Superaste el objetivo por ${Math.round(todayMacros.kcal - targetCal)} kcal.`, diff };
-    if (pct < 0.70) return { color:"#ef4444", label:"Muy bajo", icon:"??", tip:`Consumiste solo el ${Math.round(pct*100)}% del objetivo. Riesgo de déficit excesivo.`, diff };
-    return { color:"#ef4444", label:"Excedido", icon:"??", tip:`Superaste el objetivo por ${Math.round(todayMacros.kcal - targetCal)} kcal.`, diff };
+    if (pct >= 0.90 && pct <= 1.10) return { color:"#22c55e", label:"En objetivo", icon:"✅", tip:"Perfecto, seguí así.", diff };
+    if (pct < 0.90 && pct >= 0.70)  return { color:"#f59e0b", label:"Por debajo", icon:"⚠️", tip:`Faltan ~${Math.round(targetCal - todayMacros.kcal)} kcal para el objetivo de hoy.`, diff };
+    if (pct > 1.10 && pct <= 1.25)  return { color:"#f59e0b", label:"Levemente alto", icon:"⚠️", tip:`Superaste el objetivo por ${Math.round(todayMacros.kcal - targetCal)} kcal.`, diff };
+    if (pct < 0.70) return { color:"#ef4444", label:"Muy bajo", icon:"❌", tip:`Consumiste solo el ${Math.round(pct*100)}% del objetivo. Riesgo de déficit excesivo.`, diff };
+    return { color:"#ef4444", label:"Excedido", icon:"❌", tip:`Superaste el objetivo por ${Math.round(todayMacros.kcal - targetCal)} kcal.`, diff };
   })();
 
   // Wizard: generate plan on last step submit
@@ -2783,7 +2783,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
     saveNutritionPlan(plan);
     setSubPage("plan");
     setWizStep(0);
-    if (window.__showToast) window.__showToast("? Plan generado");
+    if (window.__showToast) window.__showToast("✨ Plan generado");
   }
 
   /* -- current day index for plan -------------------------- */
@@ -2937,7 +2937,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
           </div>
           <div style={{ display:"flex", flexWrap:"wrap", gap:4 }}>
             {nutritionPlan.days[currentPlanDayIdx].meals?.map(meal => (
-              <button key={meal.slot} onClick={() => { logMeal({ name: meal.items.map(i=>i.name).join(" + "), kcal: Math.round(meal.kcal), protein: Math.round(meal.protein), carbs: Math.round(meal.carbs), fat: Math.round(meal.fat) }); if (window.__showToast) window.__showToast("? Comida registrada"); }}
+              <button key={meal.slot} onClick={() => { logMeal({ name: meal.items.map(i=>i.name).join(" + "), kcal: Math.round(meal.kcal), protein: Math.round(meal.protein), carbs: Math.round(meal.carbs), fat: Math.round(meal.fat) }); if (window.__showToast) window.__showToast("✅ Comida registrada"); }}
                 style={{ background:"rgba(34,197,94,.1)", border:"1px solid rgba(34,197,94,.25)", borderRadius:8, padding:"4px 10px", cursor:"pointer", fontSize:11, color:"var(--text)" }}>
                 Añadir {meal.label}
               </button>
@@ -2950,7 +2950,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
       {adaptiveTDEE && (
         <div style={{ background:"rgba(96,165,250,.07)", border:"1px solid rgba(96,165,250,.25)", borderRadius:14, padding:"12px 14px", marginBottom:14 }}>
           <p style={{ margin:"0 0 6px", fontSize:13, fontWeight:700, color:"var(--text)" }}>
-            {adaptiveTDEE.suggestion > 0 ? "? Subí tus calorías" : "? Bajá tus calorías"}
+            {adaptiveTDEE.suggestion > 0 ? "↑ Subí tus calorías" : "↓ Bajá tus calorías"}
           </p>
           <p style={{ margin:"0 0 6px", fontSize:12, color:"var(--muted)", lineHeight:1.5 }}>
             Tus últimas semanas muestran {adaptiveTDEE.weeklyChange > 0 ? "+" : ""}{adaptiveTDEE.weeklyChange}kg/sem
@@ -3191,9 +3191,9 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                 );
               })}
               <div style={{ background:"rgba(168,85,247,.06)", borderRadius:10, padding:"8px 10px", marginTop:4, display:"flex", gap:8, alignItems:"flex-start" }}>
-                <span style={{ fontSize:12, flexShrink:0 }}>??</span>
+                <span style={{ fontSize:12, flexShrink:0 }}>💡</span>
                 <p style={{ margin:0, fontSize:11, color:"var(--muted)", lineHeight:1.5 }}>
-                  Umbral de leucina: necesitás ={leucineThreshold}g leucina por comida (~{mealsOk ? "? alcanzado" : `? ${perMeal}g es bajo — apuntá a 30g+`}) para activar la síntesis proteica muscular.
+                  Umbral de leucina: necesitás ={leucineThreshold}g leucina por comida (~{mealsOk ? "✅ alcanzado" : `⚠️ ${perMeal}g es bajo — apuntá a 30g+`}) para activar la síntesis proteica muscular.
                 </p>
               </div>
             </div>
@@ -3204,35 +3204,35 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
       {/* -- Training guidelines by goal ---------------------------------------- */}
       {(() => {
         const gMap = {
-          fuerza:       { icon:"??", color:"#f59e0b", label:"Fuerza",
+          fuerza:       { icon:"🏋️", color:"#f59e0b", label:"Fuerza",
             reps:"1-6 reps al 80-90% 1RM",
             rest:"2-3 min entre series (ACSM 2026 =2 min para cargas pesadas)",
             exercises:"Dominan movimientos fundamentales: sentadilla, peso muerto, press banca, press militar, remo. Ratio 80% compound / 20% isolation.",
             rir:"Trabajó cerca del fallo pero no a fallo — 1-3 RIR (PMC9935748: sin ventaja de entrenar a fallo vs 1-3 RIR).",
             overload:"Progresión lineal semanal (+2.5kg) en principiantes. En intermedios, ondulación de cargas (wave loading).",
             freq:"2x/semana por grupo muscular mínimo (Schoenfeld 2016 meta-análisis)." },
-          hipertrofia:  { icon:"???", color:"#a855f7", label:"Hipertrofia / Masa",
+          hipertrofia:  { icon:"💪", color:"#a855f7", label:"Hipertrofia / Masa",
             reps:"6-20 reps (rango amplio — lo clave es el volumen total de series cerca del fallo)",
             rest:"60-90 s entre series es suficiente para hipertrofia (PMC11349676 2024 meta-análisis bayesiano). Para series pesadas, 2 min.",
             exercises:"70-80% compuestos + 20-30% aislamiento para completar volumen. Compuestos solos (~6-8 series/másculo) no alcanzan el MAV.",
             rir:"Terminá la serie con 1-3 RIR. Entrenar a fallo tiene efecto trivial adicional (ES=0.19, PMC9935748) y aumenta fatiga innecesaria.",
             overload:"Doble progresión: primero subí reps hasta el tope del rango, luego subí peso. Ej: 3x8-12 ? cuando llegás a 3x12 con buena técnica, sumá 2.5kg (PMC9528903).",
             freq:"2x/semana por grupo muscular. El volumen total semanal importa más que la frecuencia (10-20 series/másculo/semana, ACSM 2026)." },
-          definicion:   { icon:"??", color:"#38bdf8", label:"Definición",
+          definicion:   { icon:"🔥", color:"#38bdf8", label:"Definición",
             reps:"8-15 reps. No reduzcas el peso — el entrenamiento con carga preserva el másculo en déficit calórico.",
             rest:"45-75 s para mayor gasto calórico y estrés metabólico.",
             exercises:"Misma base de compuestos + aislamiento. No cambiás el programa de masa — solo ajustá nutrición.",
             rir:"1-3 RIR. Alta proteína (3.1g/kg LBM, Helms 2014) es lo más crítico para preservar másculo en déficit.",
             overload:"Mantenés las cargas o intentá progresar — la pérdida de fuerza en déficit indica pérdida muscular.",
             freq:"Mantenés o aumentá frecuencia para preservar másculo. Cardio adicional va separado del pesas o post-entreno." },
-          rendimiento:  { icon:"?", color:"#34d399", label:"Fuerza",
+          rendimiento:  { icon:"🏃", color:"#34d399", label:"Fuerza",
             reps:"2-6 reps al 80-95% 1RM. Series pesadas con técnica impecable.",
             rest:"3-5 min entre series — la recuperación completa del fosfógeno es clave para fuerza máxima.",
             exercises:"Priorizá los Big 4: sentadilla, press banca, peso muerto, press militar. Aislamiento secundario.",
             rir:"0-2 RIR en los trabajos principales. Dejá más RIR en ejercicios auxiliares para no acumular fatiga.",
             overload:"Progresión lineal o por bloques (ondulada). Subí peso apenas completás todas las series en el tope del rango.",
             freq:"2-3x/semana por patrón de movimiento. Necesitás frecuencia para práctica del gesto técnico." },
-          mantenimiento: { icon:"??", color:"#94a3b8", label:"Salud general",
+          mantenimiento: { icon:"⚖️", color:"#94a3b8", label:"Salud general",
             reps:"8-15 reps (rango versátil, bajo estrés articular, buena respuesta hipertrófica).",
             rest:"60-90 s.",
             exercises:"Balance entre compuestos e isolation. Priorizá los ejercicios donde tenés más margen de progresión.",
@@ -3252,12 +3252,12 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
               </div>
             </div>
             {[
-              { icon:"??", label:"Rango de repeticiones", val:g.reps },
-              { icon:"?", label:"Descanso entre series", val:g.rest },
-              { icon:"???", label:"Selección de ejercicios", val:g.exercises },
-              { icon:"??", label:"Proximidad al fallo (RIR)", val:g.rir },
-              { icon:"??", label:"Sobrecarga progresiva", val:g.overload },
-              { icon:"???", label:"Frecuencia semanal", val:g.freq },
+              { icon:"🔢", label:"Rango de repeticiones", val:g.reps },
+              { icon:"⏱️", label:"Descanso entre series", val:g.rest },
+              { icon:"🏋️", label:"Selección de ejercicios", val:g.exercises },
+              { icon:"🎯", label:"Proximidad al fallo (RIR)", val:g.rir },
+              { icon:"📈", label:"Sobrecarga progresiva", val:g.overload },
+              { icon:"📅", label:"Frecuencia semanal", val:g.freq },
             ].map(({ icon, label, val }) => (
               <div key={label} style={{ display:"flex", gap:10, marginBottom:8, alignItems:"flex-start" }}>
                 <span style={{ fontSize:14, flexShrink:0, marginTop:1 }}>{icon}</span>
@@ -3270,7 +3270,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
             {/* Recomposición corporal para principiantes */}
             {(bodyFatPct === null || bodyFatPct > 15) && (workouts.length < 30 || (bodyFatPct !== null && bodyFatPct > 20)) && (
               <div style={{ background:"rgba(52,211,153,.06)", border:"1px solid rgba(52,211,153,.2)", borderRadius:10, padding:"9px 11px", marginTop:6 }}>
-                <p style={{ margin:"0 0 2px", fontSize:11, fontWeight:800, color:"#34d399" }}>?? Recomposición corporal posible</p>
+                <p style={{ margin:"0 0 2px", fontSize:11, fontWeight:800, color:"#34d399" }}>⚡ Recomposición corporal posible</p>
                 <p style={{ margin:0, fontSize:11, color:"var(--muted)", lineHeight:1.45 }}>
                   Principiantes y personas con BF elevado pueden ganar másculo y perder grasa simultáneamente. Clave: proteína 2.3-3.1g/kg masa magra, entrenamiento con carga progresiva y déficit calórico moderado (±200 kcal).
                 </p>
@@ -3298,8 +3298,8 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
               <span style={{ fontSize:13, fontWeight:700, color:"var(--text)" }}>{name}</span>
               <span style={{ fontSize:12, fontWeight:800, color:"#a855f7", flexShrink:0 }}>{dose}</span>
             </div>
-            <div style={{ fontSize:11, color:"var(--muted)", marginTop:2 }}>? {timing}</div>
-            <div style={{ fontSize:11, color:"rgba(255,255,255,.45)", marginTop:1 }}>? {benefit}</div>
+            <div style={{ fontSize:11, color:"var(--muted)", marginTop:2 }}>⏱️ {timing}</div>
+            <div style={{ fontSize:11, color:"rgba(255,255,255,.45)", marginTop:1 }}>✅ {benefit}</div>
           </div>
         ))}
       </div>
@@ -3352,7 +3352,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
           display:"flex", alignItems:"center", justifyContent:"space-between",
         }}>
         <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-          <span style={{ fontSize:20 }}>???</span>
+          <span style={{ fontSize:20 }}>📓</span>
           <div style={{ textAlign:"left" }}>
             <div style={{ fontSize:14, fontWeight:700, color:"var(--text)" }}>{isToday ? "Diario de hoy" : diaryDate}</div>
             <div style={{ fontSize:11, color:"var(--muted)" }}>
@@ -3363,7 +3363,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
         <div style={{ display:"flex", alignItems:"center", gap:4 }} onClick={e => e.stopPropagation()}>
           <button onClick={() => shiftDay(-1)} style={{ background:"none", border:"1px solid var(--line)", borderRadius:8, width:28, height:28, cursor:"pointer", color:"var(--muted)", fontSize:14, display:"flex", alignItems:"center", justifyContent:"center" }}>&lsaquo;</button>
           <button onClick={() => shiftDay(1)} disabled={isToday} style={{ background:"none", border:"1px solid var(--line)", borderRadius:8, width:28, height:28, cursor:"pointer", color: isToday ? "rgba(255,255,255,.15)" : "var(--muted)", fontSize:14, display:"flex", alignItems:"center", justifyContent:"center" }}>&lsaquo;</button>
-          <span style={{ color:"var(--muted)", fontSize:14, marginLeft:4 }}>{showDiary ? "?" : "?"}</span>
+          <span style={{ color:"var(--muted)", fontSize:14, marginLeft:4 }}>{showDiary ? "▲" : "▼"}</span>
         </div>
       </button>
 
@@ -3458,7 +3458,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                       saveMealCombo(comboName, todayMeals.map(({ name, kcal, protein, carbs, fat }) => ({ name, kcal, protein, carbs, fat })));
                       setShowSaveCombo(false);
                     }}>Guardar</button>
-                  <button className="ghost" style={{ padding:"8px 10px" }} onClick={() => setShowSaveCombo(false)}>?</button>
+                  <button className="ghost" style={{ padding:"8px 10px" }} onClick={() => setShowSaveCombo(false)}>✕</button>
                 </div>
               )}
             </div>
@@ -3507,7 +3507,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
             if (!isToday2 || pct >= 0.8) return null;
             return (
               <div style={{ background:"rgba(239,68,68,.07)", border:"1px solid rgba(239,68,68,.25)", borderRadius:12, padding:"10px 14px", marginBottom:10, fontSize:13 }}>
-                <b style={{ color:"var(--danger)" }}>? Poco proteína hoy</b>
+                <b style={{ color:"var(--danger)" }}>⚠️ Poco proteína hoy</b>
                 <p style={{ margin:"4px 0 0", color:"var(--muted)" }}>
                   {todayP}g de {targetP}g meta ({Math.round(pct*100)}%). Agregá {targetP-todayP}g más hoy.
                 </p>
@@ -3533,7 +3533,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                   borderColor: buildPlate ? "var(--green)" : "var(--border)",
                   background: buildPlate ? "rgba(168,85,247,.12)" : "var(--panel2)",
                   color: buildPlate ? "var(--green)" : "var(--muted)" }}>
-                ?? Combinar ingredientes
+                🔗 Combinar ingredientes
               </button>
             </div>
             {buildPlate && plateParts.length === 0 && (
@@ -3601,7 +3601,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                       </div>
                     </div>
                     <button onClick={() => setPlateParts(ps => ps.filter((_,j)=>j!==i))}
-                      style={{ background:"none", border:"none", color:"var(--muted)", fontSize:14, cursor:"pointer", padding:2 }}>?</button>
+                      style={{ background:"none", border:"none", color:"var(--muted)", fontSize:14, cursor:"pointer", padding:2 }}>✕</button>
                   </div>
                 ))}
                 {(() => {
@@ -3653,7 +3653,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                   disabled={barcodeScanning}
                   title="Escanear código de barras"
                   style={{ background:"var(--panel2)", border:"1.5px solid var(--border)", borderRadius:10, padding:"10px 12px", cursor:"pointer", color:"var(--text)", fontSize:18, flexShrink:0 }}>
-                  {barcodeScanning ? "?" : "??"}
+                  {barcodeScanning ? "⏳" : "📷"}
                 </button>
               )}
             </div>
@@ -3690,7 +3690,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                   <button
                     onClick={() => setShowSuggestions(false)}
                     style={{ width:"100%", padding:"8px 12px", background:"rgba(255,255,255,.04)", border:"none", cursor:"pointer", textAlign:"left", fontSize:12, color:"var(--muted)" }}>
-                    ?? Ingresar macros manualmente ?
+                    ✏️ Ingresar macros manualmente →
                   </button>
                 )}
               </div>
@@ -3836,7 +3836,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                     <span style={{ fontSize:14, fontWeight:800, color: isToday ? "var(--green)" : "var(--text)" }}>{isToday ? "Hoy — " : ""}{day.dayName}</span>
                     <div style={{ display:"flex", alignItems:"center", gap:8 }}>
                       <span style={{ fontSize:12, color:"var(--muted)" }}>{Math.round(day.kcal)} kcal</span>
-                      <span style={{ color:"var(--muted)" }}>{expandedPlanDay === day.dayIdx ? "?" : "?"}</span>
+                      <span style={{ color:"var(--muted)" }}>{expandedPlanDay === day.dayIdx ? "▲" : "▼"}</span>
                     </div>
                   </button>
                   {expandedPlanDay === day.dayIdx && (
@@ -3845,7 +3845,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                         <div key={meal.slot} style={{ paddingTop:12, borderTop:"1px solid rgba(255,255,255,.06)" }}>
                           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
                             <span style={{ fontSize:12, fontWeight:700, color:"var(--muted)" }}>{meal.label}</span>
-                            <button onClick={() => { logMeal({ name: meal.items.map(i=>i.name).join(" + "), kcal: Math.round(meal.kcal), protein: Math.round(meal.protein), carbs: Math.round(meal.carbs), fat: Math.round(meal.fat) }); if (window.__showToast) window.__showToast("? Comida registrada"); }}
+                            <button onClick={() => { logMeal({ name: meal.items.map(i=>i.name).join(" + "), kcal: Math.round(meal.kcal), protein: Math.round(meal.protein), carbs: Math.round(meal.carbs), fat: Math.round(meal.fat) }); if (window.__showToast) window.__showToast("✅ Comida registrada"); }}
                               style={{ background:"rgba(34,197,94,.1)", border:"1px solid rgba(34,197,94,.25)", borderRadius:6, padding:"2px 8px", cursor:"pointer", fontSize:10, color:"var(--green)", fontWeight:700 }}>
                               Añadir
                             </button>
@@ -3910,8 +3910,8 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                 ))}
               </div>
               <div style={{ display:"flex", gap:8 }}>
-                <button style={{ flex:1, padding:"12px", borderRadius:10, border:"1px solid var(--border)", background:"var(--panel)", color:"var(--muted)", cursor:"pointer" }} onClick={() => setWizStep(0)}>? Atrás</button>
-                <button className="primary" style={{ flex:2 }} onClick={() => setWizStep(2)}>Siguiente ?</button>
+                <button style={{ flex:1, padding:"12px", borderRadius:10, border:"1px solid var(--border)", background:"var(--panel)", color:"var(--muted)", cursor:"pointer" }} onClick={() => setWizStep(0)}>← Atrás</button>
+                <button className="primary" style={{ flex:2 }} onClick={() => setWizStep(2)}>Siguiente →</button>
               </div>
             </div>
           )}
@@ -3919,7 +3919,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
             <div>
               <p style={{ fontSize:15, fontWeight:800, marginBottom:4 }}>¿Cuál es tu objetivo?</p>
               <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:24 }}>
-                {[{v:"definicion",l:"?? Definición",d:"Déficit calórico, mantener másculo"},{v:"mantener",l:"?? Mantenimiento",d:"Calorías de mantenimiento"},{v:"volumen",l:"?? Volumen",d:"Superávit para ganar másculo"}].map(({v,l,d}) => (
+                {[{v:"definicion",l:"🔥 Definición",d:"Déficit calórico, mantener másculo"},{v:"mantener",l:"⚖️ Mantenimiento",d:"Calorías de mantenimiento"},{v:"volumen",l:"💪 Volumen",d:"Superávit para ganar másculo"}].map(({v,l,d}) => (
                   <button key={v} onClick={() => setWizGoal(v)}
                     style={{ padding:"12px 14px", borderRadius:10, border:"1.5px solid", cursor:"pointer", textAlign:"left",
                       borderColor: wizGoal === v ? "var(--green)" : "var(--border)",
@@ -3930,8 +3930,8 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                 ))}
               </div>
               <div style={{ display:"flex", gap:8 }}>
-                <button style={{ flex:1, padding:"12px", borderRadius:10, border:"1px solid var(--border)", background:"var(--panel)", color:"var(--muted)", cursor:"pointer" }} onClick={() => setWizStep(1)}>? Atrás</button>
-                <button className="primary" style={{ flex:2 }} onClick={() => setWizStep(3)}>Siguiente ?</button>
+                <button style={{ flex:1, padding:"12px", borderRadius:10, border:"1px solid var(--border)", background:"var(--panel)", color:"var(--muted)", cursor:"pointer" }} onClick={() => setWizStep(1)}>← Atrás</button>
+                <button className="primary" style={{ flex:2 }} onClick={() => setWizStep(3)}>Siguiente →</button>
               </div>
             </div>
           )}
@@ -3940,7 +3940,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
               <p style={{ fontSize:15, fontWeight:800, marginBottom:4 }}>¿Tenés restricciones alimentarias?</p>
               <p style={{ fontSize:12, color:"var(--muted)", marginBottom:16 }}>Opcional. Seleccioná todas las que apliquen.</p>
               <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:16 }}>
-                {[{v:"vegano",l:"?? Vegano"},{v:"vegetariano",l:"?? Vegetariano"},{v:"sin_lacteos",l:"?? Sin lácteos"},{v:"sin_gluten",l:"?? Sin gluten"}].map(({v,l}) => {
+                {[{v:"vegano",l:"🌱 Vegano"},{v:"vegetariano",l:"🥗 Vegetariano"},{v:"sin_lacteos",l:"🥛 Sin lácteos"},{v:"sin_gluten",l:"🌾 Sin gluten"}].map(({v,l}) => {
                   const on = wizRestrictions.includes(v);
                   return (
                     <button key={v} onClick={() => setWizRestrictions(r => on ? r.filter(x=>x!==v) : [...r,v])}
@@ -3948,7 +3948,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                         borderColor: on ? "var(--green)" : "var(--border)",
                         background: on ? "rgba(34,197,94,.08)" : "var(--panel)",
                         color: on ? "var(--green)" : "var(--text)", fontWeight:700, fontSize:14 }}>
-                      {l} {on ? "?" : ""}
+                      {l} {on ? "✅" : ""}
                     </button>
                   );
                 })}
@@ -3956,12 +3956,12 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
               <p style={{ fontSize:13, fontWeight:700, marginBottom:8 }}>Alergias o intolerancias</p>
               <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginBottom:24 }}>
                 {[
-                  {v:"frutos_secos",l:"?? Frutos secos"},
-                  {v:"huevo",l:"?? Huevo"},
-                  {v:"pescado",l:"?? Pescado"},
-                  {v:"mariscos",l:"?? Mariscos"},
-                  {v:"soja",l:"?? Soja"},
-                  {v:"mani",l:"?? Maní"},
+                  {v:"frutos_secos",l:"🥜 Frutos secos"},
+                  {v:"huevo",l:"🥚 Huevo"},
+                  {v:"pescado",l:"🐟 Pescado"},
+                  {v:"mariscos",l:"🦐 Mariscos"},
+                  {v:"soja",l:"🫘 Soja"},
+                  {v:"mani",l:"🥜 Maní"},
                 ].map(({v,l}) => {
                   const on = wizAllergies.includes(v);
                   return (
@@ -3970,14 +3970,14 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                         borderColor: on ? "#ef4444" : "var(--border)",
                         background: on ? "rgba(239,68,68,.1)" : "var(--panel)",
                         color: on ? "#ef4444" : "var(--text)" }}>
-                      {l} {on ? "?" : ""}
+                      {l} {on ? "✅" : ""}
                     </button>
                   );
                 })}
               </div>
               <div style={{ display:"flex", gap:8 }}>
-                <button style={{ flex:1, padding:"12px", borderRadius:10, border:"1px solid var(--border)", background:"var(--panel)", color:"var(--muted)", cursor:"pointer" }} onClick={() => setWizStep(2)}>? Atrás</button>
-                <button className="primary" style={{ flex:2 }} onClick={() => setWizStep(4)}>Siguiente ?</button>
+                <button style={{ flex:1, padding:"12px", borderRadius:10, border:"1px solid var(--border)", background:"var(--panel)", color:"var(--muted)", cursor:"pointer" }} onClick={() => setWizStep(2)}>← Atrás</button>
+                <button className="primary" style={{ flex:2 }} onClick={() => setWizStep(4)}>Siguiente →</button>
               </div>
             </div>
           )}
@@ -3987,11 +3987,11 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
               <p style={{ fontSize:12, color:"var(--muted)", marginBottom:16 }}>Opcional. El plan priorizará estas categorías.</p>
               <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginBottom:24 }}>
                 {[
-                  {v:"principal",l:"?? Principales"},{v:"desayuno",l:"? Desayunos"},
-                  {v:"proteina",l:"?? Proteínas"},{v:"legumbre",l:"?? Legumbres"},
-                  {v:"verdura",l:"?? Verduras"},{v:"fruta",l:"?? Frutas"},
-                  {v:"lacteo",l:"?? Lácteos"},{v:"carbohidrato",l:"?? Carbohidratos"},
-                  {v:"colacion",l:"?? Colaciones"},{v:"merienda",l:"?? Meriendas"},
+                  {v:"principal",l:"🍽️ Principales"},{v:"desayuno",l:"🌅 Desayunos"},
+                  {v:"proteina",l:"🥩 Proteínas"},{v:"legumbre",l:"🫘 Legumbres"},
+                  {v:"verdura",l:"🥦 Verduras"},{v:"fruta",l:"🍎 Frutas"},
+                  {v:"lacteo",l:"🥛 Lácteos"},{v:"carbohidrato",l:"🍞 Carbohidratos"},
+                  {v:"colacion",l:"🍌 Colaciones"},{v:"merienda",l:"☕ Meriendas"},
                 ].map(({v,l}) => {
                   const on = wizLikedCats.includes(v);
                   return (
@@ -4010,8 +4010,8 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                 {wizDays} días — {wizMeals} comidas/día — ~{Math.round(targetCal)} kcal/día — {Math.round(proteinG)}g proteína
               </div>
               <div style={{ display:"flex", gap:8 }}>
-                <button style={{ flex:1, padding:"12px", borderRadius:10, border:"1px solid var(--border)", background:"var(--panel)", color:"var(--muted)", cursor:"pointer" }} onClick={() => setWizStep(3)}>? Atrás</button>
-                <button className="primary" style={{ flex:2 }} onClick={() => setWizStep(5)}>Siguiente ?</button>
+                <button style={{ flex:1, padding:"12px", borderRadius:10, border:"1px solid var(--border)", background:"var(--panel)", color:"var(--muted)", cursor:"pointer" }} onClick={() => setWizStep(3)}>← Atrás</button>
+                <button className="primary" style={{ flex:2 }} onClick={() => setWizStep(5)}>Siguiente →</button>
               </div>
             </div>
           )}
@@ -4021,9 +4021,9 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
               <p style={{ fontSize:12, color:"var(--muted)", marginBottom:16 }}>Esto ayuda a personalizar las recetas del plan.</p>
               <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:24 }}>
                 {[
-                  {v:"rapido",    l:"? Rápido",            d:"Menos de 15 minutos"},
-                  {v:"30min",     l:"?? Normal",             d:"Hasta 30 minutos"},
-                  {v:"elaborado", l:"????? Me gusta cocinar", d:"Sin límite de tiempo"},
+                  {v:"rapido",    l:"⚡ Rápido",            d:"Menos de 15 minutos"},
+                  {v:"30min",     l:"⏱️ Normal",             d:"Hasta 30 minutos"},
+                  {v:"elaborado", l:"👨‍🍳 Me gusta cocinar", d:"Sin límite de tiempo"},
                 ].map(({v,l,d}) => (
                   <button key={v} onClick={() => setWizPrepTime(v)}
                     style={{ padding:"12px 14px", borderRadius:10, border:"1.5px solid", cursor:"pointer", textAlign:"left",
@@ -4035,8 +4035,8 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                 ))}
               </div>
               <div style={{ display:"flex", gap:8 }}>
-                <button style={{ flex:1, padding:"12px", borderRadius:10, border:"1px solid var(--border)", background:"var(--panel)", color:"var(--muted)", cursor:"pointer" }} onClick={() => setWizStep(4)}>? Atrás</button>
-                <button className="primary" style={{ flex:2 }} onClick={() => setWizStep(6)}>Siguiente ?</button>
+                <button style={{ flex:1, padding:"12px", borderRadius:10, border:"1px solid var(--border)", background:"var(--panel)", color:"var(--muted)", cursor:"pointer" }} onClick={() => setWizStep(4)}>← Atrás</button>
+                <button className="primary" style={{ flex:2 }} onClick={() => setWizStep(6)}>Siguiente →</button>
               </div>
             </div>
           )}
@@ -4046,9 +4046,9 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
               <p style={{ fontSize:12, color:"var(--muted)", marginBottom:16 }}>El plan se adaptará a tus posibilidades económicas.</p>
               <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:24 }}>
                 {[
-                  {v:"economico", l:"?? Económico",         d:"Legumbres, huevos, arroz"},
-                  {v:"moderado",  l:"?? Moderado",           d:"Carnes, lácteos, variado"},
-                  {v:"amplio",    l:"? Sin restricciones",  d:"Todo tipo de alimentos"},
+                  {v:"economico", l:"💰 Económico",         d:"Legumbres, huevos, arroz"},
+                  {v:"moderado",  l:"💳 Moderado",           d:"Carnes, lácteos, variado"},
+                  {v:"amplio",    l:"🌟 Sin restricciones",  d:"Todo tipo de alimentos"},
                 ].map(({v,l,d}) => (
                   <button key={v} onClick={() => setWizBudget(v)}
                     style={{ padding:"12px 14px", borderRadius:10, border:"1.5px solid", cursor:"pointer", textAlign:"left",
@@ -4060,8 +4060,8 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                 ))}
               </div>
               <div style={{ display:"flex", gap:8 }}>
-                <button style={{ flex:1, padding:"12px", borderRadius:10, border:"1px solid var(--border)", background:"var(--panel)", color:"var(--muted)", cursor:"pointer" }} onClick={() => setWizStep(5)}>? Atrás</button>
-                <button className="primary" style={{ flex:2 }} onClick={() => setWizStep(7)}>Siguiente ?</button>
+                <button style={{ flex:1, padding:"12px", borderRadius:10, border:"1px solid var(--border)", background:"var(--panel)", color:"var(--muted)", cursor:"pointer" }} onClick={() => setWizStep(5)}>← Atrás</button>
+                <button className="primary" style={{ flex:2 }} onClick={() => setWizStep(7)}>Siguiente →</button>
               </div>
             </div>
           )}
@@ -4070,7 +4070,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
               <p style={{ fontSize:15, fontWeight:800, marginBottom:4 }}>Preferencias de cocina</p>
               <p style={{ fontSize:12, color:"var(--muted)", marginBottom:16 }}>Opcional. Elegí un estilo de cocina para el plan.</p>
               <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginBottom:20 }}>
-                {[{v:"",l:"Sin preferencia"},{v:"italiana",l:"?? Italiana"},{v:"mexicana",l:"?? Mexicana"},{v:"japonesa",l:"?? Japonesa"},{v:"mediterránea",l:"?? Mediterránea"},{v:"argentina",l:"?? Argentina"},{v:"vegetal",l:"?? Vegetal"},{v:"asiática",l:"?? Asiática"}].map(({v,l}) => (
+                {[{v:"",l:"Sin preferencia"},{v:"italiana",l:"🍝 Italiana"},{v:"mexicana",l:"🌮 Mexicana"},{v:"japonesa",l:"🍣 Japonesa"},{v:"mediterránea",l:"🫒 Mediterránea"},{v:"argentina",l:"🥩 Argentina"},{v:"vegetal",l:"🌿 Vegetal"},{v:"asiática",l:"🥢 Asiática"}].map(({v,l}) => (
                   <button key={v} onClick={() => setWizCuisine(v)}
                     style={{ padding:"8px 14px", borderRadius:20, border:"1.5px solid", cursor:"pointer", fontSize:13, fontWeight:700,
                       borderColor: wizCuisine === v ? "var(--green)" : "var(--border)",
@@ -4085,12 +4085,12 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                 {wizDays} días — {wizMeals} comidas/día — ~{Math.round(targetCal)} kcal/día — {Math.round(proteinG)}g proteína
                 {wizRestrictions.length > 0 && <span> — {wizRestrictions.length} restricción(es)</span>}
                 {wizCuisine && <span> — Cocina {wizCuisine}</span>}
-                {" — "}{wizPrepTime === "rapido" ? "? Preparación rápida" : wizPrepTime === "elaborado" ? "????? Cocina elaborada" : "?? Preparación normal"}
-                {" — "}{wizBudget === "economico" ? "?? Presupuesto económico" : wizBudget === "amplio" ? "? Sin restricción económica" : "?? Presupuesto moderado"}
+                {" — "}{wizPrepTime === "rapido" ? "⚡ Preparación rápida" : wizPrepTime === "elaborado" ? "👨‍🍳 Cocina elaborada" : "⏱️ Preparación normal"}
+                {" — "}{wizBudget === "economico" ? "💰 Presupuesto económico" : wizBudget === "amplio" ? "🌟 Sin restricción económica" : "💳 Presupuesto moderado"}
               </div>
               <div style={{ display:"flex", gap:8 }}>
-                <button style={{ flex:1, padding:"12px", borderRadius:10, border:"1px solid var(--border)", background:"var(--panel)", color:"var(--muted)", cursor:"pointer" }} onClick={() => setWizStep(6)}>? Atrás</button>
-                <button className="primary" style={{ flex:2 }} onClick={handleWizardFinish}>? Generar plan</button>
+                <button style={{ flex:1, padding:"12px", borderRadius:10, border:"1px solid var(--border)", background:"var(--panel)", color:"var(--muted)", cursor:"pointer" }} onClick={() => setWizStep(6)}>← Atrás</button>
+                <button className="primary" style={{ flex:2 }} onClick={handleWizardFinish}>✨ Generar plan</button>
               </div>
             </div>
           )}
@@ -4171,7 +4171,7 @@ function HolisticSummary({ workouts, prs, userAge, bodyWeight, bodyFatPct, lbm, 
 
       {/* Volumen 4 semanas */}
       <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:14, padding:"14px 14px 10px", marginBottom:14 }}>
-        <p style={{ margin:"0 0 12px", fontSize:13, fontWeight:700 }}>?? Volumen últimas 4 semanas</p>
+        <p style={{ margin:"0 0 12px", fontSize:13, fontWeight:700 }}>📊 Volumen últimas 4 semanas</p>
         <div style={{ display:"flex", gap:6, alignItems:"flex-end", height:52 }}>
           {weeklyVols.map((v, i) => {
             const h = Math.max(4, (v / maxVol) * 44);
@@ -4192,7 +4192,7 @@ function HolisticSummary({ workouts, prs, userAge, bodyWeight, bodyFatPct, lbm, 
       {/* Perfil + recomendaciones */}
       {(userAge || bodyWeight) && (
         <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:14, padding:"12px 14px", marginBottom:12 }}>
-          <p style={{ margin:"0 0 8px", fontSize:13, fontWeight:700 }}>?? Tu perfil de entrenamiento</p>
+          <p style={{ margin:"0 0 8px", fontSize:13, fontWeight:700 }}>💪 Tu perfil de entrenamiento</p>
           <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
             {userAge && <div style={{ background:"var(--panel2)", borderRadius:10, padding:"6px 12px", fontSize:12 }}><span style={{ color:"var(--muted)" }}>Edad — </span><b>{userAge} años</b></div>}
             {bodyWeight && <div style={{ background:"var(--panel2)", borderRadius:10, padding:"6px 12px", fontSize:12 }}><span style={{ color:"var(--muted)" }}>Peso — </span><b>{bodyWeight}kg</b></div>}
@@ -4208,10 +4208,10 @@ function HolisticSummary({ workouts, prs, userAge, bodyWeight, bodyFatPct, lbm, 
           </div>
           {userAge && (
             <p style={{ margin:"10px 0 0", fontSize:12, color:"var(--muted)", lineHeight:1.5 }}>
-              {userAge >= 50 ? "? A los 50+ el foco debe ser técnica perfecta, recuperación y proteína alta. Deload cada 4 semanas."
-                : userAge >= 40 ? "? La recuperación entre sesiones es clave. Proteína elevada y deload cada 5–6 semanas."
-                : userAge >= 30 ? "? Momento óptimo para volumen progresivo. Deload cada 6–8 semanas."
-                : "?? Pico anabólico — priorizá volumen progresivo y suma cargas semana a semana."}
+              {userAge >= 50 ? "🧠 A los 50+ el foco debe ser técnica perfecta, recuperación y proteína alta. Deload cada 4 semanas."
+                : userAge >= 40 ? "⏱️ La recuperación entre sesiones es clave. Proteína elevada y deload cada 5–6 semanas."
+                : userAge >= 30 ? "📈 Momento óptimo para volumen progresivo. Deload cada 6–8 semanas."
+                : "⚡ Pico anabólico — priorizá volumen progresivo y suma cargas semana a semana."}
             </p>
           )}
         </div>
