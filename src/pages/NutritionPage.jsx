@@ -1,10 +1,11 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import useStore from "../store/useStore.js";
 import useAuthStore from "../store/useAuthStore.js";
 import Icon from "../components/Icon";
 import { todayLocal } from "../lib/dates.js";
 import { features, vocab } from "../config/features.js";
 import { searchFoods } from "../data/foodDatabase.js";
+import { generateNutritionPlan } from "../data/nutritionData.js";
 
 const MEAL_TYPES = ["Desayuno", "Almuerzo", "Merienda", "Cena", "Snack"];
 
@@ -74,6 +75,20 @@ export default function NutritionPage() {
   const [saving, setSaving]   = useState(false);
   const [dbQuery, setDbQuery] = useState("");
   const [dbResults, setDbResults] = useState([]);
+
+  // Nutrition plan wizard state
+  const nutritionPlan     = useStore(s => s.nutritionPlan);
+  const saveNutritionPlan = useStore(s => s.saveNutritionPlan);
+  const clearNutritionPlan = useStore(s => s.clearNutritionPlan);
+  const [showWizard, setShowWizard] = useState(false);
+  const [wizStep, setWizStep]   = useState(0);
+  const [wizDays, setWizDays]   = useState(7);
+  const [wizMeals, setWizMeals] = useState(4);
+  const [wizRestrictions, setWizRestrictions] = useState([]);
+  const [wizAllergies, setWizAllergies]       = useState([]);
+  const [wizBudget, setWizBudget] = useState("moderado");
+  const [expandedPlanDay, setExpandedPlanDay] = useState(0);
+  const wizSeedRef = useRef(Math.floor(Math.random() * 9999));
 
   const handleDbSearch = useCallback((q) => {
     setDbQuery(q);
@@ -416,6 +431,252 @@ export default function NutritionPage() {
           <div style={{ fontSize:11, color:"var(--muted)", marginTop:10, padding:"8px 10px", background:"rgba(255,255,255,.03)", borderRadius:8 }}>
             En días de entreno: más carbohidratos para energía. En descanso: menos calorías totales, proteína similar.
           </div>
+        </div>
+
+        {/* ── PLAN DE COMIDAS ── */}
+        <div style={{ marginTop:14 }}>
+          {!nutritionPlan && !showWizard && (
+            <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:16, padding:"20px 16px", textAlign:"center" }}>
+              <Icon name="Utensils" size={32} style={{ color:"var(--green)", marginBottom:10 }} />
+              <div style={{ fontSize:14, fontWeight:800, marginBottom:6 }}>Plan de comidas</div>
+              <div style={{ fontSize:12, color:"var(--muted)", marginBottom:16, maxWidth:260, margin:"0 auto 16px" }}>
+                Generá un plan semanal con comidas específicas adaptadas a tus macros y preferencias.
+              </div>
+              <button onClick={() => { setShowWizard(true); setWizStep(0); }}
+                style={{ background:"var(--green)", color:"#000", fontWeight:700, fontSize:14, border:"none", borderRadius:12, padding:"12px 24px", cursor:"pointer" }}>
+                Crear mi plan de comidas
+              </button>
+            </div>
+          )}
+
+          {/* Wizard */}
+          {showWizard && (() => {
+            const WIZARD_STEPS = [
+              { title:"¿Cuántos días?", key:"days" },
+              { title:"¿Cuántas comidas por día?", key:"meals" },
+              { title:"Restricciones alimentarias", key:"restrictions" },
+              { title:"Presupuesto y preferencias", key:"budget" },
+            ];
+            const totalSteps = WIZARD_STEPS.length;
+
+            function finishWizard() {
+              const config = {
+                days: wizDays,
+                mealsPerDay: wizMeals,
+                goal: userGoal,
+                restrictions: wizRestrictions,
+                likedCats: [],
+                allergies: wizAllergies,
+                cuisine: "",
+                prepTime: "30min",
+                budget: wizBudget,
+                seed: wizSeedRef.current,
+              };
+              const plan = generateNutritionPlan(
+                config,
+                targets.kcal, targets.kcal, targets.protein, targets.carbs, targets.fat
+              );
+              plan.planStartDate = todayLocal();
+              saveNutritionPlan(plan);
+              setShowWizard(false);
+              setWizStep(0);
+              setExpandedPlanDay(0);
+              window.__showToast?.("Plan de comidas generado.", "success");
+            }
+
+            const btnStyle = (active) => ({
+              flex:1, padding:"10px 8px", border: active ? "2px solid var(--green)" : "1px solid var(--line)",
+              borderRadius:10, background: active ? "rgba(52,211,153,.1)" : "var(--panel2)",
+              color: active ? "var(--green)" : "var(--text)", fontWeight: active ? 700 : 500,
+              fontSize:13, cursor:"pointer",
+            });
+
+            const toggleRestriction = (r) => setWizRestrictions(prev => prev.includes(r) ? prev.filter(x=>x!==r) : [...prev,r]);
+            const toggleAllergy = (a) => setWizAllergies(prev => prev.includes(a) ? prev.filter(x=>x!==a) : [...prev,a]);
+
+            return (
+              <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:16, padding:"20px 16px" }}>
+                {/* Header */}
+                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 }}>
+                  <div style={{ fontSize:14, fontWeight:800 }}>{WIZARD_STEPS[wizStep].title}</div>
+                  <button onClick={() => setShowWizard(false)} style={{ background:"none", border:"none", cursor:"pointer", color:"var(--muted)", fontSize:20 }}>×</button>
+                </div>
+                {/* Progress dots */}
+                <div style={{ display:"flex", gap:6, marginBottom:20 }}>
+                  {WIZARD_STEPS.map((_,i) => (
+                    <div key={i} style={{ flex:1, height:3, borderRadius:2, background: i <= wizStep ? "var(--green)" : "var(--line)" }} />
+                  ))}
+                </div>
+
+                {/* Step 0: días */}
+                {wizStep === 0 && (
+                  <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+                    {[3,5,7,14].map(d => (
+                      <button key={d} onClick={() => setWizDays(d)} style={btnStyle(wizDays===d)}>
+                        {d} días
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Step 1: comidas */}
+                {wizStep === 1 && (
+                  <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+                    {[3,4,5,6].map(m => (
+                      <button key={m} onClick={() => setWizMeals(m)} style={btnStyle(wizMeals===m)}>
+                        {m} comidas
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Step 2: restricciones */}
+                {wizStep === 2 && (
+                  <div>
+                    <div style={{ fontSize:12, color:"var(--muted)", marginBottom:12 }}>Seleccioná todas las que aplican</div>
+                    <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:12 }}>
+                      {[
+                        { id:"vegetariano", label:"Vegetariano" },
+                        { id:"vegano", label:"Vegano" },
+                        { id:"sin_lacteos", label:"Sin lácteos" },
+                        { id:"sin_gluten", label:"Sin gluten" },
+                      ].map(r => (
+                        <button key={r.id} onClick={() => toggleRestriction(r.id)} style={btnStyle(wizRestrictions.includes(r.id))}>
+                          {r.label}
+                        </button>
+                      ))}
+                    </div>
+                    <div style={{ fontSize:12, color:"var(--muted)", marginBottom:8 }}>Alergias</div>
+                    <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+                      {[
+                        { id:"frutos_secos", label:"Frutos secos" },
+                        { id:"huevo", label:"Huevo" },
+                        { id:"pescado", label:"Pescado" },
+                        { id:"mani", label:"Maní" },
+                      ].map(a => (
+                        <button key={a.id} onClick={() => toggleAllergy(a.id)} style={btnStyle(wizAllergies.includes(a.id))}>
+                          {a.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Step 3: presupuesto */}
+                {wizStep === 3 && (
+                  <div>
+                    <div style={{ fontSize:12, color:"var(--muted)", marginBottom:12 }}>¿Cómo es tu presupuesto semanal para comida?</div>
+                    <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+                      {[
+                        { id:"economico", label:"Económico", hint:"Legumbres y básicos" },
+                        { id:"moderado",  label:"Moderado",  hint:"Variedad normal" },
+                        { id:"amplio",    label:"Sin límite", hint:"Cualquier alimento" },
+                      ].map(b => (
+                        <button key={b.id} onClick={() => setWizBudget(b.id)}
+                          style={{ ...btnStyle(wizBudget===b.id), flexDirection:"column", display:"flex", alignItems:"flex-start", gap:2 }}>
+                          <span>{b.label}</span>
+                          <span style={{ fontSize:10, color:"var(--muted)", fontWeight:400 }}>{b.hint}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Nav buttons */}
+                <div style={{ display:"flex", gap:8, marginTop:20 }}>
+                  {wizStep > 0 && (
+                    <button onClick={() => setWizStep(s => s-1)}
+                      style={{ flex:1, padding:"11px", border:"1px solid var(--line)", borderRadius:10, background:"var(--panel2)", color:"var(--text)", fontSize:13, cursor:"pointer" }}>
+                      Atrás
+                    </button>
+                  )}
+                  {wizStep < totalSteps - 1 ? (
+                    <button onClick={() => setWizStep(s => s+1)}
+                      style={{ flex:2, padding:"11px", border:"none", borderRadius:10, background:"var(--green)", color:"#000", fontSize:13, fontWeight:700, cursor:"pointer" }}>
+                      Siguiente
+                    </button>
+                  ) : (
+                    <button onClick={finishWizard}
+                      style={{ flex:2, padding:"11px", border:"none", borderRadius:10, background:"var(--green)", color:"#000", fontSize:13, fontWeight:700, cursor:"pointer" }}>
+                      Generar plan
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Plan generado */}
+          {nutritionPlan && !showWizard && (
+            <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:16, padding:"16px" }}>
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:4 }}>
+                <div style={{ fontSize:14, fontWeight:800 }}>Mi plan de comidas</div>
+                <div style={{ display:"flex", gap:8 }}>
+                  <button onClick={() => { wizSeedRef.current = Math.floor(Math.random()*9999); setShowWizard(true); setWizStep(0); }}
+                    style={{ background:"none", border:"1px solid var(--line)", borderRadius:8, padding:"4px 10px", fontSize:11, color:"var(--muted)", cursor:"pointer" }}>
+                    Nuevo plan
+                  </button>
+                  <button onClick={clearNutritionPlan}
+                    style={{ background:"none", border:"none", padding:"4px 6px", fontSize:18, color:"var(--muted)", cursor:"pointer" }}>×</button>
+                </div>
+              </div>
+              <div style={{ fontSize:11, color:"var(--muted)", marginBottom:14 }}>
+                {nutritionPlan.config?.days} días · {nutritionPlan.config?.mealsPerDay} comidas/día · ~{Math.round(nutritionPlan.dailyKcal)} kcal
+              </div>
+
+              {/* Day selector */}
+              <div style={{ display:"flex", gap:6, overflowX:"auto", paddingBottom:8, marginBottom:12 }}>
+                {nutritionPlan.days?.map((day, i) => (
+                  <button key={i} onClick={() => setExpandedPlanDay(i)}
+                    style={{ flexShrink:0, padding:"6px 12px", borderRadius:10,
+                      background: expandedPlanDay===i ? "var(--green)" : "var(--panel2)",
+                      border: "1px solid " + (expandedPlanDay===i ? "var(--green)" : "var(--line)"),
+                      color: expandedPlanDay===i ? "#000" : "var(--text)",
+                      fontSize:12, fontWeight: expandedPlanDay===i ? 700 : 500, cursor:"pointer" }}>
+                    {day.dayName?.slice(0,3) || `Día ${i+1}`}
+                  </button>
+                ))}
+              </div>
+
+              {/* Day detail */}
+              {nutritionPlan.days?.[expandedPlanDay] && (() => {
+                const day = nutritionPlan.days[expandedPlanDay];
+                return (
+                  <div>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10, padding:"8px 10px", background:"rgba(52,211,153,.07)", borderRadius:10 }}>
+                      <span style={{ fontSize:13, fontWeight:700 }}>{day.dayName}</span>
+                      <span style={{ fontSize:13, fontWeight:800, color:"var(--green)" }}>{Math.round(day.kcal)} kcal</span>
+                    </div>
+                    {day.meals?.map((meal, mi) => (
+                      <div key={mi} style={{ marginBottom:10, padding:"10px 12px", background:"var(--panel2)", borderRadius:12, border:"1px solid var(--line)" }}>
+                        <div style={{ fontSize:12, fontWeight:800, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:6 }}>{meal.label}</div>
+                        {meal.items?.map((item, ii) => (
+                          <div key={ii} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"4px 0", borderBottom: ii < meal.items.length-1 ? "1px solid var(--line)" : "none" }}>
+                            <div style={{ flex:1 }}>
+                              <div style={{ fontSize:13, fontWeight:600 }}>{item.name}</div>
+                              <div style={{ fontSize:10, color:"var(--muted)" }}>
+                                {item.grams ? `${item.grams}g` : item.ml ? `${item.ml}ml` : item.qty ? `×${item.qty}` : ""}
+                              </div>
+                            </div>
+                            <div style={{ textAlign:"right" }}>
+                              <div style={{ fontSize:13, fontWeight:700, color:"var(--green)" }}>{item.kcal} kcal</div>
+                              <div style={{ fontSize:10, color:"var(--muted)" }}>{item.protein}g P · {item.carbs}g C · {item.fat}g G</div>
+                            </div>
+                          </div>
+                        ))}
+                        <div style={{ display:"flex", justifyContent:"flex-end", gap:12, marginTop:6, fontSize:11, color:"var(--muted)" }}>
+                          <span style={{ color:"var(--green)", fontWeight:700 }}>{Math.round(meal.kcal)} kcal</span>
+                          <span>{Math.round(meal.protein)}g P</span>
+                          <span>{Math.round(meal.carbs)}g C</span>
+                          <span>{Math.round(meal.fat)}g G</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+          )}
         </div>
       </>)}
 
