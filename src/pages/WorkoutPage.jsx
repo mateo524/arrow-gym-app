@@ -415,8 +415,6 @@ export default function WorkoutPage() {
       const latestWeight = Number(latestSet.weight);
       if (latestWeight > 0 && latestWeight > bestHistoricalPR) {
         navigator.vibrate?.([50, 30, 100, 30, 200, 30, 400]);
-        setPrCelebration({ exercise, weight: latestWeight });
-        setTimeout(() => setPrCelebration(null), 2500);
       }
     }
     // Auto-navigate to superset partner
@@ -660,7 +658,7 @@ export default function WorkoutPage() {
             display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
             padding: 24, textAlign: "center",
           }}>
-            <div style={{ fontSize: 48, marginBottom: 16 }}>🏋️</div>
+            <div style={{ marginBottom: 16, display:"flex", justifyContent:"center" }}><Icon name="Dumbbell" size={48} /></div>
             <p style={{ color: "var(--text)", fontWeight: 700, fontSize: 16, margin: "0 0 6px" }}>Entrenamiento libre</p>
             <p style={{ color: "var(--muted)", fontSize: 13, margin: "0 0 20px" }}>Tocá ⋮ para agregar ejercicios</p>
             <button
@@ -839,12 +837,12 @@ export default function WorkoutPage() {
                         <div key={setItem.id} style={{ position: "relative" }}>
                           {isNewPR && (
                             <span style={{ position: "absolute", top: 8, left: 8, zIndex: 2, background: "var(--green)", color: "#fff", fontSize: 9, fontWeight: 800, padding: "2px 6px", borderRadius: 6 }}>
-                              PR 🔥
+                              PR <Icon name="Flame" size={9} style={{display:'inline-block',verticalAlign:'middle'}} />
                             </span>
                           )}
                           {setItem.isDropset && (
                             <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 12px 2px", color: "#f59e0b", fontSize: 11, fontWeight: 700 }}>
-                              <span>💧</span> DROP SET — bajá el peso
+                              <Icon name="Droplet" size={14} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> DROP SET — bajá el peso
                             </div>
                           )}
                           <WorkoutSetCard
@@ -1287,7 +1285,7 @@ export default function WorkoutPage() {
         <div className="modal-overlay">
           <div className="modal-card" style={{ maxWidth: 340, width: "100%" }}>
             <div style={{ textAlign: "center", marginBottom: 16 }}>
-              <div style={{ fontSize: 32, marginBottom: 6 }}>💪</div>
+              <div style={{ marginBottom: 6, display:"flex", justifyContent:"center" }}><Icon name="Dumbbell" size={32} /></div>
               <h2 style={{ margin: "0 0 4px" }}>¿Cómo te sentiste?</h2>
               <p style={{ color: "var(--muted)", fontSize: 13, margin: 0 }}>Esfuerzo percibido (RPE 1-10)</p>
             </div>
@@ -1326,7 +1324,7 @@ export default function WorkoutPage() {
       <div className="modal-overlay" style={{ alignItems: "center", padding: "16px", zIndex: 1100 }}>
         <div className="modal-card" style={{ maxWidth: 360, width: "100%", maxHeight: "85vh", overflowY: "auto" }}>
           <div style={{ textAlign: "center", marginBottom: 14 }}>
-            <div style={{ fontSize: 36, marginBottom: 6 }}>🎯</div>
+            <div style={{ marginBottom: 6, display:"flex", justifyContent:"center" }}><Icon name="Target" size={36} /></div>
             <h2 style={{ margin: "0 0 4px" }}>Resumen del coach</h2>
             <p style={{ color: "var(--muted)", fontSize: 13, margin: 0 }}>
               {postSummary.overallPct !== null
@@ -1354,7 +1352,7 @@ export default function WorkoutPage() {
             if (!kcal) return null;
             return (
               <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, background: "rgba(245,158,11,.08)", border: "1px solid rgba(245,158,11,.2)", borderRadius: 10, padding: "8px 14px", marginBottom: 12 }}>
-                <span style={{ fontSize: 18 }}>🔥</span>
+                <Icon name="Flame" size={18} style={{display:'inline-block',verticalAlign:'middle'}} />
                 <span style={{ fontSize: 14, fontWeight: 700, color: "#f59e0b" }}>~{kcal} kcal quemadas</span>
               </div>
             );
@@ -1418,7 +1416,7 @@ export default function WorkoutPage() {
               setPage("coach");
             }}
           >
-            📊 Ver análisis completo del entrenamiento
+            <Icon name="BarChart2" size={14} style={{display:'inline-block',verticalAlign:'middle',marginRight:4}} /> Ver análisis completo del entrenamiento
           </button>
         </div>
       </div>
@@ -1546,7 +1544,7 @@ export default function WorkoutPage() {
         zIndex: 1100, boxShadow: "0 4px 24px rgba(168,85,247,.4)",
         fontSize: 14, fontWeight: 800, whiteSpace: "nowrap",
       }}>
-        <span style={{ fontSize: 20 }}>✅</span>
+        <Icon name="CheckCircle" size={20} style={{display:'inline-block',verticalAlign:'middle'}} />
         ¡Descanso terminado! Continuá
         <button onClick={handleSkipRest}
           style={{ background: "rgba(0,0,0,.2)", border: "none", borderRadius: 20, padding: "4px 10px", fontSize: 12, fontWeight: 700, cursor: "pointer", color: "#fff" }}>
@@ -1603,7 +1601,7 @@ export default function WorkoutPage() {
       <div className="modal-overlay" onClick={() => setShowCancelConfirm(false)}>
         <div className="modal-card confirm-modal" onClick={e => e.stopPropagation()}>
           <div style={{ textAlign: "center", padding: "8px 0 16px" }}>
-            <div style={{ fontSize: 36, marginBottom: 8 }}>⚠️</div>
+            <div style={{ marginBottom: 8, display:"flex", justifyContent:"center" }}><Icon name="AlertTriangle" size={36} /></div>
             <h2 style={{ margin: "0 0 8px" }}>¿Cancelar entrenamiento?</h2>
             <p style={{ color: "var(--muted)", fontSize: 14, margin: 0 }}>
               Perdés todo el progreso de esta sesión.
@@ -1713,7 +1711,7 @@ export default function WorkoutPage() {
           background: 'var(--surface, var(--panel))', borderRadius: 20,
           border: '2px solid var(--green)', boxShadow: '0 0 40px rgba(0,255,0,0.2)'
         }}>
-          <div style={{ fontSize: 48, marginBottom: 8 }}>🔥</div>
+          <div style={{ marginBottom: 8, display:"flex", justifyContent:"center" }}><Icon name="Flame" size={48} /></div>
           <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--green)' }}>¡Nuevo PR!</div>
           <div style={{ fontSize: 16, color: 'var(--muted)', marginTop: 4 }}>
             {prCelebration.exercise}

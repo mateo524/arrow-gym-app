@@ -298,11 +298,11 @@ export default function HistoryPage() {
                     <div>
                       <b>{workout.type}</b>
                       <small>{formatDate(workout.date)}</small>
-                      <small style={{ color: "var(--muted)", fontSize: 11 }}>🔥 {calcWorkoutCalories(workout, latestBodyWeight)} kcal</small>
+                      <small style={{ color: "var(--muted)", fontSize: 11 }}><Icon name="Flame" size={11} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> {calcWorkoutCalories(workout, latestBodyWeight)} kcal</small>
                     </div>
                     <div style={{ textAlign: "right" }}>
                       {best && <small style={{ display: "block", color: "var(--muted)", fontSize: 11 }}>{best.exercise} {best.weight}kg</small>}
-                      {hasPr && <span style={{ color: "var(--yellow)", fontSize: 10, fontWeight: 700 }}>⭐ PR</span>}
+                      {hasPr && <span style={{ color: "var(--yellow)", fontSize: 10, fontWeight: 700 }}><Icon name="Star" size={10} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> PR</span>}
                     </div>
                     <strong>{workout.sets?.length ?? 0} series</strong>
                   </button>
@@ -394,11 +394,11 @@ export default function HistoryPage() {
                         <div>
                           <b>{workout.type}</b>
                           <small>{formatDate(workout.date)}</small>
-                          <small style={{ color: "var(--muted)", fontSize: 11 }}>🔥 {calcWorkoutCalories(workout, latestBodyWeight)} kcal</small>
+                          <small style={{ color: "var(--muted)", fontSize: 11 }}><Icon name="Flame" size={11} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> {calcWorkoutCalories(workout, latestBodyWeight)} kcal</small>
                         </div>
                         <div style={{ textAlign: "right" }}>
                           {best && <small style={{ display: "block", color: "var(--muted)", fontSize: 11 }}>{best.exercise} {best.weight}kg</small>}
-                          {hasPr && <span style={{ color: "var(--yellow)", fontSize: 10, fontWeight: 700 }}>⭐ PR</span>}
+                          {hasPr && <span style={{ color: "var(--yellow)", fontSize: 10, fontWeight: 700 }}><Icon name="Star" size={10} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> PR</span>}
                         </div>
                         <strong>{workout.sets?.length ?? 0} series</strong>
                       </button>
@@ -459,7 +459,7 @@ export default function HistoryPage() {
             <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:20, padding:16, boxShadow:"0 8px 32px rgba(0,0,0,.5)" }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
                 <b style={{ fontSize:14 }}>Comparación</b>
-                <button className="ghost" style={{ padding:"4px 10px", fontSize:12 }} onClick={() => setCompareIds([])}>✕</button>
+                <button className="ghost" style={{ padding:"4px 10px", fontSize:12 }} onClick={() => setCompareIds([])}><Icon name="X" size={14} /></button>
               </div>
               <div style={{ display:"grid", gridTemplateColumns:"1fr auto 1fr", gap:8, alignItems:"start" }}>
                 <div style={{ textAlign:"left" }}>

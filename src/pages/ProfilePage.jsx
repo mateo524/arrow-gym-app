@@ -8,15 +8,15 @@ import { parseImportFile } from "../lib/importCSV.js";
 import { subscribeToPush, requestPushPermission, isPushSupported, isIosNotInstalled } from "../lib/pushNotifications.js";
 
 const GOALS = [
-  { id: "volumen",       label: "Ganar másculo",  icon: "??" },
-  { id: "definicion",    label: "Definición",     icon: "??" },
-  { id: "mantenimiento", label: "Salud general",  icon: "?" },
-  { id: "rendimiento",   label: "Fuerza",         icon: "?" },
+  { id: "volumen",       label: "Ganar másculo",  icon: "💪" },
+  { id: "definicion",    label: "Definición",     icon: "🔥" },
+  { id: "mantenimiento", label: "Salud general",  icon: "⚖️" },
+  { id: "rendimiento",   label: "Fuerza",         icon: "⚡" },
 ];
 const LEVELS = [
-  { id: "principiante", label: "Principiante",  icon: "??" },
-  { id: "intermedio",   label: "Intermedio",    icon: "??" },
-  { id: "avanzado",     label: "Avanzado",      icon: "??" },
+  { id: "principiante", label: "Principiante",  icon: "🌱" },
+  { id: "intermedio",   label: "Intermedio",    icon: "📈" },
+  { id: "avanzado",     label: "Avanzado",      icon: "🏆" },
 ];
 
 function BodyWeightChart({ data }) {
@@ -283,7 +283,7 @@ export default function ProfilePage() {
       setNameMsg("Error: " + error.message);
     } else {
       useAuthStore.setState(s => ({ profile: { ...(s.profile || { id: uid }), name: trimmed } }));
-      setNameMsg("? Nombre actualizado");
+      setNameMsg("✅ Nombre actualizado");
       setTimeout(() => { setEditName(false); setNameMsg(""); }, 1200);
     }
   }
@@ -299,7 +299,7 @@ export default function ProfilePage() {
     if (error) {
       setPwdMsg("Error: " + error.message);
     } else {
-      setPwdMsg("? Contraseña actualizada");
+      setPwdMsg("✅ Contraseña actualizada");
       setNewPwd(""); setConfirmPwd("");
       setTimeout(() => { setShowChangePwd(false); setPwdMsg(""); }, 1500);
     }
@@ -331,8 +331,8 @@ export default function ProfilePage() {
                   style={{ flex: 1, background: "var(--panel2)", border: "1px solid var(--green)", borderRadius: 10, padding: "7px 10px", color: "var(--text)", fontSize: 14, minWidth: 0 }}
                   placeholder="Tu nombre"
                 />
-                <button type="submit" className="primary" style={{ padding: "8px 12px", fontSize: 13, borderRadius: 10 }}>?</button>
-                <button type="button" className="ghost" style={{ padding: "8px 12px", fontSize: 13, borderRadius: 10 }} onClick={() => setEditName(false)}>?</button>
+                <button type="submit" className="primary" style={{ padding: "8px 12px", fontSize: 13, borderRadius: 10 }}>✅</button>
+                <button type="button" className="ghost" style={{ padding: "8px 12px", fontSize: 13, borderRadius: 10 }} onClick={() => setEditName(false)}>✖</button>
               </form>
             ) : (
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -344,7 +344,7 @@ export default function ProfilePage() {
                 >Editar</button>
               </div>
             )}
-            {nameMsg && <small style={{ color: nameMsg.startsWith("?") ? "var(--green)" : "var(--danger)" }}>{nameMsg}</small>}
+            {nameMsg && <small style={{ color: nameMsg.startsWith("✅") ? "var(--green)" : "var(--danger)" }}>{nameMsg}</small>}
             <small>{profile?.email}</small>
           </div>
         </div>
@@ -388,7 +388,7 @@ export default function ProfilePage() {
           return (
             <div style={{ background: isActive ? "rgba(52,211,153,.08)" : "rgba(168,85,247,.06)", border: `1px solid ${isActive ? "rgba(52,211,153,.25)" : "rgba(168,85,247,.2)"}`, borderRadius: 16, padding: "14px 16px", marginBottom: 12 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: isActive ? 8 : 0 }}>
-                <span style={{ fontSize: 22 }}>{isActive ? "?" : "??"}</span>
+                <span style={{ fontSize: 22 }}>{isActive ? "✅" : "⭕"}</span>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 700, fontSize: 14 }}>
                     {isActive ? (hasPreapproval ? "Suscripción mensual activa" : "Suscripción activa") : "Sin suscripción activa"}
@@ -425,7 +425,7 @@ export default function ProfilePage() {
           return (
             <div className="card" style={{ background: "linear-gradient(135deg, rgba(168,85,247,.1) 0%, rgba(52,211,153,.08) 100%)", border: "1px solid rgba(168,85,247,.25)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-                <span style={{ fontSize: 22 }}>??</span>
+                <span style={{ fontSize: 22 }}>🎁</span>
                 <div>
                   <h2 style={{ margin: 0, fontSize: 15 }}>Invitá amigos, ganá semanas gratis</h2>
                   <p style={{ margin: 0, fontSize: 12, color: "var(--muted)" }}>Cada amigo que se suscribe = 1 semana gratis. 5 = mes gratis.</p>
@@ -445,20 +445,20 @@ export default function ProfilePage() {
 
               {pending > 0 && (
                 <p style={{ fontSize: 11, color: "#fbbf24", margin: "0 0 10px" }}>
-                  ? {pending} invitado{pending !== 1 ? "s" : ""} pendiente{pending !== 1 ? "s" : ""} de suscribirse
+                  ⏳ {pending} invitado{pending !== 1 ? "s" : ""} pendiente{pending !== 1 ? "s" : ""} de suscribirse
                 </p>
               )}
 
               {credits > 0 && (
                 <p style={{ fontSize: 12, color: "var(--green)", fontWeight: 700, margin: "0 0 10px" }}>
-                  ? {credits} semana{credits !== 1 ? "s" : ""} gratis ganada{credits !== 1 ? "s" : ""}
+                  🎁 {credits} semana{credits !== 1 ? "s" : ""} gratis ganada{credits !== 1 ? "s" : ""}
                 </p>
               )}
 
               <button
                 onClick={copyReferralLink}
                 style={{ width: "100%", padding: "12px", borderRadius: 12, background: referralCopied ? "rgba(52,211,153,.2)" : "rgba(168,85,247,.15)", border: `1px solid ${referralCopied ? "rgba(52,211,153,.5)" : "rgba(168,85,247,.4)"}`, color: referralCopied ? "#34d399" : "var(--green)", fontSize: 14, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                {referralCopied ? "? Link copiado!" : "?? Copiar mi link de invitación"}
+                {referralCopied ? "✅ Link copiado!" : "🔗 Copiar mi link de invitación"}
               </button>
             </div>
           );
@@ -467,7 +467,7 @@ export default function ProfilePage() {
         {/* Trainer invite panel — solo para trainers y admins */}
         {(role === "trainer" || role === "admin" || role === "superadmin") && (
           <div style={{ background:"var(--panel)", borderRadius:16, padding:"14px 16px", marginBottom:12 }}>
-            <div style={{ fontWeight:700, fontSize:14, marginBottom:4 }}>?? Invitaciones</div>
+            <div style={{ fontWeight:700, fontSize:14, marginBottom:4 }}>📨 Invitaciones</div>
             <p style={{ fontSize:12, color:"var(--muted)", marginBottom:12, lineHeight:1.5 }}>
               Generá links para incorporar alumnos o colegas entrenadores.
             </p>
@@ -476,13 +476,13 @@ export default function ProfilePage() {
                 onClick={generateStudentInvite}
                 disabled={studentInviteLoading}
                 style={{ padding:"11px 14px", borderRadius:12, background: studentInviteCopied ? "rgba(52,211,153,.2)" : "rgba(52,211,153,.1)", border:`1px solid ${studentInviteCopied ? "rgba(52,211,153,.6)" : "rgba(52,211,153,.3)"}`, color: studentInviteCopied ? "#34d399" : "#34d399", fontSize:13, fontWeight:700, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
-                {studentInviteLoading ? "Generando…" : studentInviteCopied ? "? Link de alumno copiado!" : "?? Copiar link para alumno"}
+                {studentInviteLoading ? "Generando…" : studentInviteCopied ? "✅ Link de alumno copiado!" : "🔗 Copiar link para alumno"}
               </button>
               <button
                 onClick={generateTrainerInvite}
                 disabled={trainerInviteLoading}
                 style={{ padding:"11px 14px", borderRadius:12, background: trainerInviteCopied ? "rgba(168,85,247,.2)" : "rgba(168,85,247,.1)", border:`1px solid ${trainerInviteCopied ? "rgba(168,85,247,.6)" : "rgba(168,85,247,.3)"}`, color: trainerInviteCopied ? "#c084fc" : "#a855f7", fontSize:13, fontWeight:700, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
-                {trainerInviteLoading ? "Generando…" : trainerInviteCopied ? "? Link de entrenador copiado!" : "??? Copiar link para entrenador colega"}
+                {trainerInviteLoading ? "Generando…" : trainerInviteCopied ? "✅ Link de entrenador copiado!" : "🔗 Copiar link para entrenador colega"}
               </button>
             </div>
             {(trainerInviteCode || studentInviteCode) && (
@@ -495,7 +495,7 @@ export default function ProfilePage() {
 
         {/* Body Metrics */}
         <div style={{ background:"var(--panel)", borderRadius:16, padding:"14px 16px", marginBottom:12 }}>
-          <div style={{ fontWeight:700, fontSize:14, marginBottom:10 }}>?? Mi progreso</div>
+          <div style={{ fontWeight:700, fontSize:14, marginBottom:10 }}>📊 Mi progreso</div>
 
           {/* Input peso */}
           <div style={{ display:"flex", gap:8, marginBottom:12 }}>
@@ -581,7 +581,7 @@ export default function ProfilePage() {
             <div className="settings-row">
               <div>
                 <label>Notificaciones push</label>
-                <small>Para activarlas en iOS, instalá la app: tocá Compartir ? "Agregar al inicio"</small>
+                <small>Para activarlas en iOS, instalá la app: tocá Compartir → "Agregar al inicio"</small>
               </div>
             </div>
           )}
@@ -659,9 +659,9 @@ export default function ProfilePage() {
             <div><label>¿Cómo querés usar Loop?</label><small>Podés cambiarlo cuando quieras — afecta quá funciones ves</small></div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6, width: "100%" }}>
               {[
-                { id: "simple",   icon: "??", label: "Solo registrar",   sub: "Sin sugerencias ni análisis extra" },
-                { id: "standard", icon: "??", label: "Registrar + coach", sub: "El coach te avisa si algo no avanza" },
-                { id: "advanced", icon: "??", label: "Control total",     sub: "Volumen, cargas, RPE, semanas de descarga" },
+                { id: "simple",   icon: "📝", label: "Solo registrar",   sub: "Sin sugerencias ni análisis extra" },
+                { id: "standard", icon: "🤖", label: "Registrar + coach", sub: "El coach te avisa si algo no avanza" },
+                { id: "advanced", icon: "⚡", label: "Control total",     sub: "Volumen, cargas, RPE, semanas de descarga" },
               ].map(opt => {
                 const isActive = (profile?.ui_mode ?? "standard") === opt.id;
                 return (
@@ -683,7 +683,7 @@ export default function ProfilePage() {
                       <div style={{ fontSize: 13, fontWeight: 700, color: isActive ? "var(--green)" : "var(--text)" }}>{opt.label}</div>
                       <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>{opt.sub}</div>
                     </div>
-                    {isActive && <span style={{ marginLeft: "auto", fontSize: 16, color: "var(--green)" }}>?</span>}
+                    {isActive && <span style={{ marginLeft: "auto", fontSize: 16, color: "var(--green)" }}>✅</span>}
                   </button>
                 );
               })}
@@ -744,7 +744,7 @@ export default function ProfilePage() {
 
           <div className="settings-row" style={{ flexDirection:"column", alignItems:"flex-start", gap:8 }}>
             <div>
-              <label>?? Modo competencia</label>
+              <label>🏆 Modo competencia</label>
               <small>Definá una fecha meta y el coach adapta tu plan</small>
             </div>
             {competitionDate ? (
@@ -753,7 +753,7 @@ export default function ProfilePage() {
                   <div style={{ fontSize:13, fontWeight:700, color:"var(--green)" }}>{competitionName || "Meta"}</div>
                   <div style={{ fontSize:12, color:"var(--muted)" }}>{competitionDate} — {(() => { const d = Math.ceil((new Date(competitionDate)-new Date())/86400000); return d > 0 ? `${d} días` : d === 0 ? "¡Hoy!" : "Fecha pasada"; })()}</div>
                 </div>
-                <button onClick={clearCompetitionMode} className="ghost" style={{ padding:"8px 12px", fontSize:13 }}>?</button>
+                <button onClick={clearCompetitionMode} className="ghost" style={{ padding:"8px 12px", fontSize:13 }}>✖</button>
               </div>
             ) : showCompForm ? (
               <div style={{ display:"flex", flexDirection:"column", gap:8, width:"100%" }}>
@@ -770,7 +770,7 @@ export default function ProfilePage() {
           </div>
 
           <div className="settings-row">
-            <div><label>?? Mediciones corporales</label><small>Peso, pliegues, perímetros y más</small></div>
+            <div><label>📏 Mediciones corporales</label><small>Peso, pliegues, perímetros y más</small></div>
             <button className="ghost" style={{ padding: "8px 14px", fontSize: 13 }} onClick={() => setPage("measurements")}>
               Ver
             </button>
@@ -797,8 +797,8 @@ export default function ProfilePage() {
                   placeholder="Repetá la contraseña" autoComplete="new-password" required />
               </div>
               {pwdMsg && (
-                <div className={pwdMsg.startsWith("?") ? "success-msg" : "login-error"}>
-                  <Icon name={pwdMsg.startsWith("?") ? "CheckCircle" : "AlertCircle"} size={14} />
+                <div className={pwdMsg.startsWith("✅") ? "success-msg" : "login-error"}>
+                  <Icon name={pwdMsg.startsWith("✅") ? "CheckCircle" : "AlertCircle"} size={14} />
                   <span>{pwdMsg}</span>
                 </div>
               )}
@@ -866,7 +866,7 @@ export default function ProfilePage() {
             {importDone !== null && (
               <div style={{ marginTop: 10, background: "rgba(52,211,153,.1)", border: "1px solid rgba(52,211,153,.3)", borderRadius: 10, padding: "10px 14px" }}>
                 <p style={{ margin: 0, fontSize: 13, color: "#34d399", fontWeight: 700 }}>
-                  ? {importDone === 0 ? "No había entrenamientos nuevos (ya estaban importados)" : `${importDone} entrenamientos importados`}
+                  ✅ {importDone === 0 ? "No había entrenamientos nuevos (ya estaban importados)" : `${importDone} entrenamientos importados`}
                 </p>
               </div>
             )}
@@ -927,7 +927,7 @@ export default function ProfilePage() {
             {deleteStep === 1 ? (
               <>
                 <div style={{ textAlign: "center", padding: "8px 0 16px" }}>
-                  <div style={{ fontSize: 40, marginBottom: 8 }}>??</div>
+                  <div style={{ fontSize: 40, marginBottom: 8 }}>⚠️</div>
                   <h2 style={{ margin: "0 0 6px", color: "var(--danger)" }}>Eliminar cuenta</h2>
                   <p style={{ color: "var(--muted)", fontSize: 14, margin: 0, lineHeight: 1.6 }}>
                     Se borrarón permanentemente todos tus entrenamientos, mediciones, PRs y datos. <b style={{ color: "var(--text)" }}>Esta acción no se puede deshacer.</b>
@@ -948,7 +948,7 @@ export default function ProfilePage() {
             ) : (
               <>
                 <div style={{ textAlign: "center", padding: "8px 0 16px" }}>
-                  <div style={{ fontSize: 40, marginBottom: 8 }}>???</div>
+                  <div style={{ fontSize: 40, marginBottom: 8 }}>🚨</div>
                   <h2 style={{ margin: "0 0 6px" }}>¿Estás seguro?</h2>
                   <p style={{ color: "var(--muted)", fontSize: 14, margin: 0 }}>
                     No hay vuelta atrás. Tu historial de entrenamiento se perderá para siempre.

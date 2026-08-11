@@ -640,7 +640,7 @@ export default function TrainerPage() {
                     background: "rgba(220,38,38,.10)", border: "1px solid rgba(220,38,38,.35)",
                     display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
                   }}>
-                    <span style={{ fontSize: 20, flexShrink: 0 }}>⚠️</span>
+                    <Icon name="AlertTriangle" size={20} style={{ flexShrink: 0, display: 'inline-block', verticalAlign: 'middle' }} />
                     <span style={{ flex: 1, minWidth: 160, fontSize: 13, color: "#fca5a5", fontWeight: 600 }}>
                       {m.atRisk} {m.atRisk === 1 ? "alumno" : "alumnos"} sin entrenar hace más de 4 días
                     </span>
@@ -693,7 +693,7 @@ export default function TrainerPage() {
                       <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
                         {trainedList.slice(0, 5).map((c) => (
                           <div key={c.id} style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 5 }}>
-                            <span>✅</span>
+                            <Icon name="CheckCircle" size={13} style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: 3 }} />
                             <span style={{ color: "var(--text)" }}>{c.name || c.email}</span>
                           </div>
                         ))}
@@ -709,7 +709,7 @@ export default function TrainerPage() {
                       <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
                         {notTrainedList.slice(0, 5).map((c) => (
                           <div key={c.id} style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 5 }}>
-                            <span>⚠️</span>
+                            <Icon name="AlertTriangle" size={13} style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: 3 }} />
                             <span style={{ color: "var(--text)" }}>{c.name || c.email}</span>
                           </div>
                         ))}
@@ -798,7 +798,7 @@ export default function TrainerPage() {
                       setTimeout(() => setInviteCopied(false), 2000);
                     }}
                   >
-                    📋 Copiar link de landing ({window.location.origin}/#/t/{inviteCode})
+                    <Icon name="ClipboardList" size={14} style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: 3 }} /> Copiar link de landing ({window.location.origin}/#/t/{inviteCode})
                   </button>
                 </div>
               </div>
@@ -813,7 +813,7 @@ export default function TrainerPage() {
           {trainerTab === "alumnos" && pendingRequests.length > 0 && (
             <div style={{ background: "rgba(249,115,22,.08)", border: "1px solid rgba(249,115,22,.3)", borderRadius: 16, padding: "14px 16px", marginBottom: 14 }}>
               <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}>
-                <span>🔔</span> {pendingRequests.length} solicitud{pendingRequests.length !== 1 ? "es" : ""} pendiente{pendingRequests.length !== 1 ? "s" : ""}
+                <Icon name="Bell" size={14} style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: 3 }} /> {pendingRequests.length} solicitud{pendingRequests.length !== 1 ? "es" : ""} pendiente{pendingRequests.length !== 1 ? "s" : ""}
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {pendingRequests.map(req => {
@@ -958,7 +958,7 @@ export default function TrainerPage() {
                   <>
                     {urgent.length > 0 && (
                       <div style={{ background: "rgba(239,68,68,.10)", border: "1px solid rgba(239,68,68,.3)", borderRadius: 12, padding: "10px 14px", marginBottom: 14, display: "flex", alignItems: "center", gap: 10 }}>
-                        <span style={{ fontSize: 18 }}>💳</span>
+                        <Icon name="CreditCard" size={18} style={{ display: 'inline-block', verticalAlign: 'middle' }} />
                         <span style={{ fontSize: 13, color: "#fca5a5", fontWeight: 700 }}>
                           {urgent.length} {urgent.length === 1 ? "alumno" : "alumnos"} con pago urgente
                         </span>
@@ -1172,7 +1172,7 @@ export default function TrainerPage() {
                           {catalogNames.map((n) => <option key={n} value={n} />)}
                         </datalist>
                       </div>
-                      <button className="ghost icon-btn" onClick={() => removeExercise(i)}>✕</button>
+                      <button className="ghost icon-btn" onClick={() => removeExercise(i)}><Icon name="X" size={14} /></button>
                     </div>
                     <div className="ex-row-bottom">
                       <div className="field-mini">
@@ -1226,7 +1226,7 @@ export default function TrainerPage() {
                     <button className="primary" style={{ fontSize: 13 }} disabled={savingTemplate} onClick={saveAsTemplate}>
                       {savingTemplate ? "…" : "Guardar"}
                     </button>
-                    <button className="ghost" style={{ fontSize: 13 }} onClick={() => setShowSaveTemplate(false)}>✕</button>
+                    <button className="ghost icon-btn" style={{ fontSize: 13 }} onClick={() => setShowSaveTemplate(false)}><Icon name="X" size={13} /></button>
                   </div>
                 </div>
               )}

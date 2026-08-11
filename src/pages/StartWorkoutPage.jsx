@@ -235,9 +235,9 @@ export default function StartWorkoutPage() {
     { id:"fullbody", label:"Full Body",desc:"Cuerpo completo en cada sesión" },
   ];
   const COACH_GOALS = [
-    { id:"fuerza",        label:"💪 Fuerza",        desc:"Pocas reps, pesos altos" },
-    { id:"hipertrofia",   label:"💪🏽 Hipertrofia",  desc:"Reps moderadas, volumen alto" },
-    { id:"resistencia",   label:"🏃 Resistencia",   desc:"Muchas reps, peso moderado" },
+    { id:"fuerza",        icon:"Dumbbell",  label:"Fuerza",       desc:"Pocas reps, pesos altos" },
+    { id:"hipertrofia",   icon:"Dumbbell",  label:"Hipertrofia",  desc:"Reps moderadas, volumen alto" },
+    { id:"resistencia",   icon:"Activity",  label:"Resistencia",  desc:"Muchas reps, peso moderado" },
   ];
   const EXERCISES_BY_SPLIT = useMemo(() => ({
     push:     ["Press de banca plano","Incline Chest Press Machine","Landmine Shoulder Press","Cable Lateral Raise","Triceps Pushdown","Chest Press Machine"],
@@ -339,7 +339,7 @@ export default function StartWorkoutPage() {
                   onClick={() => handleDeleteTemplate(tpl.id, tpl.name)}
                   aria-label="Eliminar plantilla"
                 >
-                  🗑
+                  <Icon name="Trash2" size={16} style={{display:'inline-block',verticalAlign:'middle'}} />
                 </button>
               </div>
             </div>
@@ -440,7 +440,7 @@ export default function StartWorkoutPage() {
                       placeholder="Ejercicio..."
                       style={{ flex: 1, background: "#0b1518", border: "1px solid #1b2d31", borderRadius: 12, padding: "8px 10px", color: "var(--text)", fontSize: 13 }}
                     />
-                    <button className="danger" style={{ padding: "8px 10px", borderRadius: 10 }} onClick={() => setEditExercises((p) => p.filter((_, idx) => idx !== i))}>✕</button>
+                    <button className="danger" style={{ padding: "8px 10px", borderRadius: 10 }} onClick={() => setEditExercises((p) => p.filter((_, idx) => idx !== i))}><Icon name="X" size={14} style={{display:'inline-block',verticalAlign:'middle'}} /></button>
                   </div>
                 ))}
                 <datalist id="ex-suggestions">
@@ -479,13 +479,13 @@ export default function StartWorkoutPage() {
         style={{ width: "100%", marginTop: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, border: "1.5px solid rgba(251,191,36,.3)", color: "#fbbf24" }}
         onClick={() => setPage("cardio")}
       >
-        <span style={{ fontSize: 18 }}>🏃</span> Registrar cardio
+        <Icon name="Activity" size={18} style={{display:'inline-block',verticalAlign:'middle',marginRight:8}} /> Registrar cardio
       </button>
 
       {/* Rest day */}
       {restDayDone ? (
         <div style={{ textAlign:"center", padding:"12px 0", display:"flex", flexDirection:"column", alignItems:"center", gap:6 }}>
-          <span style={{ color:"var(--green)", fontSize:13, fontWeight:700 }}>🌙 Día de descanso registrado</span>
+          <span style={{ color:"var(--green)", fontSize:13, fontWeight:700 }}><Icon name="Moon" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> Día de descanso registrado</span>
           <button className="ghost"
             style={{ fontSize:11, padding:"4px 12px", color:"var(--muted)", border:"1px solid var(--border)" }}
             onClick={() => { setRestDayDone(false); }}>
@@ -585,7 +585,7 @@ export default function StartWorkoutPage() {
               <h2 style={{ margin:0, fontSize:18 }}>
                 {creationMode === "choose" ? "Nueva rutina" : creationMode === "coach" ? "Rutina con coach" : "Nueva rutina"}
               </h2>
-              <button onClick={() => { setCreateRoutineModal(false); setCreationMode("choose"); setShowCreatePicker(false); setCoachSplit(""); setCoachGoal(""); setNewRoutineName(""); setNewRoutineExercises([]); }} style={{ background:"none", border:"none", color:"var(--muted)", fontSize:20, cursor:"pointer" }}>✕</button>
+              <button onClick={() => { setCreateRoutineModal(false); setCreationMode("choose"); setShowCreatePicker(false); setCoachSplit(""); setCoachGoal(""); setNewRoutineName(""); setNewRoutineExercises([]); }} style={{ background:"none", border:"none", color:"var(--muted)", fontSize:20, cursor:"pointer" }}><Icon name="X" size={18} style={{display:'inline-block',verticalAlign:'middle'}} /></button>
             </div>
 
             {/* ── MODE PICKER ── */}
@@ -593,14 +593,14 @@ export default function StartWorkoutPage() {
               <div style={{ display:"flex", flexDirection:"column", gap:12, padding:"8px 0" }}>
                 <p style={{ fontSize:13, color:"var(--muted)", margin:"0 0 4px", textAlign:"center" }}>¿Cómo querés crear la rutina?</p>
                 <button onClick={() => setCreationMode("manual")} style={{ background:"var(--panel)", border:"1.5px solid var(--line)", borderRadius:16, padding:"18px", cursor:"pointer", display:"flex", alignItems:"center", gap:12, textAlign:"left" }}>
-                  <span style={{ width:40, height:40, borderRadius:12, background:"rgba(168,85,247,.12)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, flexShrink:0 }}>✏️</span>
+                  <span style={{ width:40, height:40, borderRadius:12, background:"rgba(168,85,247,.12)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}><Icon name="Pencil" size={20} style={{display:'inline-block',verticalAlign:'middle'}} /></span>
                   <div>
                     <div style={{ fontSize:15, fontWeight:700, marginBottom:2 }}>Hacerla vos</div>
                     <div style={{ fontSize:12, color:"var(--muted)" }}>Elegí el nombre y cada ejercicio manualmente</div>
                   </div>
                 </button>
                 <button onClick={() => setCreationMode("coach")} style={{ background:"var(--panel)", border:"1.5px solid var(--cyan)", borderRadius:16, padding:"18px", cursor:"pointer", display:"flex", alignItems:"center", gap:12, textAlign:"left" }}>
-                  <span style={{ width:40, height:40, borderRadius:12, background:"rgba(117,217,255,.12)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, flexShrink:0 }}>🤖</span>
+                  <span style={{ width:40, height:40, borderRadius:12, background:"rgba(117,217,255,.12)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}><Icon name="BrainCircuit" size={20} style={{display:'inline-block',verticalAlign:'middle'}} /></span>
                   <div>
                     <div style={{ fontSize:15, fontWeight:700, marginBottom:2 }}>Que el coach te ayude</div>
                     <div style={{ fontSize:12, color:"var(--muted)" }}>Seleccioná el tipo de rutina y el coach sugiere ejercicios</div>
@@ -626,14 +626,14 @@ export default function StartWorkoutPage() {
                       <div key={i} style={{ display:"flex", alignItems:"center", gap:8, padding:"7px 10px", background:"var(--panel2)", borderRadius:10, marginBottom:5 }}>
                         <span style={{ flex:1, fontSize:13 }}>{ex}</span>
                         <button onClick={() => setNewRoutineExercises(p => p.filter((_, idx) => idx !== i))}
-                          style={{ background:"none", border:"none", color:"var(--danger)", cursor:"pointer", fontSize:15, padding:"2px 4px" }}>✕</button>
+                          style={{ background:"none", border:"none", color:"var(--danger)", cursor:"pointer", fontSize:15, padding:"2px 4px" }}><Icon name="X" size={14} style={{display:'inline-block',verticalAlign:'middle'}} /></button>
                       </div>
                     ))}
                   </div>
                 )}
                 <button onClick={() => setShowCreatePicker(p => !p)}
                   style={{ width:"100%", background:"rgba(168,85,247,.08)", border:"1px dashed rgba(168,85,247,.4)", borderRadius:10, padding:"10px", cursor:"pointer", fontSize:13, color:"var(--green)", fontWeight:700, marginBottom:10 }}>
-                  {showCreatePicker ? "✕ Cerrar buscador" : "+ Agregar ejercicio"}
+                  {showCreatePicker ? <><Icon name="X" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> Cerrar buscador</> : "+ Agregar ejercicio"}
                 </button>
                 {showCreatePicker && (
                   <div style={{ border:"1px solid var(--line)", borderRadius:12, overflowY:"auto", marginBottom:12, maxHeight:300 }}>
@@ -684,7 +684,7 @@ export default function StartWorkoutPage() {
                       {COACH_GOALS.map(g => (
                         <button key={g.id} onClick={() => setCoachGoal(g.id)}
                           style={{ background:"var(--panel2)", border:"1px solid var(--line)", borderRadius:14, padding:"14px 14px", cursor:"pointer", textAlign:"left", display:"flex", alignItems:"center", gap:10 }}>
-                          <span style={{ fontSize:18 }}>{g.label.split(" ")[0]}</span>
+                          <span style={{ width:36, height:36, borderRadius:10, background:"rgba(168,85,247,.12)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}><Icon name={g.icon} size={18} style={{display:'inline-block',verticalAlign:'middle'}} /></span>
                           <div>
                             <div style={{ fontSize:14, fontWeight:700 }}>{g.label}</div>
                             <div style={{ fontSize:12, color:"var(--muted)" }}>{g.desc}</div>
@@ -702,12 +702,12 @@ export default function StartWorkoutPage() {
                       <div key={i} style={{ display:"flex", alignItems:"center", gap:8, padding:"7px 10px", background:"var(--panel2)", borderRadius:10, marginBottom:5 }}>
                         <span style={{ flex:1, fontSize:13 }}>{ex}</span>
                         <button onClick={() => setNewRoutineExercises(p => p.filter((_, idx) => idx !== i))}
-                          style={{ background:"none", border:"none", color:"var(--danger)", cursor:"pointer", fontSize:15, padding:"2px 4px" }}>✕</button>
+                          style={{ background:"none", border:"none", color:"var(--danger)", cursor:"pointer", fontSize:15, padding:"2px 4px" }}><Icon name="X" size={14} style={{display:'inline-block',verticalAlign:'middle'}} /></button>
                       </div>
                     ))}
                     <button onClick={() => setShowCreatePicker(p => !p)}
                       style={{ width:"100%", background:"rgba(168,85,247,.08)", border:"1px dashed rgba(168,85,247,.4)", borderRadius:10, padding:"8px", cursor:"pointer", fontSize:12, color:"var(--green)", fontWeight:700, marginTop:6 }}>
-                      {showCreatePicker ? "✕ Cerrar buscador" : "+ Agregar/quitar ejercicio"}
+                      {showCreatePicker ? <><Icon name="X" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> Cerrar buscador</> : "+ Agregar/quitar ejercicio"}
                     </button>
                     {showCreatePicker && (
                       <div style={{ border:"1px solid var(--line)", borderRadius:12, overflow:"hidden", marginBottom:8, marginTop:6, maxHeight:200, overflowY:"auto" }}>
@@ -738,7 +738,7 @@ export default function StartWorkoutPage() {
           <div className="modal-card" onClick={e => e.stopPropagation()} style={{ maxHeight:"90vh", overflowY:"auto", display:"flex", flexDirection:"column" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
               <h2 style={{ margin:0, fontSize:18 }}>Editar rutina</h2>
-              <button onClick={() => { setEditRoutineTarget(null); setShowEditPicker(false); }} style={{ background:"none", border:"none", color:"var(--muted)", fontSize:20, cursor:"pointer" }}>✕</button>
+              <button onClick={() => { setEditRoutineTarget(null); setShowEditPicker(false); }} style={{ background:"none", border:"none", color:"var(--muted)", fontSize:20, cursor:"pointer" }}><Icon name="X" size={18} style={{display:'inline-block',verticalAlign:'middle'}} /></button>
             </div>
             <input
               autoFocus
@@ -754,14 +754,14 @@ export default function StartWorkoutPage() {
                   <div key={i} style={{ display:"flex", alignItems:"center", gap:8, padding:"7px 10px", background:"var(--panel2)", borderRadius:10, marginBottom:5 }}>
                     <span style={{ flex:1, fontSize:13 }}>{ex}</span>
                     <button onClick={() => setEditRoutineExercises(p => p.filter((_, idx) => idx !== i))}
-                      style={{ background:"none", border:"none", color:"var(--danger)", cursor:"pointer", fontSize:15, padding:"2px 4px" }}>✕</button>
+                      style={{ background:"none", border:"none", color:"var(--danger)", cursor:"pointer", fontSize:15, padding:"2px 4px" }}><Icon name="X" size={14} style={{display:'inline-block',verticalAlign:'middle'}} /></button>
                   </div>
                 ))}
               </div>
             )}
             <button onClick={() => setShowEditPicker(p => !p)}
               style={{ width:"100%", background:"rgba(168,85,247,.08)", border:"1px dashed rgba(168,85,247,.4)", borderRadius:10, padding:"10px", cursor:"pointer", fontSize:13, color:"var(--green)", fontWeight:700, marginBottom:10 }}>
-              {showEditPicker ? "✕ Cerrar buscador" : "+ Agregar ejercicio"}
+              {showEditPicker ? <><Icon name="X" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> Cerrar buscador</> : "+ Agregar ejercicio"}
             </button>
             {showEditPicker && (
               <div style={{ border:"1px solid var(--line)", borderRadius:12, overflowY:"auto", marginBottom:12, maxHeight:300 }}>

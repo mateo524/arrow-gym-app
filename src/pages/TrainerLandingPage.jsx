@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase.js";
+import Icon from "../components/Icon";
 
 export default function TrainerLandingPage({ inviteCode, onJoin, onBack }) {
   const [trainer, setTrainer] = useState(null);
@@ -88,13 +89,13 @@ export default function TrainerLandingPage({ inviteCode, onJoin, onBack }) {
         {/* Value props */}
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 24 }}>
           {[
-            { icon: "💪", text: "Rutinas personalizadas según tus objetivos" },
-            { icon: "📊", text: "Seguimiento de progreso y cargas en tiempo real" },
-            { icon: "🤖", text: "Coach con IA que sugiere pesos y descansos" },
-            { icon: "🔔", text: "Recordatorios y empuje para mantener la racha" },
+            { icon: "Dumbbell", text: "Rutinas personalizadas según tus objetivos" },
+            { icon: "BarChart2", text: "Seguimiento de progreso y cargas en tiempo real" },
+            { icon: "BrainCircuit", text: "Coach con IA que sugiere pesos y descansos" },
+            { icon: "Bell", text: "Recordatorios y empuje para mantener la racha" },
           ].map(({ icon, text }) => (
             <div key={text} style={{ display: "flex", alignItems: "center", gap: 12, background: "var(--panel)", borderRadius: 12, padding: "10px 14px" }}>
-              <span style={{ fontSize: 18, flexShrink: 0 }}>{icon}</span>
+              <Icon name={icon} size={18} style={{ flexShrink: 0, display: 'inline-block', verticalAlign: 'middle' }} />
               <span style={{ fontSize: 13, color: "var(--text)" }}>{text}</span>
             </div>
           ))}
@@ -109,7 +110,7 @@ export default function TrainerLandingPage({ inviteCode, onJoin, onBack }) {
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               {routines.slice(0, 4).map(r => (
                 <div key={r.id} style={{ background: "var(--panel)", borderRadius: 10, padding: "10px 14px", display: "flex", alignItems: "center", gap: 10 }}>
-                  <span style={{ fontSize: 14, color: "var(--green)" }}>📋</span>
+                  <Icon name="ClipboardList" size={14} style={{ color: "var(--green)", display: 'inline-block', verticalAlign: 'middle' }} />
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 700 }}>{r.name}</div>
                     <div style={{ fontSize: 11, color: "var(--muted)" }}>

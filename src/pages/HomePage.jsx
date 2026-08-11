@@ -223,8 +223,8 @@ export default function HomePage() {
   const trainedToday = weekCalendar.some(d => d.isToday && (d.trained || d.cardio));
   const statusLine = (() => {
     if (workouts.length === 0) return "Tu primer entrenamiento te espera";
-    if (weekDone >= adaptedWeeklyGoal) return "Semana completa — seguí sumando ??";
-    if (trainedToday) return "Ya entrenaste hoy, bien ahí ??";
+    if (weekDone >= adaptedWeeklyGoal) return "Semana completa — seguí sumando 🎉";
+    if (trainedToday) return "Ya entrenaste hoy, bien ahí 💪";
     if (streak > 0) return `Tu semana va al ${weekPct}%`;
     return "Arrancá una nueva racha hoy";
   })();
@@ -266,7 +266,7 @@ export default function HomePage() {
           }}
           style={{ background: "linear-gradient(135deg, rgba(168,85,247,.15), rgba(99,102,241,.12))", border: "1px solid rgba(168,85,247,.3)", borderRadius: 14, padding: "12px 16px", marginBottom: 16, cursor: "pointer", display: "flex", alignItems: "center", gap: 12 }}
         >
-          <span style={{ fontSize: 24, flexShrink: 0 }}>??</span>
+          <span style={{ fontSize: 24, flexShrink: 0 }}>👑</span>
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 700, fontSize: 13, color: "var(--text)" }}>Desbloqueá el Coach IA y Nutrición</div>
             <div style={{ fontSize: 12, color: "var(--muted)" }}>$10.000/mes — renovación automática — cancelá cuando quieras</div>
@@ -285,11 +285,11 @@ export default function HomePage() {
               style={{ width: "100%", padding: "16px", fontSize: 17, fontWeight: 800 }}
               onClick={() => setPage(activeWorkout ? "workout" : "start")}
             >
-              {activeWorkout ? "? Continuar entrenamiento" : "? Empezar entrenamiento"}
+              {activeWorkout ? "▶️ Continuar entrenamiento" : "⚡ Empezar entrenamiento"}
             </button>
             {f.deload_alert && deload && (
               <div style={{ background:"rgba(245,158,11,.1)", border:"1px solid rgba(245,158,11,.3)", borderRadius:12, padding:"10px 12px", fontSize:13, marginTop:10 }}>
-                ?? <b>Semana de descarga sugerida</b> — bajá los pesos al 60% esta semana.
+                📉 <b>Semana de descarga sugerida</b> — bajá los pesos al 60% esta semana.
               </div>
             )}
           </div>
@@ -298,7 +298,7 @@ export default function HomePage() {
           {comebackDays !== null && (
             <div style={{ background: comebackDays >= 7 ? "rgba(168,85,247,.07)" : "rgba(239,68,68,.07)", border: comebackDays >= 7 ? "1px solid rgba(168,85,247,.25)" : "1px solid rgba(239,68,68,.3)", borderRadius: 16, padding: "16px 16px", marginBottom: 14 }}>
               <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 6 }}>
-                {comebackDays >= 7 ? "Bienvenido de vuelta" : comebackDays >= 4 ? "? La adaptación muscular se frena" : "?? Tu racha te espera"}
+                {comebackDays >= 7 ? "Bienvenido de vuelta" : comebackDays >= 4 ? "⚠️ La adaptación muscular se frena" : "🔥 Tu racha te espera"}
               </div>
               <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 12 }}>
                 {comebackDays >= 7
@@ -319,7 +319,7 @@ export default function HomePage() {
             {/* Racha */}
             {f.streak_pressure && (() => {
               const isMilestone = streak > 0 && [3,7,14,21,30,60,90,100,365].includes(streak);
-              const milestoneMsg = streak >= 365 ? "¡Leyenda! ??" : streak >= 100 ? "¡Centenario! ??" : streak >= 60 ? "¡Imparable!" : streak >= 30 ? "¡Un mes! ??" : streak >= 21 ? "¡3 semanas!" : streak >= 14 ? "¡2 semanas!" : streak >= 7 ? "¡Una semana!" : "¡3 días! ??";
+              const milestoneMsg = streak >= 365 ? "¡Leyenda! 🏆" : streak >= 100 ? "¡Centenario! 💯" : streak >= 60 ? "¡Imparable!" : streak >= 30 ? "¡Un mes! 🔥" : streak >= 21 ? "¡3 semanas!" : streak >= 14 ? "¡2 semanas!" : streak >= 7 ? "¡Una semana!" : "¡3 días! 🔥";
               const todayStr2 = todayLocal();
               const isRestToday = (restDays || []).some(r => r.date === todayStr2);
               return (
@@ -329,7 +329,7 @@ export default function HomePage() {
                     <span style={{ display:"flex", alignItems:"center", animation: isMilestone ? "pulse 1s ease-in-out 3" : "none" }}>
                       {streak === 0
                         ? <svg width={24} height={24} viewBox="0 0 24 24" fill="none"><path d="M12 3C10 7 8 9 8 12a4 4 0 0 0 8 0c0-3-2-5-4-9z" fill="#60a5fa" opacity=".5"/><path d="M9 16.5V19a3 3 0 0 0 6 0v-2.5" stroke="#60a5fa" strokeWidth="1.5" strokeLinecap="round"/></svg>
-                        : <span style={{ fontSize: 26 }}>??</span>
+                        : <span style={{ fontSize: 26 }}>🔥</span>
                       }
                     </span>
                     <div>
@@ -346,7 +346,7 @@ export default function HomePage() {
                   </div>
                   {isRestToday
                     ? <div style={{ display:"inline-flex", alignItems:"center", gap:4, background:"rgba(6,182,212,.15)", border:"1px solid rgba(6,182,212,.4)", borderRadius:8, padding:"3px 8px", fontSize:10, color:"#06b6d4", fontWeight:600, alignSelf:"flex-start" }}>
-                        ?? Descanso activo
+                        😴 Descanso activo
                       </div>
                     : <button
                         onClick={() => logRestDay && logRestDay()}
@@ -376,7 +376,7 @@ export default function HomePage() {
                   <div>
                     <div style={{ fontSize:13, fontWeight:700, color:"var(--text)" }}>Objetivo semanal</div>
                     <div style={{ fontSize:11, color:"var(--muted)", marginTop:2 }}>
-                      {goal - done > 0 ? `${goal - done} entrenos restantes` : "¡Meta cumplida! ??"}
+                      {goal - done > 0 ? `${goal - done} entrenos restantes` : "¡Meta cumplida! 🏆"}
                     </div>
                     {done > goal && (
                       <div style={{ fontSize:10, color:"var(--green)", marginTop:2, fontWeight:600 }}>+{done - goal} entrenamiento{done - goal !== 1 ? "s" : ""} extra esta semana</div>
@@ -396,7 +396,7 @@ export default function HomePage() {
             const nextGoal = Math.ceil(Number(latest.weight) / 2.5) * 2.5 + 2.5;
             return (
               <div style={{ background:"rgba(168,85,247,.06)", border:"1px solid rgba(168,85,247,.2)", borderRadius:14, padding:"10px 14px", marginBottom:12, display:"flex", alignItems:"center", gap:10 }}>
-                <span style={{ fontSize:20 }}>??</span>
+                <span style={{ fontSize:20 }}>🎯</span>
                 <div>
                   <div style={{ fontSize:13, fontWeight:700 }}>Próxima meta</div>
                   <div style={{ fontSize:12, color:"var(--muted)" }}>{latest.exercise}: <b style={{ color:"var(--green)" }}>{nextGoal}kg</b></div>
@@ -408,7 +408,7 @@ export default function HomePage() {
           {/* Feature 2: "Casi llegás" */}
           {almostThere !== null && (
             <div style={{ background: "rgba(168,85,247,.08)", border: "1px solid rgba(168,85,247,.25)", borderRadius: 14, padding: "10px 14px", marginBottom: 12, display: "flex", alignItems: "center", gap: 10 }}>
-              <span style={{ fontSize: 20 }}>??</span>
+              <span style={{ fontSize: 20 }}>💪</span>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>
                   {almostThere === 2 ? "Dos más para tu objetivo" : "¡Una más para completar tu semana!"}
@@ -472,7 +472,7 @@ export default function HomePage() {
               const pct = Math.round(((vol - prev) / prev) * 100);
               comparison = pct >= 0 ? `+${pct}% vs mes pasado` : `${pct}% vs mes pasado`;
             } else {
-              comparison = "primer mes ??";
+              comparison = "primer mes ⭐";
             }
             return (
               <div style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 16, padding: "14px 16px", marginBottom: 14 }}>
@@ -495,8 +495,8 @@ export default function HomePage() {
                 style={cardio ? { background:"rgba(52,211,153,.1)", border:"1.5px solid rgba(52,211,153,.4)" } : isRest && !trained ? { background:"rgba(6,182,212,.15)", border:"1.5px solid rgba(6,182,212,.5)" } : {}}>
                 <span className="week-cal-name" style={cardio?{color:"#34d399"}:isRest&&!trained?{color:"#06b6d4"}:{}}>{dayName}</span>
                 <span className="week-cal-num" style={cardio?{color:"#34d399"}:isRest&&!trained?{color:"#06b6d4"}:{}}>{dayNum}</span>
-                {isRest && !trained && !cardio && <span style={{ fontSize:8, marginTop:1, color:"#06b6d4" }}>??</span>}
-                {cardio && <span style={{ fontSize:8, marginTop:1, color:"#34d399" }}>??</span>}
+                {isRest && !trained && !cardio && <span style={{ fontSize:8, marginTop:1, color:"#06b6d4" }}>😴</span>}
+                {cardio && <span style={{ fontSize:8, marginTop:1, color:"#34d399" }}>🏃</span>}
                 {trained && <span className="week-cal-dot" />}
               </div>
               );
@@ -525,11 +525,11 @@ export default function HomePage() {
           {/* Próximos logros — goal-gradient progress bars */}
           {recentAch.length === 0 && upcomingAchievements.length === 0 && (
             <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:14, padding:"14px 16px", marginBottom:14, textAlign:"center" }}>
-              <div style={{ fontSize:28, marginBottom:6 }}>??</div>
+              <div style={{ fontSize:28, marginBottom:6 }}>🏆</div>
               <div style={{ fontSize:13, fontWeight:700, marginBottom:4 }}>Tus logros aparecen acá</div>
               <div style={{ fontSize:12, color:"var(--muted)", lineHeight:1.5 }}>Completá tu primer entreno para empezar a desbloquear badges y ver tu progreso.</div>
               <button className="primary" style={{ marginTop:12, fontSize:13, padding:"8px 20px" }} onClick={() => setPage("start")}>
-                Empezar ahora ?
+                Empezar ahora 🚀
               </button>
             </div>
           )}

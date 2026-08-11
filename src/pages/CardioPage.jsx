@@ -167,7 +167,7 @@ export default function CardioPage() {
                 </div>
                 <button onClick={() => deleteCardio(c.id)}
                   style={{ background: "none", border: "none", color: "var(--muted)", fontSize: 16, cursor: "pointer", padding: 4 }}>
-                  ✕
+                  <Icon name="X" size={14} style={{display:'inline-block',verticalAlign:'middle'}} />
                 </button>
               </div>
             ))}
@@ -205,7 +205,7 @@ export default function CardioPage() {
         <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
           {[
             { id: false, label: "▶ En vivo", desc: "Cronómetro" },
-            { id: true,  label: "📝 Ya lo hice", desc: "Ingresá el tiempo" },
+            { id: true,  label: "Ya lo hice", desc: "Ingresá el tiempo" },
           ].map(m => (
             <button key={String(m.id)} onClick={() => { setManualMode(m.id); setRunning(false); }}
               style={{
@@ -272,7 +272,7 @@ export default function CardioPage() {
           </div>
           {(manualHours || manualMins) && (
             <p style={{ margin: "10px 0 0", fontSize: 13, color: "var(--green)", textAlign: "center" }}>
-              ⏱ {manualHours || 0}h {manualMins || 0}min registrados
+              <Icon name="Timer" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> {manualHours || 0}h {manualMins || 0}min registrados
             </p>
           )}
         </div>
@@ -342,7 +342,7 @@ export default function CardioPage() {
         {/* Calorie estimate */}
         {(elapsed > 0 || (manualMode && (manualHours || manualMins))) && (
           <div style={{ background: "rgba(168,85,247,.06)", border: "1px solid rgba(168,85,247,.2)", borderRadius: 12, padding: "10px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-            <span style={{ fontSize: 13, color: "var(--muted)" }}>🔥 Estimación calórica</span>
+            <span style={{ fontSize: 13, color: "var(--muted)" }}><Icon name="Flame" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> Estimación calórica</span>
             <span style={{ fontSize: 18, fontWeight: 900, color: "var(--green)" }}>{calories || estCal} kcal</span>
           </div>
         )}

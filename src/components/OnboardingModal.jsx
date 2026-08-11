@@ -4,24 +4,24 @@ import useAuthStore from "../store/useAuthStore.js";
 import { supabase } from "../lib/supabase.js";
 
 const GOALS = [
-  { id: "volumen",       label: "Ganar másculo",  icon: "??", desc: "Aumentar masa muscular y fuerza" },
-  { id: "definicion",    label: "Definición",     icon: "??", desc: "Bajar grasa manteniendo másculo" },
-  { id: "mantenimiento", label: "Salud general",  icon: "??",  desc: "Mantener el físico y bienestar general" },
-  { id: "rendimiento",   label: "Fuerza",         icon: "?", desc: "Desarrollar fuerza máxima" },
+  { id: "volumen",       label: "Ganar másculo",  icon: "💪", desc: "Aumentar masa muscular y fuerza" },
+  { id: "definicion",    label: "Definición",     icon: "🔥", desc: "Bajar grasa manteniendo másculo" },
+  { id: "mantenimiento", label: "Salud general",  icon: "⚖️",  desc: "Mantener el físico y bienestar general" },
+  { id: "rendimiento",   label: "Fuerza",         icon: "⚡", desc: "Desarrollar fuerza máxima" },
 ];
 
 const LEVELS = [
-  { id: "principiante", label: "Principiante",  icon: "??", desc: "Menos de 1 año entrenando" },
-  { id: "intermedio",   label: "Intermedio",    icon: "??", desc: "1 a 3 años de experiencia" },
-  { id: "avanzado",     label: "Avanzado",      icon: "??", desc: "Más de 3 años entrenando" },
+  { id: "principiante", label: "Principiante",  icon: "🌱", desc: "Menos de 1 año entrenando" },
+  { id: "intermedio",   label: "Intermedio",    icon: "📈", desc: "1 a 3 años de experiencia" },
+  { id: "avanzado",     label: "Avanzado",      icon: "🏆", desc: "Más de 3 años entrenando" },
 ];
 
 const FEATURES = [
-  { icon: "??", title: "Coach IA en vivo",       desc: "Te sugiere peso, detecta fatiga y sobreentrenamiento en tiempo real durante el entreno." },
-  { icon: "??", title: "Mediciones corporales",  desc: "Registrá peso, % grasa, cintura y más. Encontralo en el tab Medidas del menú." },
-  { icon: "??", title: "Calculadora de macros",  desc: "Calculá tus calorías y macros diarios segón tu objetivo. Está en la sección Coach ? Macros." },
-  { icon: "??", title: "Rutinas y plantillas",   desc: "Creá rutinas o usá plantillas populares (PPL, 5x5, Full Body). En Inicio ? Accesos rápidos." },
-  { icon: "??", title: "Rachas y logros",        desc: "Ganás logros por consistencia y PRs. Mirá tus badges en Inicio ? Logros." },
+  { icon: "🤖", title: "Coach IA en vivo",       desc: "Te sugiere peso, detecta fatiga y sobreentrenamiento en tiempo real durante el entreno." },
+  { icon: "📏", title: "Mediciones corporales",  desc: "Registrá peso, % grasa, cintura y más. Encontralo en el tab Medidas del menú." },
+  { icon: "🧮", title: "Calculadora de macros",  desc: "Calculá tus calorías y macros diarios segón tu objetivo. Está en la sección Coach → Macros." },
+  { icon: "📋", title: "Rutinas y plantillas",   desc: "Creá rutinas o usá plantillas populares (PPL, 5x5, Full Body). En Inicio → Accesos rápidos." },
+  { icon: "🏅", title: "Rachas y logros",        desc: "Ganás logros por consistencia y PRs. Mirá tus badges en Inicio → Logros." },
 ];
 
 export default function OnboardingModal() {
@@ -58,7 +58,7 @@ export default function OnboardingModal() {
       await supabase.from("trainer_clients").upsert({ trainer_id: data.id, client_id: profile.id }, { onConflict: "trainer_id,client_id" });
       await supabase.from("profiles").update({ trainer_id: data.id }).eq("id", profile.id);
       refreshProfile?.();
-      setInviteMsg(`? Conectado con ${data.name}`);
+      setInviteMsg(`✅ Conectado con ${data.name}`);
     } catch {
       setInviteMsg("Error de conexión. Intentá de nuevo.");
     }
@@ -110,7 +110,7 @@ export default function OnboardingModal() {
         {step === 1 && (
           <>
             <div style={{ textAlign: "center", marginBottom: 24 }}>
-              <div style={{ fontSize: 52, marginBottom: 12 }}>?</div>
+              <div style={{ fontSize: 52, marginBottom: 12 }}>🏋️</div>
               <h2 style={{ margin: "0 0 8px", fontSize: 24 }}>Bienvenido a Loop</h2>
               <p style={{ color: "var(--muted)", fontSize: 14, margin: 0, lineHeight: 1.5 }}>
                 ¿Cómo querés usar la app?
@@ -119,9 +119,9 @@ export default function OnboardingModal() {
 
             <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 24 }}>
               {[
-                { id: "simple",   icon: "??", label: "Solo quiero registrar lo que hago",    sub: "Sin sugerencias ni análisis extra" },
-                { id: "standard", icon: "??", label: "Registrar y recibir sugerencias",       sub: "El coach te avisa si algo no avanza" },
-                { id: "advanced", icon: "??", label: "Control total",                         sub: "Volumen, cargas, semanas de descarga" },
+                { id: "simple",   icon: "📝", label: "Solo quiero registrar lo que hago",    sub: "Sin sugerencias ni análisis extra" },
+                { id: "standard", icon: "🤖", label: "Registrar y recibir sugerencias",       sub: "El coach te avisa si algo no avanza" },
+                { id: "advanced", icon: "⚡", label: "Control total",                         sub: "Volumen, cargas, semanas de descarga" },
               ].map(({ id, icon, label, sub }) => (
                 <button
                   key={id}
@@ -138,7 +138,7 @@ export default function OnboardingModal() {
                     <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text)", marginBottom: 2 }}>{label}</div>
                     <div style={{ fontSize: 12, color: "var(--muted)" }}>{sub}</div>
                   </div>
-                  {uiMode === id && <span style={{ marginLeft: "auto", color: "var(--accent)", fontSize: 18 }}>?</span>}
+                  {uiMode === id && <span style={{ marginLeft: "auto", color: "var(--accent)", fontSize: 18 }}>✅</span>}
                 </button>
               ))}
             </div>
@@ -149,7 +149,7 @@ export default function OnboardingModal() {
               disabled={!uiMode}
               onClick={() => setStep(2)}
             >
-              Continuar ?
+              Continuar →
             </button>
           </>
         )}
@@ -194,13 +194,13 @@ export default function OnboardingModal() {
 
             <div style={{ background: "rgba(96,165,250,.06)", border: "1px solid rgba(96,165,250,.2)", borderRadius: 10, padding: "10px 14px", marginBottom: 20 }}>
               <p style={{ margin: 0, fontSize: 12, color: "#60a5fa", lineHeight: 1.5 }}>
-                ?? Para % grasa corporal, perímetros y seguimiento avanzado ? <b>Medidas</b> en el mená inferior.
+                💡 Para % grasa corporal, perímetros y seguimiento avanzado → <b>Medidas</b> en el mená inferior.
               </p>
             </div>
 
             <div style={{ display: "flex", gap: 10 }}>
-              <button className="ghost" style={{ flex: 1 }} onClick={() => setStep(1)}>? Atrás</button>
-              <button className="primary" style={{ flex: 2 }} onClick={() => setStep(3)}>Continuar ?</button>
+              <button className="ghost" style={{ flex: 1 }} onClick={() => setStep(1)}>← Atrás</button>
+              <button className="primary" style={{ flex: 2 }} onClick={() => setStep(3)}>Continuar →</button>
             </div>
           </>
         )}
@@ -225,7 +225,7 @@ export default function OnboardingModal() {
                     <div style={{ fontSize: 14, fontWeight: 800, color: level === l.id ? "var(--green)" : "var(--text)" }}>{l.label}</div>
                     <div style={{ fontSize: 12, color: "var(--muted)" }}>{l.desc}</div>
                   </div>
-                  {level === l.id && <span style={{ marginLeft: "auto", color: "var(--green)" }}>?</span>}
+                  {level === l.id && <span style={{ marginLeft: "auto", color: "var(--green)" }}>✅</span>}
                 </button>
               ))}
             </div>
@@ -244,14 +244,14 @@ export default function OnboardingModal() {
                     <div style={{ fontSize: 14, fontWeight: 800, color: goal === g.id ? "var(--green)" : "var(--text)" }}>{g.label}</div>
                     <div style={{ fontSize: 12, color: "var(--muted)" }}>{g.desc}</div>
                   </div>
-                  {goal === g.id && <span style={{ marginLeft: "auto", color: "var(--green)" }}>?</span>}
+                  {goal === g.id && <span style={{ marginLeft: "auto", color: "var(--green)" }}>✅</span>}
                 </button>
               ))}
             </div>
 
             <div style={{ display: "flex", gap: 10 }}>
-              <button className="ghost" style={{ flex: 1 }} onClick={() => setStep(2)}>? Atrás</button>
-              <button className="primary" style={{ flex: 2 }} onClick={() => setStep(4)}>Continuar ?</button>
+              <button className="ghost" style={{ flex: 1 }} onClick={() => setStep(2)}>← Atrás</button>
+              <button className="primary" style={{ flex: 2 }} onClick={() => setStep(4)}>Continuar →</button>
             </div>
           </>
         )}
@@ -275,8 +275,8 @@ export default function OnboardingModal() {
             </div>
 
             <div style={{ display: "flex", gap: 10 }}>
-              <button className="ghost" style={{ flex: 1 }} onClick={() => setStep(3)}>? Atrás</button>
-              <button className="primary" style={{ flex: 2 }} onClick={() => setStep(5)}>Continuar ?</button>
+              <button className="ghost" style={{ flex: 1 }} onClick={() => setStep(3)}>← Atrás</button>
+              <button className="primary" style={{ flex: 2 }} onClick={() => setStep(5)}>Continuar →</button>
             </div>
           </>
         )}
@@ -286,7 +286,7 @@ export default function OnboardingModal() {
           <>
             <h2 style={{ margin: "0 0 4px", fontSize: 22 }}>¡Casi listo!</h2>
             <p style={{ color: "var(--muted)", fontSize: 13, margin: "0 0 20px", lineHeight: 1.5 }}>
-              {profile?.trainer_id ? "Ya estás conectado con tu entrenador ??" : "Si tenés un entrenador en Loop, conectate ahora con su código."}
+              {profile?.trainer_id ? "Ya estás conectado con tu entrenador ✅" : "Si tenés un entrenador en Loop, conectate ahora con su código."}
             </p>
 
             {!profile?.trainer_id ? (
@@ -312,7 +312,7 @@ export default function OnboardingModal() {
                   </button>
                 </div>
                 {inviteMsg && (
-                  <p style={{ margin: "8px 0 0", fontSize: 13, color: inviteMsg.startsWith("?") ? "var(--green)" : "var(--danger)" }}>
+                  <p style={{ margin: "8px 0 0", fontSize: 13, color: inviteMsg.startsWith("✅") ? "var(--green)" : "var(--danger)" }}>
                     {inviteMsg}
                   </p>
                 )}
@@ -322,7 +322,7 @@ export default function OnboardingModal() {
               </div>
             ) : (
               <div style={{ background: "rgba(52,211,153,.08)", border: "1px solid rgba(52,211,153,.2)", borderRadius: 12, padding: "14px 16px", marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 28 }}>???</span>
+                <span style={{ fontSize: 28 }}>🏋️</span>
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: "var(--green)" }}>Entrenador conectado</div>
                   <div style={{ fontSize: 12, color: "var(--muted)" }}>Tu entrenador puede ver tu progreso y asignarte rutinas.</div>
@@ -332,16 +332,16 @@ export default function OnboardingModal() {
 
             {/* Trial awareness */}
             <div style={{ background: "rgba(168,85,247,.06)", border: "1px solid rgba(168,85,247,.2)", borderRadius: 12, padding: "14px 16px", marginBottom: 24 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>? 30 días de prueba gratuita</div>
+              <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>🎁 30 días de prueba gratuita</div>
               <div style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.6 }}>
                 Tenés 30 días para probar Loop sin pagar nada. Si querés seguir, la suscripción es <b style={{ color: "var(--text)" }}>$10.000 ARS/mes</b> — te avisamos antes de que venza.
               </div>
             </div>
 
             <div style={{ display: "flex", gap: 10 }}>
-              <button className="ghost" style={{ flex: 1 }} onClick={() => setStep(4)}>? Atrás</button>
+              <button className="ghost" style={{ flex: 1 }} onClick={() => setStep(4)}>← Atrás</button>
               <button className="primary" style={{ flex: 2 }} disabled={saving} onClick={finish}>
-                {saving ? "Guardando…" : "??? Empezar mi primer entreno"}
+                {saving ? "Guardando…" : "🚀 Empezar mi primer entreno"}
               </button>
             </div>
           </>

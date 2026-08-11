@@ -11,6 +11,8 @@ import {
   LogOut, User, Lock, Unlock, Eye, EyeOff, Send, ChevronDown as ChevronDownAlt,
   MoreVertical, Utensils, Apple, Coffee, Beef, Fish, Salad,
   ArrowUp, ArrowDown, BookOpen, Layers, Copy, ExternalLink,
+  Camera, Leaf, DollarSign, CreditCard, Hash, Scale, MapPin, Droplet, Sun,
+  Smartphone, Key, Sparkles, Heart, Gauge, Package, Repeat, Link2, Rocket, HeartPulse,
 } from "lucide-react";
 
 const MAP = {
@@ -26,6 +28,8 @@ const MAP = {
   LogOut, User, Lock, Unlock, Eye, EyeOff, Send,
   MoreVertical, Utensils, Apple, Coffee, Beef, Fish, Salad,
   ArrowUp, ArrowDown, BookOpen, Layers, Copy, ExternalLink,
+  Camera, Leaf, DollarSign, CreditCard, Hash, Scale, MapPin, Droplet, Sun,
+  Smartphone, Key, Sparkles, Heart, Gauge, Package, Repeat, Link2, Rocket, HeartPulse,
 };
 
 export default function Icon({ name, size = 24, strokeWidth = 1.5, ...props }) {

@@ -27,7 +27,7 @@ export default function CoachPage() {
   if (profile && !isSubscribed) {
     return (
       <section className="page" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "48px 24px" }}>
-        <span style={{ fontSize: 56, marginBottom: 16 }}>🔒</span>
+        <Icon name="Lock" size={48} style={{ display:'block', margin:'0 auto 16px' }} />
         <h2 style={{ margin: "0 0 8px", fontSize: 22 }}>Coach IA</h2>
         <p style={{ color: "var(--muted)", fontSize: 14, marginBottom: 28, maxWidth: 280 }}>
           Analizá tu progreso, recibí recomendaciones personalizadas y optimizá tu entrenamiento con inteligencia artificial.
@@ -560,7 +560,7 @@ export default function CoachPage() {
               disabled={sharing}
               style={{ background: "rgba(168,85,247,.15)", border: "1px solid rgba(168,85,247,.4)", borderRadius: 10, padding: "8px 12px", cursor: "pointer", color: "var(--green)", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", gap: 5 }}
             >
-              <Icon name="Share2" size={15} /> {sharing ? "⏳" : "Compartir"}
+              <Icon name="Share2" size={15} /> {sharing ? <Icon name="Clock" size={14} style={{display:'inline-block',verticalAlign:'middle'}} /> : "Compartir"}
             </button>
           )}
           <button className="back-btn" onClick={() => setPage("home")} aria-label="Back">
@@ -587,7 +587,7 @@ export default function CoachPage() {
           {/* -- Medidas -- */}
           <div style={{ background:"var(--panel)", borderRadius:16, padding:"12px 14px", marginBottom:14 }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
-              <p style={{ margin:0, fontSize:13, fontWeight:700, color:"var(--text)" }}>📏 Medidas</p>
+              <p style={{ margin:0, fontSize:13, fontWeight:700, color:"var(--text)" }}><Icon name="Ruler" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> Medidas</p>
               <button className="ghost" style={{ fontSize:11, color:"var(--green)", fontWeight:600, padding:"2px 8px" }} onClick={() => setPage("measurements")}>
                 Ver todo →
               </button>
@@ -662,10 +662,10 @@ export default function CoachPage() {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
               {muscleRecovery.map(({ name, daysSince, recDays, status }) => {
                 const color = status === "listo" ? "#22c55e" : status === "recuperando" ? "#f59e0b" : status === "pronto" ? "#ef4444" : "rgba(255,255,255,.25)";
-                const icon  = status === "listo" ? "✅" : status === "recuperando" ? "🟡" : status === "pronto" ? "🔴" : "⚫";
+                const iconName  = status === "listo" ? "CheckCircle" : status === "recuperando" ? null : status === "pronto" ? null : null;
                 return (
                   <div key={name} style={{ background: "var(--panel2)", borderRadius: 12, padding: "10px 8px", textAlign: "center" }}>
-                    <div style={{ width: 28, height: 28, borderRadius: "50%", background: `${color}22`, border: `2px solid ${color}`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 6px", fontSize: 13, color }}>{icon}</div>
+                    <div style={{ width: 28, height: 28, borderRadius: "50%", background: `${color}22`, border: `2px solid ${color}`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 6px", fontSize: 13, color }}>{iconName ? <Icon name={iconName} size={13} style={{display:'inline-block',verticalAlign:'middle'}} /> : "●"}</div>
                     <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text)", marginBottom: 2 }}>{name}</div>
                     <div style={{ fontSize: 10, color: "var(--muted)" }}>
                       {daysSince === null ? "Sin datos" : daysSince === 0 ? "Hoy" : `Hace ${daysSince}d`}
@@ -696,7 +696,7 @@ export default function CoachPage() {
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:4 }}>
                 <span style={{ fontSize:11, color:"var(--muted)" }}>{weeklyChallenge.doneCount}/{weeklyChallenge.targetCount}</span>
                 <span style={{ fontSize:11, color: weeklyChallenge.doneCount >= weeklyChallenge.targetCount ? "var(--green)" : "var(--muted)" }}>
-                  {weeklyChallenge.doneCount >= weeklyChallenge.targetCount ? "✅ Completado" : "En progreso"}
+                  {weeklyChallenge.doneCount >= weeklyChallenge.targetCount ? <><Icon name="CheckCircle" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> Completado</> : "En progreso"}
                 </span>
               </div>
               <div style={{ background:"var(--panel2)", borderRadius:6, height:8, overflow:"hidden" }}>
@@ -708,7 +708,7 @@ export default function CoachPage() {
           {/* 📊 Análisis avanzado (colapsable) */}
           <button onClick={() => setShowAdvanced(s => !s)}
             style={{ width:"100%", padding:"8px", borderRadius:10, border:"1px solid var(--line)", background:"var(--panel)", cursor:"pointer", fontSize:12, fontWeight:600, color:"var(--muted)", marginBottom:12 }}>
-            {showAdvanced ? "🔼 Ocultar análisis avanzado" : "🔽 Ver análisis avanzado"}
+            {showAdvanced ? <><Icon name="ChevronUp" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> Ocultar análisis avanzado</> : <><Icon name="ChevronDown" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> Ver análisis avanzado</>}
           </button>
 
           {showAdvanced && (<>
@@ -787,7 +787,7 @@ export default function CoachPage() {
             return (
               <div className="card" style={{ marginBottom:14 }}>
                 <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 }}>
-                  <h2 style={{ margin:0 }}>🏆 Tu {year} en Loop</h2>
+                  <h2 style={{ margin:0 }}><Icon name="Trophy" size={16} style={{display:'inline-block',verticalAlign:'middle',marginRight:6}} /> Tu {year} en Loop</h2>
                   <button
                     className="ghost"
                     style={{ fontSize:12, padding:"4px 10px", display:"flex", alignItems:"center", gap:5 }}
@@ -842,16 +842,16 @@ export default function CoachPage() {
               <div style={{
                 width: 42, height: 42, borderRadius: 12, flexShrink: 0,
                 background: "linear-gradient(135deg, rgba(168,85,247,.2), rgba(251,191,36,.15))",
-                display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22,
+                display: "flex", alignItems: "center", justifyContent: "center",
               }}>
-                🏅
+                <Icon name="Award" size={22} style={{display:'inline-block'}} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ margin: 0, fontWeight: 700, fontSize: 14 }}>Liga del Gimnasio</p>
                 <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--muted)" }}>
                   Posición {leaguePreview.rank}/{leaguePreview.total} esta semana —{" "}
                   {leaguePreview.myWorkouts} entreno{leaguePreview.myWorkouts !== 1 ? "s" : ""}
-                  {leaguePreview.rank === 1 ? " 🥇" : leaguePreview.rank === 2 ? " 🥈" : leaguePreview.rank === 3 ? " 🥉" : ""}
+                  {leaguePreview.rank === 1 ? <> <Icon name="Trophy" size={13} style={{display:'inline-block',verticalAlign:'middle',color:'#f59e0b'}} /></> : leaguePreview.rank === 2 ? <> <Icon name="Trophy" size={13} style={{display:'inline-block',verticalAlign:'middle',color:'#94a3b8'}} /></> : leaguePreview.rank === 3 ? <> <Icon name="Trophy" size={13} style={{display:'inline-block',verticalAlign:'middle',color:'#b45309'}} /></> : ""}
                 </p>
               </div>
               <Icon name="ChevronRight" size={16} style={{ color: "var(--muted)", flexShrink: 0 }} />
@@ -870,7 +870,7 @@ export default function CoachPage() {
               gap: 10,
               alignItems: "flex-start",
             }}>
-              <span style={{ fontSize: 20, flexShrink: 0, marginTop: 1 }}>🤖</span>
+              <Icon name="BrainCircuit" size={20} style={{flexShrink:0, marginTop:1}} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ margin: "0 0 2px", fontWeight: 700, fontSize: 13, color: "var(--accent, #a855f7)" }}>
                   {coachNotif.title || "Coach IA"}
@@ -915,7 +915,7 @@ export default function CoachPage() {
           ) : (
           workouts.length < 3 ? (
             <div style={{ textAlign:"center", padding:"40px 20px" }}>
-              <div style={{ fontSize:48, marginBottom:12 }}>🏗️</div>
+              <div style={{ marginBottom:12, display:'flex', justifyContent:'center' }}><Icon name="Layers" size={48} /></div>
               <h3 style={{ margin:"0 0 8px", fontSize:17 }}>Plan en construcción</h3>
               <p style={{ color:"var(--muted)", fontSize:13, lineHeight:1.5, margin:0 }}>Completá al menos 3 entrenamientos para que el coach genere tu plan personalizado.</p>
             </div>
@@ -928,7 +928,7 @@ export default function CoachPage() {
                 const accent   = isDeload ? "#ef4444" : isAccum ? "var(--green)" : "var(--cyan)";
                 const bg       = isDeload ? "rgba(239,68,68,.07)" : isAccum ? "rgba(168,85,247,.07)" : "rgba(117,217,255,.07)";
                 const border   = isDeload ? "rgba(239,68,68,.25)" : isAccum ? "rgba(168,85,247,.2)" : "rgba(117,217,255,.2)";
-                const icon     = isDeload ? "🔄" : isAccum ? "📈" : "💪";
+                const icon     = isDeload ? "RotateCcw" : isAccum ? "TrendingUp" : "Dumbbell";
                 const label    = periodization.needsDeload ? "Deload recomendado" : isAccum ? "Fase de acumulación" : periodization.phase === "deload" ? "Fase de descarga" : "Fase de intensificación";
                 const desc     = periodization.needsDeload
                   ? "Llevas 3+ semanas subiendo volumen. Esta semana bajó el peso al 60% y aumentá las repeticiones (12-20 reps por serie) para que el cuerpo se recupere sin perder calidad."
@@ -938,7 +938,7 @@ export default function CoachPage() {
                 return (
                   <div style={{ background:bg, border:`1px solid ${border}`, borderRadius:18, padding:"16px", marginBottom:12 }}>
                     <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:8 }}>
-                      <span style={{ fontSize:28 }}>{icon}</span>
+                      <Icon name={icon} size={28} style={{display:'inline-block',verticalAlign:'middle'}} />
                       <div>
                         <p style={{ margin:0, fontSize:11, color:accent, fontWeight:800, textTransform:"uppercase", letterSpacing:"0.08em" }}>Fase actual</p>
                         <p style={{ margin:0, fontSize:16, fontWeight:900, color:"var(--text)" }}>{label}</p>
@@ -952,7 +952,7 @@ export default function CoachPage() {
                       const isDeclined = activePlanAdjustment?.type === planType && activePlanAdjustment?.declined;
                       if (isActive) return (
                         <div style={{ background:"rgba(168,85,247,.1)", border:"1px solid rgba(168,85,247,.3)", borderRadius:10, padding:"8px 12px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-                          <span style={{ fontSize:12, color:"var(--green)", fontWeight:700 }}>✅ Ajuste activo hasta {activePlanAdjustment.expiresAt}</span>
+                          <span style={{ fontSize:12, color:"var(--green)", fontWeight:700 }}><Icon name="CheckCircle" size={12} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> Ajuste activo hasta {activePlanAdjustment.expiresAt}</span>
                           <button onClick={clearPlanAdjustment} style={{ background:"none", border:"none", color:"var(--muted)", fontSize:11, cursor:"pointer" }}>Cancelar</button>
                         </div>
                       );
@@ -967,12 +967,12 @@ export default function CoachPage() {
                           <button
                             onClick={() => acceptPlanRecommendation(planType, isDeload ? 0.6 : 1)}
                             style={{ flex:1, background:"rgba(168,85,247,.12)", border:"1px solid rgba(168,85,247,.3)", borderRadius:10, padding:"9px", cursor:"pointer", fontSize:13, fontWeight:700, color:"var(--green)" }}>
-                            ✅ Aceptar
+                            <Icon name="CheckCircle" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:4}} /> Aceptar
                           </button>
                           <button
                             onClick={() => declinePlanRecommendation(planType)}
                             style={{ flex:1, background:"rgba(255,255,255,.04)", border:"1px solid var(--line)", borderRadius:10, padding:"9px", cursor:"pointer", fontSize:13, fontWeight:700, color:"var(--muted)" }}>
-                            ✕ Declinar
+                            <Icon name="X" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:4}} /> Declinar
                           </button>
                         </div>
                       );
@@ -1067,7 +1067,7 @@ export default function CoachPage() {
                 return (
                   <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:18, padding:"14px 16px", marginBottom:12 }}>
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
-                      <p style={{ margin:0, fontSize:14, fontWeight:800 }}>🎯 Adherencia al plan</p>
+                      <p style={{ margin:0, fontSize:14, fontWeight:800 }}><Icon name="Target" size={14} style={{display:'inline-block',verticalAlign:'middle',marginRight:4}} /> Adherencia al plan</p>
                       <span style={{ fontSize:20, fontWeight:900, color }}>{avgAdherence}%</span>
                     </div>
                     <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:6 }}>
@@ -1100,10 +1100,10 @@ export default function CoachPage() {
                   : null;
                 if (daysSince === null) return null;
                 const color = daysSince === 0 ? "var(--green)" : daysSince <= 2 ? "#60a5fa" : daysSince <= 4 ? "#f59e0b" : "#ef4444";
-                const msg = daysSince === 0 ? "Entrenaste hoy 🎉" : daysSince === 1 ? "Ayer fue el último entreno" : `Hace ${daysSince} días sin entrenar`;
+                const msg = daysSince === 0 ? <><span>Entrenaste hoy</span> <Icon name="Sparkles" size={13} style={{display:'inline-block',verticalAlign:'middle'}} /></> : daysSince === 1 ? "Ayer fue el último entreno" : `Hace ${daysSince} días sin entrenar`;
                 return (
                   <div style={{ display:"flex", alignItems:"center", gap:12, background:"var(--panel)", border:`1px solid ${color}33`, borderRadius:14, padding:"12px 14px", marginBottom:12 }}>
-                    <span style={{ fontSize:24 }}>{daysSince === 0 ? "🔥" : daysSince <= 2 ? "✅" : daysSince <= 4 ? "⚠️" : "❌"}</span>
+                    <span style={{ fontSize:24 }}>{daysSince === 0 ? <Icon name="Flame" size={24} style={{display:'inline-block',verticalAlign:'middle'}} /> : daysSince <= 2 ? <Icon name="CheckCircle" size={24} style={{display:'inline-block',verticalAlign:'middle'}} /> : daysSince <= 4 ? <Icon name="AlertTriangle" size={24} style={{display:'inline-block',verticalAlign:'middle'}} /> : <Icon name="XCircle" size={24} style={{display:'inline-block',verticalAlign:'middle'}} />}</span>
                     <div>
                       <p style={{ margin:"0 0 2px", fontSize:14, fontWeight:800, color }}>{msg}</p>
                       {last?.type && <p style={{ margin:0, fontSize:12, color:"var(--muted)" }}>último: {last.type}</p>}
@@ -1134,7 +1134,7 @@ export default function CoachPage() {
                 return (
                   <div style={{ background:"var(--panel)", border:"1px solid rgba(96,165,250,.3)", borderRadius:18, padding:"14px 16px", marginBottom:12 }}>
                     <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
-                      <span style={{ fontSize:20 }}>🏆</span>
+                      <Icon name="Trophy" size={20} style={{display:'inline-block',verticalAlign:'middle'}} />
                       <p style={{ margin:0, fontSize:14, fontWeight:800 }}>Mejor sesión esta semana</p>
                     </div>
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
@@ -1180,7 +1180,7 @@ export default function CoachPage() {
                 }).reverse();
                 return (
                   <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:18, padding:"14px 16px", marginBottom:12 }}>
-                    <p style={{ margin:"0 0 12px", fontSize:14, fontWeight:800 }}>📅 últimas 4 semanas</p>
+                    <p style={{ margin:"0 0 12px", fontSize:14, fontWeight:800 }}><Icon name="Calendar" size={14} style={{display:'inline-block',verticalAlign:'middle',marginRight:4}} /> últimas 4 semanas</p>
                     <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:6 }}>
                       {weeks.map(w => (
                         <div key={w.label} style={{ background:"var(--panel2)", borderRadius:12, padding:"10px 8px", textAlign:"center" }}>
@@ -1201,7 +1201,7 @@ export default function CoachPage() {
               {skippedGroups.length > 0 && (
                 <div style={{ background:"rgba(239,68,68,.06)", border:"1px solid rgba(239,68,68,.2)", borderRadius:14, padding:"14px 16px" }}>
                   <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
-                    <span style={{ fontSize:20 }}>⚠️</span>
+                    <Icon name="AlertTriangle" size={20} style={{display:'inline-block',verticalAlign:'middle'}} />
                     <p style={{ margin:0, fontSize:14, fontWeight:800 }}>Grupos sin entrenar (últimas 4 semanas)</p>
                   </div>
                   <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
@@ -1216,7 +1216,7 @@ export default function CoachPage() {
               {/* Ejercicios sugeridos para grupos débiles */}
               {skippedGroups && skippedGroups.length > 0 && (
                 <div className="card" style={{ marginBottom:14, marginTop:12 }}>
-                  <h2 style={{ marginBottom:10 }}>💡 Ejercicios sugeridos</h2>
+                  <h2 style={{ marginBottom:10 }}><Icon name="Lightbulb" size={16} style={{display:'inline-block',verticalAlign:'middle',marginRight:4}} /> Ejercicios sugeridos</h2>
                   {skippedGroups.slice(0,3).map(g => {
                     const suggestions = {
                       "Espalda": ["Dominadas", "Remo con barra", "Jalón al pecho"],
@@ -1250,7 +1250,7 @@ export default function CoachPage() {
         <div>
           {!progression.length && !topExercises.length && !prs.length ? (
             <div style={{ textAlign:"center", padding:"40px 20px" }}>
-              <div style={{ fontSize:48, marginBottom:12 }}>📊</div>
+              <div style={{ marginBottom:12, display:'flex', justifyContent:'center' }}><Icon name="BarChart2" size={48} /></div>
               <h3 style={{ margin:"0 0 8px", fontSize:17 }}>Sin datos aún</h3>
               <p style={{ color:"var(--muted)", fontSize:13, lineHeight:1.5, margin:0 }}>Completá más entrenamientos para ver tu progresión por ejercicio y grupo muscular.</p>
             </div>
@@ -1349,42 +1349,42 @@ export default function CoachPage() {
 
                 const insights = [];
                 // Consistency
-                if (racha >= 3) insights.push({ icon:"🔥", text:`Racha de ${racha} días entrenando`, color:"var(--green)" });
-                else if (semana > 0) insights.push({ icon:"📅", text:`${semana} días esta semana (prom. ${avgSem}/sem)`, color:"var(--text)" });
-                else insights.push({ icon:"❌", text:"Sin entrenos esta semana", color:"var(--muted)" });
+                if (racha >= 3) insights.push({ icon:"Flame", text:`Racha de ${racha} días entrenando`, color:"var(--green)" });
+                else if (semana > 0) insights.push({ icon:"Calendar", text:`${semana} días esta semana (prom. ${avgSem}/sem)`, color:"var(--text)" });
+                else insights.push({ icon:"XCircle", text:"Sin entrenos esta semana", color:"var(--muted)" });
 
                 // Weight trend vs goal
                 if (wTrend !== null && Math.abs(Number(wTrend)) >= 0.3) {
                   const dir = Number(wTrend) > 0 ? "subiste" : "bajaste";
-                  const emoji = userGoal === "definicion" && Number(wTrend) < 0 ? "✅" :
-                    userGoal === "volumen" && Number(wTrend) > 0 ? "✅" : "⚠️";
-                  insights.push({ icon:emoji, text:`${dir} ${Math.abs(Number(wTrend))}kg en 30 días`, color:emoji === "✅" ? "var(--green)" : "#f59e0b" });
+                  const iconKey = userGoal === "definicion" && Number(wTrend) < 0 ? "CheckCircle" :
+                    userGoal === "volumen" && Number(wTrend) > 0 ? "CheckCircle" : "AlertTriangle";
+                  insights.push({ icon:iconKey, text:`${dir} ${Math.abs(Number(wTrend))}kg en 30 días`, color:iconKey === "CheckCircle" ? "var(--green)" : "#f59e0b" });
                 }
                 // Sleep
                 if (sleepAvg !== null) {
                   const ok = Number(sleepAvg) >= 7;
-                  insights.push({ icon:ok ? "😴" : "😴", text:`Sueño: ${sleepAvg}h promedio${ok ? " — óptimo" : " — ideal =7h"}`, color:ok ? "var(--green)" : "#f59e0b" });
+                  insights.push({ icon:"Moon", text:`Sueño: ${sleepAvg}h promedio${ok ? " — óptimo" : " — ideal =7h"}`, color:ok ? "var(--green)" : "#f59e0b" });
                 }
                 // Volume trend
                 if (volTrend !== null && !isNaN(volTrend)) {
                   const dir = volTrend > 0 ? "↑" : "↓";
-                  insights.push({ icon:"📈", text:`Volumen ${dir} ${Math.abs(volTrend)}% vs semana pasada`, color:volTrend > 0 ? "var(--green)" : "var(--muted)" });
+                  insights.push({ icon:"TrendingUp", text:`Volumen ${dir} ${Math.abs(volTrend)}% vs semana pasada`, color:volTrend > 0 ? "var(--green)" : "var(--muted)" });
                 }
                 // Water
                 if (waterAvg !== null && waterGoal) {
                   const ok = waterAvg >= waterGoal;
-                  insights.push({ icon:"💧", text:`Agua: ${waterAvg.toFixed(0)}/${waterGoal} vasos${ok ? " ✅" : ""}`, color:ok ? "var(--green)" : "#f59e0b" });
+                  insights.push({ icon:"Droplet", text:`Agua: ${waterAvg.toFixed(0)}/${waterGoal} vasos${ok ? " ✓" : ""}`, color:ok ? "var(--green)" : "#f59e0b" });
                 }
                 // Body composition
                 if (bodyFatPct !== null && lbm !== null) {
-                  insights.push({ icon:"⚖️", text:`Grasa: ${bodyFatPct.toFixed(1)}% — Masa magra: ${lbm.toFixed(1)}kg`, color:"var(--text)" });
+                  insights.push({ icon:"Scale", text:`Grasa: ${bodyFatPct.toFixed(1)}% — Masa magra: ${lbm.toFixed(1)}kg`, color:"var(--text)" });
                 }
 
                 return (
                   <div style={{ display:"flex", flexDirection:"column", gap:5, marginBottom:12 }}>
                     {insights.slice(0, 5).map((ins, i) => (
                       <div key={i} style={{ display:"flex", alignItems:"center", gap:8, background:"var(--panel)", borderRadius:10, padding:"7px 10px" }}>
-                        <span style={{ fontSize:16, flexShrink:0 }}>{ins.icon}</span>
+                        <Icon name={ins.icon} size={16} style={{display:'inline-block',verticalAlign:'middle',flexShrink:0}} />
                         <span style={{ fontSize:12, color:ins.color, lineHeight:1.4 }}>{ins.text}</span>
                       </div>
                     ))}
@@ -1419,7 +1419,7 @@ export default function CoachPage() {
                 <div style={{ flex:"0 0 auto", minWidth:100, background:"rgba(34,197,94,.07)", border:"1px solid rgba(34,197,94,.2)", borderRadius:12, padding:"8px 10px", cursor:"pointer" }} onClick={() => setPage("measurements")}>
                   <p style={{ margin:"0 0 2px", fontSize:10, color:"var(--green)", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.05em" }}>Medidas</p>
                   <p style={{ margin:0, fontSize:13, fontWeight:800 }}>{bodyWeight ? `${bodyWeight}kg` : "–"}</p>
-                  <p style={{ margin:"2px 0 0", fontSize:11, color:"var(--muted)" }}>Ver todo ?</p>
+                  <p style={{ margin:"2px 0 0", fontSize:11, color:"var(--muted)" }}>Ver todo →</p>
                 </div>
               </div>
 
@@ -1459,7 +1459,7 @@ export default function CoachPage() {
                 }
                 return (
                   <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:18, padding:"14px 16px", marginBottom:12 }}>
-                    <p style={{ margin:"0 0 12px", fontSize:14, fontWeight:800 }}>📅 Consistencia</p>
+                    <p style={{ margin:"0 0 12px", fontSize:14, fontWeight:800 }}><Icon name="Calendar" size={14} style={{display:'inline-block',verticalAlign:'middle',marginRight:4}} /> Consistencia</p>
                     <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
                       <div style={{ background:"var(--panel2)", borderRadius:12, padding:"12px", textAlign:"center" }}>
                         <div style={{ fontSize:11, color:"var(--muted)", marginBottom:4 }}>Racha semanal</div>
@@ -1497,7 +1497,7 @@ export default function CoachPage() {
                 return (
                   <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:18, padding:"14px 16px", marginBottom:12 }}>
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
-                      <p style={{ margin:0, fontSize:14, fontWeight:800 }}>💪 Series por grupo este mes</p>
+                      <p style={{ margin:0, fontSize:14, fontWeight:800 }}><Icon name="Dumbbell" size={14} style={{display:'inline-block',verticalAlign:'middle',marginRight:4}} /> Series por grupo este mes</p>
                       <span style={{ fontSize:12, color:"var(--muted)" }}>{total} series total</span>
                     </div>
                     <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
@@ -1533,7 +1533,7 @@ export default function CoachPage() {
                 const favDay = counts.indexOf(Math.max(...counts));
                 return (
                   <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:18, padding:"14px 16px", marginBottom:12 }}>
-                    <p style={{ margin:"0 0 12px", fontSize:14, fontWeight:800 }}>📅 Días más activos</p>
+                    <p style={{ margin:"0 0 12px", fontSize:14, fontWeight:800 }}><Icon name="Calendar" size={14} style={{display:'inline-block',verticalAlign:'middle',marginRight:4}} /> Días más activos</p>
                     <div style={{ display:"flex", gap:4, alignItems:"flex-end", height:52 }}>
                       {DAY_NAMES.map((day, i) => {
                         const h = Math.max(8, Math.round((counts[i] / maxCount) * 44));
@@ -1584,7 +1584,7 @@ export default function CoachPage() {
         <div>
           {smartAlerts.length === 0 && skippedGroups.length === 0 && !fatigueScore.overreaching && workouts.length >= 2 && (
             <div style={{ display:"flex", gap:10, alignItems:"flex-start", background:"rgba(168,85,247,.07)", border:"1px solid rgba(168,85,247,.2)", borderRadius:14, padding:"14px 16px", marginBottom:14 }}>
-              <span style={{ fontSize:20, flexShrink:0 }}>✨</span>
+              <Icon name="Sparkles" size={20} style={{flexShrink:0}} />
               <div>
                 <p style={{ margin:"0 0 3px", fontSize:14, fontWeight:700, color:"var(--text)" }}>Todo bien por ahora</p>
                 <p style={{ margin:0, fontSize:13, color:"var(--muted)", lineHeight:1.5 }}>No se detectan alertas activas. Seguí entrenando con consistencia.</p>
@@ -1615,9 +1615,7 @@ export default function CoachPage() {
               border:`1px solid ${alert.type === "imbalance" || alert.type === "bodyfat_high" ? "rgba(239,68,68,.25)" : alert.type === "bodyfat_low" ? "rgba(96,165,250,.3)" : alert.type === "stall" ? "rgba(96,165,250,.3)" : "rgba(245,158,11,.3)"}`,
               borderRadius:14, padding:"14px 16px", marginBottom:10
             }}>
-              <span style={{ fontSize:20, flexShrink:0 }}>
-                {alert.type === "stall" ? "📉" : alert.type === "volume" ? "📊" : alert.type === "rest" ? "😴" : alert.type === "neglect" ? "🦵" : alert.type === "frequency" ? "📅" : alert.type === "bodyfat_high" ? "⚠️" : alert.type === "bodyfat_low" ? "⚠️" : "⚖️"}
-              </span>
+              <Icon name={alert.type === "stall" ? "TrendingDown" : alert.type === "volume" ? "BarChart2" : alert.type === "rest" ? "Moon" : alert.type === "neglect" ? "Activity" : alert.type === "frequency" ? "Calendar" : alert.type === "bodyfat_high" ? "AlertTriangle" : alert.type === "bodyfat_low" ? "AlertTriangle" : "Scale"} size={20} style={{flexShrink:0}} />
               <div>
                 <p style={{ margin:"0 0 3px", fontSize:14, fontWeight:700, color:"var(--text)" }}>
                   {alert.type === "stall" ? "Estancamiento de peso" : alert.type === "volume" ? "Caída de volumen" : alert.type === "rest" ? "Sin días de descanso" : alert.type === "neglect" ? "Piernas abandonadas" : alert.type === "frequency" ? "Frecuencia baja" : alert.type === "bodyfat_high" ? "% Grasa elevado" : alert.type === "bodyfat_low" ? "% Grasa muy bajo" : "Desbalance muscular"}
@@ -1635,7 +1633,7 @@ export default function CoachPage() {
               border:"1px solid rgba(245,158,11,.3)",
               borderRadius:14, padding:"14px 16px", marginBottom:10
             }}>
-              <span style={{ fontSize:20, flexShrink:0 }}>📉</span>
+              <Icon name="TrendingDown" size={20} style={{flexShrink:0}} />
               <div>
                 <p style={{ margin:"0 0 3px", fontSize:14, fontWeight:700, color:"var(--text)" }}>
                   Estancamiento: {item.exercise}
@@ -1656,7 +1654,7 @@ export default function CoachPage() {
               border:"1px solid rgba(168,85,247,.25)",
               borderRadius:14, padding:"14px 16px", marginBottom:10
             }}>
-              <span style={{ fontSize:20, flexShrink:0 }}>💜</span>
+              <Icon name="Heart" size={20} style={{flexShrink:0}} />
               <div>
                 <p style={{ margin:0, fontSize:13, color:"var(--muted)", lineHeight:1.5 }}>{msg}</p>
               </div>
@@ -1666,7 +1664,7 @@ export default function CoachPage() {
           {/* RPE fatigue alerts */}
           {rpeFatigueAlerts.map((alert, i) => (
             <div key={i} style={{ display:"flex", gap:10, alignItems:"flex-start", background:"rgba(168,85,247,.07)", border:"1px solid rgba(168,85,247,.25)", borderRadius:14, padding:"14px 16px", marginBottom:10 }}>
-              <span style={{ fontSize:20, flexShrink:0 }}>⚡</span>
+              <Icon name="Zap" size={20} style={{flexShrink:0}} />
               <div>
                 <p style={{ margin:"0 0 3px", fontSize:14, fontWeight:700, color:"var(--text)" }}>Fatiga acumulada por RPE</p>
                 <p style={{ margin:0, fontSize:13, color:"var(--muted)", lineHeight:1.5 }}>{alert.msg}</p>
@@ -1677,7 +1675,7 @@ export default function CoachPage() {
           {/* Skipped muscle groups */}
           {skippedGroups.length > 0 && (
             <div style={{ display:"flex", gap:10, alignItems:"flex-start", background:"rgba(239,68,68,.07)", border:"1px solid rgba(239,68,68,.25)", borderRadius:14, padding:"14px 16px", marginBottom:10 }}>
-              <span style={{ fontSize:20, flexShrink:0 }}>⚠️</span>
+              <Icon name="AlertTriangle" size={20} style={{flexShrink:0}} />
               <div>
                 <p style={{ margin:"0 0 3px", fontSize:14, fontWeight:700, color:"var(--text)" }}>Grupos sin entrenar</p>
                 <p style={{ margin:0, fontSize:13, color:"var(--muted)", lineHeight:1.5 }}>
@@ -1716,7 +1714,7 @@ export default function CoachPage() {
                       <div style={{ display:"flex", justifyContent:"space-between", marginBottom:3, alignItems:"center" }}>
                         <span style={{ fontSize:12, fontWeight:600 }}>{group}</span>
                         <span style={{ fontSize:11, color: barColor, fontWeight:700 }}>
-                          {sets} series — {status === "overtrained" ? "⚠️ Exceso" : status === "optimal" ? "✅ óptimo" : status === "undertrained" ? "📉 Bajo" : "Sin entrenar"}
+                          {sets} series — {status === "overtrained" ? <><Icon name="AlertTriangle" size={11} style={{display:'inline-block',verticalAlign:'middle',marginRight:2}} /> Exceso</> : status === "optimal" ? <><Icon name="CheckCircle" size={11} style={{display:'inline-block',verticalAlign:'middle',marginRight:2}} /> óptimo</> : status === "undertrained" ? <><Icon name="TrendingDown" size={11} style={{display:'inline-block',verticalAlign:'middle',marginRight:2}} /> Bajo</> : "Sin entrenar"}
                         </span>
                       </div>
                       <div style={{ position:"relative", height:6, background:"var(--panel2)", borderRadius:3, overflow:"visible" }}>
@@ -1751,7 +1749,7 @@ export default function CoachPage() {
               </div>
               {activePlanAdjustment?.type === "deload" && !activePlanAdjustment?.declined && new Date(activePlanAdjustment?.expiresAt) >= new Date() ? (
                 <div style={{ background:"rgba(168,85,247,.1)", border:"1px solid rgba(168,85,247,.3)", borderRadius:10, padding:"8px 12px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-                  <span style={{ fontSize:12, color:"var(--green)", fontWeight:700 }}>✅ Deload activo — pesos reducidos al 60% hasta {activePlanAdjustment.expiresAt}</span>
+                  <span style={{ fontSize:12, color:"var(--green)", fontWeight:700 }}><Icon name="CheckCircle" size={12} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> Deload activo — pesos reducidos al 60% hasta {activePlanAdjustment.expiresAt}</span>
                   <button onClick={clearPlanAdjustment} style={{ background:"none", border:"none", color:"var(--muted)", fontSize:11, cursor:"pointer" }}>Cancelar</button>
                 </div>
               ) : activePlanAdjustment?.type === "deload" && activePlanAdjustment?.declined ? (
@@ -1763,11 +1761,11 @@ export default function CoachPage() {
                 <div style={{ display:"flex", gap:8 }}>
                   <button onClick={() => acceptPlanRecommendation("deload", 0.6)}
                     style={{ flex:1, background:"rgba(245,158,11,.15)", border:"1px solid rgba(245,158,11,.4)", borderRadius:10, padding:"9px", cursor:"pointer", fontSize:13, fontWeight:700, color:"#f59e0b" }}>
-                    ✅ Aceptar deload (60% peso, 12-20 reps)
+                    <Icon name="CheckCircle" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:4}} /> Aceptar deload (60% peso, 12-20 reps)
                   </button>
                   <button onClick={() => declinePlanRecommendation("deload")}
                     style={{ flex:1, background:"rgba(255,255,255,.04)", border:"1px solid var(--line)", borderRadius:10, padding:"9px", cursor:"pointer", fontSize:13, fontWeight:700, color:"var(--muted)" }}>
-                    ✕ Declinar
+                    <Icon name="X" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:4}} /> Declinar
                   </button>
                 </div>
               )}
@@ -2766,11 +2764,11 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
     if (!todayMacros.kcal) return null;
     const pct = todayMacros.kcal / targetCal;
     const diff = todayMacros.kcal - targetCal;
-    if (pct >= 0.90 && pct <= 1.10) return { color:"#22c55e", label:"En objetivo", icon:"✅", tip:"Perfecto, seguí así.", diff };
-    if (pct < 0.90 && pct >= 0.70)  return { color:"#f59e0b", label:"Por debajo", icon:"⚠️", tip:`Faltan ~${Math.round(targetCal - todayMacros.kcal)} kcal para el objetivo de hoy.`, diff };
-    if (pct > 1.10 && pct <= 1.25)  return { color:"#f59e0b", label:"Levemente alto", icon:"⚠️", tip:`Superaste el objetivo por ${Math.round(todayMacros.kcal - targetCal)} kcal.`, diff };
-    if (pct < 0.70) return { color:"#ef4444", label:"Muy bajo", icon:"❌", tip:`Consumiste solo el ${Math.round(pct*100)}% del objetivo. Riesgo de déficit excesivo.`, diff };
-    return { color:"#ef4444", label:"Excedido", icon:"❌", tip:`Superaste el objetivo por ${Math.round(todayMacros.kcal - targetCal)} kcal.`, diff };
+    if (pct >= 0.90 && pct <= 1.10) return { color:"#22c55e", label:"En objetivo", icon:"CheckCircle", tip:"Perfecto, seguí así.", diff };
+    if (pct < 0.90 && pct >= 0.70)  return { color:"#f59e0b", label:"Por debajo", icon:"AlertTriangle", tip:`Faltan ~${Math.round(targetCal - todayMacros.kcal)} kcal para el objetivo de hoy.`, diff };
+    if (pct > 1.10 && pct <= 1.25)  return { color:"#f59e0b", label:"Levemente alto", icon:"AlertTriangle", tip:`Superaste el objetivo por ${Math.round(todayMacros.kcal - targetCal)} kcal.`, diff };
+    if (pct < 0.70) return { color:"#ef4444", label:"Muy bajo", icon:"XCircle", tip:`Consumiste solo el ${Math.round(pct*100)}% del objetivo. Riesgo de déficit excesivo.`, diff };
+    return { color:"#ef4444", label:"Excedido", icon:"XCircle", tip:`Superaste el objetivo por ${Math.round(todayMacros.kcal - targetCal)} kcal.`, diff };
   })();
 
   // Wizard: generate plan on last step submit
@@ -2853,7 +2851,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
       {/* -- Semáforo calórico ---------------------------------- */}
       {caloricSemaphore && (
         <div style={{ display:"flex", alignItems:"center", gap:12, background:"var(--panel)", borderRadius:14, padding:"12px 14px", marginBottom:14, border:`1px solid ${caloricSemaphore.color}44` }}>
-          <span style={{ fontSize:28, lineHeight:1 }}>{caloricSemaphore.icon}</span>
+          <Icon name={caloricSemaphore.icon} size={28} style={{display:'inline-block',verticalAlign:'middle'}} />
           <div style={{ flex:1, minWidth:0 }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline" }}>
               <p style={{ margin:0, fontSize:14, fontWeight:800, color:caloricSemaphore.color }}>{caloricSemaphore.label}</p>
@@ -3054,7 +3052,7 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
               <span style={{ fontSize:12, fontWeight:800, color:"#f59e0b" }}>{preSleepProtein}g proteína lenta</span>
             </div>
             <p style={{ margin:"6px 0 0", fontSize:10, color:"var(--muted)", lineHeight:1.4 }}>
-              💡 La ventana post-entreno dura ~2h, no minutos. La distribución a lo largo del día (cada 3-4h) es igual o más importante que el timing exacto.
+              <Icon name="Lightbulb" size={11} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> La ventana post-entreno dura ~2h, no minutos. La distribución a lo largo del día (cada 3-4h) es igual o más importante que el timing exacto.
             </p>
           </div>
         ) : (
@@ -3191,9 +3189,9 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
                 );
               })}
               <div style={{ background:"rgba(168,85,247,.06)", borderRadius:10, padding:"8px 10px", marginTop:4, display:"flex", gap:8, alignItems:"flex-start" }}>
-                <span style={{ fontSize:12, flexShrink:0 }}>💡</span>
+                <Icon name="Lightbulb" size={12} style={{flexShrink:0}} />
                 <p style={{ margin:0, fontSize:11, color:"var(--muted)", lineHeight:1.5 }}>
-                  Umbral de leucina: necesitás ={leucineThreshold}g leucina por comida (~{mealsOk ? "✅ alcanzado" : `⚠️ ${perMeal}g es bajo — apuntá a 30g+`}) para activar la síntesis proteica muscular.
+                  Umbral de leucina: necesitás ={leucineThreshold}g leucina por comida (~{mealsOk ? <><Icon name="CheckCircle" size={11} style={{display:'inline-block',verticalAlign:'middle',marginRight:2}} /> alcanzado</> : <><Icon name="AlertTriangle" size={11} style={{display:'inline-block',verticalAlign:'middle',marginRight:2}} /> {perMeal}g es bajo — apuntá a 30g+</>}) para activar la síntesis proteica muscular.
                 </p>
               </div>
             </div>
@@ -3204,35 +3202,35 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
       {/* -- Training guidelines by goal ---------------------------------------- */}
       {(() => {
         const gMap = {
-          fuerza:       { icon:"🏋️", color:"#f59e0b", label:"Fuerza",
+          fuerza:       { icon:"Dumbbell", color:"#f59e0b", label:"Fuerza",
             reps:"1-6 reps al 80-90% 1RM",
             rest:"2-3 min entre series (ACSM 2026 =2 min para cargas pesadas)",
             exercises:"Dominan movimientos fundamentales: sentadilla, peso muerto, press banca, press militar, remo. Ratio 80% compound / 20% isolation.",
             rir:"Trabajó cerca del fallo pero no a fallo — 1-3 RIR (PMC9935748: sin ventaja de entrenar a fallo vs 1-3 RIR).",
             overload:"Progresión lineal semanal (+2.5kg) en principiantes. En intermedios, ondulación de cargas (wave loading).",
             freq:"2x/semana por grupo muscular mínimo (Schoenfeld 2016 meta-análisis)." },
-          hipertrofia:  { icon:"💪", color:"#a855f7", label:"Hipertrofia / Masa",
+          hipertrofia:  { icon:"Dumbbell", color:"#a855f7", label:"Hipertrofia / Masa",
             reps:"6-20 reps (rango amplio — lo clave es el volumen total de series cerca del fallo)",
             rest:"60-90 s entre series es suficiente para hipertrofia (PMC11349676 2024 meta-análisis bayesiano). Para series pesadas, 2 min.",
             exercises:"70-80% compuestos + 20-30% aislamiento para completar volumen. Compuestos solos (~6-8 series/másculo) no alcanzan el MAV.",
             rir:"Terminá la serie con 1-3 RIR. Entrenar a fallo tiene efecto trivial adicional (ES=0.19, PMC9935748) y aumenta fatiga innecesaria.",
             overload:"Doble progresión: primero subí reps hasta el tope del rango, luego subí peso. Ej: 3x8-12 ? cuando llegás a 3x12 con buena técnica, sumá 2.5kg (PMC9528903).",
             freq:"2x/semana por grupo muscular. El volumen total semanal importa más que la frecuencia (10-20 series/másculo/semana, ACSM 2026)." },
-          definicion:   { icon:"🔥", color:"#38bdf8", label:"Definición",
+          definicion:   { icon:"Flame", color:"#38bdf8", label:"Definición",
             reps:"8-15 reps. No reduzcas el peso — el entrenamiento con carga preserva el másculo en déficit calórico.",
             rest:"45-75 s para mayor gasto calórico y estrés metabólico.",
             exercises:"Misma base de compuestos + aislamiento. No cambiás el programa de masa — solo ajustá nutrición.",
             rir:"1-3 RIR. Alta proteína (3.1g/kg LBM, Helms 2014) es lo más crítico para preservar másculo en déficit.",
             overload:"Mantenés las cargas o intentá progresar — la pérdida de fuerza en déficit indica pérdida muscular.",
             freq:"Mantenés o aumentá frecuencia para preservar másculo. Cardio adicional va separado del pesas o post-entreno." },
-          rendimiento:  { icon:"🏃", color:"#34d399", label:"Fuerza",
+          rendimiento:  { icon:"Activity", color:"#34d399", label:"Fuerza",
             reps:"2-6 reps al 80-95% 1RM. Series pesadas con técnica impecable.",
             rest:"3-5 min entre series — la recuperación completa del fosfógeno es clave para fuerza máxima.",
             exercises:"Priorizá los Big 4: sentadilla, press banca, peso muerto, press militar. Aislamiento secundario.",
             rir:"0-2 RIR en los trabajos principales. Dejá más RIR en ejercicios auxiliares para no acumular fatiga.",
             overload:"Progresión lineal o por bloques (ondulada). Subí peso apenas completás todas las series en el tope del rango.",
             freq:"2-3x/semana por patrón de movimiento. Necesitás frecuencia para práctica del gesto técnico." },
-          mantenimiento: { icon:"⚖️", color:"#94a3b8", label:"Salud general",
+          mantenimiento: { icon:"Scale", color:"#94a3b8", label:"Salud general",
             reps:"8-15 reps (rango versátil, bajo estrés articular, buena respuesta hipertrófica).",
             rest:"60-90 s.",
             exercises:"Balance entre compuestos e isolation. Priorizá los ejercicios donde tenés más margen de progresión.",
@@ -3245,19 +3243,19 @@ function MacroCalculator({ profile, workouts, userGoal, macroDay, setMacroDay, a
         return (
           <div style={{ background:"var(--panel)", borderRadius:16, padding:"16px", marginBottom:12 }}>
             <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12 }}>
-              <span style={{ fontSize:22 }}>{g.icon}</span>
+              <Icon name={g.icon} size={22} style={{display:'inline-block',verticalAlign:'middle'}} />
               <div>
                 <p style={{ margin:0, fontSize:11, color:g.color, fontWeight:800, textTransform:"uppercase", letterSpacing:"0.06em" }}>Guía de entrenamiento</p>
                 <p style={{ margin:0, fontSize:15, fontWeight:900, color:"var(--text)" }}>{g.label}</p>
               </div>
             </div>
             {[
-              { icon:"🔢", label:"Rango de repeticiones", val:g.reps },
-              { icon:"⏱️", label:"Descanso entre series", val:g.rest },
-              { icon:"🏋️", label:"Selección de ejercicios", val:g.exercises },
-              { icon:"🎯", label:"Proximidad al fallo (RIR)", val:g.rir },
-              { icon:"📈", label:"Sobrecarga progresiva", val:g.overload },
-              { icon:"📅", label:"Frecuencia semanal", val:g.freq },
+              { icon:"Hash", label:"Rango de repeticiones", val:g.reps },
+              { icon:"Timer", label:"Descanso entre series", val:g.rest },
+              { icon:"Dumbbell", label:"Selección de ejercicios", val:g.exercises },
+              { icon:"Target", label:"Proximidad al fallo (RIR)", val:g.rir },
+              { icon:"TrendingUp", label:"Sobrecarga progresiva", val:g.overload },
+              { icon:"Calendar", label:"Frecuencia semanal", val:g.freq },
             ].map(({ icon, label, val }) => (
               <div key={label} style={{ display:"flex", gap:10, marginBottom:8, alignItems:"flex-start" }}>
                 <span style={{ fontSize:14, flexShrink:0, marginTop:1 }}>{icon}</span>

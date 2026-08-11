@@ -45,7 +45,7 @@ function InstallBanner({ onInstall, onDismiss, isIOS }) {
   if (isIOS) {
     return (
       <div style={{ position:"fixed", bottom:80, left:12, right:12, zIndex:9997, background:"var(--panel)", border:"1px solid var(--border)", borderRadius:16, padding:"14px 16px", boxShadow:"0 4px 24px rgba(0,0,0,.5)" }}>
-        <button onClick={onDismiss} style={{ position:"absolute", top:10, right:12, background:"none", border:"none", color:"var(--muted)", fontSize:18, cursor:"pointer" }}>?</button>
+        <button onClick={onDismiss} style={{ position:"absolute", top:10, right:12, background:"none", border:"none", color:"var(--muted)", fontSize:18, cursor:"pointer" }}>✕</button>
         <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:10 }}>
           <img src="/icon-192.png" width={40} height={40} style={{ borderRadius:10 }} alt="Loop" />
           <div>
@@ -54,7 +54,7 @@ function InstallBanner({ onInstall, onDismiss, isIOS }) {
           </div>
         </div>
         <div style={{ fontSize:13, color:"var(--muted)", lineHeight:1.6 }}>
-          Para activar notificaciones, instalá la app: tocá <b style={{ color:"var(--text)" }}>?? Compartir</b> y después <b style={{ color:"var(--text)" }}>"Agregar al inicio"</b>
+          Para activar notificaciones, instalá la app: tocá <b style={{ color:"var(--text)" }}>📤 Compartir</b> y después <b style={{ color:"var(--text)" }}>"Agregar al inicio"</b>
         </div>
       </div>
     );
@@ -437,7 +437,7 @@ function AppContent() {
     (async () => {
       const { data, error } = await supabase.rpc("request_trainer_from_invite", { p_invite_code: code });
       if (!error && data?.ok) {
-        window.__showToast?.(`Solicitud enviada a ${data.trainer_name || "tu entrenador"} ???. Te avisamos cuando la acepte.`, "success");
+        window.__showToast?.(`Solicitud enviada a ${data.trainer_name || "tu entrenador"} 🎉. Te avisamos cuando la acepte.`, "success");
       } else if (data?.error !== "invalid_code") {
         // Fallback: just set referred_by for commission tracking
         const { data: inv } = await supabase.from("invite_codes").select("trainer_id").eq("code", code).maybeSingle();
@@ -460,7 +460,7 @@ function AppContent() {
         // Reload profile so the new role takes effect
         const { data: p } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
         if (p) useAuthStore.getState().setProfile(p);
-        window.__showToast?.("¡Ya sos entrenador en Loop! ???", "success");
+        window.__showToast?.("¡Ya sos entrenador en Loop! 🎉", "success");
       } else if (data?.error === "invalid_or_expired") {
         window.__showToast?.("El link de invitación ya fue usado o expiró.", "error");
       }
@@ -582,7 +582,7 @@ function AppContent() {
   } else if (!hasAccess && !trialExpired) {
     inner = (
       <div style={{ minHeight:"100vh", background:"var(--bg)", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:24, textAlign:"center" }}>
-        <div style={{ fontSize:40, marginBottom:16 }}>??</div>
+        <div style={{ fontSize:40, marginBottom:16 }}>🔒</div>
         <h2 style={{ margin:"0 0 8px" }}>Suscripción vencida</h2>
         <p style={{ color:"var(--muted)", fontSize:14, marginBottom:24 }}>Renovó tu plan para seguir entrenando con la app.</p>
         <button className="primary" style={{ marginBottom:12 }} disabled={subscribing} onClick={startSubscription}>
@@ -595,7 +595,7 @@ function AppContent() {
     T.paywallShown("trial_expired", { days_since_signup: Math.floor(accountAgeMs / 86400000) });
     inner = (
       <div style={{ minHeight:"100vh", background:"var(--bg)", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:24, textAlign:"center" }}>
-        <div style={{ fontSize:48, marginBottom:16 }}>?</div>
+        <div style={{ fontSize:48, marginBottom:16 }}>⏰</div>
         <h2 style={{ margin:"0 0 8px" }}>Hola {profile?.name || profile?.email?.split("@")[0] || ""},</h2>
         <p style={{ color:"var(--muted)", fontSize:15, marginBottom:8 }}>Tu período de prueba terminó.</p>
         <p style={{ color:"var(--muted)", fontSize:14, marginBottom:24, lineHeight:1.6 }}>
@@ -628,7 +628,7 @@ function AppContent() {
               display: "flex", alignItems: "center", gap: 10, fontSize: 13,
             }}>
               <span style={{ flex: 1, fontWeight: 700, color: "#fff" }}>
-                {urgent ? "??" : "?"} {daysLeft === 1 ? "¡Último día de prueba!" : `Te quedan ${daysLeft} días de prueba gratuita`}
+                {urgent ? "⚠️" : "ℹ️"} {daysLeft === 1 ? "¡Último día de prueba!" : `Te quedan ${daysLeft} días de prueba gratuita`}
               </span>
               <button
                 onClick={() => { setSubscribing(true); startSubscription(); }}
@@ -640,14 +640,14 @@ function AppContent() {
               <button
                 onClick={() => { localStorage.setItem("trial-banner-dismissed-day", new Date().toDateString()); setTrialBannerDismissed(true); }}
                 style={{ background: "none", border: "none", color: "rgba(255,255,255,.7)", fontSize: 18, cursor: "pointer", padding: "0 4px", flexShrink: 0 }}
-              >?</button>
+              >✕</button>
             </div>
           );
         })()}
         {draftRecovered && (
           <div style={{ position: "fixed", top: "max(env(safe-area-inset-top,0px),0px)", left: 0, right: 0, zIndex: 9999, background: "rgba(168,85,247,.15)", borderBottom: "1px solid rgba(168,85,247,.4)", padding: "10px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 13 }}>
             <span style={{ color: "var(--green)", fontWeight: 700 }}>Entrenamiento recuperado</span>
-            <button style={{ background: "none", border: "none", color: "var(--muted)", fontSize: 16, cursor: "pointer", padding: "0 4px" }} onClick={() => setDraftRecovered(false)}>?</button>
+            <button style={{ background: "none", border: "none", color: "var(--muted)", fontSize: 16, cursor: "pointer", padding: "0 4px" }} onClick={() => setDraftRecovered(false)}>✕</button>
           </div>
         )}
         <main className="app-main">
@@ -676,13 +676,13 @@ function AppContent() {
           display: "flex", alignItems: "center", gap: 12, maxWidth: 320, width: "calc(100% - 32px)",
           animation: "slideUp .3s ease",
         }}>
-          <span style={{ fontSize: 28, flexShrink: 0 }}>??</span>
+          <span style={{ fontSize: 28, flexShrink: 0 }}>🏆</span>
           <div>
             <div style={{ fontSize: 13, fontWeight: 800, color: "#f59e0b" }}>¡Logro desbloqueado!</div>
             <div style={{ fontSize: 12, color: "var(--text)", marginTop: 2 }}>{achToast.title || achToast.id}</div>
           </div>
           <button onClick={() => { setAchToast(null); clearNewAchievements(); }}
-            style={{ background: "none", border: "none", color: "var(--muted)", fontSize: 16, cursor: "pointer", padding: "0 4px", flexShrink: 0, marginLeft: "auto" }}>?</button>
+            style={{ background: "none", border: "none", color: "var(--muted)", fontSize: 16, cursor: "pointer", padding: "0 4px", flexShrink: 0, marginLeft: "auto" }}>✕</button>
         </div>
       )}
       {inner}
@@ -700,7 +700,7 @@ function AppContent() {
         <div style={{ position:"fixed", inset:0, zIndex:10001, background:"rgba(0,0,0,.8)", display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
           <div style={{ background:"var(--panel)", borderRadius:20, padding:"28px 24px", width:"100%", maxWidth:360 }}>
             <div style={{ textAlign:"center", marginBottom:20 }}>
-              <div style={{ fontSize:40, marginBottom:8 }}>??</div>
+              <div style={{ fontSize:40, marginBottom:8 }}>🔒</div>
               <h2 style={{ margin:"0 0 6px" }}>Cambió tu contraseña</h2>
               <p style={{ color:"var(--muted)", fontSize:13, margin:0 }}>
                 {showPasswordModal ? "Ingresá tu nueva contraseña." : "Es tu primer acceso. Elegí una contraseña segura para tu cuenta."}
