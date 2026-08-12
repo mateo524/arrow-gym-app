@@ -828,27 +828,33 @@ export function getPeriodizationPhase(workouts) {
 
 export function getWeeklyFatigueScore(workouts) {
   if (!workouts || !workouts.length) return { thisWeek: 0, lastWeek: 0, pctChange: 0, overreaching: false, acwr: null };
-  const now = Date.now();
-  const msWeek = 7 * 86400000;
   const sumLoad = ws => ws.reduce((sum, w) => sum + (w.sets || []).filter(hasData).reduce((s, set) => s + (Number(set.weight) || 0) * (Number(set.reps) || 0), 0), 0);
-
-  const thisWeek = Math.round(sumLoad(workouts.filter(w => { try { return parseDate(w.date).getTime() >= now - msWeek; } catch { return false; } })));
-  const lastWeek = Math.round(sumLoad(workouts.filter(w => { try { const t = parseDate(w.date).getTime(); return t >= now - 2 * msWeek && t < now - msWeek; } catch { return false; } })));
+  const now = new Date();
+  const dayOfWeek = now.getDay();
+  const daysFromMon = (dayOfWeek + 6) % 7;
+  const thisMonday = new Date(now);
+  thisMonday.setDate(now.getDate() - daysFromMon);
+  thisMonday.setHours(0, 0, 0, 0);
+  const lastMonday = new Date(thisMonday);
+  lastMonday.setDate(thisMonday.getDate() - 7);
+  const twoMondaysAgo = new Date(thisMonday);
+  twoMondaysAgo.setDate(thisMonday.getDate() - 14);
+  const threeMondaysAgo = new Date(thisMonday);
+  threeMondaysAgo.setDate(thisMonday.getDate() - 21);
+  const inWeek = (w, start, end) => {
+    try { const d = parseDate(w.date); return d >= start && d < end; } catch { return false; }
+  };
+  const nextMonday = new Date(thisMonday);
+  nextMonday.setDate(thisMonday.getDate() + 7);
+  const thisWeek = Math.round(sumLoad(workouts.filter(w => inWeek(w, thisMonday, nextMonday))));
+  const lastWeek = Math.round(sumLoad(workouts.filter(w => inWeek(w, lastMonday, thisMonday))));
+  const week2    = Math.round(sumLoad(workouts.filter(w => inWeek(w, twoMondaysAgo, lastMonday))));
+  const week3    = Math.round(sumLoad(workouts.filter(w => inWeek(w, threeMondaysAgo, twoMondaysAgo))));
   const pctChange = lastWeek > 0 ? Math.round(((thisWeek - lastWeek) / lastWeek) * 100) : 0;
-
-  // Acute:Chronic Workload Ratio (ACWR) — standard sports science metric
-  // Acute = last 7 days; Chronic = rolling average of last 4 weeks
-  // Optimal zone: 0.8–1.3 | >1.5 = high injury risk
-  const week2 = Math.round(sumLoad(workouts.filter(w => { const t = parseDate(w.date).getTime(); return t >= now - 3 * msWeek && t < now - 2 * msWeek; })));
-  const week3 = Math.round(sumLoad(workouts.filter(w => { const t = parseDate(w.date).getTime(); return t >= now - 4 * msWeek && t < now - 3 * msWeek; })));
-  // Uncoupled ACWR: chronic = average of weeks 2-4 only (excludes acute week to avoid coupling bias)
   const chronicLoad = (lastWeek + week2 + week3) / 3;
   const acwr = chronicLoad > 0 ? Math.round((thisWeek / chronicLoad) * 100) / 100 : null;
-
   return {
-    thisWeek, lastWeek, pctChange,
-    acwr,
-    // overreaching: either week-over-week > 15% OR ACWR > 1.3
+    thisWeek, lastWeek, pctChange, acwr,
     overreaching: (pctChange > 15 && thisWeek > 0) || (acwr !== null && acwr > 1.3),
   };
 }

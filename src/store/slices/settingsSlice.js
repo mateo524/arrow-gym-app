@@ -17,6 +17,7 @@ export const createSettingsSlice = (set, get) => ({
   exerciseRestTimes: {},
   weeklyGoal: 4,
   mutedHintTypes: [],
+  customKcal: "",
 
   setPage: (page) => {
     if (page === "coach") {
@@ -31,6 +32,7 @@ export const createSettingsSlice = (set, get) => ({
   clearCoachBadge: () => set({ coachBadge: false }),
   toggleSound: () => set((s) => ({ soundEnabled: !s.soundEnabled })),
   setUserGoal: (goal) => set({ userGoal: goal }),
+  setCustomKcal: (val) => set({ customKcal: val }),
   setActivityLevel: (level) => set({ activityLevel: level }),
   setWeeklyGoal: (n) => set({ weeklyGoal: Math.max(1, Math.min(7, Number(n))) }),
   toggleMutedHintType: (type) => set((s) => {

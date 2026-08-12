@@ -76,7 +76,8 @@ export default function NutritionPage() {
   const [dbQuery, setDbQuery] = useState("");
   const [dbResults, setDbResults] = useState([]);
   const [baseFood, setBaseFood] = useState(null);
-  const [customKcal, setCustomKcal] = useState("");
+  const customKcal    = useStore(s => s.customKcal) ?? "";
+  const setCustomKcal = useStore(s => s.setCustomKcal);
   const [showKcalEdit, setShowKcalEdit] = useState(false);
 
   // Nutrition plan wizard state
@@ -164,6 +165,16 @@ export default function NutritionPage() {
   }, [bodyWeight, userGoal, tdee]);
 
   const effectiveKcal = customKcal ? Number(customKcal) : targets.kcal;
+
+  // Recalculate macros if using custom kcal
+  const effectiveTargets = useMemo(() => {
+    if (!customKcal || !Number(customKcal)) return targets;
+    const kcal = Number(customKcal);
+    const protein = targets.protein;
+    const fat = targets.fat;
+    const carbs = Math.max(0, Math.round((kcal - protein * 4 - fat * 9) / 4));
+    return { ...targets, kcal, carbs };
+  }, [customKcal, targets]);
 
   const todayMeals = useMemo(() => mealLog.filter(m => m.date === today), [mealLog, today]);
   const todayTotals = useMemo(() => todayMeals.reduce((s,m) => ({
@@ -264,9 +275,9 @@ export default function NutritionPage() {
         {/* Macros — hidden in simple mode */}
         {f.coach_insights && <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:14 }}>
           {[
-            { label:"Proteína", val:todayTotals.protein, target:targets.protein, unit:"g", color:"#60a5fa" },
-            { label:"Carbs",    val:todayTotals.carbs,   target:targets.carbs,   unit:"g", color:"#f59e0b" },
-            { label:"Grasa",    val:todayTotals.fat,     target:targets.fat,     unit:"g", color:"#f87171" },
+            { label:"Proteína", val:todayTotals.protein, target:effectiveTargets.protein, unit:"g", color:"#60a5fa" },
+            { label:"Carbs",    val:todayTotals.carbs,   target:effectiveTargets.carbs,   unit:"g", color:"#f59e0b" },
+            { label:"Grasa",    val:todayTotals.fat,     target:effectiveTargets.fat,     unit:"g", color:"#f87171" },
           ].map(m => (
             <div key={m.label} style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:14, padding:"12px 10px" }}>
               <div style={{ fontSize:10, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em" }}>{m.label}</div>
@@ -367,9 +378,9 @@ export default function NutritionPage() {
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:10 }}>
             {[
               { label:"Calorías",      val:`${effectiveKcal}`, unit:"kcal", color:"var(--green)" },
-              { label:"Proteína",      val:`${targets.protein}`, unit:`g · ${targets.proteinPerKg}g/kg`, color:"#60a5fa" },
-              { label:"Carbohidratos", val:`${targets.carbs}`, unit:"g", color:"#f59e0b" },
-              { label:"Grasas",        val:`${targets.fat}`, unit:"g", color:"#f87171" },
+              { label:"Proteína",      val:`${effectiveTargets.protein}`, unit:`g · ${effectiveTargets.proteinPerKg}g/kg`, color:"#60a5fa" },
+              { label:"Carbohidratos", val:`${effectiveTargets.carbs}`, unit:"g", color:"#f59e0b" },
+              { label:"Grasas",        val:`${effectiveTargets.fat}`, unit:"g", color:"#f87171" },
             ].map(row => (
               <div key={row.label} style={{ background:"var(--panel2)", borderRadius:12, padding:"10px" }}>
                 <div style={{ fontSize:10, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:4 }}>{row.label}</div>
@@ -380,7 +391,7 @@ export default function NutritionPage() {
           </div>
           {bodyWeight && (
             <div style={{ fontSize:11, color:"var(--muted)", background:"rgba(255,255,255,.03)", borderRadius:8, padding:"6px 10px" }}>
-              Basado en <b style={{ color:"var(--text)" }}>{bodyWeight}kg</b> · proteína: {targets.proteinPerKg}g/kg (rango gym: 1.6–2.2g/kg)
+              Basado en <b style={{ color:"var(--text)" }}>{bodyWeight}kg</b> · proteína: {effectiveTargets.proteinPerKg}g/kg (rango gym: 1.6–2.2g/kg)
             </div>
           )}
           <div style={{ marginTop:10, borderTop:"1px solid var(--line)", paddingTop:10 }}>
@@ -403,77 +414,6 @@ export default function NutritionPage() {
                   style={{ background:"none", border:"none", color:"var(--muted)", fontSize:18, cursor:"pointer" }}>×</button>}
               </div>
             )}
-          </div>
-        </div>
-
-        {/* Distribución por comida */}
-        <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:16, padding:"16px", marginBottom:14 }}>
-          <div style={{ fontSize:13, fontWeight:700, marginBottom:10 }}>Distribución diaria sugerida</div>
-          {[
-            { name:"Desayuno", pct:0.25, icon:"🌅", hint:"Carbos + proteína para arrancar" },
-            { name:"Almuerzo", pct:0.35, icon:"☀️", hint:"La comida más completa del día" },
-            { name:"Merienda", pct:0.15, icon:"🍎", hint:"Snack pre/post entreno" },
-            { name:"Cena",     pct:0.25, icon:"🌙", hint:"Proteína + vegetales, menos carbos" },
-          ].map(({ name, pct, icon, hint }) => {
-            const kcal  = Math.round(effectiveKcal * pct);
-            const prot  = Math.round(targets.protein * pct);
-            return (
-              <div key={name} style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 0", borderBottom:"1px solid var(--line)" }}>
-                <span style={{ fontSize:22, width:28, textAlign:"center", flexShrink:0 }}>{icon}</span>
-                <div style={{ flex:1 }}>
-                  <div style={{ fontSize:13, fontWeight:700 }}>{name}</div>
-                  <div style={{ fontSize:11, color:"var(--muted)" }}>{hint}</div>
-                </div>
-                <div style={{ textAlign:"right" }}>
-                  <div style={{ fontSize:14, fontWeight:800, color:"var(--green)" }}>{kcal} kcal</div>
-                  <div style={{ fontSize:10, color:"#60a5fa" }}>{prot}g prot.</div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Plan semanal — 7 días con progresión */}
-        <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:16, padding:"16px" }}>
-          <div style={{ fontSize:13, fontWeight:700, marginBottom:4 }}>Plan semanal</div>
-          <div style={{ fontSize:11, color:"var(--muted)", marginBottom:12 }}>Variación de calorías según días de entreno</div>
-          {(() => {
-            const days = ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
-            // Patrón: días de entreno más carbos, descanso menos
-            const patterns = {
-              volumen:       [1.05, 1.0,  1.05, 1.0,  1.05, 1.0, 0.90],
-              definicion:    [1.0,  0.90, 1.0,  0.90, 1.0, 0.85, 0.85],
-              mantenimiento: [1.0,  1.0,  1.0,  1.0,  1.0,  0.95, 0.95],
-              rendimiento:   [1.10, 1.0,  1.10, 1.0,  1.10, 1.0,  0.90],
-            };
-            const mults = patterns[userGoal] ?? patterns.mantenimiento;
-            const trainDays = { volumen:[0,2,4], definicion:[0,2,4], mantenimiento:[0,2,4], rendimiento:[0,2,4,6] };
-            const isTrain = trainDays[userGoal] ?? [0,2,4];
-            return days.map((day, i) => {
-              const kcal  = Math.round(effectiveKcal * mults[i]);
-              const prot  = Math.round(targets.protein * (isTrain.includes(i) ? 1.0 : 0.95));
-              const carbs = Math.round(targets.carbs * mults[i]);
-              const isTrainDay = isTrain.includes(i);
-              return (
-                <div key={day} style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 0", borderBottom: i < 6 ? "1px solid var(--line)" : "none" }}>
-                  <div style={{ width:28, fontSize:12, fontWeight:700, color: isTrainDay ? "var(--green)" : "var(--muted)" }}>{day}</div>
-                  <div style={{ flex:1 }}>
-                    <div style={{ height:5, background:"rgba(255,255,255,.07)", borderRadius:3, overflow:"hidden" }}>
-                      <div style={{ width:`${Math.round(mults[i]*100)}%`, height:"100%", background: isTrainDay ? "var(--green)" : "rgba(255,255,255,.2)", borderRadius:3 }} />
-                    </div>
-                  </div>
-                  <div style={{ textAlign:"right", minWidth:90 }}>
-                    <span style={{ fontSize:13, fontWeight:800, color: isTrainDay ? "var(--green)" : "var(--text)" }}>{kcal} kcal</span>
-                    <span style={{ fontSize:10, color:"var(--muted)", marginLeft:6 }}>{prot}g P</span>
-                  </div>
-                  {isTrainDay && <span style={{ fontSize:10, fontWeight:700, color:"var(--green)", background:"rgba(52,211,153,.1)", borderRadius:6, padding:"2px 6px", flexShrink:0 }}>Entreno</span>}
-                  {!isTrainDay && <span style={{ fontSize:10, color:"var(--muted)", width:52, textAlign:"center", flexShrink:0 }}>Descanso</span>}
-                </div>
-              );
-            });
-          })()}
-          <div style={{ fontSize:11, color:"var(--muted)", marginTop:10, padding:"8px 10px", background:"rgba(255,255,255,.03)", borderRadius:8 }}>
-            En días de entreno: más carbohidratos para energía. En descanso: menos calorías totales, proteína similar.
           </div>
         </div>
 
@@ -518,7 +458,7 @@ export default function NutritionPage() {
               };
               const plan = generateNutritionPlan(
                 config,
-                effectiveKcal, effectiveKcal, targets.protein, targets.carbs, targets.fat
+                effectiveKcal, effectiveKcal, effectiveTargets.protein, effectiveTargets.carbs, effectiveTargets.fat
               );
               plan.planStartDate = todayLocal();
               saveNutritionPlan(plan);
@@ -722,12 +662,84 @@ export default function NutritionPage() {
             </div>
           )}
         </div>
+      
+
+        {/* Distribución por comida */}
+        <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:16, padding:"16px", marginBottom:14 }}>
+          <div style={{ fontSize:13, fontWeight:700, marginBottom:10 }}>Distribución diaria sugerida</div>
+          {[
+            { name:"Desayuno", pct:0.25, icon:"🌅", hint:"Carbos + proteína para arrancar" },
+            { name:"Almuerzo", pct:0.35, icon:"☀️", hint:"La comida más completa del día" },
+            { name:"Merienda", pct:0.15, icon:"🍎", hint:"Snack pre/post entreno" },
+            { name:"Cena",     pct:0.25, icon:"🌙", hint:"Proteína + vegetales, menos carbos" },
+          ].map(({ name, pct, icon, hint }) => {
+            const kcal  = Math.round(effectiveKcal * pct);
+            const prot  = Math.round(effectiveTargets.protein * pct);
+            return (
+              <div key={name} style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 0", borderBottom:"1px solid var(--line)" }}>
+                <span style={{ fontSize:22, width:28, textAlign:"center", flexShrink:0 }}>{icon}</span>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:13, fontWeight:700 }}>{name}</div>
+                  <div style={{ fontSize:11, color:"var(--muted)" }}>{hint}</div>
+                </div>
+                <div style={{ textAlign:"right" }}>
+                  <div style={{ fontSize:14, fontWeight:800, color:"var(--green)" }}>{kcal} kcal</div>
+                  <div style={{ fontSize:10, color:"#60a5fa" }}>{prot}g prot.</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Plan semanal — 7 días con progresión */}
+        <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:16, padding:"16px" }}>
+          <div style={{ fontSize:13, fontWeight:700, marginBottom:4 }}>Plan semanal</div>
+          <div style={{ fontSize:11, color:"var(--muted)", marginBottom:12 }}>Variación de calorías según días de entreno</div>
+          {(() => {
+            const days = ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
+            // Patrón: días de entreno más carbos, descanso menos
+            const patterns = {
+              volumen:       [1.05, 1.0,  1.05, 1.0,  1.05, 1.0, 0.90],
+              definicion:    [1.0,  0.90, 1.0,  0.90, 1.0, 0.85, 0.85],
+              mantenimiento: [1.0,  1.0,  1.0,  1.0,  1.0,  0.95, 0.95],
+              rendimiento:   [1.10, 1.0,  1.10, 1.0,  1.10, 1.0,  0.90],
+            };
+            const mults = patterns[userGoal] ?? patterns.mantenimiento;
+            const trainDays = { volumen:[0,2,4], definicion:[0,2,4], mantenimiento:[0,2,4], rendimiento:[0,2,4,6] };
+            const isTrain = trainDays[userGoal] ?? [0,2,4];
+            return days.map((day, i) => {
+              const kcal  = Math.round(effectiveKcal * mults[i]);
+              const prot  = Math.round(effectiveTargets.protein * (isTrain.includes(i) ? 1.0 : 0.95));
+              const carbs = Math.round(effectiveTargets.carbs * mults[i]);
+              const isTrainDay = isTrain.includes(i);
+              return (
+                <div key={day} style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 0", borderBottom: i < 6 ? "1px solid var(--line)" : "none" }}>
+                  <div style={{ width:28, fontSize:12, fontWeight:700, color: isTrainDay ? "var(--green)" : "var(--muted)" }}>{day}</div>
+                  <div style={{ flex:1 }}>
+                    <div style={{ height:5, background:"rgba(255,255,255,.07)", borderRadius:3, overflow:"hidden" }}>
+                      <div style={{ width:`${Math.round(mults[i]*100)}%`, height:"100%", background: isTrainDay ? "var(--green)" : "rgba(255,255,255,.2)", borderRadius:3 }} />
+                    </div>
+                  </div>
+                  <div style={{ textAlign:"right", minWidth:90 }}>
+                    <span style={{ fontSize:13, fontWeight:800, color: isTrainDay ? "var(--green)" : "var(--text)" }}>{kcal} kcal</span>
+                    <span style={{ fontSize:10, color:"var(--muted)", marginLeft:6 }}>{prot}g P</span>
+                  </div>
+                  {isTrainDay && <span style={{ fontSize:10, fontWeight:700, color:"var(--green)", background:"rgba(52,211,153,.1)", borderRadius:6, padding:"2px 6px", flexShrink:0 }}>Entreno</span>}
+                  {!isTrainDay && <span style={{ fontSize:10, color:"var(--muted)", width:52, textAlign:"center", flexShrink:0 }}>Descanso</span>}
+                </div>
+              );
+            });
+          })()}
+          <div style={{ fontSize:11, color:"var(--muted)", marginTop:10, padding:"8px 10px", background:"rgba(255,255,255,.03)", borderRadius:8 }}>
+            En días de entreno: más carbohidratos para energía. En descanso: menos calorías totales, proteína similar.
+          </div>
+        </div>
       </>)}
 
       {/* ── MODAL AGREGAR ── */}
       {showForm && (
         <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.7)", zIndex:100, display:"flex", alignItems:"flex-end" }} onClick={e => { if(e.target===e.currentTarget) resetForm(); }}>
-          <div style={{ background:"var(--bg)", borderRadius:"20px 20px 0 0", width:"100%", padding:"20px 20px 0", maxHeight:"90vh", overflowY:"auto", display:"flex", flexDirection:"column" }}>
+          <div style={{ background:"var(--bg)", borderRadius:"20px 20px 0 0", width:"100%", padding:"20px 20px 0", maxHeight:"92vh", overflowY:"auto", display:"flex", flexDirection:"column" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
               <h3 style={{ margin:0, fontSize:17 }}>Registrar comida</h3>
               <button onClick={resetForm} style={{ background:"none", border:"none", cursor:"pointer", fontSize:22, color:"var(--muted)" }}>×</button>
@@ -811,7 +823,7 @@ export default function NutritionPage() {
                 <input className="input" type="number" placeholder="Carbs (g)" value={form.carbs} onChange={e => setForm(f => ({...f,carbs:e.target.value}))} min="0" />
                 <input className="input" type="number" placeholder="Grasas (g)" value={form.fat} onChange={e => setForm(f => ({...f,fat:e.target.value}))} min="0" />
               </div>
-              <div style={{ position:"sticky", bottom:0, background:"var(--bg)", paddingTop:8, paddingBottom:"max(24px, env(safe-area-inset-bottom, 24px))", marginTop:4 }}>
+              <div style={{ position:"sticky", bottom:0, background:"var(--bg)", paddingTop:8, paddingBottom:"max(32px, env(safe-area-inset-bottom, 32px))", marginTop:4, zIndex:10 }}>
                 <button type="submit" className="primary" style={{ width:"100%" }} disabled={saving}>
                   {saving ? "Guardando…" : "Guardar comida"}
                 </button>

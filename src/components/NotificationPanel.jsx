@@ -67,10 +67,10 @@ export default function NotificationPanel() {
       {/* Overlay panel */}
       {open && (
         <div
-          style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.65)", zIndex:500, display:"flex", flexDirection:"column", justifyContent:"flex-end" }}
+          style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.65)", zIndex:500, display:"flex", flexDirection:"column", justifyContent:"flex-start" }}
           onClick={e => { if (e.target === e.currentTarget) setOpen(false); }}
         >
-          <div style={{ background:"var(--bg)", borderRadius:"20px 20px 0 0", maxHeight:"85vh", display:"flex", flexDirection:"column" }}>
+          <div style={{ background:"var(--bg)", borderRadius:"0 0 20px 20px", maxHeight:"85vh", display:"flex", flexDirection:"column" }}>
             {/* Header */}
             <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"18px 18px 12px" }}>
               <div style={{ display:"flex", alignItems:"center", gap:10 }}>

@@ -49,15 +49,24 @@ export default function LiveCoachPanel({ hints: allHints, volStatus }) {
   const prevHintsRef = useRef(allHints);
   const pulseRef = useRef(false);
   const autoOpenedRef = useRef(false);
+  const seenMsgsRef = useRef(new Set());
 
   // Filter by muted types and per-session dismissals
   const hints = allHints.filter(h => !mutedHintTypes.includes(h.type) && !dismissed.has(h.msg));
 
-  // Detect new hints arriving
+  // When panel opens, mark all current hints as seen and clear badge
+  useEffect(() => {
+    if (expanded) {
+      hints.forEach(h => seenMsgsRef.current.add(h.msg));
+      setNewHintCount(0);
+    }
+  }, [expanded]);
+
+  // Detect genuinely new (never-seen) hints arriving while panel is closed
   useEffect(() => {
     const prev = prevHintsRef.current;
     const prevMsgs = new Set(prev.map(h => h.msg));
-    const added = hints.filter(h => !prevMsgs.has(h.msg));
+    const added = hints.filter(h => !prevMsgs.has(h.msg) && !seenMsgsRef.current.has(h.msg));
     if (added.length > 0 && !expanded) {
       setNewHintCount(n => n + added.length);
       pulseRef.current = true;

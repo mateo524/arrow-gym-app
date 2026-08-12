@@ -1482,25 +1482,85 @@ export default function CoachPage() {
                 );
               })()}
 
-              {/* -- Todos los récords -- */}
-              {prs.length > 0 && (
-                <div style={{ marginBottom:8 }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
-                    <div style={{ width:28, height:28, borderRadius:8, background:"rgba(232,247,119,.1)", border:"1px solid rgba(232,247,119,.2)", display:"flex", alignItems:"center", justifyContent:"center" }}>
-                      <Icon name="Star" size={14} style={{ color:"var(--yellow)" }} />
+              {/* -- Tendencia de peso -- */}
+              {weightLog.length >= 2 && (() => {
+                const pts = [...weightLog]
+                  .filter(e => e.date && e.kg)
+                  .sort((a, b) => String(a.date).localeCompare(String(b.date)))
+                  .slice(-12);
+                if (pts.length < 2) return null;
+                const weights = pts.map(e => Number(e.kg));
+                const minW = Math.min(...weights);
+                const maxW = Math.max(...weights);
+                const range = maxW - minW || 1;
+                const W = 280; const H = 56;
+                const px = (i) => Math.round((i / (pts.length - 1)) * W);
+                const py = (v) => Math.round(H - ((v - minW) / range) * (H - 8) - 4);
+                const points = pts.map((e, i) => `${px(i)},${py(Number(e.kg))}`).join(" ");
+                const first = weights[0]; const last = weights[weights.length - 1];
+                const diff = last - first;
+                const trendColor = diff < -0.5 ? "#60a5fa" : diff > 0.5 ? "#f87171" : "var(--green)";
+                return (
+                  <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:18, padding:"14px 16px", marginBottom:12 }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+                      <p style={{ margin:0, fontSize:14, fontWeight:800 }}>
+                        <Icon name="TrendingUp" size={14} style={{ display:"inline-block", verticalAlign:"middle", marginRight:4 }} /> Tendencia de peso
+                      </p>
+                      <span style={{ fontSize:13, fontWeight:800, color: trendColor }}>
+                        {diff >= 0 ? "+" : ""}{diff.toFixed(1)} kg
+                      </span>
                     </div>
-                    <p style={{ margin:0, fontSize:14, fontWeight:800 }}>Todos los récords</p>
+                    <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display:"block", overflow:"visible" }}>
+                      <polyline points={points} fill="none" stroke={trendColor} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+                      {pts.map((e, i) => (
+                        <circle key={i} cx={px(i)} cy={py(Number(e.kg))} r="3" fill={trendColor} />
+                      ))}
+                    </svg>
+                    <div style={{ display:"flex", justifyContent:"space-between", marginTop:6, fontSize:10, color:"var(--muted)" }}>
+                      <span>{pts[0].date}</span>
+                      <span>{pts[pts.length-1].date}</span>
+                    </div>
                   </div>
-                  <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
-                    {prs.map((pr, i) => (
-                      <div key={i} style={{ background:"rgba(232,247,119,.07)", border:"1px solid rgba(232,247,119,.15)", borderRadius:10, padding:"6px 10px" }}>
-                        <p style={{ margin:"0 0 1px", fontSize:12, fontWeight:700 }}>{pr.exercise}</p>
-                        <p style={{ margin:0, fontSize:11, color:"var(--yellow)" }}>{pr.weight}kg — {pr.reps}</p>
-                      </div>
-                    ))}
+                );
+              })()}
+
+              {/* -- Frecuencia por músculo -- */}
+              {workouts.length >= 2 && (() => {
+                const freq = {};
+                workouts.slice(0, 30).forEach(w => {
+                  const seen = new Set();
+                  (w.sets || []).forEach(s => {
+                    const m = s.muscleGroup || w.type || "General";
+                    if (!seen.has(m)) { freq[m] = (freq[m] || 0) + 1; seen.add(m); }
+                  });
+                });
+                const sorted = Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 7);
+                if (!sorted.length) return null;
+                const maxF = sorted[0][1];
+                const MUSCLE_COLOR = { Pecho:"#60a5fa", Espalda:"#a855f7", Piernas:"#f59e0b", Hombros:"#34d399", Bíceps:"#f87171", Tríceps:"#fb923c", Core:"#e879f9", General:"var(--muted)" };
+                return (
+                  <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:18, padding:"14px 16px", marginBottom:12 }}>
+                    <p style={{ margin:"0 0 12px", fontSize:14, fontWeight:800 }}>
+                      <Icon name="BarChart2" size={14} style={{ display:"inline-block", verticalAlign:"middle", marginRight:4 }} /> Frecuencia por músculo
+                    </p>
+                    {sorted.map(([muscle, count]) => {
+                      const pct = Math.round((count / maxF) * 100);
+                      const color = MUSCLE_COLOR[muscle] || "var(--green)";
+                      return (
+                        <div key={muscle} style={{ marginBottom:8 }}>
+                          <div style={{ display:"flex", justifyContent:"space-between", fontSize:12, marginBottom:3 }}>
+                            <span style={{ fontWeight:700 }}>{muscle}</span>
+                            <span style={{ color:"var(--muted)" }}>{count} sesiones</span>
+                          </div>
+                          <div style={{ height:6, background:"rgba(255,255,255,.07)", borderRadius:3, overflow:"hidden" }}>
+                            <div style={{ width:`${pct}%`, height:"100%", background:color, borderRadius:3, transition:"width .4s" }} />
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               </>
             </>
