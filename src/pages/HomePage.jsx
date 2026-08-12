@@ -44,6 +44,9 @@ export default function HomePage() {
 
   const userGoal = useStore((s) => s.userGoal) || "mantenimiento";
   const activityLevel = useStore((s) => s.activityLevel) || "moderado";
+  const waterLog2  = useStore((s) => s.waterLog) || [];
+  const waterGoalV = useStore((s) => s.waterGoal) || 8;
+  const sleepLog2  = useStore((s) => s.sleepLog) || [];
 
   // Derive weekly goal: explicit user setting > profile frequency > goal-based recommendation
   const adaptedWeeklyGoal = useMemo(() => {
@@ -212,6 +215,11 @@ export default function HomePage() {
     return candidates;
   }, [workouts, prs, mealLog, weightLog, restDays]);
 
+  const todayStr2 = todayLocal();
+  const lastWeight2 = [...weightLog].sort((a,b) => String(b.date).localeCompare(String(a.date)))[0];
+  const todayWater2 = waterLog2.find(e => e.date === todayStr2)?.glasses || 0;
+  const todaySleep2 = sleepLog2.find(e => e.date === todayStr2);
+
   // -- Presentation helpers (no business logic) --
   const hour = new Date().getHours();
   const greeting = hour < 6 ? "Buenas noches" : hour < 13 ? "Buenos días" : hour < 20 ? "Buenas tardes" : "Buenas noches";
@@ -274,6 +282,21 @@ export default function HomePage() {
           <span style={{ fontSize: 18, color: "var(--muted)" }}>›</span>
         </div>
       )}
+
+      {/* ── Health quick-access ── */}
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:14 }} onClick={() => setPage("measurements")}>
+        {[
+          { label:"Peso", value: lastWeight2 ? `${lastWeight2.kg}` : "—", unit:"kg", color:"var(--green)", iconName:"Scale" },
+          { label:"Agua", value: todayWater2 > 0 ? String(todayWater2) : "—", unit: todayWater2 > 0 ? `/${waterGoalV}` : "", color:"#60a5fa", iconName:"Droplet" },
+          { label:"Sueño", value: todaySleep2 ? String(todaySleep2.hours) : "—", unit: todaySleep2 ? "h" : "", color:"#a78bfa", iconName:"Moon" },
+        ].map(m => (
+          <div key={m.label} style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:14, padding:"10px 8px", textAlign:"center", cursor:"pointer" }}>
+            <Icon name={m.iconName} size={16} style={{ color:m.color, marginBottom:4 }} />
+            <div style={{ fontSize:18, fontWeight:900, color:m.color, lineHeight:1 }}>{m.value}<span style={{ fontSize:11, fontWeight:400, color:"var(--muted)" }}>{m.unit}</span></div>
+            <div style={{ fontSize:10, color:"var(--muted)", marginTop:3 }}>{m.label}</div>
+          </div>
+        ))}
+      </div>
 
       {/* Dashboard principal */}
       {(

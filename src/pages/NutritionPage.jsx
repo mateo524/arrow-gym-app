@@ -71,10 +71,13 @@ export default function NutritionPage() {
 
   const [showForm, setShowForm] = useState(false);
   const [showQuick, setShowQuick] = useState(false);
-  const [form, setForm]       = useState({ type:"Almuerzo", name:"", kcal:"", protein:"", carbs:"", fat:"" });
+  const [form, setForm]       = useState({ type:"Almuerzo", name:"", kcal:"", protein:"", carbs:"", fat:"", grams:"" });
   const [saving, setSaving]   = useState(false);
   const [dbQuery, setDbQuery] = useState("");
   const [dbResults, setDbResults] = useState([]);
+  const [baseFood, setBaseFood] = useState(null);
+  const [customKcal, setCustomKcal] = useState("");
+  const [showKcalEdit, setShowKcalEdit] = useState(false);
 
   // Nutrition plan wizard state
   const nutritionPlan     = useStore(s => s.nutritionPlan);
@@ -96,9 +99,11 @@ export default function NutritionPage() {
   }, []);
 
   const selectDbFood = useCallback((food) => {
+    setBaseFood(food);
     setForm(f => ({
       ...f,
       name: food.name,
+      grams: "100",
       kcal: String(food.kcal),
       protein: String(food.protein),
       carbs: String(food.carbs),
@@ -107,6 +112,21 @@ export default function NutritionPage() {
     setDbQuery("");
     setDbResults([]);
   }, []);
+
+  const handleGramsChange = useCallback((g) => {
+    setForm(f => {
+      if (!baseFood || !g) return { ...f, grams: g };
+      const factor = Number(g) / 100;
+      return {
+        ...f,
+        grams: g,
+        kcal: String(Math.round(baseFood.kcal * factor)),
+        protein: String(Math.round(baseFood.protein * factor * 10) / 10),
+        carbs: String(Math.round(baseFood.carbs * factor * 10) / 10),
+        fat: String(Math.round(baseFood.fat * factor * 10) / 10),
+      };
+    });
+  }, [baseFood]);
 
   const today = todayLocal();
   const bodyWeight = Number([...weightLog].sort((a,b) => String(b.date).localeCompare(String(a.date)))[0]?.kg) || null;
@@ -128,7 +148,7 @@ export default function NutritionPage() {
     const bw = bodyWeight || 70; // fallback 70kg si no hay peso registrado
     const goalMap = {
       volumen:       { proteinFactor:2.0, carbFactor:4.0, fatFactor:1.0 },
-      definicion:    { proteinFactor:2.2, carbFactor:2.5, fatFactor:0.8 },
+      definicion:    { proteinFactor:2.0, carbFactor:2.5, fatFactor:0.8 },
       mantenimiento: { proteinFactor:1.6, carbFactor:3.5, fatFactor:1.0 },
       rendimiento:   { proteinFactor:1.8, carbFactor:5.0, fatFactor:1.0 },
     };
@@ -163,11 +183,12 @@ export default function NutritionPage() {
   }, [mealLog]);
 
   function resetForm() {
-    setForm({ type:"Almuerzo", name:"", kcal:"", protein:"", carbs:"", fat:"" });
+    setForm({ type:"Almuerzo", name:"", kcal:"", protein:"", carbs:"", fat:"", grams:"" });
     setShowForm(false);
     setShowQuick(false);
     setDbQuery("");
     setDbResults([]);
+    setBaseFood(null);
   }
 
   async function handleAdd(e) {
@@ -360,6 +381,27 @@ export default function NutritionPage() {
               Basado en <b style={{ color:"var(--text)" }}>{bodyWeight}kg</b> · proteína: {targets.proteinPerKg}g/kg (rango gym: 1.6–2.2g/kg)
             </div>
           )}
+          <div style={{ marginTop:10, borderTop:"1px solid var(--line)", paddingTop:10 }}>
+            {!showKcalEdit ? (
+              <button onClick={() => setShowKcalEdit(true)}
+                style={{ background:"none", border:"1px solid var(--line)", borderRadius:8, padding:"6px 12px", fontSize:11, color:"var(--muted)", cursor:"pointer" }}>
+                {customKcal ? `Meta personalizada: ${customKcal} kcal` : "Personalizar meta de calorías"}
+              </button>
+            ) : (
+              <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+                <input type="number" inputMode="numeric" value={customKcal}
+                  onChange={e => setCustomKcal(e.target.value)}
+                  placeholder={`${targets.kcal} kcal (calculado)`}
+                  style={{ flex:1, background:"var(--panel2)", border:"1px solid var(--line)", borderRadius:8, padding:"7px 10px", color:"var(--text)", fontSize:13 }} />
+                <button onClick={() => setShowKcalEdit(false)}
+                  style={{ background:"var(--green)", color:"#000", border:"none", borderRadius:8, padding:"7px 14px", fontSize:12, fontWeight:700, cursor:"pointer" }}>
+                  OK
+                </button>
+                {customKcal && <button onClick={() => { setCustomKcal(""); setShowKcalEdit(false); }}
+                  style={{ background:"none", border:"none", color:"var(--muted)", fontSize:18, cursor:"pointer" }}>×</button>}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Distribución por comida */}
@@ -683,7 +725,7 @@ export default function NutritionPage() {
       {/* ── MODAL AGREGAR ── */}
       {showForm && (
         <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.7)", zIndex:100, display:"flex", alignItems:"flex-end" }} onClick={e => { if(e.target===e.currentTarget) resetForm(); }}>
-          <div style={{ background:"var(--bg)", borderRadius:"20px 20px 0 0", width:"100%", padding:"20px 20px 36px", maxHeight:"90vh", overflowY:"auto" }}>
+          <div style={{ background:"var(--bg)", borderRadius:"20px 20px 0 0", width:"100%", padding:"20px 20px 0", maxHeight:"90vh", overflowY:"auto", display:"flex", flexDirection:"column" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
               <h3 style={{ margin:0, fontSize:17 }}>Registrar comida</h3>
               <button onClick={resetForm} style={{ background:"none", border:"none", cursor:"pointer", fontSize:22, color:"var(--muted)" }}>×</button>
@@ -751,16 +793,27 @@ export default function NutritionPage() {
                   </button>
                 ))}
               </div>
-              <input className="input" placeholder="Nombre del alimento *" value={form.name} onChange={e => setForm(f => ({...f,name:e.target.value}))} required />
+              <input className="input" placeholder="Nombre del alimento *" value={form.name} onChange={e => { setForm(f => ({...f,name:e.target.value})); setBaseFood(null); }} required />
+              {/* Gramaje */}
+              <div>
+                <label style={{ fontSize:11, color:"var(--muted)", display:"block", marginBottom:4 }}>Cantidad (g) {baseFood ? "" : "— ingresá el alimento primero"}</label>
+                <input type="number" inputMode="decimal" value={form.grams}
+                  onChange={e => handleGramsChange(e.target.value)}
+                  placeholder="ej: 150"
+                  disabled={!baseFood}
+                  style={{ width:"100%", background:"var(--panel2)", border:"1px solid var(--line)", borderRadius:10, padding:"9px 12px", color:"var(--text)", fontSize:14, boxSizing:"border-box", opacity: baseFood ? 1 : 0.5 }} />
+              </div>
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
                 <input className="input" type="number" placeholder="Calorías *" value={form.kcal} onChange={e => setForm(f => ({...f,kcal:e.target.value}))} required min="0" />
                 <input className="input" type="number" placeholder="Proteína (g)" value={form.protein} onChange={e => setForm(f => ({...f,protein:e.target.value}))} min="0" />
                 <input className="input" type="number" placeholder="Carbs (g)" value={form.carbs} onChange={e => setForm(f => ({...f,carbs:e.target.value}))} min="0" />
                 <input className="input" type="number" placeholder="Grasas (g)" value={form.fat} onChange={e => setForm(f => ({...f,fat:e.target.value}))} min="0" />
               </div>
-              <button type="submit" className="primary" style={{ marginTop:4 }} disabled={saving}>
-                {saving ? "Guardando…" : "Guardar comida"}
-              </button>
+              <div style={{ position:"sticky", bottom:0, background:"var(--bg)", paddingTop:8, paddingBottom:"max(24px, env(safe-area-inset-bottom, 24px))", marginTop:4 }}>
+                <button type="submit" className="primary" style={{ width:"100%" }} disabled={saving}>
+                  {saving ? "Guardando…" : "Guardar comida"}
+                </button>
+              </div>
             </form>
           </div>
         </div>

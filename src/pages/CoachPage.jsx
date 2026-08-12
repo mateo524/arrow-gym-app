@@ -349,10 +349,7 @@ export default function CoachPage() {
     { id: "alertas",    label: "Alertas"    },
   ];
 
-  const PLAN_SUB_TABS = [
-    { id: "rendimiento", label: "Fuerza" },
-    { id: "nutricion",   label: "Nutrición"   },
-  ];
+  // Sub-tabs de plan eliminados — nutrición está en su propia pestaña de la nav
 
   const MUSCLE_RANGE_LABELS = [
     { key:"1w", label:"1 sem" },
@@ -898,22 +895,7 @@ export default function CoachPage() {
       {/* -- TAB: PLAN ----------------------------------------- */}
       {tab === "plan" && (
         <div>
-          {/* Sub-tab bar: Rendimiento | Nutrición */}
-          <div style={{ display:"flex", gap:4, background:"var(--panel)", borderRadius:14, padding:4, marginBottom:16 }}>
-            {PLAN_SUB_TABS.map(({ id, label }) => (
-              <button key={id} onClick={() => setPlanSubTab(id)} style={{
-                flex:1, padding:"8px 4px", fontSize:12, fontWeight:600, borderRadius:10,
-                border:"none", cursor:"pointer", transition:"all .15s",
-                background: planSubTab === id ? "var(--green)" : "transparent",
-                color: planSubTab === id ? "#fff" : "var(--muted)",
-              }}>{label}</button>
-            ))}
-          </div>
-
-          {planSubTab === "nutricion" ? (
-            <MacroCalculator profile={profile} workouts={workouts} userGoal={userGoal} macroDay={macroDay} setMacroDay={setMacroDay} adaptiveTDEE={adaptiveTDEE} weeklyBalance={weeklyBalance} />
-          ) : (
-          workouts.length < 3 ? (
+          {workouts.length < 3 ? (
             <div style={{ textAlign:"center", padding:"40px 20px" }}>
               <div style={{ marginBottom:12, display:'flex', justifyContent:'center' }}><Icon name="Layers" size={48} /></div>
               <h3 style={{ margin:"0 0 8px", fontSize:17 }}>Plan en construcción</h3>
@@ -1232,7 +1214,7 @@ export default function CoachPage() {
                 </div>
               )}
             </>
-          ))}
+          )}
         </div>
       )}
 
