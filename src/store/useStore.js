@@ -16,6 +16,7 @@ import { createSettingsSlice } from "./slices/settingsSlice.js";
 import { createHealthSlice } from "./slices/healthSlice.js";
 import { createExerciseSlice } from "./slices/exerciseSlice.js";
 import { createCoachSlice } from "./slices/coachSlice.js";
+import { createNotificationSlice } from "./slices/notificationSlice.js";
 
 // localStorage quota guard: drop oldest workouts if storage is full.
 // safeSetItem receives a JSON string (createJSONStorage serializes before calling).
@@ -51,6 +52,7 @@ const useStore = create(
       ...createHealthSlice(...a),
       ...createExerciseSlice(...a),
       ...createCoachSlice(...a),
+      ...createNotificationSlice(...a),
     }),
     {
       name: "loop-gym-v4",

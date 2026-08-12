@@ -147,10 +147,10 @@ export default function NutritionPage() {
   const targets = useMemo(() => {
     const bw = bodyWeight || 70; // fallback 70kg si no hay peso registrado
     const goalMap = {
-      volumen:       { proteinFactor:2.0, carbFactor:4.0, fatFactor:1.0 },
-      definicion:    { proteinFactor:2.0, carbFactor:2.5, fatFactor:0.8 },
-      mantenimiento: { proteinFactor:1.6, carbFactor:3.5, fatFactor:1.0 },
-      rendimiento:   { proteinFactor:1.8, carbFactor:5.0, fatFactor:1.0 },
+      volumen:       { proteinFactor:1.8, carbFactor:4.0, fatFactor:1.0 },  // ISSN: 1.6-2.2g/kg; 1.8 es punto medio conservador
+      definicion:    { proteinFactor:2.2, carbFactor:2.5, fatFactor:0.8 },  // Helms 2014: 2.3-3.1g/kg LBM en corte; 2.2g/kg total razonable
+      mantenimiento: { proteinFactor:1.6, carbFactor:3.5, fatFactor:1.0 },  // ISSN mínimo para activos
+      rendimiento:   { proteinFactor:1.8, carbFactor:5.0, fatFactor:1.0 },  // Volumen + alto rendimiento aeróbico
     };
     const g = goalMap[userGoal] ?? goalMap.mantenimiento;
     const protein = Math.round(bw * g.proteinFactor);
@@ -162,6 +162,8 @@ export default function NutritionPage() {
     const kcal  = protein*4 + carbs*4 + fat*9;
     return { kcal, protein, carbs, fat, proteinPerKg: g.proteinFactor };
   }, [bodyWeight, userGoal, tdee]);
+
+  const effectiveKcal = customKcal ? Number(customKcal) : targets.kcal;
 
   const todayMeals = useMemo(() => mealLog.filter(m => m.date === today), [mealLog, today]);
   const todayTotals = useMemo(() => todayMeals.reduce((s,m) => ({
@@ -246,17 +248,17 @@ export default function NutritionPage() {
               <div style={{ fontSize:11, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.07em" }}>Calorías hoy</div>
               <div style={{ fontSize:36, fontWeight:900, color:"var(--green)", lineHeight:1 }}>
                 {todayTotals.kcal}
-                <span style={{ fontSize:14, fontWeight:400, color:"var(--muted)", marginLeft:4 }}>/ {targets.kcal} kcal</span>
+                <span style={{ fontSize:14, fontWeight:400, color:"var(--muted)", marginLeft:4 }}>/ {effectiveKcal} kcal</span>
               </div>
             </div>
             <div style={{ textAlign:"right" }}>
               <div style={{ fontSize:11, color:"var(--muted)" }}>Restante</div>
-              <div style={{ fontSize:20, fontWeight:800, color: targets.kcal - todayTotals.kcal >= 0 ? "var(--text)" : "#ef4444" }}>
-                {targets.kcal - todayTotals.kcal} kcal
+              <div style={{ fontSize:20, fontWeight:800, color: effectiveKcal - todayTotals.kcal >= 0 ? "var(--text)" : "#ef4444" }}>
+                {effectiveKcal - todayTotals.kcal} kcal
               </div>
             </div>
           </div>
-          {macroBar(todayTotals.kcal, targets.kcal, "var(--green)")}
+          {macroBar(todayTotals.kcal, effectiveKcal, "var(--green)")}
         </div>
 
         {/* Macros — hidden in simple mode */}
@@ -336,7 +338,7 @@ export default function NutritionPage() {
             const dateStr = d.toISOString().slice(0,10);
             const meals = mealLog.filter(m => m.date===dateStr);
             const kcal  = meals.reduce((s,m) => s+(Number(m.kcal)||0), 0);
-            const pct   = Math.min(100, targets.kcal > 0 ? (kcal/targets.kcal)*100 : 0);
+            const pct   = Math.min(100, effectiveKcal > 0 ? (kcal/effectiveKcal)*100 : 0);
             const dayLabel = i===0?"Hoy":i===1?"Ayer":d.toLocaleDateString("es-AR",{weekday:"short",day:"numeric"});
             return (
               <div key={dateStr} style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:12, padding:"10px 14px" }}>
@@ -344,7 +346,7 @@ export default function NutritionPage() {
                   <span style={{ fontSize:13, fontWeight:600 }}>{dayLabel}</span>
                   <span style={{ fontSize:13, fontWeight:700, color: kcal > 0 ? "var(--green)" : "var(--muted)" }}>{kcal > 0 ? `${kcal} kcal` : "—"}</span>
                 </div>
-                {macroBar(kcal, targets.kcal, "var(--green)")}
+                {macroBar(kcal, effectiveKcal, "var(--green)")}
               </div>
             );
           })}
@@ -364,7 +366,7 @@ export default function NutritionPage() {
           )}
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:10 }}>
             {[
-              { label:"Calorías",      val:`${targets.kcal}`, unit:"kcal", color:"var(--green)" },
+              { label:"Calorías",      val:`${effectiveKcal}`, unit:"kcal", color:"var(--green)" },
               { label:"Proteína",      val:`${targets.protein}`, unit:`g · ${targets.proteinPerKg}g/kg`, color:"#60a5fa" },
               { label:"Carbohidratos", val:`${targets.carbs}`, unit:"g", color:"#f59e0b" },
               { label:"Grasas",        val:`${targets.fat}`, unit:"g", color:"#f87171" },
@@ -413,7 +415,7 @@ export default function NutritionPage() {
             { name:"Merienda", pct:0.15, icon:"🍎", hint:"Snack pre/post entreno" },
             { name:"Cena",     pct:0.25, icon:"🌙", hint:"Proteína + vegetales, menos carbos" },
           ].map(({ name, pct, icon, hint }) => {
-            const kcal  = Math.round(targets.kcal * pct);
+            const kcal  = Math.round(effectiveKcal * pct);
             const prot  = Math.round(targets.protein * pct);
             return (
               <div key={name} style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 0", borderBottom:"1px solid var(--line)" }}>
@@ -448,7 +450,7 @@ export default function NutritionPage() {
             const trainDays = { volumen:[0,2,4], definicion:[0,2,4], mantenimiento:[0,2,4], rendimiento:[0,2,4,6] };
             const isTrain = trainDays[userGoal] ?? [0,2,4];
             return days.map((day, i) => {
-              const kcal  = Math.round(targets.kcal * mults[i]);
+              const kcal  = Math.round(effectiveKcal * mults[i]);
               const prot  = Math.round(targets.protein * (isTrain.includes(i) ? 1.0 : 0.95));
               const carbs = Math.round(targets.carbs * mults[i]);
               const isTrainDay = isTrain.includes(i);
@@ -516,7 +518,7 @@ export default function NutritionPage() {
               };
               const plan = generateNutritionPlan(
                 config,
-                targets.kcal, targets.kcal, targets.protein, targets.carbs, targets.fat
+                effectiveKcal, effectiveKcal, targets.protein, targets.carbs, targets.fat
               );
               plan.planStartDate = todayLocal();
               saveNutritionPlan(plan);

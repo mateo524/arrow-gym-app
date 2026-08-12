@@ -6,6 +6,7 @@ import { todayLocal, dateToLocal } from "../lib/dates.js";
 import { getWorkoutVolume, formatDate, getMuscleIntensity, filterCurrentWeek, getNextWorkoutSuggestion, getDeloadSuggestion, ACHIEVEMENTS_DEF, getAchievements } from "../lib/analytics.js";
 import AdvancedMuscleDiagram from "../components/AdvancedMuscleDiagram.jsx";
 import Icon from "../components/Icon.jsx";
+import NotificationPanel from "../components/NotificationPanel.jsx";
 import { features } from "../config/features.js";
 
 export default function HomePage() {
@@ -255,6 +256,7 @@ export default function HomePage() {
           <p className="eyebrow">{greeting}</p>
           <h1 style={{ margin: 0 }}>{firstName}</h1>
         </div>
+        <NotificationPanel />
         <button className="profile-avatar" onClick={() => setPage("profile")} aria-label="Mi perfil">
           {initial}
         </button>
