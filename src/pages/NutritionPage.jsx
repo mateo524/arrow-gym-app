@@ -898,7 +898,7 @@ export default function NutritionPage() {
               </div>
             )}
 
-            <form id="meal-add-form" onSubmit={handleAdd} style={{ display:"flex", flexDirection:"column", gap:10 }}>
+            <form onSubmit={handleAdd} style={{ display:"flex", flexDirection:"column", gap:10 }}>
               <input className="input" placeholder="Nombre del alimento *" value={form.name} onChange={e => { setForm(f => ({...f,name:e.target.value})); setBaseFood(null); }} required />
               {/* Gramaje */}
               <div>
@@ -914,15 +914,14 @@ export default function NutritionPage() {
                 <input className="input" inputMode="decimal" placeholder="Carbs (g)" value={form.carbs} onChange={e => setForm(f => ({...f,carbs:e.target.value.replace(",",".")}))} />
                 <input className="input" inputMode="decimal" placeholder="Grasas (g)" value={form.fat} onChange={e => setForm(f => ({...f,fat:e.target.value.replace(",",".")}))} />
               </div>
+              {/* Botón sticky al fondo del scroll — funciona en todos los navegadores incluyendo iOS Safari */}
+              <div style={{ position:"sticky", bottom:0, background:"var(--bg)", paddingTop:10, paddingBottom:"max(16px, env(safe-area-inset-bottom, 16px))", marginTop:4, borderTop:"1px solid var(--line)" }}>
+                <button type="submit" className="primary" style={{ width:"100%" }} disabled={saving}>
+                  {saving ? "Guardando…" : "Guardar comida"}
+                </button>
+              </div>
             </form>
             </div>{/* end scrollable body */}
-
-            {/* Footer siempre visible — flexShrink:0 garantiza que nunca se oculte */}
-            <div style={{ flexShrink:0, padding:"10px 20px", paddingBottom:"max(16px, env(safe-area-inset-bottom, 16px))", background:"var(--bg)", borderTop:"1px solid var(--line)" }}>
-              <button type="submit" form="meal-add-form" className="primary" style={{ width:"100%" }} disabled={saving}>
-                {saving ? "Guardando…" : "Guardar comida"}
-              </button>
-            </div>
           </div>
         </div>
       )}
