@@ -672,7 +672,7 @@ function AppContent() {
           Sin conexión — tus datos se guardan localmente
         </div>
       )}
-      <div style={{ position:"fixed", top:8, right:12, zIndex:9998, pointerEvents:"none" }}>
+      <div style={{ position:"fixed", top:"max(8px, env(safe-area-inset-top, 8px))", right:12, zIndex:9998, pointerEvents:"none" }}>
         <SyncChip />
       </div>
       {/* -- ACHIEVEMENT UNLOCK TOAST --------------------------------------- */}

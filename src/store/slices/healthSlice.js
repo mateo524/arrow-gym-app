@@ -258,8 +258,15 @@ export const createHealthSlice = (set, get) => ({
     queueHealthSync(get);
   },
 
-  addProgressPhoto: (dataUrl, note) => {
-    const photo = { id: uid("photo"), date: today(), dataUrl, note: note || "" };
+  addProgressPhoto: (photoSource, note) => {
+    const isUrl = typeof photoSource === "string" && photoSource.startsWith("http");
+    const photo = {
+      id: uid("photo"),
+      date: today(),
+      dataUrl: isUrl ? null : photoSource,
+      url: isUrl ? photoSource : null,
+      note: note || "",
+    };
     set((s) => ({ progressPhotos: [photo, ...(s.progressPhotos || [])].slice(0, 50) }));
     queueHealthSync(get);
   },

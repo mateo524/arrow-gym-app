@@ -73,7 +73,6 @@ export const createSettingsSlice = (set, get) => ({
     activeWorkout: null,
     coachReports: [],
     cardioHistory: [],
-    cardioHistory: [],
     workoutDraft: null,
     recentExercises: [],
     mealLog: [],
