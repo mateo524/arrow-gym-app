@@ -18,6 +18,7 @@ export const createSettingsSlice = (set, get) => ({
   weeklyGoal: 4,
   mutedHintTypes: [],
   customKcal: "",
+  customFoods: [],
 
   setPage: (page) => {
     if (page === "coach") {
@@ -33,6 +34,9 @@ export const createSettingsSlice = (set, get) => ({
   toggleSound: () => set((s) => ({ soundEnabled: !s.soundEnabled })),
   setUserGoal: (goal) => set({ userGoal: goal }),
   setCustomKcal: (val) => set({ customKcal: val }),
+  addCustomFood: (food) => set(s => ({
+    customFoods: [food, ...(s.customFoods || []).filter(f => f.id !== food.id)].slice(0, 200)
+  })),
   setActivityLevel: (level) => set({ activityLevel: level }),
   setWeeklyGoal: (n) => set({ weeklyGoal: Math.max(1, Math.min(7, Number(n))) }),
   toggleMutedHintType: (type) => set((s) => {

@@ -15,6 +15,32 @@ import ShareWorkoutCard from "../components/ShareWorkoutCard.jsx";
 import WorkoutPDF from "../components/WorkoutPDF.jsx";
 import { features } from "../config/features.js";
 import { scheduleRestTimerPush } from '../lib/pushNotifications';
+import CountdownTimer from "../components/CountdownTimer.jsx";
+
+function formatDuration(totalSeconds) {
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  if (h > 0) {
+    return `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  }
+  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+const TIME_BASED_EXERCISES = new Set([
+  "plancha", "plank", "wall sit", "sentadilla isométrica",
+  "dead hang", "colgarse", "isométrico", "isometric",
+  "farmer carry", "farmer's carry", "suitcase carry",
+  "l-sit", "pallof press", "superman", "bird dog",
+  "hollow hold", "arch hold", "stomach vacuum",
+  "side plank", "plancha lateral",
+]);
+
+function isTimeBasedExercise(name) {
+  if (!name) return false;
+  const lower = name.toLowerCase();
+  return [...TIME_BASED_EXERCISES].some(t => lower.includes(t));
+}
 
 function groupSetsByExercise(sets) {
   const map = new Map();
@@ -606,7 +632,7 @@ export default function WorkoutPage() {
         </div>
         {/* Timer */}
         <div style={{ fontSize: 20, fontWeight: 900, color: timerColor, letterSpacing: "0.04em", fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>
-          {String(Math.floor(elapsed/60)).padStart(2,"0")}:{String(elapsed%60).padStart(2,"0")}
+          {formatDuration(elapsed)}
         </div>
         {/* Volume */}
         {(() => {
@@ -829,7 +855,16 @@ export default function WorkoutPage() {
                 ) : (
                   /* SETS VIEW */
                   <div>
-                    {sets.map((setItem, index) => {
+                    {isTimeBasedExercise(exercise) && (
+                      <CountdownTimer
+                        key={`timer-${exercise}`}
+                        defaultSeconds={60}
+                        setIndex={sets.length - 1}
+                        totalSets={sets.length}
+                        onComplete={() => handleSetComplete(exercise)}
+                      />
+                    )}
+                    {!isTimeBasedExercise(exercise) && sets.map((setItem, index) => {
                       // PR badge only on the FIRST set in this session that beats the historical best
                       const isNewPR = Number(setItem.weight) > 0 && Number(setItem.weight) > bestPR
                         && !sets.slice(0, index).some(s => Number(s.weight) > bestPR);
