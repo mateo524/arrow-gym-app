@@ -83,7 +83,7 @@ export default function WorkoutSetCard({ setItem, index, onUpdate, onApplyToNext
           <button className="set-delete-btn" style={{ color: "var(--muted)" }} onClick={() => setFlipped(true)} aria-label="Ver récords">
             <Icon name="BarChart2" size={13} />
           </button>
-          <button className="set-delete-btn" style={{ color: "var(--danger)" }} onClick={onRemove} aria-label="Borrar"><Icon name="X" size={13} style={{display:'inline-block',verticalAlign:'middle'}} /></button>
+          <button className="set-delete-btn set-delete-x" onClick={onRemove} aria-label="Borrar"><Icon name="X" size={17} style={{display:'inline-block',verticalAlign:'middle'}} /></button>
         </div>
       </div>
 

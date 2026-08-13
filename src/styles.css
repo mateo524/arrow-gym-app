@@ -1863,6 +1863,8 @@ p { color: #c4b8d8; }
   margin-left: auto;
 }
 .set-delete-btn:active { color: var(--danger); background: var(--c-danger-surface); }
+.set-delete-x { color: var(--danger) !important; min-width: 36px; min-height: 36px; border-radius: 10px; background: rgba(239,68,68,.08) !important; margin-left: 2px; }
+.set-delete-x:active { background: rgba(239,68,68,.22) !important; }
 .set-actions {
   display: flex;
   gap: 6px;

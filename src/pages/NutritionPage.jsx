@@ -829,7 +829,7 @@ export default function NutritionPage() {
       {/* ── MODAL AGREGAR ── */}
       {showForm && (
         <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.7)", zIndex:100, display:"flex", alignItems:"flex-end" }} onClick={e => { if(e.target===e.currentTarget) resetForm(); }}>
-          <div style={{ background:"var(--bg)", borderRadius:"20px 20px 0 0", width:"100%", maxHeight:"92vh", display:"flex", flexDirection:"column" }}>
+          <div style={{ background:"var(--bg)", borderRadius:"20px 20px 0 0", width:"100%", height:"92vh", position:"relative", display:"flex", flexDirection:"column" }}>
             <div style={{ padding:"20px 20px 0", flexShrink:0 }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
               <h3 style={{ margin:0, fontSize:17 }}>Registrar comida</h3>
@@ -877,8 +877,8 @@ export default function NutritionPage() {
 
             </div>{/* end non-scrollable header */}
 
-            {/* Scrollable body */}
-            <div style={{ flex:1, overflowY:"auto", padding:"0 20px" }}>
+            {/* Scrollable body — paddingBottom reserva espacio para el footer */}
+            <div style={{ flex:1, overflowY:"auto", padding:"0 20px 80px" }}>
 
             {/* Quick foods toggle */}
             <button onClick={() => setShowQuick(p => !p)} style={{ width:"100%", background:"rgba(34,211,120,.08)", border:"1px solid rgba(34,211,120,.2)", borderRadius:12, padding:"10px", fontSize:13, fontWeight:600, cursor:"pointer", color:"var(--green)", marginBottom:14 }}>
@@ -899,36 +899,26 @@ export default function NutritionPage() {
             )}
 
             <form id="meal-add-form" onSubmit={handleAdd} style={{ display:"flex", flexDirection:"column", gap:10 }}>
-              {/* Tipo */}
-              <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
-                {MEAL_TYPES.map(t => (
-                  <button type="button" key={t} onClick={() => setForm(f => ({...f,type:t}))}
-                    style={{ padding:"5px 12px", borderRadius:20, border:"none", cursor:"pointer", fontSize:12, fontWeight:600,
-                      background: form.type===t ? "var(--green)" : "var(--panel2)", color: form.type===t ? "#fff" : "var(--muted)" }}>
-                    {t}
-                  </button>
-                ))}
-              </div>
               <input className="input" placeholder="Nombre del alimento *" value={form.name} onChange={e => { setForm(f => ({...f,name:e.target.value})); setBaseFood(null); }} required />
               {/* Gramaje */}
               <div>
                 <label style={{ fontSize:11, color:"var(--muted)", display:"block", marginBottom:4 }}>Cantidad (g)</label>
-                <input type="number" inputMode="decimal" value={form.grams}
-                  onChange={e => handleGramsChange(e.target.value)}
+                <input inputMode="decimal" value={form.grams}
+                  onChange={e => handleGramsChange(e.target.value.replace(",","."))}
                   placeholder="ej: 150"
-                  style={{ width:"100%", background:"var(--panel2)", border:"1px solid var(--line)", borderRadius:10, padding:"9px 12px", color:"var(--text)", fontSize:14, boxSizing:"border-box", opacity: 1 }} />
+                  style={{ width:"100%", background:"var(--panel2)", border:"1px solid var(--line)", borderRadius:10, padding:"9px 12px", color:"var(--text)", fontSize:14, boxSizing:"border-box" }} />
               </div>
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
-                <input className="input" type="number" placeholder="Calorías *" value={form.kcal} onChange={e => setForm(f => ({...f,kcal:e.target.value}))} required min="0" />
-                <input className="input" type="number" placeholder="Proteína (g)" value={form.protein} onChange={e => setForm(f => ({...f,protein:e.target.value}))} min="0" />
-                <input className="input" type="number" placeholder="Carbs (g)" value={form.carbs} onChange={e => setForm(f => ({...f,carbs:e.target.value}))} min="0" />
-                <input className="input" type="number" placeholder="Grasas (g)" value={form.fat} onChange={e => setForm(f => ({...f,fat:e.target.value}))} min="0" />
+                <input className="input" inputMode="decimal" placeholder="Calorías *" value={form.kcal} onChange={e => setForm(f => ({...f,kcal:e.target.value.replace(",",".")}))} required />
+                <input className="input" inputMode="decimal" placeholder="Proteína (g)" value={form.protein} onChange={e => setForm(f => ({...f,protein:e.target.value.replace(",",".")}))} />
+                <input className="input" inputMode="decimal" placeholder="Carbs (g)" value={form.carbs} onChange={e => setForm(f => ({...f,carbs:e.target.value.replace(",",".")}))} />
+                <input className="input" inputMode="decimal" placeholder="Grasas (g)" value={form.fat} onChange={e => setForm(f => ({...f,fat:e.target.value.replace(",",".")}))} />
               </div>
             </form>
             </div>{/* end scrollable body */}
 
-            {/* Fixed footer button — always visible */}
-            <div style={{ flexShrink:0, padding:"10px 20px", paddingBottom:"max(20px, env(safe-area-inset-bottom, 20px))", background:"var(--bg)", borderTop:"1px solid var(--line)" }}>
+            {/* Footer absolutamente posicionado — siempre visible sin importar el scroll */}
+            <div style={{ position:"absolute", bottom:0, left:0, right:0, padding:"10px 20px", paddingBottom:"max(16px, env(safe-area-inset-bottom, 16px))", background:"var(--bg)", borderTop:"1px solid var(--line)" }}>
               <button type="submit" form="meal-add-form" className="primary" style={{ width:"100%" }} disabled={saving}>
                 {saving ? "Guardando…" : "Guardar comida"}
               </button>
