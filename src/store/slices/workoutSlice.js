@@ -226,6 +226,7 @@ export const createWorkoutSlice = (set, get) => ({
     const factor = adj && new Date(adj.expiresAt) >= new Date() ? adj.factor : 1;
     T.workoutStarted({ type, workout_number: workouts.length + 1 });
     set({
+      currentPRCard: null,
       activeWorkout: {
         id: uid("workout"), type, date: today(), startedAt: Date.now(),
         sets: routine.map((ex) => {
@@ -261,7 +262,7 @@ export const createWorkoutSlice = (set, get) => ({
     });
   },
 
-  startEmptyWorkout: () => set({ activeWorkout: { id: uid("workout"), type: "Libre", date: today(), startedAt: Date.now(), sets: [] }, currentPage: "workout" }),
+  startEmptyWorkout: () => set({ currentPRCard: null, activeWorkout: { id: uid("workout"), type: "Libre", date: today(), startedAt: Date.now(), sets: [] }, currentPage: "workout" }),
 
   swapExercise: (oldName, newName) => {
     const active = get().activeWorkout;
@@ -370,7 +371,11 @@ export const createWorkoutSlice = (set, get) => ({
       notes: notes || "",
       ...(mood ? { mood } : {}),
       sets: active.sets
-        .filter((s) => s.exercise && (s.weight !== "" && s.weight !== null) && (s.reps !== "" && s.reps !== null) && Number(s.reps) > 0)
+        .filter((s) => {
+          const isBodyweight = s.equipment === "Peso corporal" || s.equipment === "Bodyweight" || s.bodyweight === true;
+          const hasWeight = s.weight !== "" && s.weight !== null;
+          return s.exercise && (hasWeight || isBodyweight) && (s.reps !== "" && s.reps !== null) && Number(s.reps) > 0;
+        })
         .map(normalizeSet),
     };
     if (!clean.sets.length) return;
@@ -615,7 +620,7 @@ export const createWorkoutSlice = (set, get) => ({
     const monday = new Date(now); monday.setDate(now.getDate() - ((now.getDay() + 6) % 7)); monday.setHours(0, 0, 0, 0);
     const existing = get().weeklyChallenge;
     if (!force && existing) {
-      const thisWeek = (workouts || []).filter((w) => w.date && new Date(w.date) >= monday);
+      const thisWeek = (workouts || []).filter((w) => w.date && new Date(w.date + "T00:00:00") >= monday);
       // Compute the correct metric for the existing challenge type instead of always using session count
       let doneCount = thisWeek.length;
       const t = existing.text || existing.challenge || "";
@@ -632,7 +637,7 @@ export const createWorkoutSlice = (set, get) => ({
       return;
     }
     const challenge = getPersonalizedChallenge(workouts || []);
-    const thisWeek = (workouts || []).filter((w) => w.date && new Date(w.date) >= monday);
+    const thisWeek = (workouts || []).filter((w) => w.date && new Date(w.date + "T00:00:00") >= monday);
     let doneCount = thisWeek.length;
     if (challenge.type === 'muscle_group') {
       const g = challenge.group || "Piernas";
