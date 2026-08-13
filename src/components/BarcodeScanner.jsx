@@ -105,9 +105,9 @@ export default function BarcodeScanner({ onDetect, onClose }) {
   return (
     <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.95)", zIndex:1000, display:"flex", flexDirection:"column" }}>
       {/* Header */}
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"16px 20px", flexShrink:0 }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"16px 20px", paddingTop:"max(16px, env(safe-area-inset-top, 16px))", flexShrink:0 }}>
         <h3 style={{ margin:0, color:"#fff", fontSize:16 }}>Escanear código de barras</h3>
-        <button onClick={onClose} style={{ background:"none", border:"none", color:"#fff", fontSize:26, cursor:"pointer", lineHeight:1 }}>×</button>
+        <button onClick={onClose} style={{ background:"rgba(255,255,255,.15)", border:"none", color:"#fff", fontSize:22, cursor:"pointer", width:44, height:44, borderRadius:12, display:"flex", alignItems:"center", justifyContent:"center", fontWeight:700, flexShrink:0 }}>×</button>
       </div>
 
       {/* Camera view */}
