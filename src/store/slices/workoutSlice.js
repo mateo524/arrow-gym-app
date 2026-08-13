@@ -11,6 +11,17 @@ import { todayLocal, dateToLocal } from "../../lib/dates.js";
 function uid(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
+
+// Debounced gym-state sync — same pattern as queueHealthSync in healthSlice
+let gymSyncQueued = false;
+function queueGymSync(get) {
+  if (gymSyncQueued) return;
+  gymSyncQueued = true;
+  setTimeout(() => {
+    gymSyncQueued = false;
+    get().syncGymStateToDB();
+  }, 200);
+}
 function today() {
   return todayLocal();
 }
@@ -125,6 +136,7 @@ export const createWorkoutSlice = (set, get) => ({
       savedTemplates: s.savedTemplates || [],
       weeklyChallenge: s.weeklyChallenge || null,
       completedPlans: (s.completedPlans || []).slice(0, 50),
+      coachReports: (s.coachReports || []).slice(0, 30),
     };
     if (!navigator.onLine) {
       s.queueSync?.("gym", payload);
@@ -164,11 +176,14 @@ export const createWorkoutSlice = (set, get) => ({
       // prs and achievements lack a reliable unique id — fall back to longest array
       const mergedPrs = (local.prs?.length || 0) >= (gd.prs?.length || 0) ? local.prs : gd.prs;
       const mergedAchievements = (gd.achievements?.length || 0) > (local.achievements?.length || 0) ? gd.achievements : local.achievements;
+      const mergedCoachReports = (gd.coachReports?.length || 0) > (local.coachReports?.length || 0)
+        ? gd.coachReports : local.coachReports;
       set({
         prs: mergedPrs || [],
         achievements: mergedAchievements || [],
         savedTemplates: mergeByUpdatedAt(local.savedTemplates, gd.savedTemplates),
         completedPlans: mergeByUpdatedAt(local.completedPlans, gd.completedPlans),
+        coachReports: mergedCoachReports || [],
       });
     } catch {}
   },
@@ -460,8 +475,12 @@ export const createWorkoutSlice = (set, get) => ({
   saveTemplate: (name, exercises) => {
     const template = { id: uid("tpl"), name, exercises, createdAt: today() };
     set((s) => ({ savedTemplates: [template, ...(s.savedTemplates || [])] }));
+    queueGymSync(get);
   },
-  deleteTemplate: (id) => set((s) => ({ savedTemplates: (s.savedTemplates || []).filter((t) => t.id !== id) })),
+  deleteTemplate: (id) => {
+    set((s) => ({ savedTemplates: (s.savedTemplates || []).filter((t) => t.id !== id) }));
+    queueGymSync(get);
+  },
   useTemplate: (id) => {
     const state = get();
     const tpl = (state.savedTemplates || []).find((t) => t.id === id);
@@ -580,6 +599,7 @@ export const createWorkoutSlice = (set, get) => ({
         doneCount = Math.round(thisWeek.reduce((a, w) => a + (w.sets || []).reduce((b, s) => b + ((Number(s.weight) || 0) * (Number(s.reps) || 0)), 0), 0));
       }
       set({ weeklyChallenge: { ...existing, doneCount } });
+      queueGymSync(get);
       return;
     }
     const challenge = getPersonalizedChallenge(workouts || []);
@@ -592,6 +612,7 @@ export const createWorkoutSlice = (set, get) => ({
       doneCount = Math.round(thisWeek.reduce((a, w) => a + (w.sets || []).reduce((b, s) => b + ((Number(s.weight) || 0) * (Number(s.reps) || 0)), 0), 0));
     }
     set({ weeklyChallenge: { ...challenge, text: challenge.challenge || challenge.title, targetCount: challenge.target, doneCount, isoWeek: null } });
+    queueGymSync(get);
   },
 
   setProgressionTarget: (exerciseId, targetWeight) => set((s) => ({

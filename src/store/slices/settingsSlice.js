@@ -1,3 +1,10 @@
+// Debounce for syncing settings to Supabase via healthSlice.syncHealthToDB
+let settingsSyncTimer = null;
+function queueSettingsSync(get) {
+  clearTimeout(settingsSyncTimer);
+  settingsSyncTimer = setTimeout(() => { try { get().syncHealthToDB(); } catch {} }, 300);
+}
+
 export const createSettingsSlice = (set, get) => ({
   currentPage: "home",
   selectedWorkoutId: null,
@@ -32,13 +39,13 @@ export const createSettingsSlice = (set, get) => ({
   openWorkout: (id) => set({ selectedWorkoutId: id, currentPage: "workoutDetail" }),
   clearCoachBadge: () => set({ coachBadge: false }),
   toggleSound: () => set((s) => ({ soundEnabled: !s.soundEnabled })),
-  setUserGoal: (goal) => set({ userGoal: goal }),
-  setCustomKcal: (val) => set({ customKcal: val }),
+  setUserGoal: (goal) => { set({ userGoal: goal }); queueSettingsSync(get); },
+  setCustomKcal: (val) => { set({ customKcal: val }); queueSettingsSync(get); },
   addCustomFood: (food) => set(s => ({
     customFoods: [food, ...(s.customFoods || []).filter(f => f.id !== food.id)].slice(0, 200)
   })),
-  setActivityLevel: (level) => set({ activityLevel: level }),
-  setWeeklyGoal: (n) => set({ weeklyGoal: Math.max(1, Math.min(7, Number(n))) }),
+  setActivityLevel: (level) => { set({ activityLevel: level }); queueSettingsSync(get); },
+  setWeeklyGoal: (n) => { set({ weeklyGoal: Math.max(1, Math.min(7, Number(n))) }); queueSettingsSync(get); },
   toggleMutedHintType: (type) => set((s) => {
     const muted = s.mutedHintTypes || [];
     return { mutedHintTypes: muted.includes(type) ? muted.filter(t => t !== type) : [...muted, type] };

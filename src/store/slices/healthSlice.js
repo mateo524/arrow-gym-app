@@ -23,9 +23,11 @@ function buildHealthPayload(state) {
     progress_photos: state.progressPhotos || [],
     competition_date: state.competitionDate,
     competition_name: state.competitionName,
-    // Settings that live in settingsSlice — include here so they survive localStorage wipes
+    // Settings that live in settingsSlice — included so they survive localStorage wipes
     user_goal: state.userGoal || "mantenimiento",
     custom_kcal: state.customKcal || "",
+    activity_level: state.activityLevel || "moderado",
+    weekly_goal: state.weeklyGoal || 4,
   };
 }
 
@@ -137,8 +139,10 @@ export const createHealthSlice = (set, get) => ({
           competitionDate: local.competitionDate ?? hd.competition_date ?? null,
           competitionName: local.competitionName ?? hd.competition_name ?? "",
           // Settings synced via health_data — remote wins if local is still at default
-          userGoal:   (local.userGoal && local.userGoal !== "mantenimiento") ? local.userGoal : (hd.user_goal || local.userGoal || "mantenimiento"),
-          customKcal: local.customKcal || hd.custom_kcal || "",
+          userGoal:      (local.userGoal && local.userGoal !== "mantenimiento")  ? local.userGoal      : (hd.user_goal      || local.userGoal      || "mantenimiento"),
+          customKcal:    local.customKcal    || hd.custom_kcal    || "",
+          activityLevel: (local.activityLevel && local.activityLevel !== "moderado") ? local.activityLevel : (hd.activity_level || local.activityLevel || "moderado"),
+          weeklyGoal:    (local.weeklyGoal   && local.weeklyGoal   !== 4)            ? local.weeklyGoal    : (hd.weekly_goal   || local.weeklyGoal   || 4),
         });
       }
     } catch (e) { /* column may not exist */ }
