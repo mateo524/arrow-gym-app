@@ -128,6 +128,7 @@ healthsync: HealthSyncPage,
 
 function AppContent() {
   const [location, setLocation] = useLocation();
+  const storeRehydrated = useStore((s) => s._rehydrated);
   const currentPage = useStore((s) => s.currentPage);
   const activeWorkout = useStore((s) => s.activeWorkout);
   const setPage = useStore((s) => s.setPage);
@@ -511,7 +512,9 @@ function AppContent() {
   // Show splash while: (a) initial load with no cached session, or (b) session
   // refreshed but profile hasn't loaded yet — prevents the black screen on iOS PWA
   // when the app is opened after the JWT has expired.
-  const splashScreen = loading || (user && !profile);
+  // If Zustand persist has rehydrated, we already have all user data locally —
+  // don't block the UI waiting for the Supabase profile fetch. Profile loads in background.
+  const splashScreen = loading || (user && !profile && !storeRehydrated);
   const showLogin = !splashScreen && !user;
 
   // Access control

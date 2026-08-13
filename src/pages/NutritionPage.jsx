@@ -10,6 +10,9 @@ import BarcodeScanner from "../components/BarcodeScanner.jsx";
 
 const MEAL_TYPES = ["Desayuno", "Almuerzo", "Merienda", "Cena", "Snack"];
 
+// Round to max 2 decimal places, return as number
+const r2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
+
 const QUICK_FOODS = [
   { name: "Arroz (100g cocido)",    kcal: 130, protein: 3,  carbs: 28, fat: 0 },
   { name: "Pechuga pollo (100g)",   kcal: 165, protein: 31, carbs: 0,  fat: 3 },
@@ -190,12 +193,15 @@ export default function NutritionPage() {
   }, [customKcal, targets]);
 
   const todayMeals = useMemo(() => mealLog.filter(m => m.date === today), [mealLog, today]);
-  const todayTotals = useMemo(() => todayMeals.reduce((s,m) => ({
-    kcal:    s.kcal    + (Number(m.kcal)    || 0),
-    protein: s.protein + (Number(m.protein) || 0),
-    carbs:   s.carbs   + (Number(m.carbs)   || 0),
-    fat:     s.fat     + (Number(m.fat)     || 0),
-  }), { kcal:0, protein:0, carbs:0, fat:0 }), [todayMeals]);
+  const todayTotals = useMemo(() => {
+    const raw = todayMeals.reduce((s,m) => ({
+      kcal:    s.kcal    + (Number(m.kcal)    || 0),
+      protein: s.protein + (Number(m.protein) || 0),
+      carbs:   s.carbs   + (Number(m.carbs)   || 0),
+      fat:     s.fat     + (Number(m.fat)     || 0),
+    }), { kcal:0, protein:0, carbs:0, fat:0 });
+    return { kcal: r2(raw.kcal), protein: r2(raw.protein), carbs: r2(raw.carbs), fat: r2(raw.fat) };
+  }, [todayMeals]);
 
   // Last 7 days avg
   const weekAvg = useMemo(() => {
@@ -221,7 +227,7 @@ export default function NutritionPage() {
     e.preventDefault();
     if (!form.name || !form.kcal) return;
     setSaving(true);
-    logMeal({ type: form.type, name: form.name.trim(), kcal: Number(form.kcal), protein: Number(form.protein)||0, carbs: Number(form.carbs)||0, fat: Number(form.fat)||0 });
+    logMeal({ type: form.type, name: form.name.trim(), kcal: r2(form.kcal), protein: r2(form.protein), carbs: r2(form.carbs), fat: r2(form.fat) });
     // Save as custom food if not in DB
     const dbCheck = searchFoods(form.name, 5);
     if (!dbCheck.some(f => f.name.toLowerCase() === form.name.toLowerCase())) {
@@ -231,10 +237,10 @@ export default function NutritionPage() {
         cat: "Mis alimentos",
         serving: form.grams ? `${form.grams}g` : "100g",
         grams: form.grams ? Number(form.grams) : 100,
-        kcal: Number(form.kcal),
-        protein: Number(form.protein) || 0,
-        carbs: Number(form.carbs) || 0,
-        fat: Number(form.fat) || 0,
+        kcal: r2(form.kcal),
+        protein: r2(form.protein),
+        carbs: r2(form.carbs),
+        fat: r2(form.fat),
       });
     }
     resetForm();
@@ -242,7 +248,7 @@ export default function NutritionPage() {
   }
 
   function addQuickFood(food) {
-    logMeal({ type: form.type, name: food.name, kcal: food.kcal, protein: food.protein, carbs: food.carbs, fat: food.fat });
+    logMeal({ type: form.type, name: food.name, kcal: r2(food.kcal), protein: r2(food.protein), carbs: r2(food.carbs), fat: r2(food.fat) });
   }
 
   const macroBar = (val, target, color) => {
@@ -346,10 +352,10 @@ export default function NutritionPage() {
                   <div style={{ fontSize:12, fontWeight:700, color:"var(--muted)", marginBottom:2 }}>{m.type}</div>
                   <div style={{ fontSize:14, fontWeight:700 }}>{m.name}</div>
                   <div style={{ fontSize:12, color:"var(--muted)", marginTop:3 }}>
-                    {m.kcal} kcal
-                    {m.protein > 0 && <span> · {m.protein}g P</span>}
-                    {m.carbs > 0   && <span> · {m.carbs}g C</span>}
-                    {m.fat > 0     && <span> · {m.fat}g G</span>}
+                    {r2(m.kcal)} kcal
+                    {m.protein > 0 && <span> · {r2(m.protein)}g P</span>}
+                    {m.carbs > 0   && <span> · {r2(m.carbs)}g C</span>}
+                    {m.fat > 0     && <span> · {r2(m.fat)}g G</span>}
                   </div>
                 </div>
                 <button onClick={() => deleteMeal(m.id)} style={{ background:"none", border:"none", cursor:"pointer", fontSize:18, color:"var(--muted)", padding:4, lineHeight:1 }}>×</button>
@@ -733,8 +739,8 @@ export default function NutritionPage() {
                               </div>
                             </div>
                             <div style={{ textAlign:"right" }}>
-                              <div style={{ fontSize:13, fontWeight:700, color:"var(--green)" }}>{item.kcal} kcal</div>
-                              <div style={{ fontSize:10, color:"var(--muted)" }}>{item.protein}g P · {item.carbs}g C · {item.fat}g G</div>
+                              <div style={{ fontSize:13, fontWeight:700, color:"var(--green)" }}>{r2(item.kcal)} kcal</div>
+                              <div style={{ fontSize:10, color:"var(--muted)" }}>{r2(item.protein)}g P · {r2(item.carbs)}g C · {r2(item.fat)}g G</div>
                             </div>
                           </div>
                         ))}
@@ -866,8 +872,8 @@ export default function NutritionPage() {
                         <div style={{ fontSize:11, color:"var(--muted)" }}>{food.serving} · {food.cat}</div>
                       </div>
                       <div style={{ textAlign:"right", flexShrink:0 }}>
-                        <div style={{ fontSize:13, fontWeight:800, color:"var(--green)" }}>{food.kcal} kcal</div>
-                        <div style={{ fontSize:10, color:"var(--muted)" }}>{food.protein}P · {food.carbs}C · {food.fat}G</div>
+                        <div style={{ fontSize:13, fontWeight:800, color:"var(--green)" }}>{r2(food.kcal)} kcal</div>
+                        <div style={{ fontSize:10, color:"var(--muted)" }}>{r2(food.protein)}P · {r2(food.carbs)}C · {r2(food.fat)}G</div>
                       </div>
                     </button>
                   ))}
@@ -891,8 +897,8 @@ export default function NutritionPage() {
                   <button key={food.name} onClick={() => { addQuickFood(food); window.__showToast?.(food.name+" agregado","success"); }}
                     style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:10, padding:"8px 10px", fontSize:12, fontWeight:600, cursor:"pointer", textAlign:"left", color:"var(--text)" }}>
                     <div style={{ fontWeight:700, marginBottom:2, fontSize:11, lineHeight:1.3 }}>{food.name}</div>
-                    <div style={{ color:"var(--green)", fontWeight:800 }}>{food.kcal} kcal</div>
-                    <div style={{ color:"var(--muted)", fontSize:10 }}>{food.protein}g P · {food.carbs}g C · {food.fat}g G</div>
+                    <div style={{ color:"var(--green)", fontWeight:800 }}>{r2(food.kcal)} kcal</div>
+                    <div style={{ color:"var(--muted)", fontSize:10 }}>{r2(food.protein)}g P · {r2(food.carbs)}g C · {r2(food.fat)}g G</div>
                   </button>
                 ))}
               </div>
