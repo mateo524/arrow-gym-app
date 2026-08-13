@@ -129,6 +129,7 @@ export const createWorkoutSlice = (set, get) => ({
   },
 
   syncGymStateToDB: async () => {
+    get().setSyncStatus?.("saving");
     const s = get();
     const payload = {
       prs: s.prs || [],
@@ -160,7 +161,10 @@ export const createWorkoutSlice = (set, get) => ({
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user?.id) return;
       await supabase.from("profiles").update({ gym_data: payload }).eq("id", session.user.id);
-    } catch {}
+      get().setSyncStatus?.("saved");
+    } catch {
+      get().setSyncStatus?.("error");
+    }
   },
 
   loadGymStateFromDB: async () => {

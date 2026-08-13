@@ -28,6 +28,7 @@ const TrainerLandingPage = lazy(() => import("./pages/TrainerLandingPage.jsx"))
 const WorkoutSharePage   = lazy(() => import("./pages/WorkoutSharePage.jsx"));
 const NutritionPage      = lazy(() => import("./pages/NutritionPage.jsx"));
 import Nav from "./components/Nav.jsx";
+import SyncChip from "./components/SyncChip.jsx";
 import Icon from "./components/Icon.jsx";
 import OnboardingModal from "./components/OnboardingModal.jsx";
 import PRCard from "./components/PRCard.jsx";
@@ -671,6 +672,9 @@ function AppContent() {
           Sin conexión — tus datos se guardan localmente
         </div>
       )}
+      <div style={{ position:"fixed", top:8, right:12, zIndex:9998, pointerEvents:"none" }}>
+        <SyncChip />
+      </div>
       {/* -- ACHIEVEMENT UNLOCK TOAST --------------------------------------- */}
       {achToast && (
         <div style={{

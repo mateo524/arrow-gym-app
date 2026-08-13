@@ -103,7 +103,13 @@ export const createHealthSlice = (set, get) => ({
 
   // Upload current local state to Supabase immediately (called on app open)
   syncHealthToDB: async () => {
-    await syncHealthToDB(get());
+    get().setSyncStatus?.("saving");
+    try {
+      await syncHealthToDB(get());
+      get().setSyncStatus?.("saved");
+    } catch {
+      get().setSyncStatus?.("error");
+    }
   },
 
   loadHealthFromDB: async () => {

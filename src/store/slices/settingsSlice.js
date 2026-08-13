@@ -20,12 +20,15 @@ export const createSettingsSlice = (set, get) => ({
   hasSeenOnboarding: false,
   lastUserId: null,
   lastSeenVersion: null,
+  syncStatus: "idle",
   activityLevel: "moderado",
   exerciseRestTimes: {},
   weeklyGoal: 4,
   mutedHintTypes: [],
   customKcal: "",
   customFoods: [],
+
+  setSyncStatus: (s) => set({ syncStatus: s }),
 
   setPage: (page) => {
     if (page === "coach") {
