@@ -99,20 +99,28 @@ const useAuthStore = create((set, get) => ({
         setAuthProfile(profile);
         try {
           const { default: useStore } = await import("./useStore.js");
-          const lastUserId = useStore.getState().lastUserId;
-          if (lastUserId !== user.id) {
-            useStore.getState().resetUserData(user.id);
-          }
-          // Wait for Zustand to finish rehydrating from localStorage before
-          // merging Supabase data — otherwise get() returns default values and
-          // overwrites the user's persisted preferences (waterGoal, nutritionPlan, etc.)
+          // MUST wait for rehydration FIRST — before reading any persisted value.
+          // Without this, lastUserId and all scalars return their default initial
+          // values (undefined / 8 / null) and resetUserData fires on every open,
+          // wiping all local data.
           await new Promise(resolve => {
             if (useStore.getState()._rehydrated) { resolve(); return; }
             const unsub = useStore.subscribe(s => { if (s._rehydrated) { unsub(); resolve(); } });
             setTimeout(resolve, 1500);
           });
+          const lastUserId = useStore.getState().lastUserId;
+          if (lastUserId && lastUserId !== user.id) {
+            // Only reset if we KNOW a different user was here before
+            useStore.getState().resetUserData(user.id);
+          } else {
+            // Same user (or first time on this device) — just stamp the id
+            useStore.getState().setLastUserId(user.id);
+          }
+          // Upload local health data to Supabase immediately (don't wait for next change)
+          try { await useStore.getState().syncHealthToDB(); } catch {}
           await useStore.getState().syncWorkoutsFromDB(user.id);
           useStore.getState().syncAllToSupabase(user.id);
+          // Then merge any remote-only entries (new device / entries from another device)
           try { await useStore.getState().loadHealthFromDB(); } catch {}
           try { await useStore.getState().loadGymStateFromDB(); } catch {}
         } catch {}

@@ -48,7 +48,7 @@ function queueHealthSync(get) {
     } else {
       syncHealthToDB(state);
     }
-  }, 800);
+  }, 200);
 }
 
 export const createHealthSlice = (set, get) => ({
@@ -96,6 +96,11 @@ export const createHealthSlice = (set, get) => ({
     set({ pendingSyncs: failed });
   },
 
+  // Upload current local state to Supabase immediately (called on app open)
+  syncHealthToDB: async () => {
+    await syncHealthToDB(get());
+  },
+
   loadHealthFromDB: async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -113,19 +118,22 @@ export const createHealthSlice = (set, get) => ({
         };
         const local = get();
         set({
+          // Arrays: union of local + remote so no entry is ever lost
           weightLog:       mergeById(local.weightLog,       hd.weight_log),
           mealLog:         mergeById(local.mealLog,         hd.meal_log),
           sleepLog:        mergeById(local.sleepLog,        hd.sleep_log),
           waterLog:        mergeById(local.waterLog,        hd.water_log),
-          waterGoal:       hd.water_goal || local.waterGoal || 8,
           restDays:        mergeById(local.restDays,        hd.rest_days),
           cardioHistory:   mergeById(local.cardioHistory,   hd.cardio_history),
           savedMealCombos: mergeById(local.savedMealCombos, hd.saved_meal_combos),
-          nutritionPlan:   hd.nutrition_plan || local.nutritionPlan || null,
           activeChallenges:mergeById(local.activeChallenges,hd.active_challenges),
           progressPhotos:  mergeById(local.progressPhotos,  hd.progress_photos),
-          competitionDate: hd.competition_date || local.competitionDate || null,
-          competitionName: hd.competition_name || local.competitionName || "",
+          // Scalars: local always wins (most recent device edit),
+          // fall back to remote only if local is null/undefined
+          waterGoal:       local.waterGoal       ?? hd.water_goal       ?? 8,
+          nutritionPlan:   local.nutritionPlan   ?? hd.nutrition_plan   ?? null,
+          competitionDate: local.competitionDate ?? hd.competition_date ?? null,
+          competitionName: local.competitionName ?? hd.competition_name ?? "",
         });
       }
     } catch (e) { /* column may not exist */ }
