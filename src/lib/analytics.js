@@ -846,8 +846,15 @@ export function getWeeklyFatigueScore(workouts) {
   };
   const nextMonday = new Date(thisMonday);
   nextMonday.setDate(thisMonday.getDate() + 7);
+  // For lastWeek, only count up to the same day-of-week as today (proportional comparison).
+  // e.g. if today is Tuesday, only include Mon+Tue of last week.
+  const lastWeekCap = new Date(now);
+  lastWeekCap.setDate(now.getDate() - 7);
+  lastWeekCap.setHours(23, 59, 59, 999);
   const thisWeek = Math.round(sumLoad(workouts.filter(w => inWeek(w, thisMonday, nextMonday))));
-  const lastWeek = Math.round(sumLoad(workouts.filter(w => inWeek(w, lastMonday, thisMonday))));
+  const lastWeek = Math.round(sumLoad(workouts.filter(w => {
+    try { const d = parseDate(w.date); return d >= lastMonday && d <= lastWeekCap; } catch { return false; }
+  })));
   const week2    = Math.round(sumLoad(workouts.filter(w => inWeek(w, twoMondaysAgo, lastMonday))));
   const week3    = Math.round(sumLoad(workouts.filter(w => inWeek(w, threeMondaysAgo, twoMondaysAgo))));
   const pctChange = lastWeek > 0 ? Math.round(((thisWeek - lastWeek) / lastWeek) * 100) : 0;

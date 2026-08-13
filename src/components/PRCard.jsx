@@ -71,11 +71,11 @@ export default function PRCard({ pr, totalWorkouts, onClose }) {
     ctx.fillStyle = "#a855f7";
     ctx.fillRect(0, 0, W, 4);
 
-    // "EL GRITO" label
+    // Record label
     ctx.fillStyle = "#a855f7";
     ctx.font = "bold 13px 'Inter', system-ui, sans-serif";
     ctx.letterSpacing = "3px";
-    ctx.fillText("⚡ EL GRITO — NUEVO RÉCORD", 24, 36);
+    ctx.fillText("⚡ NUEVO RÉCORD PERSONAL", 24, 36);
 
     // Exercise name
     ctx.fillStyle = "#ffffff";

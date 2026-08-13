@@ -829,7 +829,7 @@ export default function NutritionPage() {
       {/* ── MODAL AGREGAR ── */}
       {showForm && (
         <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.7)", zIndex:100, display:"flex", alignItems:"flex-end" }} onClick={e => { if(e.target===e.currentTarget) resetForm(); }}>
-          <div style={{ background:"var(--bg)", borderRadius:"20px 20px 0 0", width:"100%", height:"92vh", position:"relative", display:"flex", flexDirection:"column" }}>
+          <div style={{ background:"var(--bg)", borderRadius:"20px 20px 0 0", width:"100%", height:"92vh", display:"flex", flexDirection:"column" }}>
             <div style={{ padding:"20px 20px 0", flexShrink:0 }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
               <h3 style={{ margin:0, fontSize:17 }}>Registrar comida</h3>
@@ -877,8 +877,8 @@ export default function NutritionPage() {
 
             </div>{/* end non-scrollable header */}
 
-            {/* Scrollable body — paddingBottom reserva espacio para el footer */}
-            <div style={{ flex:1, overflowY:"auto", padding:"0 20px 80px" }}>
+            {/* Scrollable body */}
+            <div style={{ flex:1, overflowY:"auto", padding:"0 20px 20px" }}>
 
             {/* Quick foods toggle */}
             <button onClick={() => setShowQuick(p => !p)} style={{ width:"100%", background:"rgba(34,211,120,.08)", border:"1px solid rgba(34,211,120,.2)", borderRadius:12, padding:"10px", fontSize:13, fontWeight:600, cursor:"pointer", color:"var(--green)", marginBottom:14 }}>
@@ -917,8 +917,8 @@ export default function NutritionPage() {
             </form>
             </div>{/* end scrollable body */}
 
-            {/* Footer absolutamente posicionado — siempre visible sin importar el scroll */}
-            <div style={{ position:"absolute", bottom:0, left:0, right:0, padding:"10px 20px", paddingBottom:"max(16px, env(safe-area-inset-bottom, 16px))", background:"var(--bg)", borderTop:"1px solid var(--line)" }}>
+            {/* Footer siempre visible — flexShrink:0 garantiza que nunca se oculte */}
+            <div style={{ flexShrink:0, padding:"10px 20px", paddingBottom:"max(16px, env(safe-area-inset-bottom, 16px))", background:"var(--bg)", borderTop:"1px solid var(--line)" }}>
               <button type="submit" form="meal-add-form" className="primary" style={{ width:"100%" }} disabled={saving}>
                 {saving ? "Guardando…" : "Guardar comida"}
               </button>

@@ -102,6 +102,7 @@ export default function CoachPage() {
   const [sharing, setSharing] = useState(false);
   const [showProgresoAdvanced, setShowProgresoAdvanced] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showAllAlerts, setShowAllAlerts] = useState(false);
   useEffect(() => {
     // Always call — it auto-rotates weekly and refreshes doneCount
     generateWeeklyChallenge();
@@ -935,7 +936,7 @@ export default function CoachPage() {
                       <b style={{ fontSize:14 }}>{fatigueScore.thisWeek >= 1000 ? (fatigueScore.thisWeek/1000).toFixed(1) + "k" : fatigueScore.thisWeek} kg</b>
                     </div>
                     <div style={{ background:"var(--panel2)", borderRadius:12, padding:"8px 10px" }}>
-                      <p style={{ margin:"0 0 2px", fontSize:10, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em" }}>Semana anterior</p>
+                      <p style={{ margin:"0 0 2px", fontSize:10, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em" }}>Semana ant. (mismo período)</p>
                       <b style={{ fontSize:14 }}>{fatigueScore.lastWeek >= 1000 ? (fatigueScore.lastWeek/1000).toFixed(1) + "k" : fatigueScore.lastWeek} kg</b>
                     </div>
                   </div>
@@ -1584,95 +1585,69 @@ export default function CoachPage() {
             <div className="notice"><b>Pocos datos</b><p>Registrá al menos 2 entrenamientos para activar el sistema de alertas.</p></div>
           )}
 
-          {/* Overreaching alert */}
-          {fatigueScore.overreaching && (
-            <div style={{ display:"flex", gap:10, alignItems:"flex-start", background:"rgba(239,68,68,.08)", border:"1px solid rgba(239,68,68,.3)", borderRadius:14, padding:"14px 16px", marginBottom:10 }}>
-              <div>
-                <p style={{ margin:"0 0 3px", fontSize:14, fontWeight:700, color:"var(--text)" }}>Sobrecarga detectada</p>
-                <p style={{ margin:0, fontSize:13, color:"var(--muted)", lineHeight:1.5 }}>
-                  Tu volumen subió un {fatigueScore.pctChange || 0}% de golpe. Riesgo de sobreentrenamiento — priorizá descanso esta semana.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Smart alerts */}
-          {smartAlerts.map((alert, i) => (
-            <div key={i} style={{
-              display:"flex", gap:10, alignItems:"flex-start",
-              background: alert.type === "imbalance" || alert.type === "bodyfat_high" ? "rgba(239,68,68,.07)" : alert.type === "bodyfat_low" ? "rgba(96,165,250,.08)" : alert.type === "stall" ? "rgba(96,165,250,.08)" : "rgba(245,158,11,.08)",
-              border:`1px solid ${alert.type === "imbalance" || alert.type === "bodyfat_high" ? "rgba(239,68,68,.25)" : alert.type === "bodyfat_low" ? "rgba(96,165,250,.3)" : alert.type === "stall" ? "rgba(96,165,250,.3)" : "rgba(245,158,11,.3)"}`,
-              borderRadius:14, padding:"14px 16px", marginBottom:10
-            }}>
-              <Icon name={alert.type === "stall" ? "TrendingDown" : alert.type === "volume" ? "BarChart2" : alert.type === "rest" ? "Moon" : alert.type === "neglect" ? "Activity" : alert.type === "frequency" ? "Calendar" : alert.type === "bodyfat_high" ? "AlertTriangle" : alert.type === "bodyfat_low" ? "AlertTriangle" : "Scale"} size={20} style={{flexShrink:0}} />
-              <div>
-                <p style={{ margin:"0 0 3px", fontSize:14, fontWeight:700, color:"var(--text)" }}>
-                  {alert.type === "stall" ? "Estancamiento de peso" : alert.type === "volume" ? "Caída de volumen" : alert.type === "rest" ? "Sin días de descanso" : alert.type === "neglect" ? "Piernas abandonadas" : alert.type === "frequency" ? "Frecuencia baja" : alert.type === "bodyfat_high" ? "% Grasa elevado" : alert.type === "bodyfat_low" ? "% Grasa muy bajo" : "Desbalance muscular"}
-                </p>
-                <p style={{ margin:0, fontSize:13, color:"var(--muted)", lineHeight:1.5 }}>{alert.msg}</p>
-              </div>
-            </div>
-          ))}
-
-          {/* Stagnant exercise cards */}
-          {stagnantExercises.map((item, i) => (
-            <div key={i} style={{
-              display:"flex", gap:10, alignItems:"flex-start",
-              background:"rgba(245,158,11,.08)",
-              border:"1px solid rgba(245,158,11,.3)",
-              borderRadius:14, padding:"14px 16px", marginBottom:10
-            }}>
-              <Icon name="TrendingDown" size={20} style={{flexShrink:0}} />
-              <div>
-                <p style={{ margin:"0 0 3px", fontSize:14, fontWeight:700, color:"var(--text)" }}>
-                  Estancamiento: {item.exercise}
-                </p>
-                <p style={{ margin:"0 0 4px", fontSize:12, color:"var(--muted)" }}>
-                  {item.weeks} semana{item.weeks !== 1 ? "s" : ""} sin progreso — Mejor peso: {item.bestWeight}kg — Volumen prom: {item.avgVolume}kg
-                </p>
-                <p style={{ margin:0, fontSize:13, color:"var(--muted)", lineHeight:1.5 }}>{item.suggestion}</p>
-              </div>
-            </div>
-          ))}
-
-          {/* Weekly actionable feedback */}
-          {weeklyFeedback.map((msg, i) => (
-            <div key={i} style={{
-              display:"flex", gap:10, alignItems:"flex-start",
-              background:"rgba(168,85,247,.07)",
-              border:"1px solid rgba(168,85,247,.25)",
-              borderRadius:14, padding:"14px 16px", marginBottom:10
-            }}>
-              <Icon name="Heart" size={20} style={{flexShrink:0}} />
-              <div>
-                <p style={{ margin:0, fontSize:13, color:"var(--muted)", lineHeight:1.5 }}>{msg}</p>
-              </div>
-            </div>
-          ))}
-
-          {/* RPE fatigue alerts */}
-          {rpeFatigueAlerts.map((alert, i) => (
-            <div key={i} style={{ display:"flex", gap:10, alignItems:"flex-start", background:"rgba(168,85,247,.07)", border:"1px solid rgba(168,85,247,.25)", borderRadius:14, padding:"14px 16px", marginBottom:10 }}>
-              <Icon name="Zap" size={20} style={{flexShrink:0}} />
-              <div>
-                <p style={{ margin:"0 0 3px", fontSize:14, fontWeight:700, color:"var(--text)" }}>Fatiga acumulada por RPE</p>
-                <p style={{ margin:0, fontSize:13, color:"var(--muted)", lineHeight:1.5 }}>{alert.msg}</p>
-              </div>
-            </div>
-          ))}
-
-          {/* Skipped muscle groups */}
-          {skippedGroups.length > 0 && (
-            <div style={{ display:"flex", gap:10, alignItems:"flex-start", background:"rgba(239,68,68,.07)", border:"1px solid rgba(239,68,68,.25)", borderRadius:14, padding:"14px 16px", marginBottom:10 }}>
-              <Icon name="AlertTriangle" size={20} style={{flexShrink:0}} />
-              <div>
-                <p style={{ margin:"0 0 3px", fontSize:14, fontWeight:700, color:"var(--text)" }}>Grupos sin entrenar</p>
-                <p style={{ margin:0, fontSize:13, color:"var(--muted)", lineHeight:1.5 }}>
-                  No entrenaste <b style={{ color:"var(--danger)" }}>{skippedGroups.join(", ")}</b> en las últimas 4 semanas. Tu programa está desequilibrado.
-                </p>
-              </div>
-            </div>
-          )}
+          {/* All alerts — collapsible when > 3 */}
+          {(() => {
+            const allAlerts = [
+              ...(fatigueScore.overreaching ? [{
+                key: "overreaching",
+                bg: "rgba(239,68,68,.08)", border: "rgba(239,68,68,.3)",
+                icon: "AlertTriangle", title: "Sobrecarga detectada",
+                msg: `Tu volumen subió un ${fatigueScore.pctChange || 0}% de golpe. Riesgo de sobreentrenamiento — priorizá descanso esta semana.`
+              }] : []),
+              ...smartAlerts.map((a, i) => ({
+                key: `smart-${i}`,
+                bg: a.type === "imbalance" || a.type === "bodyfat_high" ? "rgba(239,68,68,.07)" : a.type === "bodyfat_low" ? "rgba(96,165,250,.08)" : a.type === "stall" ? "rgba(96,165,250,.08)" : "rgba(245,158,11,.08)",
+                border: a.type === "imbalance" || a.type === "bodyfat_high" ? "rgba(239,68,68,.25)" : a.type === "bodyfat_low" ? "rgba(96,165,250,.3)" : a.type === "stall" ? "rgba(96,165,250,.3)" : "rgba(245,158,11,.3)",
+                icon: a.type === "stall" ? "TrendingDown" : a.type === "volume" ? "BarChart2" : a.type === "rest" ? "Moon" : a.type === "neglect" ? "Activity" : a.type === "frequency" ? "Calendar" : "AlertTriangle",
+                title: a.type === "stall" ? "Estancamiento de peso" : a.type === "volume" ? "Caída de volumen" : a.type === "rest" ? "Sin días de descanso" : a.type === "neglect" ? "Piernas abandonadas" : a.type === "frequency" ? "Frecuencia baja" : a.type === "bodyfat_high" ? "% Grasa elevado" : a.type === "bodyfat_low" ? "% Grasa muy bajo" : "Desbalance muscular",
+                msg: a.msg
+              })),
+              ...stagnantExercises.map((item, i) => ({
+                key: `stagnant-${i}`,
+                bg: "rgba(245,158,11,.08)", border: "rgba(245,158,11,.3)",
+                icon: "TrendingDown",
+                title: `Estancamiento: ${item.exercise}`,
+                msg: `${item.weeks} sem. sin progreso — Mejor: ${item.bestWeight}kg — ${item.suggestion}`
+              })),
+              ...weeklyFeedback.map((msg, i) => ({
+                key: `feedback-${i}`,
+                bg: "rgba(168,85,247,.07)", border: "rgba(168,85,247,.25)",
+                icon: "Heart", title: null, msg
+              })),
+              ...rpeFatigueAlerts.map((a, i) => ({
+                key: `rpe-${i}`,
+                bg: "rgba(168,85,247,.07)", border: "rgba(168,85,247,.25)",
+                icon: "Zap", title: "Fatiga acumulada por RPE", msg: a.msg
+              })),
+              ...(skippedGroups.length > 0 ? [{
+                key: "skipped",
+                bg: "rgba(239,68,68,.07)", border: "rgba(239,68,68,.25)",
+                icon: "AlertTriangle", title: "Grupos sin entrenar",
+                msg: `No entrenaste ${skippedGroups.join(", ")} en las últimas 4 semanas. Tu programa está desequilibrado.`
+              }] : []),
+            ];
+            const LIMIT = 3;
+            const visible = showAllAlerts ? allAlerts : allAlerts.slice(0, LIMIT);
+            const hidden = allAlerts.length - LIMIT;
+            return (
+              <>
+                {visible.map(a => (
+                  <div key={a.key} style={{ display:"flex", gap:10, alignItems:"flex-start", background:a.bg, border:`1px solid ${a.border}`, borderRadius:14, padding:"14px 16px", marginBottom:10 }}>
+                    <Icon name={a.icon} size={20} style={{flexShrink:0}} />
+                    <div>
+                      {a.title && <p style={{ margin:"0 0 3px", fontSize:14, fontWeight:700, color:"var(--text)" }}>{a.title}</p>}
+                      <p style={{ margin:0, fontSize:13, color:"var(--muted)", lineHeight:1.5 }}>{a.msg}</p>
+                    </div>
+                  </div>
+                ))}
+                {allAlerts.length > LIMIT && (
+                  <button onClick={() => setShowAllAlerts(p => !p)} style={{ width:"100%", background:"var(--panel)", border:"1px solid var(--line)", borderRadius:12, padding:"10px", fontSize:13, fontWeight:600, cursor:"pointer", color:"var(--muted)", marginBottom:10 }}>
+                    {showAllAlerts ? <><Icon name="ChevronUp" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:4}} /> Mostrar menos</> : <><Icon name="ChevronDown" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:4}} /> Ver {hidden} alerta{hidden !== 1 ? "s" : ""} más</>}
+                  </button>
+                )}
+              </>
+            );
+          })()}
 
           {/* Disclaimer */}
           <p style={{ fontSize: 10, color: 'var(--muted)', margin: '0 0 12px', opacity: 0.7, textAlign: 'center' }}>

@@ -823,11 +823,11 @@ export default function WorkoutPage() {
                       {[
                         { label:"Mejor peso",  value: prData?.bestWeight  ? `${prData.bestWeight}kg` : "—" },
                         { label:"Mejor vol.",  value: prData?.bestVolume  ? `${prData.bestVolume}kg` : "—" },
-                        { label:"Más reps",    value: prData?.bestReps    ? `${prData.bestReps}×${prData.bestRepsWeight}kg` : "—" },
+                        { label:"Más reps",    value: prData?.bestReps    ? `${prData.bestReps}×${prData.bestRepsWeight}` : "—" },
                       ].map(({ label, value }) => (
-                        <div key={label} style={{ background: "var(--panel2)", borderRadius: 12, padding: "12px 8px", textAlign: "center" }}>
-                          <div style={{ fontSize: 15, fontWeight: 900, color: "var(--green)" }}>{value}</div>
-                          <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 3 }}>{label}</div>
+                        <div key={label} style={{ background: "var(--panel2)", borderRadius: 12, padding: "10px 6px", textAlign: "center", minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 900, color: "var(--green)", wordBreak: "break-word", lineHeight: 1.2 }}>{value}</div>
+                          <div style={{ fontSize: 9, color: "var(--muted)", marginTop: 3 }}>{label}</div>
                         </div>
                       ))}
                     </div>
