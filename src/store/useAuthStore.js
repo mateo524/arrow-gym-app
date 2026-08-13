@@ -116,12 +116,12 @@ const useAuthStore = create((set, get) => ({
             // Same user (or first time on this device) — just stamp the id
             useStore.getState().setLastUserId(user.id);
           }
-          // Upload local health data to Supabase immediately (don't wait for next change)
-          try { await useStore.getState().syncHealthToDB(); } catch {}
           await useStore.getState().syncWorkoutsFromDB(user.id);
           useStore.getState().syncAllToSupabase(user.id);
-          // Then merge any remote-only entries (new device / entries from another device)
+          // Merge remote entries into local (local scalars always win, arrays union)
           try { await useStore.getState().loadHealthFromDB(); } catch {}
+          // After merge, push the combined result back to Supabase so it stays in sync
+          try { await useStore.getState().syncHealthToDB(); } catch {}
           try { await useStore.getState().loadGymStateFromDB(); } catch {}
         } catch {}
       } else {
