@@ -51,7 +51,7 @@ const useStore = create(
       ...createSettingsSlice(...a),
       ...createHealthSlice(...a),
       ...createExerciseSlice(...a),
-      ...createCoachSlice(...a),
+      ...createCoachSlice(...a.slice(0, 2)),
       ...createNotificationSlice(...a),
     }),
     {

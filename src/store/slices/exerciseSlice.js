@@ -1,5 +1,11 @@
 import { EXERCISE_DATABASE, findExerciseMeta, resolveExerciseGroup, resolveExerciseMuscle } from "../../data/exerciseDatabase.js";
 
+let exerciseSyncTimer = null;
+function queueExerciseSync(get) {
+  clearTimeout(exerciseSyncTimer);
+  exerciseSyncTimer = setTimeout(() => { try { get().syncGymStateToDB(); } catch {} }, 300);
+}
+
 export const createExerciseSlice = (set, get) => ({
   customExercises: [],
   recentExercises: [],
@@ -23,11 +29,13 @@ export const createExerciseSlice = (set, get) => ({
       const exists = (s.favoriteExercises || []).includes(exerciseName);
       return { favoriteExercises: exists ? s.favoriteExercises.filter((e) => e !== exerciseName) : [...(s.favoriteExercises || []), exerciseName] };
     });
+    queueExerciseSync(get);
   },
 
-  setExerciseNote: (name, note) => set((s) => ({
-    exerciseNotes: { ...(s.exerciseNotes || {}), [name]: note },
-  })),
+  setExerciseNote: (name, note) => {
+    set((s) => ({ exerciseNotes: { ...(s.exerciseNotes || {}), [name]: note } }));
+    queueExerciseSync(get);
+  },
 
   addCustomExercise: (payload) => {
     const name = String(payload.name || "").trim();
@@ -42,5 +50,6 @@ export const createExerciseSlice = (set, get) => ({
       builtin: false,
     };
     set((s) => ({ customExercises: [exercise, ...(s.customExercises || []).filter((item) => item.name.toLowerCase() !== name.toLowerCase())] }));
+    queueExerciseSync(get);
   },
 });

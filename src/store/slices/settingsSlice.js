@@ -55,9 +55,10 @@ export const createSettingsSlice = (set, get) => ({
   setLastUserId: (userId) => set({ lastUserId: userId }),
   setFontScale: (scale) => set({ fontScale: scale }),
   setAutoDarkMode: (val) => set({ autoDarkMode: val }),
-  setExerciseRestTime: (exercise, seconds) => set((s) => ({
-    exerciseRestTimes: { ...(s.exerciseRestTimes || {}), [exercise]: seconds },
-  })),
+  setExerciseRestTime: (exercise, seconds) => {
+    set((s) => ({ exerciseRestTimes: { ...(s.exerciseRestTimes || {}), [exercise]: seconds } }));
+    try { get().syncGymStateToDB(); } catch {}
+  },
 
   resetUserData: (userId) => set({
     lastUserId: userId,

@@ -1,6 +1,12 @@
 import { todayLocal } from "../../lib/dates.js";
 
-export function createCoachSlice(set) {
+let coachSyncTimer = null;
+function queueCoachSync(get) {
+  clearTimeout(coachSyncTimer);
+  coachSyncTimer = setTimeout(() => { try { get().syncGymStateToDB(); } catch {} }, 300);
+}
+
+export function createCoachSlice(set, get) {
   return {
     // Pre-session readiness: { score: 1-5, date: "YYYY-MM-DD" } — resets each day
     readiness: null,
@@ -24,24 +30,24 @@ export function createCoachSlice(set) {
       };
     }),
 
-    recordSuggestion: (exercise, suggestedWeight) => set(state => ({
-      progressionTargets: {
-        ...state.progressionTargets,
-        [exercise]: {
-          ...(state.progressionTargets[exercise] || {}),
-          lastSuggested: { weight: suggestedWeight, date: todayLocal() },
+    recordSuggestion: (exercise, suggestedWeight) => {
+      set(state => ({
+        progressionTargets: {
+          ...state.progressionTargets,
+          [exercise]: { ...(state.progressionTargets[exercise] || {}), lastSuggested: { weight: suggestedWeight, date: todayLocal() } },
         },
-      },
-    })),
+      }));
+      queueCoachSync(get);
+    },
 
-    recordActual: (exercise, weight, reps) => set(state => ({
-      progressionTargets: {
-        ...state.progressionTargets,
-        [exercise]: {
-          ...(state.progressionTargets[exercise] || {}),
-          lastActual: { weight: Number(weight), reps: Number(reps), date: todayLocal() },
+    recordActual: (exercise, weight, reps) => {
+      set(state => ({
+        progressionTargets: {
+          ...state.progressionTargets,
+          [exercise]: { ...(state.progressionTargets[exercise] || {}), lastActual: { weight: Number(weight), reps: Number(reps), date: todayLocal() } },
         },
-      },
-    })),
+      }));
+      queueCoachSync(get);
+    },
   };
 }

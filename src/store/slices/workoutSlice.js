@@ -137,6 +137,15 @@ export const createWorkoutSlice = (set, get) => ({
       weeklyChallenge: s.weeklyChallenge || null,
       completedPlans: (s.completedPlans || []).slice(0, 50),
       coachReports: (s.coachReports || []).slice(0, 30),
+      // exerciseSlice
+      customExercises: s.customExercises || [],
+      favoriteExercises: s.favoriteExercises || [],
+      exerciseNotes: s.exerciseNotes || {},
+      // coachSlice
+      progressionTargets: s.progressionTargets || {},
+      // settingsSlice
+      exerciseRestTimes: s.exerciseRestTimes || {},
+      customFoods: (s.customFoods || []).slice(0, 200),
     };
     if (!navigator.onLine) {
       s.queueSync?.("gym", payload);
@@ -178,12 +187,28 @@ export const createWorkoutSlice = (set, get) => ({
       const mergedAchievements = (gd.achievements?.length || 0) > (local.achievements?.length || 0) ? gd.achievements : local.achievements;
       const mergedCoachReports = (gd.coachReports?.length || 0) > (local.coachReports?.length || 0)
         ? gd.coachReports : local.coachReports;
+
+      // Merge object maps — local keys win on conflict (most recent device edit)
+      function mergeMaps(localMap = {}, remoteMap = {}) {
+        return { ...remoteMap, ...localMap };
+      }
+      // Merge arrays without ids by taking the longer one
+      function mergeLonger(localArr = [], remoteArr = []) {
+        return localArr.length >= remoteArr.length ? localArr : remoteArr;
+      }
+
       set({
-        prs: mergedPrs || [],
-        achievements: mergedAchievements || [],
-        savedTemplates: mergeByUpdatedAt(local.savedTemplates, gd.savedTemplates),
-        completedPlans: mergeByUpdatedAt(local.completedPlans, gd.completedPlans),
-        coachReports: mergedCoachReports || [],
+        prs:               mergedPrs || [],
+        achievements:      mergedAchievements || [],
+        savedTemplates:    mergeByUpdatedAt(local.savedTemplates, gd.savedTemplates),
+        completedPlans:    mergeByUpdatedAt(local.completedPlans, gd.completedPlans),
+        coachReports:      mergedCoachReports || [],
+        customExercises:   mergeLonger(local.customExercises,   gd.customExercises),
+        favoriteExercises: mergeLonger(local.favoriteExercises, gd.favoriteExercises),
+        exerciseNotes:     mergeMaps(local.exerciseNotes,       gd.exerciseNotes),
+        progressionTargets:mergeMaps(local.progressionTargets,  gd.progressionTargets),
+        exerciseRestTimes: mergeMaps(local.exerciseRestTimes,   gd.exerciseRestTimes),
+        customFoods:       mergeLonger(local.customFoods,       gd.customFoods),
       });
     } catch {}
   },
