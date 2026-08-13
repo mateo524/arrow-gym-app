@@ -103,20 +103,29 @@ export const createHealthSlice = (set, get) => ({
       const { data } = await supabase.from("profiles").select("health_data").eq("id", session.user.id).single();
       if (data?.health_data) {
         const hd = data.health_data;
+        // Merge arrays by id — never discard locally-stored entries.
+        // Remote wins for scalar fields; for arrays we take the union.
+        const mergeById = (local, remote) => {
+          if (!remote?.length) return local || [];
+          if (!local?.length) return remote;
+          const seen = new Set(local.map(x => x.id));
+          return [...local, ...remote.filter(x => !seen.has(x.id))];
+        };
+        const local = get();
         set({
-          weightLog: hd.weight_log || [],
-          mealLog: hd.meal_log || [],
-          sleepLog: hd.sleep_log || [],
-          waterLog: hd.water_log || [],
-          waterGoal: hd.water_goal || 8,
-          restDays: hd.rest_days || [],
-          cardioHistory: hd.cardio_history || [],
-          savedMealCombos: hd.saved_meal_combos || [],
-          nutritionPlan: hd.nutrition_plan || null,
-          activeChallenges: hd.active_challenges || [],
-          progressPhotos: hd.progress_photos || [],
-          competitionDate: hd.competition_date || null,
-          competitionName: hd.competition_name || "",
+          weightLog:       mergeById(local.weightLog,       hd.weight_log),
+          mealLog:         mergeById(local.mealLog,         hd.meal_log),
+          sleepLog:        mergeById(local.sleepLog,        hd.sleep_log),
+          waterLog:        mergeById(local.waterLog,        hd.water_log),
+          waterGoal:       hd.water_goal || local.waterGoal || 8,
+          restDays:        mergeById(local.restDays,        hd.rest_days),
+          cardioHistory:   mergeById(local.cardioHistory,   hd.cardio_history),
+          savedMealCombos: mergeById(local.savedMealCombos, hd.saved_meal_combos),
+          nutritionPlan:   hd.nutrition_plan || local.nutritionPlan || null,
+          activeChallenges:mergeById(local.activeChallenges,hd.active_challenges),
+          progressPhotos:  mergeById(local.progressPhotos,  hd.progress_photos),
+          competitionDate: hd.competition_date || local.competitionDate || null,
+          competitionName: hd.competition_name || local.competitionName || "",
         });
       }
     } catch (e) { /* column may not exist */ }

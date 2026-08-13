@@ -1,66 +1,55 @@
 import { useState, useRef, useEffect } from "react";
+import { BrowserMultiFormatReader } from "@zxing/browser";
 
-// Uses BarcodeDetector (Chrome/Android) or camera stream + canvas for fallback
 export default function BarcodeScanner({ onDetect, onClose }) {
   const videoRef = useRef(null);
+  const readerRef = useRef(null);
   const [error, setError] = useState(null);
   const [scanning, setScanning] = useState(false);
-  const streamRef = useRef(null);
-  const detectorRef = useRef(null);
-  const rafRef = useRef(null);
   const [manualCode, setManualCode] = useState("");
+  const [loading, setLoading] = useState(false);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
+
     async function start() {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } }
-        });
-        if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
-        streamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          await videoRef.current.play();
-        }
+        const reader = new BrowserMultiFormatReader();
+        readerRef.current = reader;
 
-        if ("BarcodeDetector" in window) {
-          detectorRef.current = new BarcodeDetector({ formats: ["ean_13","ean_8","upc_a","upc_e","code_128","code_39","qr_code"] });
-          setScanning(true);
-          const detect = async () => {
-            if (cancelled) return;
-            try {
-              const barcodes = await detectorRef.current.detect(videoRef.current);
-              if (barcodes.length > 0) {
-                const code = barcodes[0].rawValue;
-                handleBarcode(code);
-                return;
-              }
-            } catch {}
-            rafRef.current = requestAnimationFrame(detect);
-          };
-          detect();
-        } else {
-          setError("Tu navegador no soporta escaneo nativo. Ingresá el código manualmente.");
-        }
+        const devices = await BrowserMultiFormatReader.listVideoInputDevices();
+        // Prefer rear camera
+        const device = devices.find(d => /back|rear|environment/i.test(d.label)) || devices[devices.length - 1];
+        const deviceId = device?.deviceId || undefined;
+
+        await reader.decodeFromVideoDevice(deviceId, videoRef.current, (result, err) => {
+          if (cancelled) return;
+          if (result) {
+            handleBarcode(result.getText());
+          }
+        });
+        if (!cancelled) setScanning(true);
       } catch (err) {
-        setError("No se pudo acceder a la cámara. Verificá los permisos.");
+        if (!cancelled) {
+          setError("No se pudo acceder a la cámara. Usá el campo manual o subí una foto.");
+        }
       }
     }
+
     start();
+
     return () => {
       cancelled = true;
-      cancelAnimationFrame(rafRef.current);
-      streamRef.current?.getTracks().forEach(t => t.stop());
+      try { readerRef.current?.reset(); } catch {}
     };
   }, []);
 
   async function handleBarcode(code) {
-    cancelAnimationFrame(rafRef.current);
-    streamRef.current?.getTracks().forEach(t => t.stop());
+    try { readerRef.current?.reset(); } catch {}
     setScanning(false);
+    setLoading(true);
 
-    // Lookup in Open Food Facts
     try {
       const res = await fetch(`https://world.openfoodfacts.org/api/v2/product/${code}?fields=product_name,nutriments,serving_size`);
       const data = await res.json();
@@ -77,54 +66,101 @@ export default function BarcodeScanner({ onDetect, onClose }) {
           barcode: code,
         });
       } else {
-        setError(`Código ${code} no encontrado en la base de datos. Ingresá los datos manualmente.`);
-        setTimeout(() => onClose(), 2000);
+        setLoading(false);
+        setError(`Código ${code} no encontrado. Ingresá los datos manualmente.`);
       }
     } catch {
-      setError("Error de red. Verificá tu conexión.");
+      setLoading(false);
+      setError("Error de red. Ingresá los datos manualmente.");
     }
   }
 
-  return (
-    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.9)", zIndex:1000, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center" }}>
-      <div style={{ width:"100%", maxWidth:400, padding:20 }}>
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
-          <h3 style={{ margin:0, color:"#fff" }}>Escanear código de barras</h3>
-          <button onClick={onClose} style={{ background:"none", border:"none", color:"#fff", fontSize:24, cursor:"pointer" }}>×</button>
-        </div>
+  async function handleImageFile(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLoading(true);
+    try {
+      const reader = new BrowserMultiFormatReader();
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = async () => {
+        try {
+          const result = await reader.decodeFromImageElement(img);
+          URL.revokeObjectURL(url);
+          handleBarcode(result.getText());
+        } catch {
+          URL.revokeObjectURL(url);
+          setLoading(false);
+          setError("No se detectó ningún código en la imagen. Intentá con mejor iluminación o ingresá el código manualmente.");
+        }
+      };
+      img.src = url;
+    } catch {
+      setLoading(false);
+      setError("Error al procesar la imagen.");
+    }
+    e.target.value = "";
+  }
 
-        {!error ? (
-          <>
-            <div style={{ position:"relative", borderRadius:16, overflow:"hidden", background:"#000", aspectRatio:"4/3", marginBottom:16 }}>
-              <video ref={videoRef} playsInline muted style={{ width:"100%", height:"100%", objectFit:"cover" }} />
-              {/* Scan frame overlay */}
-              <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center", pointerEvents:"none" }}>
-                <div style={{ position:"relative", width:"70%", aspectRatio:"3/2", border:"2px solid #22d37a", borderRadius:8 }}>
-                  <div style={{ position:"absolute", top:0, left:0, right:0, height:2, background:"#22d37a", animation:"scan 2s linear infinite" }} />
-                </div>
-              </div>
+  return (
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.95)", zIndex:1000, display:"flex", flexDirection:"column" }}>
+      {/* Header */}
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"16px 20px", flexShrink:0 }}>
+        <h3 style={{ margin:0, color:"#fff", fontSize:16 }}>Escanear código de barras</h3>
+        <button onClick={onClose} style={{ background:"none", border:"none", color:"#fff", fontSize:26, cursor:"pointer", lineHeight:1 }}>×</button>
+      </div>
+
+      {/* Camera view */}
+      <div style={{ flex:1, position:"relative", overflow:"hidden", background:"#000" }}>
+        <video ref={videoRef} playsInline muted style={{ width:"100%", height:"100%", objectFit:"cover" }} />
+        {scanning && (
+          <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center", pointerEvents:"none" }}>
+            <div style={{ position:"relative", width:"72%", maxWidth:280, aspectRatio:"3/2", border:"2px solid #22d37a", borderRadius:10 }}>
+              <div style={{ position:"absolute", top:0, left:0, right:0, height:2, background:"#22d37a", animation:"scan 2s linear infinite" }} />
             </div>
-            <p style={{ color:"rgba(255,255,255,.6)", fontSize:13, textAlign:"center" }}>Apuntá la cámara al código de barras del producto</p>
-          </>
-        ) : (
-          <div style={{ background:"rgba(239,68,68,.15)", border:"1px solid #ef4444", borderRadius:12, padding:16, marginBottom:16, color:"#f87171", fontSize:13 }}>
-            {error}
           </div>
         )}
-
-        <div style={{ marginTop:12 }}>
-          <p style={{ color:"rgba(255,255,255,.5)", fontSize:12, marginBottom:8 }}>O ingresá el código manualmente:</p>
-          <div style={{ display:"flex", gap:8 }}>
-            <input type="text" inputMode="numeric" placeholder="Ej: 7790000000000"
-              value={manualCode} onChange={e => setManualCode(e.target.value)}
-              style={{ flex:1, background:"rgba(255,255,255,.1)", border:"1px solid rgba(255,255,255,.2)", borderRadius:10, padding:"10px 14px", color:"#fff", fontSize:14 }} />
-            <button onClick={() => manualCode && handleBarcode(manualCode)}
-              style={{ padding:"10px 18px", background:"var(--green)", border:"none", borderRadius:10, color:"#fff", fontWeight:700, cursor:"pointer" }}>
-              Buscar
-            </button>
+        {loading && (
+          <div style={{ position:"absolute", inset:0, background:"rgba(0,0,0,.7)", display:"flex", alignItems:"center", justifyContent:"center" }}>
+            <p style={{ color:"#fff", fontSize:14 }}>Buscando producto…</p>
           </div>
+        )}
+        {error && (
+          <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
+            <div style={{ background:"rgba(239,68,68,.2)", border:"1px solid #ef4444", borderRadius:12, padding:16, color:"#f87171", fontSize:13, textAlign:"center" }}>
+              {error}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Bottom controls */}
+      <div style={{ flexShrink:0, padding:"14px 20px", paddingBottom:"max(20px, env(safe-area-inset-bottom, 20px))", background:"rgba(0,0,0,.9)", display:"flex", flexDirection:"column", gap:10 }}>
+        {/* Photo fallback for iOS */}
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          style={{ width:"100%", padding:"11px", background:"rgba(168,85,247,.2)", border:"1px solid rgba(168,85,247,.5)", borderRadius:12, color:"#c084fc", fontWeight:700, fontSize:14, cursor:"pointer" }}
+        >
+          📷 Tomar foto del código (iOS)
+        </button>
+        <input ref={fileInputRef} type="file" accept="image/*" capture="environment" style={{ display:"none" }} onChange={handleImageFile} />
+
+        {/* Manual entry */}
+        <div style={{ display:"flex", gap:8 }}>
+          <input
+            type="text" inputMode="numeric" placeholder="O ingresá el código: ej. 7790000000000"
+            value={manualCode} onChange={e => setManualCode(e.target.value)}
+            style={{ flex:1, background:"rgba(255,255,255,.1)", border:"1px solid rgba(255,255,255,.2)", borderRadius:10, padding:"10px 14px", color:"#fff", fontSize:14 }}
+          />
+          <button
+            onClick={() => manualCode && handleBarcode(manualCode)}
+            style={{ padding:"10px 16px", background:"#22d37a", border:"none", borderRadius:10, color:"#000", fontWeight:800, cursor:"pointer" }}
+          >
+            Buscar
+          </button>
         </div>
       </div>
+
       <style>{`@keyframes scan { from{top:0} to{top:100%} }`}</style>
     </div>
   );

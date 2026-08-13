@@ -884,10 +884,20 @@ export default function MeasurementsPage() {
 
       {/* Fullscreen photo viewer */}
       {fullscreenPhoto && (
-        <div onClick={() => setFullscreenPhoto(null)} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.95)", zIndex:9999, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center" }}>
-          <button onClick={() => setFullscreenPhoto(null)} style={{ position:"absolute", top:16, right:16, background:"rgba(255,255,255,.15)", border:"none", borderRadius:10, width:40, height:40, cursor:"pointer", color:"#fff", fontSize:20, display:"flex", alignItems:"center", justifyContent:"center", zIndex:1 }}>×</button>
-          <img src={fullscreenPhoto.dataUrl} alt={fullscreenPhoto.date} style={{ maxWidth:"100%", maxHeight:"85vh", objectFit:"contain", borderRadius:8 }} onClick={e => e.stopPropagation()} />
-          <div style={{ marginTop:12, textAlign:"center" }}>
+        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.97)", zIndex:9999, display:"flex", flexDirection:"column" }}>
+          {/* Header with close button — always on top */}
+          <div style={{ flexShrink:0, display:"flex", justifyContent:"flex-end", padding:"12px 16px", paddingTop:"max(12px, env(safe-area-inset-top, 12px))" }}>
+            <button
+              onClick={() => setFullscreenPhoto(null)}
+              style={{ background:"rgba(255,255,255,.18)", border:"none", borderRadius:12, width:44, height:44, cursor:"pointer", color:"#fff", fontSize:22, display:"flex", alignItems:"center", justifyContent:"center", fontWeight:700 }}
+            >×</button>
+          </div>
+          {/* Image fills remaining space */}
+          <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden", padding:"0 12px" }}>
+            <img src={fullscreenPhoto.dataUrl} alt={fullscreenPhoto.date} style={{ maxWidth:"100%", maxHeight:"100%", objectFit:"contain", borderRadius:8 }} />
+          </div>
+          {/* Caption */}
+          <div style={{ flexShrink:0, padding:"12px 16px", paddingBottom:"max(20px, env(safe-area-inset-bottom, 20px))", textAlign:"center" }}>
             <div style={{ fontSize:13, color:"#22d37a", fontWeight:700 }}>{fullscreenPhoto.date}</div>
             {fullscreenPhoto.note && <div style={{ fontSize:12, color:"rgba(255,255,255,.6)", marginTop:4 }}>{fullscreenPhoto.note}</div>}
           </div>
