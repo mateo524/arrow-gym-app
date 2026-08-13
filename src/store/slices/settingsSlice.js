@@ -73,6 +73,7 @@ export const createSettingsSlice = (set, get) => ({
     activeWorkout: null,
     coachReports: [],
     cardioHistory: [],
+    cardioHistory: [],
     workoutDraft: null,
     recentExercises: [],
     mealLog: [],
@@ -86,5 +87,15 @@ export const createSettingsSlice = (set, get) => ({
     weeklyChallenge: null,
     weightLog: [],
     measurementsHistory: [],
+    // healthSlice fields — must be cleared to prevent data leaking between users
+    sleepLog: [],
+    waterLog: [],
+    waterGoal: 8,
+    nutritionPlan: null,
+    bodyMetrics: [],
+    progressPhotos: [],
+    restDays: [],
+    pendingSyncs: [],
+    syncStatus: "idle",
   }),
 });

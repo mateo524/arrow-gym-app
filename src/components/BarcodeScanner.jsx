@@ -94,6 +94,11 @@ export default function BarcodeScanner({ onDetect, onClose }) {
           setError("No se detectó ningún código en la imagen. Intentá con mejor iluminación o ingresá el código manualmente.");
         }
       };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        setLoading(false);
+        setError?.("Imagen inválida.");
+      };
       img.src = url;
     } catch {
       setLoading(false);

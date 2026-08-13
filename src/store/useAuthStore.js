@@ -117,12 +117,13 @@ const useAuthStore = create((set, get) => ({
             useStore.getState().setLastUserId(user.id);
           }
           await useStore.getState().syncWorkoutsFromDB(user.id);
-          useStore.getState().syncAllToSupabase(user.id);
-          // Merge remote entries into local (local scalars always win, arrays union)
+          // Load all remote state BEFORE starting any sync, so syncAllToSupabase
+          // doesn't race against a loadGymStateFromDB that hasn't completed yet.
           try { await useStore.getState().loadHealthFromDB(); } catch {}
+          try { await useStore.getState().loadGymStateFromDB(); } catch {}
           // After merge, push the combined result back to Supabase so it stays in sync
           try { await useStore.getState().syncHealthToDB(); } catch {}
-          try { await useStore.getState().loadGymStateFromDB(); } catch {}
+          useStore.getState().syncAllToSupabase(user.id);
         } catch {}
       } else {
         // Supabase returned an error — fall back to cached profile so the app never hangs

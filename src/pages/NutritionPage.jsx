@@ -32,32 +32,9 @@ export default function NutritionPage() {
   const profile  = useAuthStore(s => s.profile);
   const setPage  = useStore(s => s.setPage);
 
-  // Subscription gate
+  // Subscription gate — compute flag only, actual gate applied after all hooks
   const isSubscribed = profile?.subscription_status === "active" || ["trainer","admin","superadmin"].includes(profile?.role);
-  if (profile && !isSubscribed) {
-    return (
-      <section className="page" style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", textAlign:"center", padding:"48px 24px" }}>
-        <span style={{ fontSize:56, marginBottom:16 }}>🥗</span>
-        <h2 style={{ margin:"0 0 8px", fontSize:22 }}>Nutrición</h2>
-        <p style={{ color:"var(--muted)", fontSize:14, marginBottom:28, maxWidth:280 }}>
-          Registrá tus comidas, seguí tus macros y recibí recomendaciones adaptadas a tu objetivo.
-        </p>
-        <button className="primary" style={{ padding:"13px 28px", borderRadius:14, fontSize:14, fontWeight:700 }}
-          onClick={async () => {
-            try {
-              const { supabase } = await import("../lib/supabase.js");
-              const { data, error } = await supabase.functions.invoke("mp-create-subscription");
-              if (data?.already_active) { window.__showToast?.("Ya tenés una suscripción activa.", "info"); return; }
-              if (!error && data?.init_point) window.location.href = data.init_point;
-              else window.__showToast?.("No se pudo iniciar el pago. Intentá de nuevo.", "error");
-            } catch { window.__showToast?.("Error de conexión.", "error"); }
-          }}>
-          Suscribirme — $10.000/mes
-        </button>
-        <p style={{ color:"var(--muted)", fontSize:11, marginTop:12 }}>Renovación automática · cancelá cuando quieras</p>
-      </section>
-    );
-  }
+  const isLocked = profile && !isSubscribed;
 
   const f   = features(profile);
   const voc = vocab(profile);
@@ -207,7 +184,8 @@ export default function NutritionPage() {
   const weekAvg = useMemo(() => {
     const days = Array.from({length:7},(_,i) => {
       const d = new Date(); d.setDate(d.getDate()-i);
-      return d.toISOString().slice(0,10);
+      const offset = d.getTimezoneOffset() * 60000;
+      return new Date(d - offset).toISOString().slice(0,10);
     });
     const dayTotals = days.map(d => mealLog.filter(m => m.date===d).reduce((s,m) => s+(Number(m.kcal)||0), 0));
     const filled = dayTotals.filter(v => v > 0);
@@ -228,9 +206,10 @@ export default function NutritionPage() {
     if (!form.name || !form.kcal) return;
     setSaving(true);
     logMeal({ type: form.type, name: form.name.trim(), kcal: r2(form.kcal), protein: r2(form.protein), carbs: r2(form.carbs), fat: r2(form.fat) });
-    // Save as custom food if not in DB
+    // Save as custom food if not in DB and not already saved as custom
     const dbCheck = searchFoods(form.name, 5);
-    if (!dbCheck.some(f => f.name.toLowerCase() === form.name.toLowerCase())) {
+    const alreadyCustom = (storeCustomFoods || []).some(f => f.name.toLowerCase() === form.name.trim().toLowerCase());
+    if (!alreadyCustom && !dbCheck.some(f => f.name.toLowerCase() === form.name.toLowerCase())) {
       addCustomFood?.({
         id: `custom-${form.name.toLowerCase().replace(/\s+/g,"-")}-${Date.now()}`,
         name: form.name.trim(),
@@ -261,6 +240,31 @@ export default function NutritionPage() {
   };
 
   const goalLabels = { volumen:"Volumen", definicion:"Definición", mantenimiento:"Mantenimiento", rendimiento:"Rendimiento" };
+
+  if (isLocked) {
+    return (
+      <section className="page" style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", textAlign:"center", padding:"48px 24px" }}>
+        <span style={{ fontSize:56, marginBottom:16 }}>🥗</span>
+        <h2 style={{ margin:"0 0 8px", fontSize:22 }}>Nutrición</h2>
+        <p style={{ color:"var(--muted)", fontSize:14, marginBottom:28, maxWidth:280 }}>
+          Registrá tus comidas, seguí tus macros y recibí recomendaciones adaptadas a tu objetivo.
+        </p>
+        <button className="primary" style={{ padding:"13px 28px", borderRadius:14, fontSize:14, fontWeight:700 }}
+          onClick={async () => {
+            try {
+              const { supabase } = await import("../lib/supabase.js");
+              const { data, error } = await supabase.functions.invoke("mp-create-subscription");
+              if (data?.already_active) { window.__showToast?.("Ya tenés una suscripción activa.", "info"); return; }
+              if (!error && data?.init_point) window.location.href = data.init_point;
+              else window.__showToast?.("No se pudo iniciar el pago. Intentá de nuevo.", "error");
+            } catch { window.__showToast?.("Error de conexión.", "error"); }
+          }}>
+          Suscribirme — $10.000/mes
+        </button>
+        <p style={{ color:"var(--muted)", fontSize:11, marginTop:12 }}>Renovación automática · cancelá cuando quieras</p>
+      </section>
+    );
+  }
 
   return (
     <section className="page">
@@ -922,7 +926,7 @@ export default function NutritionPage() {
               </div>
               {/* Botón sticky al fondo del scroll — funciona en todos los navegadores incluyendo iOS Safari */}
               <div style={{ position:"sticky", bottom:0, background:"var(--bg)", paddingTop:10, paddingBottom:"max(16px, env(safe-area-inset-bottom, 16px))", marginTop:4, borderTop:"1px solid var(--line)" }}>
-                <button type="submit" className="primary" style={{ width:"100%" }} disabled={saving}>
+                <button type="submit" className="primary" style={{ width:"100%" }} disabled={saving || !form.name.trim() || !form.kcal}>
                   {saving ? "Guardando…" : "Guardar comida"}
                 </button>
               </div>
