@@ -579,7 +579,12 @@ export default function WorkoutPage() {
     const validSets = allSets.filter(s => s.weight && s.reps);
     setSummaryData({
       totalSets: validSets.length,
-      totalVolume: validSets.reduce((sum, s) => sum + Number(s.weight||0)*Number(s.reps||0), 0),
+      totalVolume: validSets.reduce((sum, s) => {
+        const w = s.isBodyweight
+          ? (Number(s.weight) || 0) + (Number(s.extraWeight) || 0)
+          : (Number(s.weight) || 0);
+        return sum + w * (Number(s.reps) || 0);
+      }, 0),
       exercises: new Set(validSets.map(s => s.exercise)).size,
       newPRs: (() => {
         const seen = new Set();
@@ -636,7 +641,12 @@ export default function WorkoutPage() {
         </div>
         {/* Volume */}
         {(() => {
-          const totalVol = (active?.sets || []).reduce((sum, s) => sum + (Number(s.weight)||0)*(Number(s.reps)||0), 0);
+          const totalVol = (active?.sets || []).reduce((sum, s) => {
+            const w = s.isBodyweight
+              ? (Number(s.weight) || 0) + (Number(s.extraWeight) || 0)
+              : (Number(s.weight) || 0);
+            return sum + w * (Number(s.reps) || 0);
+          }, 0);
           if (!totalVol) return null;
           return (
             <span style={{ fontSize: 12, color: "var(--muted)", flexShrink: 0 }}>
@@ -743,7 +753,7 @@ export default function WorkoutPage() {
                           <span style={{ fontSize: 11, color: "var(--muted)" }}>
                             {first?.equipment === "Peso corporal" ? (
                               <>Último: <b style={{ color: "var(--text)" }}>
-                                {Number(first.lastWeight) > 0 ? `PC +${first.lastWeight}kg` : "PC"} × {first.lastReps}
+                                PC{Number(first.lastExtraWeight) > 0 ? ` +${first.lastExtraWeight}kg` : ""} × {first.lastReps}
                               </b></>
                             ) : (
                               <>Último: <b style={{ color: "var(--text)" }}>{first.lastWeight}kg × {first.lastReps}</b></>

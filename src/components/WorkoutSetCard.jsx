@@ -13,8 +13,10 @@ function haptic(type = "tap") {
 export default function WorkoutSetCard({ setItem, index, onUpdate, onApplyToNext, onRepeat, onRemove, onStartRest, prData, coachSuggestion, isBodyweight=false, bodyWeight=0 }) {
   const [flipped, setFlipped] = useState(false);
   const [done, setDone] = useState(false);
-  const hasData = (setItem.weight !== '' && setItem.weight !== null && setItem.weight !== undefined) &&
-                  (setItem.reps !== '' && setItem.reps !== null && setItem.reps !== undefined && Number(setItem.reps) > 0);
+  const hasData = isBodyweight
+    ? (Number(setItem.weight) > 0 && setItem.reps !== '' && setItem.reps !== null && setItem.reps !== undefined && Number(setItem.reps) > 0)
+    : ((setItem.weight !== '' && setItem.weight !== null && setItem.weight !== undefined) &&
+       (setItem.reps !== '' && setItem.reps !== null && setItem.reps !== undefined && Number(setItem.reps) > 0));
   const isPrefilled = Boolean((setItem.lastWeight || setItem.lastReps) && !hasData);
 
   function sanitizeWeight(v) {
@@ -133,8 +135,8 @@ export default function WorkoutSetCard({ setItem, index, onUpdate, onApplyToNext
         </div>
       )}
 
-      {/* Pre-set suggestion: tap to fill */}
-      {!setItem.weight && setItem.lastWeight != null && setItem.lastWeight !== '' && (
+      {/* Pre-set suggestion: tap to fill — not shown for bodyweight (weight is auto-filled) */}
+      {!isBodyweight && !setItem.weight && setItem.lastWeight != null && setItem.lastWeight !== '' && (
         <button
           onClick={() => onUpdate({ weight: String(setItem.lastWeight), reps: String(setItem.lastReps || '') })}
           style={{
@@ -150,77 +152,132 @@ export default function WorkoutSetCard({ setItem, index, onUpdate, onApplyToNext
         </button>
       )}
 
-      {/* Bodyweight indicator */}
-      {isBodyweight && (
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6, padding: "5px 10px", background: "rgba(96,165,250,.07)", border: "1px solid rgba(96,165,250,.2)", borderRadius: 8 }}>
-          <span style={{ fontSize: 11, color: "#60a5fa", fontWeight: 700 }}>PC</span>
-          <span style={{ fontSize: 11, color: "var(--muted)" }}>
-            {bodyWeight > 0 ? `${bodyWeight}kg` : "?"} + {Number(setItem.weight) || 0}kg extra
-          </span>
+      {/* kg + reps side by side — bodyweight layout uses separate extra-weight input */}
+      {isBodyweight ? (
+        <div style={{ margin: "10px 0 8px" }}>
+          {/* Body weight row: static label + extra input + reps input */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+            {/* Body weight — static, non-editable */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.6px" }}>PC</span>
+              <div className="set-val" style={{ display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, fontWeight: 800, color: "#60a5fa", background: "rgba(96,165,250,.07)", border: "1px solid rgba(96,165,250,.2)", borderRadius: 10, padding: "8px 0", userSelect: "none" }}>
+                {bodyWeight > 0 ? bodyWeight : "?"}<span style={{ fontSize: 13, fontWeight: 600 }}>kg</span>
+              </div>
+            </div>
+            {/* Extra weight input */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.6px" }}>+extra</span>
+                {setItem.lastExtraWeight && !setItem.extraWeight && (
+                  <span style={{ fontSize: 11, color: "rgba(168,85,247,.6)", fontWeight: 700 }}>ult. +{setItem.lastExtraWeight}</span>
+                )}
+              </div>
+              <input
+                className="set-val"
+                inputMode="decimal"
+                value={setItem.extraWeight === 0 || setItem.extraWeight === "0" ? "" : (setItem.extraWeight || "")}
+                placeholder={setItem.lastExtraWeight ? `+${setItem.lastExtraWeight}` : "+0"}
+                onChange={(e) => { haptic(); setDone(false); onUpdate({ extraWeight: sanitizeWeight(e.target.value) || 0 }); }}
+                onFocus={(e) => {
+                  if ((!setItem.extraWeight || setItem.extraWeight === 0) && setItem.lastExtraWeight) {
+                    onUpdate({ extraWeight: Number(setItem.lastExtraWeight) });
+                  }
+                  e.target.select();
+                }}
+                style={{ width: "100%", textAlign: "center", fontSize: 22, fontWeight: 800, borderColor: setItem.extraWeight ? "rgba(168,85,247,.5)" : undefined, transition: "border-color .2s" }}
+              />
+            </div>
+            {/* Reps */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.6px" }}>reps</span>
+                {(setItem.planReps || setItem.lastReps) && !setItem.reps && (
+                  <span style={{ fontSize: 11, color: "rgba(168,85,247,.6)", fontWeight: 700 }}>{setItem.planReps ? `p${setItem.planReps}` : `${setItem.lastReps}`}</span>
+                )}
+              </div>
+              <input
+                className="set-val"
+                inputMode="numeric"
+                value={setItem.reps}
+                placeholder={setItem.planReps || setItem.lastReps || "—"}
+                onChange={(e) => { haptic(); setDone(false); onUpdate({ reps: sanitizeReps(e.target.value) }); }}
+                onFocus={(e) => {
+                  if (!setItem.reps && setItem.lastReps) {
+                    onUpdate({ reps: String(setItem.lastReps) });
+                  }
+                  e.target.select();
+                }}
+                style={{ width: "100%", textAlign: "center", fontSize: 22, fontWeight: 800, borderColor: setItem.reps ? "rgba(168,85,247,.5)" : undefined, transition: "border-color .2s" }}
+              />
+            </div>
+          </div>
+          {/* Total weight indicator */}
           {bodyWeight > 0 && (
-            <span style={{ marginLeft: "auto", fontSize: 12, fontWeight: 800, color: "#60a5fa" }}>
-              = {bodyWeight + (Number(setItem.weight) || 0)}kg total
-            </span>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", marginTop: 4, gap: 6 }}>
+              <span style={{ fontSize: 11, color: "var(--muted)" }}>
+                Total: <b style={{ color: "#60a5fa" }}>{bodyWeight + (Number(setItem.extraWeight) || 0)}kg</b>
+                {setItem.reps ? <> × {setItem.reps} = <b style={{ color: "var(--green)" }}>{(bodyWeight + (Number(setItem.extraWeight) || 0)) * Number(setItem.reps)}kg vol</b></> : null}
+              </span>
+            </div>
           )}
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, margin: "10px 0 8px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.6px" }}>kg</span>
+              {setItem.lastWeight && !setItem.weight && (
+                <span style={{ fontSize: 12, color: "rgba(168,85,247,.6)", fontWeight: 700 }}>ult. {setItem.lastWeight}</span>
+              )}
+            </div>
+            <input
+              className="set-val"
+              inputMode="decimal"
+              value={setItem.weight}
+              placeholder={(!setItem.weight && coachSuggestion?.weight != null) ? String(coachSuggestion.weight) : (setItem.lastWeight || "")}
+              onChange={(e) => { haptic(); setDone(false); onUpdate({ weight: sanitizeWeight(e.target.value) }); }}
+              onFocus={(e) => {
+                if (!setItem.weight && setItem.lastWeight) {
+                  onUpdate({ weight: String(setItem.lastWeight) });
+                }
+                e.target.select();
+              }}
+              style={{ width: "100%", textAlign: "center", fontSize: 26, fontWeight: 800, borderColor: setItem.weight ? "rgba(168,85,247,.5)" : undefined, transition: "border-color .2s" }}
+            />
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.6px" }}>reps</span>
+              {(setItem.planReps || setItem.lastReps) && !setItem.reps && (
+                <span style={{ fontSize: 12, color: "rgba(168,85,247,.6)", fontWeight: 700 }}>{setItem.planReps ? `plan ${setItem.planReps}` : `ult. ${setItem.lastReps}`}</span>
+              )}
+            </div>
+            <input
+              className="set-val"
+              inputMode="numeric"
+              value={setItem.reps}
+              placeholder={setItem.planReps || setItem.lastReps || "—"}
+              onChange={(e) => { haptic(); setDone(false); onUpdate({ reps: sanitizeReps(e.target.value) }); }}
+              onFocus={(e) => {
+                if (!setItem.reps && setItem.lastReps) {
+                  onUpdate({ reps: String(setItem.lastReps) });
+                }
+                e.target.select();
+              }}
+              style={{ width: "100%", textAlign: "center", fontSize: 26, fontWeight: 800, borderColor: setItem.reps ? "rgba(168,85,247,.5)" : undefined, transition: "border-color .2s" }}
+            />
+          </div>
         </div>
       )}
 
-      {/* kg + reps side by side */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, margin: "10px 0 8px" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.6px" }}>
-              {isBodyweight ? "extra" : "kg"}
-            </span>
-            {setItem.lastWeight && !setItem.weight && (
-              <span style={{ fontSize: 12, color: "rgba(168,85,247,.6)", fontWeight: 700 }}>ult. {setItem.lastWeight}</span>
-            )}
-          </div>
-          <input
-            className="set-val"
-            inputMode="decimal"
-            value={setItem.weight}
-            placeholder={(!setItem.weight && coachSuggestion?.weight != null) ? String(coachSuggestion.weight) : (setItem.lastWeight || "")}
-            onChange={(e) => { haptic(); setDone(false); onUpdate({ weight: sanitizeWeight(e.target.value) }); }}
-            onFocus={(e) => {
-              // Si el input está vacío y hay dato anterior, pre-cargarlo con un tap
-              if (!setItem.weight && setItem.lastWeight) {
-                onUpdate({ weight: String(setItem.lastWeight) });
-              }
-              e.target.select();
-            }}
-            style={{ width: "100%", textAlign: "center", fontSize: 26, fontWeight: 800, borderColor: setItem.weight ? "rgba(168,85,247,.5)" : undefined, transition: "border-color .2s" }}
-          />
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.6px" }}>reps</span>
-            {(setItem.planReps || setItem.lastReps) && !setItem.reps && (
-              <span style={{ fontSize: 12, color: "rgba(168,85,247,.6)", fontWeight: 700 }}>{setItem.planReps ? `plan ${setItem.planReps}` : `ult. ${setItem.lastReps}`}</span>
-            )}
-          </div>
-          <input
-            className="set-val"
-            inputMode="numeric"
-            value={setItem.reps}
-            placeholder={setItem.planReps || setItem.lastReps || "—"}
-            onChange={(e) => { haptic(); setDone(false); onUpdate({ reps: sanitizeReps(e.target.value) }); }}
-            onFocus={(e) => {
-              if (!setItem.reps && setItem.lastReps) {
-                onUpdate({ reps: String(setItem.lastReps) });
-              }
-              e.target.select();
-            }}
-            style={{ width: "100%", textAlign: "center", fontSize: 26, fontWeight: 800, borderColor: setItem.reps ? "rgba(168,85,247,.5)" : undefined, transition: "border-color .2s" }}
-          />
-        </div>
-      </div>
-
       {/* e1RM estimate badge — only shown for reliable rep ranges (≤ 10 reps) */}
-      {Number(setItem.weight) > 0 && Number(setItem.reps) > 0 && Number(setItem.reps) <= 10 && (() => {
+      {Number(setItem.reps) > 0 && Number(setItem.reps) <= 10 && (() => {
+        const effectiveWeight = isBodyweight
+          ? (Number(setItem.weight) || 0) + (Number(setItem.extraWeight) || 0)
+          : Number(setItem.weight) || 0;
         const rir = setItem.rir !== undefined && setItem.rir !== "" ? Number(setItem.rir) : 0;
         const effectiveReps = Math.min(Number(setItem.reps) + rir, 30);
-        const orm = calc1RM(Number(setItem.weight), effectiveReps);
+        const orm = calc1RM(effectiveWeight, effectiveReps);
         if (!orm || orm <= 0) return null;
         return (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", marginBottom: 4 }}>

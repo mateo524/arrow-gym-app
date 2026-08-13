@@ -29,39 +29,56 @@ function sameExercise(a, b) {
   return String(a || "").trim().toLowerCase() === String(b || "").trim().toLowerCase();
 }
 
+function getBodyWeight(state) {
+  const weightLog = state.weightLog || [];
+  if (!weightLog.length) return 70;
+  const sorted = [...weightLog].sort((a, b) => (b.date || "") > (a.date || "") ? 1 : -1);
+  return Number(sorted[0]?.kg || 0) || 70;
+}
+
 function getExerciseStats(workouts, exercise) {
   const ordered = [...(workouts || [])].sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
-  let lastWeight = "", lastReps = "", lastSets = 0, lastDate = null;
+  let lastWeight = "", lastReps = "", lastSets = 0, lastDate = null, lastExtraWeight = "";
   for (const workout of ordered) {
     const sets = [...(workout.sets || [])].filter((s) => sameExercise(s.exercise, exercise));
     if (sets.length) {
       const completed = sets.find((s) => s.weight !== "" || s.reps !== "");
-      if (completed) { lastWeight = completed.weight ?? ""; lastReps = completed.reps ?? ""; }
+      if (completed) {
+        lastWeight = completed.weight ?? "";
+        lastReps = completed.reps ?? "";
+        lastExtraWeight = completed.extraWeight !== undefined ? String(completed.extraWeight ?? "") : "";
+      }
       lastSets = sets.length;
       lastDate = workout.date;
       break;
     }
   }
-  return { lastWeight, lastReps, lastSets, lastDate };
+  return { lastWeight, lastReps, lastSets, lastDate, lastExtraWeight };
 }
 
-function makeSet(exercise, weight = "", reps = "", workouts = []) {
+function makeSet(exercise, weight = "", reps = "", workouts = [], bodyWeightKg = 0) {
   const meta = findExerciseMeta(exercise) || {};
   const stats = getExerciseStats(workouts, exercise);
+  const isBodyweight = meta.equipment === "Peso corporal";
   return {
-    id: uid("set"), exercise, weight, reps, rpe: "",
+    id: uid("set"), exercise,
+    weight: isBodyweight ? (bodyWeightKg || 70) : weight,
+    reps, rpe: "",
     group: meta.group || resolveExerciseGroup(exercise),
     muscle: meta.muscle || resolveExerciseMuscle(exercise),
     equipment: meta.equipment || "",
     lastWeight: stats.lastWeight, lastReps: stats.lastReps,
     lastSets: stats.lastSets, lastDate: stats.lastDate,
+    lastExtraWeight: stats.lastExtraWeight || "",
+    ...(isBodyweight ? { isBodyweight: true, extraWeight: 0 } : {}),
   };
 }
 
-function makePrefilledSet(exercise, workouts) {
+function makePrefilledSet(exercise, workouts, bodyWeightKg = 0) {
   // Fix #8: do NOT pre-fill weight/reps — user must enter them manually.
   // lastWeight/lastReps are stored as metadata in makeSet for display purposes only.
-  return makeSet(exercise, "", "", workouts);
+  // Exception: bodyweight exercises auto-fill with the user's body weight.
+  return makeSet(exercise, "", "", workouts, bodyWeightKg);
 }
 
 function getExerciseSetAtIndex(workouts, exercise, setIndex) {
@@ -224,14 +241,15 @@ export const createWorkoutSlice = (set, get) => ({
     const workouts = get().workouts || [];
     const adj = get().activePlanAdjustment;
     const factor = adj && new Date(adj.expiresAt) >= new Date() ? adj.factor : 1;
+    const bw = getBodyWeight(get());
     T.workoutStarted({ type, workout_number: workouts.length + 1 });
     set({
       currentPRCard: null,
       activeWorkout: {
         id: uid("workout"), type, date: today(), startedAt: Date.now(),
         sets: routine.map((ex) => {
-          const s = makePrefilledSet(ex, workouts);
-          if (factor !== 1 && s.lastWeight) {
+          const s = makePrefilledSet(ex, workouts, bw);
+          if (!s.isBodyweight && factor !== 1 && s.lastWeight) {
             const scaled = String(Math.max(0, Math.round(Number(s.lastWeight) * factor * 2) / 2) || s.lastWeight);
             return { ...s, weight: scaled, lastWeight: scaled, reps: "", planReps: scaleRepsForDeload(s.lastReps) };
           }
@@ -246,12 +264,13 @@ export const createWorkoutSlice = (set, get) => ({
     const workouts = get().workouts || [];
     const adj = get().activePlanAdjustment;
     const factor = adj && new Date(adj.expiresAt) >= new Date() ? adj.factor : 1;
+    const bw = getBodyWeight(get());
     set({
       activeWorkout: {
         id: uid("workout"), type: name, date: today(), startedAt: Date.now(),
         sets: exercises.map((ex) => {
-          const s = makePrefilledSet(ex, workouts);
-          if (factor !== 1 && s.lastWeight) {
+          const s = makePrefilledSet(ex, workouts, bw);
+          if (!s.isBodyweight && factor !== 1 && s.lastWeight) {
             const scaled = String(Math.max(0, Math.round(Number(s.lastWeight) * factor * 2) / 2) || s.lastWeight);
             return { ...s, weight: scaled, lastWeight: scaled, reps: "", planReps: scaleRepsForDeload(s.lastReps) };
           }
@@ -279,9 +298,10 @@ export const createWorkoutSlice = (set, get) => ({
     const raw = typeof exercise === "string" ? exercise : exercise.name;
     const name = raw.trim();
     const workouts = get().workouts || [];
+    const bw = getBodyWeight(get());
     set((s) => ({
       activeWorkout: s.activeWorkout
-        ? { ...s.activeWorkout, sets: [...s.activeWorkout.sets, makePrefilledSet(name, workouts)] }
+        ? { ...s.activeWorkout, sets: [...s.activeWorkout.sets, makePrefilledSet(name, workouts, bw)] }
         : s.activeWorkout,
     }));
   },
@@ -292,7 +312,8 @@ export const createWorkoutSlice = (set, get) => ({
     const same = (active.sets || []).filter((s) => sameExercise(s.exercise, exercise));
     const newSetIndex = same.length;
     const prevData = getExerciseSetAtIndex(get().workouts || [], exercise, newSetIndex);
-    const base = makeSet(exercise, "", "", get().workouts || []);
+    const bw = getBodyWeight(get());
+    const base = makeSet(exercise, "", "", get().workouts || [], bw);
     const next = { ...base, lastWeight: prevData.weight || base.lastWeight, lastReps: prevData.reps || base.lastReps };
     set({ activeWorkout: { ...active, sets: [...active.sets, next] } });
   },
@@ -304,7 +325,18 @@ export const createWorkoutSlice = (set, get) => ({
     }
     set((s) => ({
       activeWorkout: s.activeWorkout
-        ? { ...s.activeWorkout, sets: s.activeWorkout.sets.map((setItem) => setItem.id === id ? hydrateSet({ ...setItem, ...patch }) : setItem) }
+        ? {
+            ...s.activeWorkout,
+            sets: s.activeWorkout.sets.map((setItem) => {
+              if (setItem.id !== id) return setItem;
+              const mergedPatch = { ...patch };
+              // For bodyweight sets, keep weight = stored body weight regardless of what is sent
+              if (setItem.isBodyweight && 'weight' in mergedPatch) {
+                mergedPatch.weight = setItem.weight;
+              }
+              return hydrateSet({ ...setItem, ...mergedPatch });
+            }),
+          }
         : s.activeWorkout,
     }));
   },
@@ -385,7 +417,10 @@ export const createWorkoutSlice = (set, get) => ({
     const newPrsList = [];
     const prByExercise = new Set();
     clean.sets.forEach((s) => {
-      const w = Number(s.weight) || 0, r = Number(s.reps) || 0;
+      const effectiveWeight = s.isBodyweight
+        ? (Number(s.weight) || 0) + (Number(s.extraWeight) || 0)
+        : Number(s.weight) || 0;
+      const w = effectiveWeight, r = Number(s.reps) || 0;
       if (!w || !r || prByExercise.has(s.exercise)) return;
       const rir = Number(s.rir) || 0;
       const currentORM = calcEffective1RM(w, r, rir);
@@ -521,12 +556,13 @@ export const createWorkoutSlice = (set, get) => ({
     if (!tpl) return;
     const adj = state.activePlanAdjustment;
     const factor = adj && new Date(adj.expiresAt) >= new Date() ? adj.factor : 1;
+    const bw = getBodyWeight(state);
     set({
       activeWorkout: {
         id: uid("workout"), type: tpl.name, date: today(), startedAt: Date.now(),
         sets: tpl.exercises.map((e) => {
-          const s = makePrefilledSet(e, state.workouts || []);
-          if (factor !== 1 && s.lastWeight) {
+          const s = makePrefilledSet(e, state.workouts || [], bw);
+          if (!s.isBodyweight && factor !== 1 && s.lastWeight) {
             const scaled = String(Math.max(0, Math.round(Number(s.lastWeight) * factor * 2) / 2) || s.lastWeight);
             return { ...s, weight: scaled, lastWeight: scaled, reps: "", planReps: scaleRepsForDeload(s.lastReps) };
           }
@@ -661,10 +697,11 @@ export const createWorkoutSlice = (set, get) => ({
     const workouts = state.workouts || [];
     const adj = state.activePlanAdjustment;
     const factor = adj && new Date(adj.expiresAt) >= new Date() ? adj.factor : 1;
+    const bw = getBodyWeight(state);
     const newSets = exercises.flatMap((ex) =>
       (last.sets || []).filter((s) => s.exercise === ex).map(() => {
-        const s = makeSet(ex, "", "", workouts);
-        if (factor !== 1 && s.lastWeight) {
+        const s = makeSet(ex, "", "", workouts, bw);
+        if (!s.isBodyweight && factor !== 1 && s.lastWeight) {
           const scaled = String(Math.max(0, Math.round(Number(s.lastWeight) * factor * 2) / 2) || s.lastWeight);
           return { ...s, weight: scaled, lastWeight: scaled, reps: "", planReps: scaleRepsForDeload(s.lastReps) };
         }
