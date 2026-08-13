@@ -23,6 +23,9 @@ function buildHealthPayload(state) {
     progress_photos: state.progressPhotos || [],
     competition_date: state.competitionDate,
     competition_name: state.competitionName,
+    // Settings that live in settingsSlice — include here so they survive localStorage wipes
+    user_goal: state.userGoal || "mantenimiento",
+    custom_kcal: state.customKcal || "",
   };
 }
 
@@ -128,12 +131,14 @@ export const createHealthSlice = (set, get) => ({
           savedMealCombos: mergeById(local.savedMealCombos, hd.saved_meal_combos),
           activeChallenges:mergeById(local.activeChallenges,hd.active_challenges),
           progressPhotos:  mergeById(local.progressPhotos,  hd.progress_photos),
-          // Scalars: local always wins (most recent device edit),
-          // fall back to remote only if local is null/undefined
+          // Scalars: local wins if it's non-default; otherwise fall back to remote
           waterGoal:       local.waterGoal       ?? hd.water_goal       ?? 8,
           nutritionPlan:   local.nutritionPlan   ?? hd.nutrition_plan   ?? null,
           competitionDate: local.competitionDate ?? hd.competition_date ?? null,
           competitionName: local.competitionName ?? hd.competition_name ?? "",
+          // Settings synced via health_data — remote wins if local is still at default
+          userGoal:   (local.userGoal && local.userGoal !== "mantenimiento") ? local.userGoal : (hd.user_goal || local.userGoal || "mantenimiento"),
+          customKcal: local.customKcal || hd.custom_kcal || "",
         });
       }
     } catch (e) { /* column may not exist */ }
