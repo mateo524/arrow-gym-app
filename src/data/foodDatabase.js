@@ -287,6 +287,18 @@ export const FOOD_DB = [
   { id:"verd-rucula",      cat:"Verduras", name:"Rúcula",                 serving:"100g", grams:100, kcal:25,  protein:2.6, carbs:3.7, fat:0.7 },
   { id:"verd-champinon",   cat:"Verduras", name:"Champiñones",            serving:"100g", grams:100, kcal:22,  protein:3.1, carbs:3.3, fat:0.3 },
   { id:"verd-papa-cocida", cat:"Verduras", name:"Papa cocida",            serving:"100g", grams:100, kcal:87,  protein:1.9, carbs:20,  fat:0.1 },
+  { id:"verd-calabaza",   cat:"Verduras", name:"Calabaza",               serving:"100g", grams:100, kcal:26,  protein:1.0, carbs:6.5, fat:0.1 },
+  { id:"verd-kabutia",    cat:"Verduras", name:"Kabütiá / Zapallo japonés", serving:"100g", grams:100, kcal:34,  protein:1.1, carbs:8.3, fat:0.1 },
+  { id:"verd-nabo",       cat:"Verduras", name:"Nabo",                   serving:"100g", grams:100, kcal:28,  protein:0.9, carbs:6.4, fat:0.1 },
+  { id:"verd-puerro",     cat:"Verduras", name:"Puerro",                 serving:"100g", grams:100, kcal:61,  protein:1.5, carbs:14,  fat:0.3 },
+  { id:"verd-radicheta",  cat:"Verduras", name:"Radicheta / Achicoria",  serving:"100g", grams:100, kcal:23,  protein:1.7, carbs:4.7, fat:0.3 },
+  { id:"verd-hinojo",     cat:"Verduras", name:"Hinojo",                 serving:"100g", grams:100, kcal:31,  protein:1.2, carbs:7.3, fat:0.2 },
+  { id:"verd-alcaucil",   cat:"Verduras", name:"Alcaucil / Alcachofa",   serving:"100g", grams:100, kcal:47,  protein:3.3, carbs:10,  fat:0.2 },
+  { id:"verd-berro",      cat:"Verduras", name:"Berro",                  serving:"100g", grams:100, kcal:11,  protein:2.3, carbs:1.3, fat:0.1 },
+  { id:"verd-papa-frita", cat:"Verduras", name:"Papa frita (al horno)",  serving:"100g", grams:100, kcal:152, protein:2.7, carbs:28,  fat:4.0 },
+  { id:"verd-bok-choy",   cat:"Verduras", name:"Bok choy / Col china",   serving:"100g", grams:100, kcal:13,  protein:1.5, carbs:2.2, fat:0.2 },
+  { id:"verd-coles-bru",  cat:"Verduras", name:"Coles de Bruselas",      serving:"100g", grams:100, kcal:43,  protein:3.4, carbs:8.9, fat:0.3 },
+  { id:"verd-ajoporro",   cat:"Verduras", name:"Cebollín / Cebolla de verdeo", serving:"100g", grams:100, kcal:32, protein:1.8, carbs:7.3, fat:0.2 },
 
   // ── FRUTAS ──────────────────────────────────────────────────────────
   { id:"frut-banana",   cat:"Frutas", name:"Banana",                    serving:"100g", grams:100, kcal:89,  protein:1.1, carbs:23,  fat:0.3 },

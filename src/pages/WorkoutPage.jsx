@@ -1803,8 +1803,25 @@ export default function WorkoutPage() {
 
     {/* ── PDF VIEW ──────────────────────────────────────────────────────────── */}
     {showPDF && (
-      <div style={{ position: "fixed", inset: 0, background: "var(--bg)", zIndex: 300, overflowY: "auto" }}>
-        <WorkoutPDF workout={active} onClose={() => setShowPDF(false)} />
+      <div style={{ position:"fixed", inset:0, background:"var(--bg)", zIndex:300, display:"flex", flexDirection:"column" }}>
+        {/* Header fijo — siempre visible */}
+        <div className="no-print" style={{ flexShrink:0, display:"flex", alignItems:"center", gap:10, padding:"12px 16px", borderBottom:"1px solid var(--line)", background:"var(--bg)" }}>
+          <button onClick={() => setShowPDF(false)}
+            style={{ padding:"9px 18px", borderRadius:12, background:"#ef4444", border:"none", cursor:"pointer", color:"#fff", fontWeight:800, fontSize:15 }}>
+            ✕ Cerrar
+          </button>
+          <span style={{ fontWeight:700, flex:1, fontSize:15, textAlign:"center" }}>
+            {active?.name || active?.type || "Rutina"}
+          </span>
+          <button onClick={() => window.print()}
+            style={{ padding:"9px 16px", borderRadius:12, background:"rgba(168,85,247,.15)", border:"1px solid rgba(168,85,247,.4)", color:"#a855f7", fontWeight:700, fontSize:13, cursor:"pointer" }}>
+            Descargar PDF
+          </button>
+        </div>
+        {/* Contenido scrollable */}
+        <div style={{ flex:1, overflowY:"auto" }}>
+          <WorkoutPDF workout={active} onClose={() => setShowPDF(false)} hideToolbar />
+        </div>
       </div>
     )}
     </>

@@ -1,6 +1,6 @@
 import ExerciseIllustration from './ExerciseIllustration';
 
-export default function WorkoutPDF({ workout, onClose }) {
+export default function WorkoutPDF({ workout, onClose, hideToolbar = false }) {
   // Build unique exercise list preserving order, gathering meta from first set
   const exercises = [];
   const seen = new Set();
@@ -25,8 +25,8 @@ export default function WorkoutPDF({ workout, onClose }) {
 
   return (
     <div>
-      {/* Toolbar — hidden on print */}
-      <div className="no-print" style={{
+      {/* Toolbar — hidden on print and when parent provides its own */}
+      {!hideToolbar && <div className="no-print" style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         padding: '12px 16px', background: 'var(--surface, var(--panel))',
         position: 'sticky', top: 0, zIndex: 10,
@@ -44,7 +44,7 @@ export default function WorkoutPDF({ workout, onClose }) {
           style={{ fontSize: 13, padding: '7px 16px', borderRadius: 10, cursor: 'pointer', background: 'rgba(168,85,247,.15)', border: '1px solid rgba(168,85,247,.4)', color: 'var(--green, #a855f7)', fontWeight: 700 }}>
           Descargar PDF
         </button>
-      </div>
+      </div>}
 
       {/* Printable content */}
       <div id="workout-pdf-content" style={{ padding: 24, maxWidth: 800, margin: '0 auto' }}>
