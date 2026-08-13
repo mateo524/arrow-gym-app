@@ -59,8 +59,11 @@ const useStore = create(
       version: 4,
       storage: quotaStorage,
       partialize: (state) => {
-        const { currentPage, selectedWorkoutId, currentPRCard, ...rest } = state;
+        const { currentPage, selectedWorkoutId, currentPRCard, _rehydrated, ...rest } = state;
         return rest;
+      },
+      onRehydrateStorage: () => (state) => {
+        if (state) state._rehydrated = true;
       },
     }
   )

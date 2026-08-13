@@ -103,6 +103,14 @@ const useAuthStore = create((set, get) => ({
           if (lastUserId !== user.id) {
             useStore.getState().resetUserData(user.id);
           }
+          // Wait for Zustand to finish rehydrating from localStorage before
+          // merging Supabase data — otherwise get() returns default values and
+          // overwrites the user's persisted preferences (waterGoal, nutritionPlan, etc.)
+          await new Promise(resolve => {
+            if (useStore.getState()._rehydrated) { resolve(); return; }
+            const unsub = useStore.subscribe(s => { if (s._rehydrated) { unsub(); resolve(); } });
+            setTimeout(resolve, 1500);
+          });
           await useStore.getState().syncWorkoutsFromDB(user.id);
           useStore.getState().syncAllToSupabase(user.id);
           try { await useStore.getState().loadHealthFromDB(); } catch {}
