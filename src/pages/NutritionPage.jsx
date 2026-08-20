@@ -57,6 +57,7 @@ export default function NutritionPage() {
   const [dbQuery, setDbQuery] = useState("");
   const [dbResults, setDbResults] = useState([]);
   const [baseFood, setBaseFood] = useState(null);
+  const [macrosEdited, setMacrosEdited] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const addCustomFood   = useStore(s => s.addCustomFood);
   const storeCustomFoods = useStore(s => s.customFoods) || [];
@@ -93,11 +94,21 @@ export default function NutritionPage() {
   }, [storeCustomFoods]);
 
   const selectDbFood = useCallback((food) => {
-    setBaseFood(food);
+    // Normalise to per-100g so handleGramsChange can scale correctly
+    const per100 = food.grams && food.grams !== 100
+      ? {
+          kcal:    Math.round(food.kcal    / food.grams * 100),
+          protein: Math.round(food.protein / food.grams * 100 * 10) / 10,
+          carbs:   Math.round(food.carbs   / food.grams * 100 * 10) / 10,
+          fat:     Math.round(food.fat     / food.grams * 100 * 10) / 10,
+        }
+      : { kcal: food.kcal, protein: food.protein, carbs: food.carbs, fat: food.fat };
+    setBaseFood({ ...food, ...per100 });
+    setMacrosEdited(false);
     setForm(f => ({
       ...f,
       name: food.name,
-      grams: "100",
+      grams: String(food.grams || 100),
       kcal: String(food.kcal),
       protein: String(food.protein),
       carbs: String(food.carbs),
@@ -109,7 +120,8 @@ export default function NutritionPage() {
 
   const handleGramsChange = useCallback((g) => {
     setForm(f => {
-      if (!baseFood || !g) return { ...f, grams: g };
+      // If user manually edited macro fields, don't overwrite them
+      if (!baseFood || !g || macrosEdited) return { ...f, grams: g };
       const factor = Number(g) / 100;
       return {
         ...f,
@@ -120,7 +132,7 @@ export default function NutritionPage() {
         fat: String(Math.round(baseFood.fat * factor * 10) / 10),
       };
     });
-  }, [baseFood]);
+  }, [baseFood, macrosEdited]);
 
   const today = todayLocal();
   const bodyWeight = Number([...weightLog].sort((a,b) => String(b.date).localeCompare(String(a.date)))[0]?.kg) || null;
@@ -199,6 +211,7 @@ export default function NutritionPage() {
     setDbQuery("");
     setDbResults([]);
     setBaseFood(null);
+    setMacrosEdited(false);
   }
 
   async function handleAdd(e) {
@@ -909,7 +922,7 @@ export default function NutritionPage() {
             )}
 
             <form onSubmit={handleAdd} style={{ display:"flex", flexDirection:"column", gap:10 }}>
-              <input className="input" placeholder="Nombre del alimento *" value={form.name} onChange={e => { setForm(f => ({...f,name:e.target.value})); setBaseFood(null); }} required />
+              <input className="input" placeholder="Nombre del alimento *" value={form.name} onChange={e => { setForm(f => ({...f,name:e.target.value})); setBaseFood(null); setMacrosEdited(false); }} required />
               {/* Gramaje */}
               <div>
                 <label style={{ fontSize:11, color:"var(--muted)", display:"block", marginBottom:4 }}>Cantidad (g)</label>
@@ -917,12 +930,18 @@ export default function NutritionPage() {
                   onChange={e => handleGramsChange(e.target.value.replace(",","."))}
                   placeholder="ej: 150"
                   style={{ width:"100%", background:"var(--panel2)", border:"1px solid var(--line)", borderRadius:10, padding:"9px 12px", color:"var(--text)", fontSize:14, boxSizing:"border-box" }} />
+                {/* Macro preview — shown when a DB food is selected and grams is filled */}
+                {baseFood && form.grams && Number(form.grams) > 0 && !macrosEdited && (
+                  <div style={{ marginTop:6, fontSize:12, color:"var(--green)", fontWeight:600, padding:"6px 10px", background:"rgba(52,211,153,.07)", borderRadius:8, border:"1px solid rgba(52,211,153,.15)" }}>
+                    Por {form.grams}g: {form.kcal} kcal · {form.protein}g P · {form.carbs}g C · {form.fat}g G
+                  </div>
+                )}
               </div>
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
-                <input className="input" inputMode="decimal" placeholder="Calorías *" value={form.kcal} onChange={e => setForm(f => ({...f,kcal:e.target.value.replace(",",".")}))} required />
-                <input className="input" inputMode="decimal" placeholder="Proteína (g)" value={form.protein} onChange={e => setForm(f => ({...f,protein:e.target.value.replace(",",".")}))} />
-                <input className="input" inputMode="decimal" placeholder="Carbs (g)" value={form.carbs} onChange={e => setForm(f => ({...f,carbs:e.target.value.replace(",",".")}))} />
-                <input className="input" inputMode="decimal" placeholder="Grasas (g)" value={form.fat} onChange={e => setForm(f => ({...f,fat:e.target.value.replace(",",".")}))} />
+                <input className="input" inputMode="decimal" placeholder="Calorías *" value={form.kcal} onChange={e => { setForm(f => ({...f,kcal:e.target.value.replace(",",".")})); setMacrosEdited(true); }} required />
+                <input className="input" inputMode="decimal" placeholder="Proteína (g)" value={form.protein} onChange={e => { setForm(f => ({...f,protein:e.target.value.replace(",",".")})); setMacrosEdited(true); }} />
+                <input className="input" inputMode="decimal" placeholder="Carbs (g)" value={form.carbs} onChange={e => { setForm(f => ({...f,carbs:e.target.value.replace(",",".")})); setMacrosEdited(true); }} />
+                <input className="input" inputMode="decimal" placeholder="Grasas (g)" value={form.fat} onChange={e => { setForm(f => ({...f,fat:e.target.value.replace(",",".")})); setMacrosEdited(true); }} />
               </div>
               {/* Botón sticky al fondo del scroll — funciona en todos los navegadores incluyendo iOS Safari */}
               <div style={{ position:"sticky", bottom:0, background:"var(--bg)", paddingTop:10, paddingBottom:"max(16px, env(safe-area-inset-bottom, 16px))", marginTop:4, borderTop:"1px solid var(--line)" }}>

@@ -382,7 +382,73 @@ export const FOOD_DB = [
   { id:"frns-aceite-oliva",cat:"Aceites",      name:"Aceite de oliva",          serving:"100ml",grams:100, kcal:884, protein:0,  carbs:0,  fat:100 },
   { id:"frns-aceite-coco", cat:"Aceites",      name:"Aceite de coco",           serving:"100ml",grams:100, kcal:862, protein:0,  carbs:0,  fat:100 },
 
+  // ── PROTEÍNAS NUEVAS ────────────────────────────────────────────────────
+  { id:"new-p1",  cat:"Carnes",      name:"Asado de tira",              serving:"100g", grams:100, kcal:250, protein:26, carbs:0,  fat:16 },
+  { id:"new-p2",  cat:"Carnes",      name:"Milanesa de res",             serving:"100g", grams:100, kcal:245, protein:22, carbs:12, fat:11 },
+  { id:"new-p3",  cat:"Carnes",      name:"Carne de cerdo",              serving:"100g", grams:100, kcal:242, protein:27, carbs:0,  fat:14 },
+  { id:"new-p4",  cat:"Lácteos",     name:"Queso fresco",                serving:"100g", grams:100, kcal:115, protein:10, carbs:3,  fat:7  },
+  { id:"new-p5",  cat:"Lácteos",     name:"Queso rallado",               serving:"30g",  grams:30,  kcal:114, protein:10, carbs:0,  fat:8  },
+  { id:"new-p6",  cat:"Suplementos", name:"Proteína en polvo",           serving:"1 scoop 30g", grams:30, kcal:120, protein:24, carbs:3, fat:2 },
+  { id:"new-p7",  cat:"Carnes",      name:"Pechito de cerdo",            serving:"100g", grams:100, kcal:270, protein:22, carbs:0,  fat:20 },
+  { id:"new-p8",  cat:"Fiambres",    name:"Panceta ahumada",             serving:"100g", grams:100, kcal:416, protein:12, carbs:0,  fat:42 },
+  { id:"new-p9",  cat:"Carnes",      name:"Peceto",                      serving:"100g", grams:100, kcal:165, protein:28, carbs:0,  fat:6  },
+  { id:"new-p10", cat:"Carnes",      name:"Tapa de asado",               serving:"100g", grams:100, kcal:265, protein:22, carbs:0,  fat:19 },
+  { id:"new-p11", cat:"Carnes",      name:"Churrasco de cerdo",          serving:"100g", grams:100, kcal:230, protein:26, carbs:0,  fat:14 },
+  { id:"new-p12", cat:"Carnes",      name:"Mondongo cocido",             serving:"100g", grams:100, kcal:105, protein:14, carbs:0,  fat:5  },
+
+  // ── CARBOHIDRATOS NUEVOS ────────────────────────────────────────────────
+  { id:"new-c1",  cat:"Cereales",    name:"Fideos secos",                serving:"100g", grams:100, kcal:358, protein:12, carbs:72, fat:2  },
+  { id:"new-c2",  cat:"Pan",         name:"Medialunas de manteca",       serving:"1 unidad 50g", grams:50, kcal:185, protein:4, carbs:23, fat:9 },
+  { id:"new-c3",  cat:"Pan",         name:"Galletitas integrales",       serving:"4 unidades",   grams:30, kcal:80,  protein:2, carbs:14, fat:2 },
+  { id:"new-c4",  cat:"Cereales",    name:"Polenta seca",                serving:"100g", grams:100, kcal:355, protein:8,  carbs:74, fat:1  },
+  { id:"new-c5",  cat:"Cereales",    name:"Arroz integral seco",         serving:"100g", grams:100, kcal:362, protein:8,  carbs:76, fat:3  },
+  { id:"new-c6",  cat:"Pan",         name:"Panqueques",                  serving:"2 unidades 100g", grams:100, kcal:210, protein:6, carbs:28, fat:8 },
+  { id:"new-c7",  cat:"Pan",         name:"Waffles",                     serving:"1 unidad 60g", grams:60, kcal:185, protein:5, carbs:24, fat:8 },
+  { id:"new-c8",  cat:"Cereales",    name:"Sémola cocida",               serving:"100g", grams:100, kcal:65,  protein:2,  carbs:14, fat:0  },
+  { id:"new-c9",  cat:"Cereales",    name:"Gnocchi / Ñoquis cocidos",    serving:"100g", grams:100, kcal:131, protein:4,  carbs:27, fat:1  },
+  { id:"new-c10", cat:"Harinas",     name:"Harina de trigo",             serving:"100g", grams:100, kcal:364, protein:10, carbs:76, fat:1  },
+  { id:"new-c11", cat:"Harinas",     name:"Harina integral",             serving:"100g", grams:100, kcal:340, protein:13, carbs:68, fat:2  },
+
+  // ── PRODUCTOS ARGENTINOS TÍPICOS ────────────────────────────────────────
+  { id:"new-a1",  cat:"Comidas ARG", name:"Chipá",                       serving:"1 unidad 40g", grams:40, kcal:130, protein:4, carbs:18, fat:5  },
+  { id:"new-a2",  cat:"Comidas ARG", name:"Fainá",                       serving:"1 porción 80g", grams:80, kcal:170, protein:6, carbs:26, fat:5  },
+  { id:"new-a3",  cat:"Comidas ARG", name:"Sopa de fideos casera",       serving:"1 plato 300ml", grams:300, kcal:130, protein:5, carbs:22, fat:2  },
+  { id:"new-a4",  cat:"Comidas ARG", name:"Puchero de gallina",          serving:"1 plato 350g",  grams:350, kcal:290, protein:28, carbs:18, fat:10 },
+  { id:"new-a5",  cat:"Comidas ARG", name:"Carbonada",                   serving:"1 plato 300g",  grams:300, kcal:320, protein:18, carbs:38, fat:9  },
+  { id:"new-a6",  cat:"Comidas ARG", name:"Sopa paraguaya",              serving:"1 porción 100g",grams:100, kcal:260, protein:8,  carbs:30, fat:12 },
+  { id:"new-a7",  cat:"Comidas ARG", name:"Revuelto gramajo",            serving:"1 porción 200g",grams:200, kcal:420, protein:20, carbs:30, fat:24 },
+  { id:"new-a8",  cat:"Comidas ARG", name:"Tostado jamón y queso",       serving:"1 unidad",      grams:120, kcal:320, protein:16, carbs:28, fat:14 },
+  { id:"new-a9",  cat:"Comidas ARG", name:"Sandwich de milanesa",        serving:"1 unidad",      grams:220, kcal:510, protein:30, carbs:46, fat:20 },
+  { id:"new-a10", cat:"Comidas ARG", name:"Canelones de carne",          serving:"2 unidades",    grams:240, kcal:380, protein:22, carbs:32, fat:16 },
+
+  // ── LÁCTEOS ADICIONALES ──────────────────────────────────────────────────
+  { id:"new-d1",  cat:"Lácteos",     name:"Queso pategrás",              serving:"100g", grams:100, kcal:370, protein:26, carbs:1,  fat:29 },
+  { id:"new-d2",  cat:"Lácteos",     name:"Queso fontina",               serving:"100g", grams:100, kcal:389, protein:26, carbs:1,  fat:31 },
+  { id:"new-d3",  cat:"Lácteos",     name:"Arroz con leche",             serving:"1 taza 200g",   grams:200, kcal:200, protein:5,  carbs:38, fat:4  },
+  { id:"new-d4",  cat:"Lácteos",     name:"Crema de leche (100g)",       serving:"100g", grams:100, kcal:340, protein:3,  carbs:3,  fat:36 },
+
+  // ── PESCADOS Y MARISCOS ──────────────────────────────────────────────────
+  { id:"new-f1",  cat:"Pescados",    name:"Pejerrey",                    serving:"100g", grams:100, kcal:105, protein:21, carbs:0,  fat:2  },
+  { id:"new-f2",  cat:"Pescados",    name:"Corvina",                     serving:"100g", grams:100, kcal:100, protein:20, carbs:0,  fat:2  },
+  { id:"new-f3",  cat:"Pescados",    name:"Lenguado",                    serving:"100g", grams:100, kcal:86,  protein:18, carbs:0,  fat:1  },
+
+  // ── SNACKS Y DULCES ARGENTINOS ───────────────────────────────────────────
+  { id:"new-sw1", cat:"Snacks",      name:"Mantecol",                    serving:"1 porción 35g", grams:35, kcal:185, protein:5, carbs:18, fat:11 },
+  { id:"new-sw2", cat:"Snacks",      name:"Oblea",                       serving:"2 unidades 20g",grams:20, kcal:90,  protein:1, carbs:16, fat:3  },
+  { id:"new-sw3", cat:"Snacks",      name:"Garrapiñada de maní",         serving:"30g",           grams:30, kcal:140, protein:3, carbs:22, fat:5  },
+  { id:"new-sw4", cat:"Snacks",      name:"Pipas de girasol",            serving:"30g",           grams:30, kcal:174, protein:6, carbs:5,  fat:15 },
+  { id:"new-sw5", cat:"Snacks",      name:"Dulce de membrillo",          serving:"1 porción 30g", grams:30, kcal:85,  protein:0, carbs:22, fat:0  },
+  { id:"new-sw6", cat:"Snacks",      name:"Torta de naranja (porción)",  serving:"1 porción 80g", grams:80, kcal:280, protein:5, carbs:40, fat:11 },
+  { id:"new-sw7", cat:"Snacks",      name:"Budín de pan",                serving:"1 porción 100g",grams:100, kcal:250, protein:7, carbs:38, fat:8  },
+  { id:"new-sw8", cat:"Snacks",      name:"Pasta frola (porción)",       serving:"1 porción 80g", grams:80, kcal:290, protein:4, carbs:42, fat:12 },
+
+  // ── LEGUMBRES Y PROTEÍNA VEGETAL ─────────────────────────────────────────
+  { id:"new-l1",  cat:"Legumbres",   name:"Soja texturizada seca",       serving:"100g", grams:100, kcal:333, protein:52, carbs:30, fat:1  },
+  { id:"new-l2",  cat:"Legumbres",   name:"Arvejas secas cocidas",       serving:"100g", grams:100, kcal:118, protein:8,  carbs:21, fat:0  },
+  { id:"new-l3",  cat:"Legumbres",   name:"Habas cocidas",               serving:"100g", grams:100, kcal:110, protein:8,  carbs:20, fat:0  },
+
 ];
+
 
 // ── Búsqueda con score de relevancia ────────────────────────────────────────
 export function searchFoods(query, limit = 20) {
