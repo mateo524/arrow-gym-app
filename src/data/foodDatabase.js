@@ -470,6 +470,30 @@ export const FOOD_DB = [
   { id:"add-v4",  cat:"Comidas ARG", name:"Empanada de carne",           serving:"1 unidad",      grams:100, kcal:250, protein:12, carbs:28, fat:10 },
   { id:"add-v5",  cat:"Pan",         name:"Facturas",                    serving:"1 unidad 60g",  grams:60,  kcal:220, protein:4,  carbs:28, fat:11 },
 
+  // ── DESAYUNOS/MERIENDAS ARGENTINAS ──────────────────────────────────────────
+  { id:"des-tostadas-manteca",  cat:"Desayuno ARG",  name:"Tostadas con manteca (2 tostadas)", serving:"2 tostadas 60g",         grams:60,  kcal:220, protein:5,  carbs:32, fat:8  },
+  { id:"des-te-azucar-250",     cat:"Bebidas",        name:"Té con azúcar (250ml)",             serving:"1 taza 250ml",           grams:250, kcal:30,  protein:0,  carbs:8,  fat:0  },
+  { id:"des-cafe-leche-200",    cat:"Bebidas",        name:"Café con leche (200ml)",            serving:"1 taza 200ml",           grams:200, kcal:60,  protein:3,  carbs:7,  fat:2  },
+  { id:"des-cereales-leche",    cat:"Desayuno ARG",  name:"Cereales con leche",                serving:"50g cereal + 150ml leche",grams:200, kcal:280, protein:9,  carbs:50, fat:5  },
+
+  // ── ALMUERZOS/CENAS ARGENTINAS ──────────────────────────────────────────────
+  { id:"alm-guiso-lentejas-250",cat:"Comidas ARG",   name:"Guiso de lentejas (250g)",          serving:"1 plato 250g",           grams:250, kcal:290, protein:14, carbs:42, fat:7  },
+  { id:"alm-cazuela-pollo",     cat:"Comidas ARG",   name:"Cazuela de pollo",                  serving:"1 plato 250g",           grams:250, kcal:310, protein:28, carbs:18, fat:12 },
+  { id:"alm-locro-250",         cat:"Comidas ARG",   name:"Locro (250g)",                      serving:"1 plato 250g",           grams:250, kcal:380, protein:18, carbs:45, fat:14 },
+  { id:"alm-tallarines-tuco",   cat:"Comidas ARG",   name:"Tallarines con tuco (250g)",        serving:"1 plato 250g",           grams:250, kcal:380, protein:14, carbs:65, fat:7  },
+  { id:"alm-puchero-250",       cat:"Comidas ARG",   name:"Puchero (250g)",                    serving:"1 plato 250g",           grams:250, kcal:340, protein:25, carbs:22, fat:16 },
+  { id:"alm-tortilla-papa",     cat:"Comidas ARG",   name:"Tortilla de papa",                  serving:"1 porción 150g",         grams:150, kcal:280, protein:12, carbs:22, fat:15 },
+
+  // ── SNACKS ──────────────────────────────────────────────────────────────────
+  { id:"snk-frutos-mix",        cat:"Snacks",        name:"Frutos secos mix",                  serving:"30g",                    grams:30,  kcal:175, protein:5,  carbs:7,  fat:15 },
+  { id:"snk-palitos-salados",   cat:"Snacks",        name:"Palitos salados",                   serving:"30g",                    grams:30,  kcal:140, protein:3,  carbs:20, fat:6  },
+
+  // ── PROTEÍNAS ADICIONALES ────────────────────────────────────────────────────
+  { id:"prot-pollo-horno-piel", cat:"Carnes",        name:"Pollo al horno con piel",           serving:"100g",                   grams:100, kcal:239, protein:27, carbs:0,  fat:14 },
+  { id:"prot-morcilla-250",     cat:"Carnes",        name:"Morcilla (porción)",                serving:"100g",                   grams:100, kcal:300, protein:13, carbs:1,  fat:26 },
+  { id:"prot-chorizo-250",      cat:"Carnes",        name:"Chorizo (100g)",                    serving:"100g",                   grams:100, kcal:350, protein:15, carbs:2,  fat:31 },
+  { id:"prot-vacio-magro",      cat:"Carnes",        name:"Vacío (corte magro)",               serving:"100g",                   grams:100, kcal:195, protein:28, carbs:0,  fat:9  },
+
 ];
 
 

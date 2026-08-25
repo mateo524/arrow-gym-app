@@ -43,8 +43,9 @@ export default function NutritionPage() {
   const savedCombos    = useStore(s => s.savedMealCombos) || [];
   const logMeal        = useStore(s => s.logMeal);
   const deleteMeal     = useStore(s => s.deleteMeal);
-  const saveMealCombo  = useStore(s => s.saveMealCombo);
-  const logMealCombo   = useStore(s => s.logMealCombo);
+  const saveMealCombo   = useStore(s => s.saveMealCombo);
+  const logMealCombo    = useStore(s => s.logMealCombo);
+  const deleteMealCombo = useStore(s => s.deleteMealCombo);
   const weightLog      = useStore(s => s.weightLog) || [];
   const userGoal       = useStore(s => s.userGoal) || "mantenimiento";
 
@@ -59,6 +60,14 @@ export default function NutritionPage() {
   const [baseFood, setBaseFood] = useState(null);
   const [macrosEdited, setMacrosEdited] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
+
+  // ── MIS COMIDAS — combo modal state ──────────────────────────────────────
+  const [showComboModal, setShowComboModal] = useState(false);
+  const [comboName, setComboName] = useState("");
+  const [comboFoods, setComboFoods] = useState([]);
+  const [comboDbQuery, setComboDbQuery] = useState("");
+  const [comboDbResults, setComboDbResults] = useState([]);
+
   const addCustomFood   = useStore(s => s.addCustomFood);
   const storeCustomFoods = useStore(s => s.customFoods) || [];
   const customKcal    = useStore(s => s.customKcal) ?? "";
@@ -292,8 +301,8 @@ export default function NutritionPage() {
       </div>
 
       {/* Tabs */}
-      <div style={{ display:"flex", gap:6, marginBottom:16 }}>
-        {[["hoy","Hoy"],["semana","Semana"],...(f.coach_insights ? [["plan","Plan"]] : []),["historial","Historial"]].map(([id,label]) => (
+      <div style={{ display:"flex", gap:6, marginBottom:16, overflowX:"auto", scrollbarWidth:"none", WebkitOverflowScrolling:"touch" }}>
+        {[["hoy","Hoy"],["semana","Semana"],["miscomidas","Mis comidas"],...(f.coach_insights ? [["plan","Plan"]] : []),["historial","Historial"]].map(([id,label]) => (
           <button key={id} onClick={() => setTab(id)} style={{
             padding:"6px 14px", borderRadius:20, border:"none", cursor:"pointer", fontSize:13, fontWeight:600,
             background: tab===id ? "var(--green)" : "var(--panel2)", color: tab===id ? "#fff" : "var(--muted)",
@@ -477,6 +486,67 @@ export default function NutritionPage() {
           </div>
         );
       })()}
+
+      {/* ── MIS COMIDAS ── */}
+      {tab === "miscomidas" && (
+        <div>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
+            <div>
+              <p className="section-label" style={{ marginBottom:2 }}>Mis comidas</p>
+              <p style={{ fontSize:12, color:"var(--muted)", margin:0 }}>Combinaciones para agregar de una sola vez</p>
+            </div>
+            <button
+              onClick={() => { setComboName(""); setComboFoods([]); setComboDbQuery(""); setComboDbResults([]); setShowComboModal(true); }}
+              style={{ padding:"8px 14px", background:"var(--green)", color:"#000", border:"none", borderRadius:12, fontSize:13, fontWeight:700, cursor:"pointer", flexShrink:0 }}>
+              + Crear
+            </button>
+          </div>
+
+          {savedCombos.length === 0 ? (
+            <div style={{ textAlign:"center", padding:"40px 16px", color:"var(--muted)" }}>
+              <div style={{ fontSize:40, marginBottom:12 }}>🍽</div>
+              <p style={{ fontSize:14, fontWeight:600, margin:"0 0 6px" }}>Sin combinaciones guardadas</p>
+              <p style={{ fontSize:12, margin:0 }}>Creá tu primera combinación para registrar varias comidas de una vez</p>
+            </div>
+          ) : (
+            <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+              {savedCombos.map(combo => {
+                const tot = (combo.meals || []).reduce((s, m) => ({
+                  kcal:    s.kcal    + (Number(m.kcal)    || 0),
+                  protein: s.protein + (Number(m.protein) || 0),
+                  carbs:   s.carbs   + (Number(m.carbs)   || 0),
+                  fat:     s.fat     + (Number(m.fat)     || 0),
+                }), { kcal:0, protein:0, carbs:0, fat:0 });
+                return (
+                  <div key={combo.id} style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:16, padding:"14px 16px" }}>
+                    <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:8 }}>
+                      <div style={{ flex:1 }}>
+                        <div style={{ fontSize:15, fontWeight:800, marginBottom:4 }}>{combo.name}</div>
+                        <div style={{ fontSize:12, color:"var(--muted)", lineHeight:1.4 }}>
+                          {(combo.meals || []).map(m => m.name).join(", ")}
+                        </div>
+                      </div>
+                      <button onClick={() => deleteMealCombo(combo.id)}
+                        style={{ background:"none", border:"none", cursor:"pointer", fontSize:20, color:"var(--muted)", padding:"0 0 0 10px", lineHeight:1, flexShrink:0 }}>×</button>
+                    </div>
+                    <div style={{ display:"flex", gap:10, marginBottom:10, flexWrap:"wrap" }}>
+                      <span style={{ fontSize:14, fontWeight:800, color:"var(--green)" }}>{Math.round(tot.kcal)} kcal</span>
+                      <span style={{ fontSize:13, color:"#60a5fa", fontWeight:600 }}>{Math.round(tot.protein)}g P</span>
+                      <span style={{ fontSize:13, color:"#f59e0b", fontWeight:600 }}>{Math.round(tot.carbs)}g C</span>
+                      <span style={{ fontSize:13, color:"#f87171", fontWeight:600 }}>{Math.round(tot.fat)}g G</span>
+                    </div>
+                    <button
+                      onClick={() => { logMealCombo(combo.id); window.__showToast?.(`"${combo.name}" registrado en el día`, "success"); }}
+                      style={{ width:"100%", padding:"10px", background:"rgba(52,211,153,.12)", border:"1px solid rgba(52,211,153,.25)", borderRadius:10, color:"var(--green)", fontWeight:700, fontSize:13, cursor:"pointer" }}>
+                      Agregar al día de hoy
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {tab === "plan" && (<>
         {/* Targets card */}
@@ -964,6 +1034,163 @@ export default function NutritionPage() {
           }}
           onClose={() => setShowScanner(false)}
         />
+      )}
+
+      {/* ── MODAL CREAR COMBINACIÓN ── */}
+      {showComboModal && (
+        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.75)", zIndex:400 }}
+          onClick={e => { if (e.target === e.currentTarget) setShowComboModal(false); }}>
+          <div style={{ position:"absolute", top:"8vh", left:0, right:0, bottom:0, background:"var(--bg)", borderRadius:"20px 20px 0 0", display:"flex", flexDirection:"column" }}>
+
+            {/* Header fijo */}
+            <div style={{ padding:"20px 20px 0", flexShrink:0 }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
+                <h3 style={{ margin:0, fontSize:17 }}>Nueva combinación</h3>
+                <button onClick={() => setShowComboModal(false)} style={{ background:"none", border:"none", cursor:"pointer", fontSize:22, color:"var(--muted)" }}>×</button>
+              </div>
+
+              {/* Nombre de la combinación */}
+              <input
+                className="input"
+                placeholder="Nombre (ej: Desayuno pre-entreno)"
+                value={comboName}
+                onChange={e => setComboName(e.target.value)}
+                style={{ width:"100%", boxSizing:"border-box", marginBottom:12 }}
+              />
+
+              {/* Buscador de alimentos */}
+              <div style={{ position:"relative", marginBottom:4 }}>
+                <input
+                  className="input"
+                  placeholder="🔍 Buscar y agregar alimento…"
+                  value={comboDbQuery}
+                  onChange={e => {
+                    const q = e.target.value;
+                    setComboDbQuery(q);
+                    if (q.trim().length >= 2) {
+                      const matches = searchFoods(q, 12);
+                      const lq = q.toLowerCase();
+                      const customMatches = (storeCustomFoods || []).filter(cf => cf.name.toLowerCase().includes(lq));
+                      setComboDbResults([...customMatches, ...matches].slice(0, 15));
+                    } else {
+                      setComboDbResults([]);
+                    }
+                  }}
+                  style={{ width:"100%", boxSizing:"border-box" }}
+                  autoComplete="off"
+                />
+                {comboDbResults.length > 0 && (
+                  <div style={{ position:"absolute", top:"100%", left:0, right:0, background:"var(--panel)", border:"1px solid var(--line)", borderRadius:12, zIndex:500, maxHeight:220, overflowY:"auto", boxShadow:"0 8px 24px rgba(0,0,0,.5)" }}>
+                    {comboDbResults.map(food => (
+                      <button
+                        key={food.id}
+                        type="button"
+                        onClick={() => {
+                          setComboFoods(prev => [...prev, {
+                            id: `cf-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+                            foodId: food.id,
+                            name: food.name,
+                            grams: food.grams || 100,
+                            kcal: r2(food.kcal),
+                            protein: r2(food.protein),
+                            carbs: r2(food.carbs),
+                            fat: r2(food.fat),
+                          }]);
+                          setComboDbQuery("");
+                          setComboDbResults([]);
+                        }}
+                        style={{ width:"100%", padding:"10px 14px", background:"none", border:"none", borderBottom:"1px solid var(--line)", cursor:"pointer", textAlign:"left", display:"flex", justifyContent:"space-between", alignItems:"center", gap:8 }}>
+                        <div>
+                          <div style={{ fontSize:13, fontWeight:700, color:"var(--text)" }}>{food.name}</div>
+                          <div style={{ fontSize:11, color:"var(--muted)" }}>{food.serving} · {food.cat}</div>
+                        </div>
+                        <div style={{ textAlign:"right", flexShrink:0 }}>
+                          <div style={{ fontSize:13, fontWeight:800, color:"var(--green)" }}>{r2(food.kcal)} kcal</div>
+                          <div style={{ fontSize:10, color:"var(--muted)" }}>{r2(food.protein)}P · {r2(food.carbs)}C · {r2(food.fat)}G</div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Cuerpo scrollable */}
+            <div style={{ flex:1, overflowY:"auto", padding:"12px 20px 0" }}>
+
+              {/* Totales en tiempo real */}
+              {comboFoods.length > 0 && (() => {
+                const tot = comboFoods.reduce((s, cf) => ({
+                  kcal:    s.kcal    + (Number(cf.kcal)    || 0),
+                  protein: s.protein + (Number(cf.protein) || 0),
+                  carbs:   s.carbs   + (Number(cf.carbs)   || 0),
+                  fat:     s.fat     + (Number(cf.fat)     || 0),
+                }), { kcal:0, protein:0, carbs:0, fat:0 });
+                return (
+                  <div style={{ background:"rgba(52,211,153,.08)", border:"1px solid rgba(52,211,153,.2)", borderRadius:12, padding:"10px 14px", marginBottom:12, display:"flex", gap:14, flexWrap:"wrap", alignItems:"center" }}>
+                    <span style={{ fontSize:14, fontWeight:900, color:"var(--green)" }}>{Math.round(tot.kcal)} kcal</span>
+                    <span style={{ fontSize:13, color:"#60a5fa", fontWeight:600 }}>{Math.round(tot.protein)}g P</span>
+                    <span style={{ fontSize:13, color:"#f59e0b", fontWeight:600 }}>{Math.round(tot.carbs)}g C</span>
+                    <span style={{ fontSize:13, color:"#f87171", fontWeight:600 }}>{Math.round(tot.fat)}g G</span>
+                  </div>
+                );
+              })()}
+
+              {/* Lista de alimentos agregados */}
+              {comboFoods.length === 0 ? (
+                <div style={{ textAlign:"center", padding:"32px 16px", color:"var(--muted)", fontSize:13 }}>
+                  Buscá y agregá alimentos arriba para armar tu combinación
+                </div>
+              ) : (
+                <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:12 }}>
+                  {comboFoods.map((cf, idx) => (
+                    <div key={cf.id} style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:12, padding:"10px 12px", display:"flex", alignItems:"center", gap:10 }}>
+                      <div style={{ flex:1 }}>
+                        <div style={{ fontSize:13, fontWeight:700 }}>{cf.name}</div>
+                        <div style={{ fontSize:11, color:"var(--muted)", marginTop:2 }}>
+                          {cf.grams}g · {r2(cf.kcal)} kcal · {r2(cf.protein)}g P · {r2(cf.carbs)}g C · {r2(cf.fat)}g G
+                        </div>
+                      </div>
+                      <button onClick={() => setComboFoods(prev => prev.filter((_, i) => i !== idx))}
+                        style={{ background:"none", border:"none", cursor:"pointer", fontSize:20, color:"var(--muted)", padding:4, lineHeight:1 }}>×</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Botón guardar sticky */}
+              <div style={{ position:"sticky", bottom:0, background:"var(--bg)", paddingTop:10, paddingBottom:"max(16px, env(safe-area-inset-bottom, 16px))", borderTop:"1px solid var(--line)" }}>
+                <button
+                  className="primary"
+                  style={{ width:"100%" }}
+                  disabled={!comboName.trim() || comboFoods.length === 0}
+                  onClick={() => {
+                    if (!comboName.trim() || comboFoods.length === 0) {
+                      window.__showToast?.("Ingresá un nombre y al menos un alimento", "error");
+                      return;
+                    }
+                    const meals = comboFoods.map(cf => ({
+                      type: "Combinación",
+                      name: cf.name,
+                      kcal: r2(cf.kcal),
+                      protein: r2(cf.protein),
+                      carbs: r2(cf.carbs),
+                      fat: r2(cf.fat),
+                    }));
+                    saveMealCombo(comboName.trim(), meals);
+                    const savedName = comboName.trim();
+                    setShowComboModal(false);
+                    setComboName("");
+                    setComboFoods([]);
+                    setTab("miscomidas");
+                    window.__showToast?.(`"${savedName}" guardada en Mis comidas`, "success");
+                  }}>
+                  Guardar combinación
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </section>
   );
