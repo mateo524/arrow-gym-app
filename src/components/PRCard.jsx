@@ -88,9 +88,10 @@ export default function PRCard({ pr, totalWorkouts, onClose }) {
     ctx.fillStyle = "#a855f7";
     ctx.font = "900 72px 'Inter', system-ui, sans-serif";
     ctx.fillText(`${weight}`, 24, 180);
+    const weightWidth = ctx.measureText(`${weight}`).width; // measure before changing font
     ctx.fillStyle = "#ccb4ff";
     ctx.font = "bold 28px 'Inter', system-ui, sans-serif";
-    ctx.fillText(unit, 24 + ctx.measureText(`${weight}`).width + 8, 175);
+    ctx.fillText(unit, 24 + weightWidth + 8, 175);
 
     // Reps
     ctx.fillStyle = "#9ca3af";
