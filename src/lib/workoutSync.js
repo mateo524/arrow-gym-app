@@ -1,8 +1,23 @@
 import { supabase } from "./supabase.js";
 import { enqueue, flush } from "./offlineQueue.js";
 
+// Race a Supabase promise against a hard timeout so that dead-WiFi situations
+// (navigator.onLine returns true but there is no real connectivity) don't leave
+// the SyncChip stuck in "saving" forever.
+const withTimeout = (promise, ms = 8000) => {
+  const timeout = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error("timeout")), ms)
+  );
+  return Promise.race([promise, timeout]);
+};
+
+// Prevent parallel requests that could race each other (the older one winning
+// over a newer write when the network is slow but not fully dead).
+let isSyncing = false;
+
 // Upload a completed workout to Supabase.
-// If offline, queues it for later and flushes pending queue on next success.
+// If offline (or a request is already in-flight), queues it for later and
+// flushes the pending queue on the next successful upload.
 export async function syncWorkoutUp(workout, userId) {
   if (!userId || !workout?.id) return;
   const row = {
@@ -20,16 +35,29 @@ export async function syncWorkoutUp(workout, userId) {
     enqueue({ type: "upsert_workout", row });
     return;
   }
+  // Avoid concurrent requests for the same resource.
+  if (isSyncing) {
+    enqueue({ type: "upsert_workout", row });
+    return;
+  }
+  isSyncing = true;
   try {
-    await supabase.from("user_workouts").upsert(row);
-    // Flush any previously queued saves now that we're online
+    await withTimeout(supabase.from("user_workouts").upsert(row));
+    // Flush any previously queued saves now that we're online.
     await flush(async (item) => {
       if (item.type === "upsert_workout") {
-        await supabase.from("user_workouts").upsert(item.row);
+        await withTimeout(supabase.from("user_workouts").upsert(item.row));
+      } else {
+        // Unknown type: throw so flush keeps it in the queue instead of
+        // silently discarding it — data loss prevention.
+        console.error(`[offlineQueue] tipo no reconocido: "${item.type}" — dejando en cola para reintentar`);
+        throw new Error(`tipo no reconocido: ${item.type}`);
       }
     });
   } catch {
     enqueue({ type: "upsert_workout", row });
+  } finally {
+    isSyncing = false;
   }
 }
 
@@ -38,12 +66,14 @@ export async function syncWorkoutUp(workout, userId) {
 export async function fetchWorkoutsFromDB(userId) {
   if (!userId) return [];
   try {
-    const { data, error } = await supabase
-      .from("user_workouts")
-      .select("*")
-      .eq("user_id", userId)
-      .order("date", { ascending: false })
-      .limit(500);
+    const { data, error } = await withTimeout(
+      supabase
+        .from("user_workouts")
+        .select("*")
+        .eq("user_id", userId)
+        .order("date", { ascending: false })
+        .limit(500)
+    );
     if (error) return [];
     return (data || []).map((row) => ({
       id: row.id,
@@ -75,7 +105,7 @@ export async function syncAllWorkoutsUp(workouts, userId) {
       sets: w.sets,
       created_at: new Date().toISOString(),
     }));
-    await supabase.from("user_workouts").upsert(rows);
+    await withTimeout(supabase.from("user_workouts").upsert(rows));
   } catch {}
 }
 

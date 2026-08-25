@@ -265,13 +265,22 @@ function AppContent() {
   // Flush offline queue when connectivity is restored
   useEffect(() => {
     const handleOnline = () => {
-      import("./lib/workoutSync.js").then(({ syncWorkoutUp }) => {
-        import("./lib/offlineQueue.js").then(({ flush }) => {
-          flush(async (item) => {
-            if (item.type === "upsert_workout") {
-              await syncWorkoutUp(item.row, item.row.user_id);
-            }
-          });
+      import("./lib/offlineQueue.js").then(({ flush }) => {
+        const withTimeout = (promise, ms = 8000) => {
+          const t = new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), ms));
+          return Promise.race([promise, t]);
+        };
+        flush(async (item) => {
+          if (item.type === "upsert_workout") {
+            // Call supabase directly here rather than via syncWorkoutUp to avoid
+            // recursive flush (syncWorkoutUp calls flush internally).
+            await withTimeout(supabase.from("user_workouts").upsert(item.row));
+          } else {
+            // Unknown type: throw so flush keeps the item in the queue instead of
+            // silently discarding it — data loss prevention.
+            console.error(`[offlineQueue] tipo no reconocido: "${item.type}" — dejando en cola para reintentar`);
+            throw new Error(`tipo no reconocido: ${item.type}`);
+          }
         }).catch(() => {});
       }).catch(() => {});
     };

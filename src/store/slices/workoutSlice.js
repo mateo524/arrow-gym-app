@@ -14,6 +14,13 @@ function uid(prefix) {
 
 // Debounced gym-state sync — same pattern as queueHealthSync in healthSlice
 let gymSyncQueued = false;
+// Guard against concurrent in-flight requests (navigator.onLine can lie on dead
+// gym WiFi — the request hangs indefinitely, leaving SyncChip stuck in "saving").
+let gymSyncRunning = false;
+const withTimeout = (promise, ms = 8000) => {
+  const t = new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), ms));
+  return Promise.race([promise, t]);
+};
 function queueGymSync(get) {
   if (gymSyncQueued) return;
   gymSyncQueued = true;
@@ -146,41 +153,51 @@ export const createWorkoutSlice = (set, get) => ({
   },
 
   syncGymStateToDB: async () => {
-    get().setSyncStatus?.("saving");
-    const s = get();
-    const payload = {
-      prs: s.prs || [],
-      achievements: s.achievements || [],
-      savedTemplates: s.savedTemplates || [],
-      weeklyChallenge: s.weeklyChallenge || null,
-      completedPlans: (s.completedPlans || []).slice(0, 50),
-      coachReports: (s.coachReports || []).slice(0, 30),
-      // exerciseSlice
-      customExercises: s.customExercises || [],
-      favoriteExercises: s.favoriteExercises || [],
-      exerciseNotes: s.exerciseNotes || {},
-      // coachSlice
-      progressionTargets: s.progressionTargets || {},
-      // settingsSlice
-      exerciseRestTimes: s.exerciseRestTimes || {},
-      customFoods: (s.customFoods || []).slice(0, 200),
-    };
-    if (!navigator.onLine) {
-      s.queueSync?.("gym", payload);
-      if ('serviceWorker' in navigator && 'SyncManager' in window) {
-        navigator.serviceWorker.ready.then(reg => {
-          reg.sync.register('sync-gym-data').catch(() => {});
-        });
-      }
-      return;
-    }
+    // Prevent a new request from racing an already in-flight one.
+    if (gymSyncRunning) return;
+    gymSyncRunning = true;
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user?.id) return;
-      await supabase.from("profiles").update({ gym_data: payload }).eq("id", session.user.id);
-      get().setSyncStatus?.("saved");
-    } catch {
-      get().setSyncStatus?.("error");
+      get().setSyncStatus?.("saving");
+      const s = get();
+      const payload = {
+        prs: s.prs || [],
+        achievements: s.achievements || [],
+        savedTemplates: s.savedTemplates || [],
+        weeklyChallenge: s.weeklyChallenge || null,
+        completedPlans: (s.completedPlans || []).slice(0, 50),
+        coachReports: (s.coachReports || []).slice(0, 30),
+        // exerciseSlice
+        customExercises: s.customExercises || [],
+        customExercisesModifiedAt: s.customExercisesModifiedAt || 0,
+        favoriteExercises: s.favoriteExercises || [],
+        favoriteExercisesModifiedAt: s.favoriteExercisesModifiedAt || 0,
+        exerciseNotes: s.exerciseNotes || {},
+        // coachSlice
+        progressionTargets: s.progressionTargets || {},
+        // settingsSlice
+        exerciseRestTimes: s.exerciseRestTimes || {},
+        customFoods: (s.customFoods || []).slice(0, 200),
+        customFoodsModifiedAt: s.customFoodsModifiedAt || 0,
+      };
+      if (!navigator.onLine) {
+        s.queueSync?.("gym", payload);
+        if ('serviceWorker' in navigator && 'SyncManager' in window) {
+          navigator.serviceWorker.ready.then(reg => {
+            reg.sync.register('sync-gym-data').catch(() => {});
+          });
+        }
+        return;
+      }
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user?.id) return;
+        await withTimeout(supabase.from("profiles").update({ gym_data: payload }).eq("id", session.user.id));
+        get().setSyncStatus?.("saved");
+      } catch {
+        get().setSyncStatus?.("error");
+      }
+    } finally {
+      gymSyncRunning = false;
     }
   },
 
@@ -213,9 +230,12 @@ export const createWorkoutSlice = (set, get) => ({
       function mergeMaps(localMap = {}, remoteMap = {}) {
         return { ...remoteMap, ...localMap };
       }
-      // Merge arrays without ids by taking the longer one
-      function mergeLonger(localArr = [], remoteArr = []) {
-        return localArr.length >= remoteArr.length ? localArr : remoteArr;
+      // Merge arrays that carry a _lastModified timestamp per collection.
+      // The side with the newer timestamp wins the entire array, preventing
+      // deleted items from being resurrected by the "longer array" heuristic.
+      // When both timestamps are 0 (legacy data), local wins as a safe default.
+      function mergeWithTs(localArr = [], remoteArr = [], localTs = 0, remoteTs = 0) {
+        return (localTs || 0) >= (remoteTs || 0) ? localArr : remoteArr;
       }
 
       set({
@@ -224,12 +244,15 @@ export const createWorkoutSlice = (set, get) => ({
         savedTemplates:    mergeByUpdatedAt(local.savedTemplates, gd.savedTemplates),
         completedPlans:    mergeByUpdatedAt(local.completedPlans, gd.completedPlans),
         coachReports:      mergedCoachReports || [],
-        customExercises:   mergeLonger(local.customExercises,   gd.customExercises),
-        favoriteExercises: mergeLonger(local.favoriteExercises, gd.favoriteExercises),
+        customExercises:   mergeWithTs(local.customExercises,   gd.customExercises,   local.customExercisesModifiedAt,   gd.customExercisesModifiedAt),
+        customExercisesModifiedAt: Math.max(local.customExercisesModifiedAt || 0, gd.customExercisesModifiedAt || 0),
+        favoriteExercises: mergeWithTs(local.favoriteExercises, gd.favoriteExercises, local.favoriteExercisesModifiedAt, gd.favoriteExercisesModifiedAt),
+        favoriteExercisesModifiedAt: Math.max(local.favoriteExercisesModifiedAt || 0, gd.favoriteExercisesModifiedAt || 0),
         exerciseNotes:     mergeMaps(local.exerciseNotes,       gd.exerciseNotes),
         progressionTargets:mergeMaps(local.progressionTargets,  gd.progressionTargets),
         exerciseRestTimes: mergeMaps(local.exerciseRestTimes,   gd.exerciseRestTimes),
-        customFoods:       mergeLonger(local.customFoods,       gd.customFoods),
+        customFoods:       mergeWithTs(local.customFoods,       gd.customFoods,       local.customFoodsModifiedAt,       gd.customFoodsModifiedAt),
+        customFoodsModifiedAt: Math.max(local.customFoodsModifiedAt || 0, gd.customFoodsModifiedAt || 0),
       });
     } catch {}
   },
