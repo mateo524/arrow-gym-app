@@ -509,6 +509,7 @@ export const createWorkoutSlice = (set, get) => ({
         currentPRCard: {
           exercise: firstPR.exercise,
           newWeight: firstPR.weight,
+          reps: firstPR.reps,
           previousWeight,
           daysTraining,
           date: clean.date,

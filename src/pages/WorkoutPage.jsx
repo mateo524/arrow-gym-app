@@ -1810,8 +1810,9 @@ export default function WorkoutPage() {
             {prCelebration.exercise}
           </div>
           {prCelebration.weight && (
-            <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8, whiteSpace: "nowrap" }}>
-              {prCelebration.weight}<span style={{ fontSize: 18, fontWeight: 600, marginLeft: 4 }}>kg</span>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: 4, marginTop: 8 }}>
+              <span style={{ fontSize: 28, fontWeight: 800 }}>{prCelebration.weight}</span>
+              <span style={{ fontSize: 18, fontWeight: 600 }}>kg</span>
             </div>
           )}
         </div>

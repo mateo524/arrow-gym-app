@@ -85,10 +85,16 @@ export default function PRCard({ pr, totalWorkouts, onClose }) {
     ctx.fillText(name, 24, 86);
 
     // Weight — big number
+    // Reset letter spacing explicitly before measuring/drawing so the width
+    // calculation is not affected by the 3px spacing set for the record label above.
+    ctx.letterSpacing = "0px";
     ctx.fillStyle = "#a855f7";
     ctx.font = "900 72px 'Inter', system-ui, sans-serif";
+    // Measure BEFORE drawing so the text metrics reflect exactly the font state
+    // used for rendering — avoids browser-specific inconsistencies where calling
+    // fillText before measureText can return a stale or incorrect advance width.
+    const weightWidth = ctx.measureText(`${weight}`).width;
     ctx.fillText(`${weight}`, 24, 180);
-    const weightWidth = ctx.measureText(`${weight}`).width; // measure before changing font
     ctx.fillStyle = "#ccb4ff";
     ctx.font = "bold 28px 'Inter', system-ui, sans-serif";
     ctx.fillText(unit, 24 + weightWidth + 8, 175);
