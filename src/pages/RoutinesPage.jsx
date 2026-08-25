@@ -100,7 +100,17 @@ export default function RoutinesPage() {
 
   function openEdit(r) {
     setEditing(r);
-    setForm({ name: r.name, exercises: r.exercises || [] });
+    setForm({
+      name: r.name,
+      exercises: (r.exercises || []).map(ex => {
+        const name = typeof ex === "string" ? ex : (ex.name || "");
+        return {
+          ...(typeof ex === "object" ? ex : {}),
+          name,
+          sets: (ex.sets && ex.sets.length > 0) ? ex.sets : [{ reps: "", weight: "" }],
+        };
+      }),
+    });
     setShowCreate(true);
   }
 
@@ -205,13 +215,14 @@ export default function RoutinesPage() {
 
   async function respondNotification(notif, accept) {
     const assignmentId = notif.data?.assignment_id;
-    if (!assignmentId) return;
 
-    await supabase.from("routine_assignments")
-      .update({ status: accept ? "accepted" : "declined", updated_at: new Date().toISOString() })
-      .eq("id", assignmentId);
+    if (assignmentId) {
+      await supabase.from("routine_assignments")
+        .update({ status: accept ? "accepted" : "declined", updated_at: new Date().toISOString() })
+        .eq("id", assignmentId);
+    }
 
-    // Mark notification as read
+    // Always mark notification as read
     await supabase.from("notifications").update({ read: true }).eq("id", notif.id);
 
     if (!accept) {

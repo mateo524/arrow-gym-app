@@ -91,7 +91,8 @@ export function filterCurrentWeek(workouts) {
 }
 
 export function getSetVolume(set) {
-  return (Number(set.weight) || 0) * (Number(set.reps) || 0);
+  const w = set.isBodyweight ? (Number(set.extraWeight) || 0) : (Number(set.weight) || 0);
+  return w * (Number(set.reps) || 0);
 }
 
 export function getWorkoutVolume(workout) {
@@ -518,7 +519,7 @@ function countSetTowardMuscles(raw, bucket, primaryMuscle) {
 
 export function getLiveVolumeStatus(activeWorkout, allWorkouts = []) {
   const now = Date.now();
-  const weekStart = now - 7 * 86400000;
+  const weekStart = getStartOfWeek().getTime();
   const recentWorkouts = (allWorkouts || []).filter(w => parseDate(w.date).getTime() >= weekStart);
 
   const weekSets = {}; // landmark → count this week

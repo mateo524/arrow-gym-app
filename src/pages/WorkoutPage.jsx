@@ -611,7 +611,7 @@ export default function WorkoutPage() {
       totalSets: validSets.length,
       totalVolume: validSets.reduce((sum, s) => {
         const w = s.isBodyweight
-          ? (Number(s.weight) || 0) + (Number(s.extraWeight) || 0)
+          ? (Number(s.extraWeight) || 0)
           : (Number(s.weight) || 0);
         return sum + w * (Number(s.reps) || 0);
       }, 0),
@@ -687,7 +687,7 @@ export default function WorkoutPage() {
         {(() => {
           const totalVol = (active?.sets || []).reduce((sum, s) => {
             const w = s.isBodyweight
-              ? (Number(s.weight) || 0) + (Number(s.extraWeight) || 0)
+              ? (Number(s.extraWeight) || 0)
               : (Number(s.weight) || 0);
             return sum + w * (Number(s.reps) || 0);
           }, 0);
