@@ -494,6 +494,33 @@ export const FOOD_DB = [
   { id:"prot-chorizo-250",      cat:"Carnes",        name:"Chorizo (100g)",                    serving:"100g",                   grams:100, kcal:350, protein:15, carbs:2,  fat:31 },
   { id:"prot-vacio-magro",      cat:"Carnes",        name:"Vacío (corte magro)",               serving:"100g",                   grams:100, kcal:195, protein:28, carbs:0,  fat:9  },
 
+  // ── TARTAS Y MASAS ──────────────────────────────────────────────────────────
+  { id:"tarta-jamon-queso",    cat:"Tartas",        name:"Tarta de jamón y queso",            serving:"1 porción 150g",          grams:150, kcal:380, protein:16, carbs:28, fat:22 },
+  { id:"tarta-espinaca-ric",   cat:"Tartas",        name:"Tarta de espinaca y ricota",        serving:"1 porción 150g",          grams:150, kcal:290, protein:12, carbs:24, fat:16 },
+  { id:"tarta-cebolla",        cat:"Tartas",        name:"Tarta de cebolla",                  serving:"1 porción 150g",          grams:150, kcal:310, protein:8,  carbs:30, fat:18 },
+  { id:"tarta-verduras",       cat:"Tartas",        name:"Tarta de verduras",                 serving:"1 porción 150g",          grams:150, kcal:265, protein:9,  carbs:28, fat:13 },
+  { id:"tarta-choclo",         cat:"Tartas",        name:"Tarta de choclo",                   serving:"1 porción 150g",          grams:150, kcal:340, protein:10, carbs:38, fat:16 },
+  { id:"tarta-puerro",         cat:"Tartas",        name:"Tarta de puerro",                   serving:"1 porción 150g",          grams:150, kcal:280, protein:8,  carbs:25, fat:17 },
+  { id:"tarta-pascualina",     cat:"Tartas",        name:"Pascualina",                        serving:"1 porción 150g",          grams:150, kcal:295, protein:11, carbs:26, fat:17 },
+  { id:"pizza-muzzarella",     cat:"Tartas",        name:"Pizza muzzarella",                  serving:"1 porción 120g",          grams:120, kcal:290, protein:13, carbs:34, fat:11 },
+  { id:"pizza-napolitana",     cat:"Tartas",        name:"Pizza napolitana",                  serving:"1 porción 120g",          grams:120, kcal:275, protein:12, carbs:32, fat:10 },
+  { id:"masa-tarta",           cat:"Tartas",        name:"Masa de tarta",                     serving:"100g cruda",              grams:100, kcal:340, protein:7,  carbs:42, fat:16 },
+  { id:"hojaldre",             cat:"Tartas",        name:"Hojaldre",                          serving:"100g",                    grams:100, kcal:400, protein:6,  carbs:40, fat:24 },
+
+  // ── VERDURAS NUEVAS ─────────────────────────────────────────────────────────
+  { id:"verd-espinaca-coc",    cat:"Verduras",      name:"Espinaca cocida",                   serving:"100g",                    grams:100, kcal:23,  protein:3,  carbs:4,  fat:0  },
+  { id:"verd-papa-horno-100",  cat:"Verduras",      name:"Papa al horno",                     serving:"100g",                    grams:100, kcal:93,  protein:2,  carbs:21, fat:1  },
+  { id:"verd-chaucha",         cat:"Verduras",      name:"Chaucha",                           serving:"100g",                    grams:100, kcal:31,  protein:2,  carbs:7,  fat:0  },
+  { id:"verd-arvejas-lata",    cat:"Verduras",      name:"Arvejas en lata",                   serving:"100g",                    grams:100, kcal:77,  protein:5,  carbs:14, fat:0  },
+  { id:"verd-tomate-perita",   cat:"Verduras",      name:"Tomate perita",                     serving:"100g",                    grams:100, kcal:18,  protein:1,  carbs:4,  fat:0  },
+  { id:"verd-tomate-cherry",   cat:"Verduras",      name:"Tomate cherry",                     serving:"100g",                    grams:100, kcal:18,  protein:1,  carbs:4,  fat:0  },
+
+  // ── CONDIMENTOS Y CALDOS NUEVOS ──────────────────────────────────────────────
+  { id:"caldo-verduras",       cat:"Bebidas",       name:"Caldo de verduras",                 serving:"250ml",                   grams:250, kcal:15,  protein:1,  carbs:3,  fat:0  },
+  { id:"sopa-sobre",           cat:"Comidas ARG",   name:"Sopa de sobre preparada",           serving:"250ml",                   grams:250, kcal:80,  protein:3,  carbs:14, fat:2  },
+  { id:"vinagre-manzana",      cat:"Condimentos",   name:"Vinagre de manzana",                serving:"15ml",                    grams:15,  kcal:3,   protein:0,  carbs:0,  fat:0  },
+  { id:"salsa-tomate-casera",  cat:"Condimentos",   name:"Salsa de tomate casera",            serving:"100g",                    grams:100, kcal:35,  protein:1,  carbs:7,  fat:1  },
+
 ];
 
 
