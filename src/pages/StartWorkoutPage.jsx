@@ -469,6 +469,20 @@ export default function StartWorkoutPage() {
         </button>
       </div>
 
+      {lastWorkout && (
+        <button
+          className="ghost"
+          style={{ width: "100%", marginTop: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, border: "1.5px solid rgba(168,85,247,.35)", color: "var(--green)", fontWeight: 700, borderRadius: 12, padding: "12px 16px" }}
+          onClick={repeatLastWorkout}
+        >
+          <span style={{ fontSize: 16 }}>↩</span>
+          <span>Repetir último entrenamiento</span>
+          <span style={{ fontSize: 12, color: "var(--muted)", marginLeft: 4 }}>
+            {lastWorkout.type} · {lastWorkout.date}
+          </span>
+        </button>
+      )}
+
       <button className="ghost" style={{ width: "100%", marginTop: 8 }} onClick={startEmptyWorkout}>
         <Icon name="Plus" size={14} /> Entrenamiento libre
       </button>

@@ -689,23 +689,59 @@ export const createWorkoutSlice = (set, get) => ({
     progressionTargets: { ...(s.progressionTargets || {}), [exerciseId]: targetWeight },
   })),
 
+  getLastWorkoutForExercise: (exerciseName) => {
+    const history = get().workouts || [];
+    for (const workout of [...history]) {
+      const exercise = (workout.sets || []).find((s) =>
+        sameExercise(s.exercise, exerciseName) && s.weight !== "" && s.reps !== "" && Number(s.reps) > 0
+      );
+      if (exercise) return { workout, sets: (workout.sets || []).filter((s) => sameExercise(s.exercise, exerciseName) && s.weight !== "" && s.reps !== "" && Number(s.reps) > 0), date: workout.date };
+    }
+    return null;
+  },
+
+  loadLastSetsForExercise: (exerciseName) => {
+    const active = get().activeWorkout;
+    if (!active) return false;
+    const history = get().workouts || [];
+    let lastSets = null;
+    let lastDate = null;
+    for (const workout of history) {
+      const exSets = (workout.sets || []).filter((s) => sameExercise(s.exercise, exerciseName) && s.reps !== "" && Number(s.reps) > 0);
+      if (exSets.length > 0) { lastSets = exSets; lastDate = workout.date; break; }
+    }
+    if (!lastSets) return false;
+    // Remove current (empty) sets for this exercise and replace with preloaded ones
+    const otherSets = active.sets.filter((s) => !sameExercise(s.exercise, exerciseName));
+    const newSets = lastSets.map((s) => ({
+      ...s,
+      id: uid("set"),
+      done: false,
+      ...(s.isBodyweight ? { weight: s.weight, extraWeight: s.extraWeight ?? 0 } : { weight: s.weight ?? "" }),
+      reps: s.reps ?? "",
+    }));
+    // Preserve position: insert after the last existing set for this exercise, or at end
+    const existingIndices = active.sets.reduce((acc, s, i) => { if (sameExercise(s.exercise, exerciseName)) acc.push(i); return acc; }, []);
+    const insertAfter = existingIndices.length > 0 ? existingIndices[existingIndices.length - 1] : active.sets.length - 1;
+    const before = active.sets.slice(0, existingIndices.length > 0 ? existingIndices[0] : active.sets.length);
+    const after = active.sets.slice(existingIndices.length > 0 ? existingIndices[existingIndices.length - 1] + 1 : active.sets.length);
+    const combined = [...before.filter((s) => !sameExercise(s.exercise, exerciseName)), ...newSets, ...after.filter((s) => !sameExercise(s.exercise, exerciseName))];
+    set({ activeWorkout: { ...active, sets: combined } });
+    return lastDate || true;
+  },
+
   repeatLastWorkout: () => {
     const state = get();
     const last = (state.workouts || [])[0];
     if (!last) return;
     const exercises = [...new Set((last.sets || []).map((s) => s.exercise))];
     const workouts = state.workouts || [];
-    const adj = state.activePlanAdjustment;
-    const factor = adj && new Date(adj.expiresAt) >= new Date() ? adj.factor : 1;
     const bw = getBodyWeight(state);
+    // Preload actual weights/reps from last workout (user can edit before confirming)
     const newSets = exercises.flatMap((ex) =>
-      (last.sets || []).filter((s) => s.exercise === ex).map(() => {
-        const s = makeSet(ex, "", "", workouts, bw);
-        if (!s.isBodyweight && factor !== 1 && s.lastWeight) {
-          const scaled = String(Math.max(0, Math.round(Number(s.lastWeight) * factor * 2) / 2) || s.lastWeight);
-          return { ...s, weight: scaled, lastWeight: scaled, reps: "", planReps: scaleRepsForDeload(s.lastReps) };
-        }
-        return s;
+      (last.sets || []).filter((s) => s.exercise === ex && s.reps !== "" && Number(s.reps) > 0).map((s) => {
+        const base = makeSet(ex, s.weight ?? "", "", workouts, bw);
+        return { ...base, reps: s.reps ?? "", done: false, ...(s.isBodyweight ? { extraWeight: s.extraWeight ?? 0 } : {}) };
       })
     );
     set({
