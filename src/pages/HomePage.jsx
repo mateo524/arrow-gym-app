@@ -43,7 +43,7 @@ export default function HomePage() {
   const isTrainer = role === "trainer";
   const f = features(profile);
 
-  const userGoal = useStore((s) => s.userGoal) || "mantenimiento";
+  const userGoal = useStore((s) => s.userGoal) || "hipertrofia";
   const activityLevel = useStore((s) => s.activityLevel) || "moderado";
   const waterLog2  = useStore((s) => s.waterLog) || [];
   const waterGoalV = useStore((s) => s.waterGoal) || 8;
@@ -57,8 +57,11 @@ export default function HomePage() {
     // Auto-recommend based on goal + activity level
     // activityLevel values from ProfilePage: principiante/intermedio/avanzado OR sedentario/ligero/moderado/activo/muy_activo
     const goalDefaults = {
-      volumen:       { principiante: 3, intermedio: 4, avanzado: 5, sedentario: 3, ligero: 3, moderado: 4, activo: 4, muy_activo: 5 },
-      definicion:    { principiante: 3, intermedio: 4, avanzado: 5, sedentario: 3, ligero: 4, moderado: 4, activo: 5, muy_activo: 5 },
+      volumen:      { principiante: 3, intermedio: 4, avanzado: 5, sedentario: 3, ligero: 3, moderado: 4, activo: 4, muy_activo: 5 },
+      definicion:   { principiante: 3, intermedio: 4, avanzado: 5, sedentario: 3, ligero: 4, moderado: 4, activo: 5, muy_activo: 5 },
+      hipertrofia:  { principiante: 3, intermedio: 4, avanzado: 5, sedentario: 3, ligero: 3, moderado: 4, activo: 5, muy_activo: 5 },
+      fuerza:       { principiante: 3, intermedio: 3, avanzado: 4, sedentario: 2, ligero: 3, moderado: 3, activo: 4, muy_activo: 4 },
+      // Legacy values — kept so existing users with old goal IDs aren't broken
       mantenimiento: { principiante: 2, intermedio: 3, avanzado: 3, sedentario: 2, ligero: 3, moderado: 3, activo: 4, muy_activo: 4 },
       rendimiento:   { principiante: 3, intermedio: 4, avanzado: 5, sedentario: 3, ligero: 3, moderado: 4, activo: 4, muy_activo: 5 },
     };

@@ -141,6 +141,7 @@ function AppContent() {
   const [showInstallBanner, setShowInstallBanner] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [swUpdateReady, setSwUpdateReady] = useState(false);
+  const swWaitingRegRef = useRef(null);
   const [draftRecovered, setDraftRecovered] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [subscribing, setSubscribing] = useState(false);
@@ -242,12 +243,34 @@ function AppContent() {
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
-  // Fires when a new SW takes control of this page (clientsClaim: true).
+  // Detect when a new SW enters the "waiting" state (installed but not yet in
+  // control) rather than listening to controllerchange (which fires AFTER the
+  // SW has already taken over and potentially invalidated React.lazy chunks).
+  // We store the registration so the "Actualizar" button can send SKIP_WAITING
+  // explicitly, and we only surface the banner once any active workout is done.
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      setSwUpdateReady(true);
-    });
+    navigator.serviceWorker.ready.then(registration => {
+      const checkWaiting = () => {
+        if (registration.waiting && navigator.serviceWorker.controller) {
+          swWaitingRegRef.current = registration;
+          setSwUpdateReady(true);
+        }
+      };
+      // Check immediately in case a SW was already waiting on page load
+      checkWaiting();
+      const onUpdateFound = () => {
+        const installing = registration.installing;
+        if (!installing) return;
+        installing.addEventListener('statechange', () => {
+          if (installing.state === 'installed' && navigator.serviceWorker.controller) {
+            swWaitingRegRef.current = registration;
+            setSwUpdateReady(true);
+          }
+        });
+      };
+      registration.addEventListener('updatefound', onUpdateFound);
+    }).catch(() => {});
   }, []);
 
   // Background Sync: the SW notifies open tabs to flush pending gym data.
@@ -761,12 +784,29 @@ function AppContent() {
         </div>
       )}
 
-      {swUpdateReady && (
+      {/* Show update banner only when there is NO active workout. If a workout
+          is in progress swUpdateReady is still true, so the banner appears
+          automatically once the user finishes and activeWorkout clears. */}
+      {swUpdateReady && !activeWorkout && (
         <div style={{ position:"fixed", top:0, left:0, right:0, zIndex:9999,
           background:"var(--green)", color:"#050709", padding:"12px 16px",
           display:"flex", alignItems:"center", justifyContent:"space-between", gap:12 }}>
           <span style={{ fontSize:14, fontWeight:700 }}>Nueva versión disponible</span>
-          <button onClick={() => window.location.reload()}
+          <button
+            onClick={() => {
+              const reg = swWaitingRegRef.current;
+              if (reg?.waiting) {
+                // Tell the waiting SW to take over; reload once it does.
+                navigator.serviceWorker.addEventListener(
+                  'controllerchange',
+                  () => window.location.reload(),
+                  { once: true }
+                );
+                reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+              } else {
+                window.location.reload();
+              }
+            }}
             style={{ background:"#050709", color:"var(--green)", border:"none",
               padding:"7px 16px", borderRadius:8, fontWeight:700, fontSize:13, cursor:"pointer" }}>
             Actualizar

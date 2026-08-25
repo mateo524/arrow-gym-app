@@ -2,6 +2,7 @@
 import useStore from "../store/useStore.js";
 import useAuthStore from "../store/useAuthStore.js";
 import { supabase } from "../lib/supabase.js";
+import { uploadProgressPhoto } from "../lib/uploadPhoto.js";
 import { todayLocal } from "../lib/dates.js";
 import { formatDate } from "../lib/analytics.js";
 import Icon from "../components/Icon.jsx";
@@ -843,7 +844,21 @@ export default function MeasurementsPage() {
                 const file = e.target.files?.[0];
                 if (!file) return;
                 const reader = new FileReader();
-                reader.onload = ev => addProgressPhoto(ev.target.result, photoNote);
+                reader.onload = async ev => {
+                  const dataUrl = ev.target.result;
+                  const userId = user?.id;
+                  if (userId) {
+                    try {
+                      const url = await uploadProgressPhoto(dataUrl, userId);
+                      addProgressPhoto(url, photoNote);
+                      return;
+                    } catch (err) {
+                      console.warn("Progress photo upload failed, falling back to base64:", err);
+                    }
+                  }
+                  // Fallback: store base64 directly (old behaviour)
+                  addProgressPhoto(dataUrl, photoNote);
+                };
                 reader.readAsDataURL(file);
                 e.target.value = "";
               }} />
@@ -861,7 +876,7 @@ export default function MeasurementsPage() {
                 {progressPhotos.map(photo => (
                   <div key={photo.id} style={{ position:"relative", borderRadius:12, overflow:"hidden", background:"var(--panel2)", border:"1px solid var(--line)" }}>
                     <img
-                      src={photo.dataUrl}
+                      src={photo.dataUrl || photo.url}
                       alt={photo.date}
                       onClick={() => setFullscreenPhoto(photo)}
                       style={{ width:"100%", aspectRatio:"3/4", objectFit:"cover", display:"block", cursor:"zoom-in" }}
@@ -894,7 +909,7 @@ export default function MeasurementsPage() {
           </div>
           {/* Image fills remaining space */}
           <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden", padding:"0 12px" }}>
-            <img src={fullscreenPhoto.dataUrl} alt={fullscreenPhoto.date} style={{ maxWidth:"100%", maxHeight:"100%", objectFit:"contain", borderRadius:8 }} />
+            <img src={fullscreenPhoto.dataUrl || fullscreenPhoto.url} alt={fullscreenPhoto.date} style={{ maxWidth:"100%", maxHeight:"100%", objectFit:"contain", borderRadius:8 }} />
           </div>
           {/* Caption */}
           <div style={{ flexShrink:0, padding:"12px 16px", paddingBottom:"max(20px, env(safe-area-inset-bottom, 20px))", textAlign:"center" }}>

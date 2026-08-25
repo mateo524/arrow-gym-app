@@ -63,21 +63,32 @@ export async function syncWorkoutUp(workout, userId) {
   }
 }
 
+const PAGE_SIZE = 500;
+
 // Pull all workouts for a user from Supabase.
+// Paginates through all pages so users with more than 500 workouts don't
+// silently lose their older history on the next merge.
 // Returns an array sorted newest-first.
 export async function fetchWorkoutsFromDB(userId) {
   if (!userId) return [];
   try {
-    const { data, error } = await withTimeout(
-      supabase
-        .from("user_workouts")
-        .select("*")
-        .eq("user_id", userId)
-        .order("date", { ascending: false })
-        .limit(500)
-    );
-    if (error) return [];
-    return (data || []).map((row) => ({
+    let allRows = [];
+    let from = 0;
+    while (true) {
+      const { data, error } = await withTimeout(
+        supabase
+          .from("user_workouts")
+          .select("*")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false })
+          .range(from, from + PAGE_SIZE - 1)
+      );
+      if (error) return [];
+      allRows = [...allRows, ...(data || [])];
+      if (!data || data.length < PAGE_SIZE) break;
+      from += PAGE_SIZE;
+    }
+    return allRows.map((row) => ({
       id: row.id,
       type: row.type,
       date: row.date,
@@ -85,6 +96,8 @@ export async function fetchWorkoutsFromDB(userId) {
       durationMin: row.duration_min ?? null,
       notes: row.notes ?? null,
       mood: row.mood ?? null,
+      updated_at: row.updated_at ?? null,
+      created_at: row.created_at ?? null,
     }));
   } catch {
     return [];
@@ -113,14 +126,23 @@ export async function syncAllWorkoutsUp(workouts, userId) {
 }
 
 // Merge local workouts (from localStorage) with remote ones (from DB).
-// Deduplicates by id, keeps the most complete version.
+// Deduplicates by id. When the same id appears in both, the version with
+// the more recent updated_at / created_at timestamp wins — this prevents
+// local from always overwriting a remote edit made on another device.
 export function mergeWorkouts(local, remote) {
   const map = new Map();
-  // Local first (has full data including transient fields)
+  // Seed with local entries (have full transient fields)
   for (const w of local) map.set(w.id, w);
-  // Remote fills gaps (workouts done on other devices)
+  // Remote: prefer whichever copy was updated most recently
   for (const w of remote) {
-    if (!map.has(w.id)) map.set(w.id, w);
+    if (map.has(w.id)) {
+      const local = map.get(w.id);
+      const remoteTs = new Date(w.updated_at || w.created_at || w.date || 0).getTime();
+      const localTs  = new Date(local.updated_at || local.created_at || local.date || 0).getTime();
+      if (remoteTs > localTs) map.set(w.id, w);
+    } else {
+      map.set(w.id, w);
+    }
   }
   return Array.from(map.values()).sort((a, b) =>
     String(b.date || "").localeCompare(String(a.date || ""))

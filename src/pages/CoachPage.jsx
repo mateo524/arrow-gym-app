@@ -191,8 +191,8 @@ export default function CoachPage() {
     const twoWeeksAgo = new Date(now - 14 * msPerDay);
     const fourWeeksAgo = new Date(now - 28 * msPerDay);
     const getVol = (w) => (w.sets || []).reduce((sum, s) => sum + (Number(s.weight) || 0) * (Number(s.reps) || 0), 0);
-    const recent2w = workouts.filter((w) => w.date && new Date(w.date) >= twoWeeksAgo);
-    const prev2w = workouts.filter((w) => w.date && new Date(w.date) >= fourWeeksAgo && new Date(w.date) < twoWeeksAgo);
+    const recent2w = workouts.filter((w) => w.date && new Date(w.date + "T00:00:00") >= twoWeeksAgo);
+    const prev2w = workouts.filter((w) => w.date && new Date(w.date + "T00:00:00") >= fourWeeksAgo && new Date(w.date + "T00:00:00") < twoWeeksAgo);
     if (recent2w.length >= 2 && prev2w.length >= 2) {
       const recentVol = recent2w.reduce((s, w) => s + getVol(w), 0);
       const prevVol = prev2w.reduce((s, w) => s + getVol(w), 0);
@@ -203,7 +203,7 @@ export default function CoachPage() {
 
     // 3. Push/Pull imbalance: count sets per group in last 4 weeks
     const fourWeeksAgoDate = new Date(now - 28 * msPerDay);
-    const recentWorkouts = workouts.filter((w) => w.date && new Date(w.date) >= fourWeeksAgoDate);
+    const recentWorkouts = workouts.filter((w) => w.date && new Date(w.date + "T00:00:00") >= fourWeeksAgoDate);
     let pushSets = 0, pullSets = 0;
     recentWorkouts.forEach((w) => {
       (w.sets || []).forEach((s) => {
@@ -257,7 +257,7 @@ export default function CoachPage() {
     // 6. Low frequency: < 2 workouts/week average over last 4 weeks
     if (workouts.length >= 3) {
       const fourWAgo = new Date(now - 28 * msPerDay);
-      const last4w = workouts.filter(w => w.date && new Date(w.date) >= fourWAgo);
+      const last4w = workouts.filter(w => w.date && new Date(w.date + "T00:00:00") >= fourWAgo);
       const avgPerWeek = last4w.length / 4;
       if (avgPerWeek < 2 && avgPerWeek > 0) {
         alerts.push({ type: "frequency", msg: `Promedio de ${avgPerWeek.toFixed(1)} entrenos/semana en las últimas 4 semanas. Para progresar se recomiendan al menos 3 sesiones semanales.` });

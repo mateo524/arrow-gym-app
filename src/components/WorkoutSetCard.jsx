@@ -10,7 +10,7 @@ function haptic(type = "tap") {
   else if (type === "delete") navigator.vibrate([15, 20, 15]);
 }
 
-export default function WorkoutSetCard({ setItem, index, onUpdate, onApplyToNext, onRepeat, onRemove, onStartRest, prData, coachSuggestion, isBodyweight=false, bodyWeight=0 }) {
+export default function WorkoutSetCard({ setItem, index, onUpdate, onApplyToNext, onRepeat, onRemove, onStartRest, prData, coachSuggestion, isBodyweight=false, bodyWeight=0, prevSet=null }) {
   const [flipped, setFlipped] = useState(false);
   const [done, setDone] = useState(false);
   const hasData = isBodyweight
@@ -73,9 +73,17 @@ export default function WorkoutSetCard({ setItem, index, onUpdate, onApplyToNext
           {Number(setItem.weight) > 0 && prData?.bestWeight && Number(setItem.weight) > prData.bestWeight && (
             <span style={{ background:"var(--green)", color:"#fff", fontSize:9, fontWeight:900, padding:"2px 6px", borderRadius:6, marginRight:4 }}>PR</span>
           )}
-          {setItem.lastWeight ? (
-            <small style={{ color: "var(--muted)", fontSize:13 }}>ant. {setItem.lastWeight}kg × {setItem.lastReps || "—"}</small>
-          ) : null}
+          {(() => {
+            // Per-set history: prefer prevSet (correct index from last session), fall back to first-set data
+            const antW = prevSet?.weight || setItem.lastWeight;
+            const antR = prevSet?.reps || setItem.lastReps;
+            if (!antW && !antR) return null;
+            return (
+              <small style={{ color: "var(--muted)", fontSize:13 }}>
+                ant. {antW ? `${antW}kg` : "—"}×{antR || "—"}
+              </small>
+            );
+          })()}
         </div>
         <div style={{ display: "flex", gap: 4 }}>
           <button className="set-delete-btn" style={{ color: note ? "var(--green)" : "var(--muted)" }}

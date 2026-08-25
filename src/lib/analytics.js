@@ -197,7 +197,7 @@ export function buildCoachReport(workout, allWorkouts = [], userProfile = null) 
   // Frequency: days since last same-type session
   const lastSameType = sameTypePrev[0];
   const daysSinceLast = lastSameType?.date
-    ? Math.round((new Date(workout.date) - new Date(lastSameType.date)) / 86400000)
+    ? Math.round((new Date(workout.date + "T00:00:00") - new Date(lastSameType.date + "T00:00:00")) / 86400000)
     : null;
 
   const byExercise = {};
@@ -1163,8 +1163,15 @@ export function getAchievements(workouts = [], prs = [], mealLog = [], weightLog
   };
 
   // Weekly counts helpers
+  // Use T00:00:00 suffix when dateStr is a date-only string (YYYY-MM-DD) so the
+  // Date parses in local time instead of midnight UTC (which shifts the day in UTC-N zones).
+  const toLocalDate = (dateStr) => {
+    if (!dateStr) return new Date(NaN);
+    const s = String(dateStr);
+    return s.length === 10 ? new Date(s + "T00:00:00") : new Date(s);
+  };
   const getWeekKey = (dateStr) => {
-    const d = new Date(dateStr);
+    const d = toLocalDate(dateStr);
     const jan1 = new Date(d.getFullYear(), 0, 1);
     const week = Math.ceil((((d - jan1) / 86400000) + jan1.getDay() + 1) / 7);
     return d.getFullYear() + 'W' + week;
@@ -1183,7 +1190,7 @@ export function getAchievements(workouts = [], prs = [], mealLog = [], weightLog
   }));
 
   // Month helpers
-  const getMonthKey = (dateStr) => { const d = new Date(dateStr); return d.getFullYear() + '-' + d.getMonth(); };
+  const getMonthKey = (dateStr) => { const d = toLocalDate(dateStr); return d.getFullYear() + '-' + d.getMonth(); };
   const activeMonths = new Set(workouts.map(w => getMonthKey(w.date || w.created_at))).size;
 
   // Max sets in one session
@@ -1236,9 +1243,19 @@ export function getAchievements(workouts = [], prs = [], mealLog = [], weightLog
   const weeklyTarget = 3;
   const perfectWeeks = Object.values(workoutsByWeek).filter(c => c >= weeklyTarget).length;
 
-  // Time of day helpers
-  const earlyWorkouts = workouts.filter(w => { const h = new Date(w.created_at||w.date).getHours(); return h >= 5 && h < 8; }).length;
-  const nightWorkouts = workouts.filter(w => { const h = new Date(w.created_at||w.date).getHours(); return h >= 21; }).length;
+  // Time of day helpers — use created_at only (it carries a full timestamp with local-time-aware getHours()).
+  // Falling back to w.date (date-only "YYYY-MM-DD") would parse as midnight UTC, returning a
+  // wrong hour in UTC-offset zones (e.g. UTC-3 → getHours() = 21, poisoning "night owl" counts).
+  const earlyWorkouts = workouts.filter(w => {
+    if (!w.created_at) return false;
+    const h = new Date(w.created_at).getHours();
+    return h >= 5 && h < 8;
+  }).length;
+  const nightWorkouts = workouts.filter(w => {
+    if (!w.created_at) return false;
+    const h = new Date(w.created_at).getHours();
+    return h >= 21;
+  }).length;
 
   // Meal log
   const mealCount = mealLog.length;
@@ -1310,7 +1327,7 @@ export function getAchievements(workouts = [], prs = [], mealLog = [], weightLog
     weight_loss: (() => { if (weightLog.length < 2) return 0; const sorted = [...weightLog].sort((a,b)=>String(a.date).localeCompare(String(b.date))); const first = sorted[0].kg; const last = sorted[sorted.length-1].kg; return Math.max(0, first - last); })(),
     weight_gain: (() => { if (weightLog.length < 2) return 0; const sorted = [...weightLog].sort((a,b)=>String(a.date).localeCompare(String(b.date))); const first = sorted[0].kg; const last = sorted[sorted.length-1].kg; return Math.max(0, last - first); })(),
     measures_track: weightLog.length,
-    weekend_warrior: workouts.filter(w => { try { const d = new Date(w.date||w.created_at); return d.getDay()===0||d.getDay()===6; } catch{return false;} }).length,
+    weekend_warrior: workouts.filter(w => { try { const ds = w.date || (w.created_at ? w.created_at.slice(0, 10) : null); if (!ds) return false; const d = new Date(ds + "T00:00:00"); return d.getDay()===0||d.getDay()===6; } catch{return false;} }).length,
     super_session: maxSetsInSession,
     hydration: weightLog.length,
     sleep_track: weightLog.length,

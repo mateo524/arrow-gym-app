@@ -74,6 +74,25 @@ function getExerciseSessionHistory(workouts, exercise) {
     }));
 }
 
+function getLastSessionForExercise(exerciseName, workoutHistory) {
+  const lower = (exerciseName || "").trim().toLowerCase();
+  const past = (workoutHistory || [])
+    .filter(w => (w.sets || []).some(s => (s.exercise || "").trim().toLowerCase() === lower && (s.weight || s.reps)));
+  if (!past.length) return null;
+  const last = past[0]; // workouts are sorted newest-first
+  return {
+    date: last.date,
+    sets: (last.sets || []).filter(s => (s.exercise || "").trim().toLowerCase() === lower && (s.weight || s.reps)),
+  };
+}
+
+function formatShortDate(dateStr) {
+  if (!dateStr) return "";
+  const d = new Date(dateStr + "T00:00:00");
+  const days = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
+  return `${days[d.getDay()]} ${d.getDate()}`;
+}
+
 function getExercisePR(workouts, exercise) {
   let bestWeight = 0, bestVolume = 0, bestReps = 0, bestRepsWeight = 0, lastDate = null;
   for (const w of workouts || []) {
@@ -289,6 +308,14 @@ export default function WorkoutPage() {
     return cache;
   }, [groupedExercises, workouts]);
 
+  const lastSessionsByExercise = useMemo(() => {
+    const cache = {};
+    groupedExercises.forEach(({ exercise }) => {
+      cache[exercise] = getLastSessionForExercise(exercise, workouts);
+    });
+    return cache;
+  }, [groupedExercises, workouts]);
+
   const elapsedMinutes = Math.floor(elapsed / 60);
   const timerColor = elapsedMinutes < 30 ? "var(--green)" : elapsedMinutes < 60 ? "#f59e0b" : "var(--danger)";
 
@@ -409,9 +436,10 @@ export default function WorkoutPage() {
     const currentGoal = (useStore.getState().userGoal || "").toLowerCase();
     let baseDuration = exerciseRestTimes[exercise] || 90;
     if (!exerciseRestTimes[exercise]) {
-      if (currentGoal.includes("rendimiento")) baseDuration = 150;
-      else if (currentGoal.includes("volumen")) baseDuration = 90;
-      else if (currentGoal.includes("definicion")) baseDuration = 60;
+      if (currentGoal.includes("fuerza")) baseDuration = 180;
+      else if (currentGoal.includes("hipertrofia")) baseDuration = 90;
+      else if (currentGoal.includes("volumen")) baseDuration = 60;
+      else if (currentGoal.includes("definicion")) baseDuration = 45;
     }
     if (rpe !== null) {
       if (rpe >= 9) baseDuration = Math.max(baseDuration, 150);
@@ -788,6 +816,22 @@ export default function WorkoutPage() {
                         })()}
                       </div>
                     )}
+                    {/* ── Historial inline: resumen última sesión ────────────────── */}
+                    {(() => {
+                      const lastSess = lastSessionsByExercise[exercise];
+                      if (!lastSess || !lastSess.sets.length) return null;
+                      const summary = lastSess.sets
+                        .filter(s => s.weight || s.reps)
+                        .map(s => `${s.weight || "?"}×${s.reps || "?"}`)
+                        .join(' · ');
+                      if (!summary) return null;
+                      return (
+                        <p style={{ margin: "4px 0 0", fontSize: 11, color: "var(--muted)", lineHeight: 1.4 }}>
+                          Última vez ({formatShortDate(lastSess.date)}): {summary}
+                        </p>
+                      );
+                    })()}
+
                     {/* ↩ Repetir anterior chip */}
                     {(() => {
                       const exName = exercise;
@@ -940,6 +984,7 @@ export default function WorkoutPage() {
                           <WorkoutSetCard
                             index={index + 1}
                             setItem={setItem}
+                            prevSet={lastSessionsByExercise[exercise]?.sets[index] || null}
                             onUpdate={(patch) => {
                               try { navigator.vibrate?.([30]); } catch {}
                               update(setItem.id, patch);

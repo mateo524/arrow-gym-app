@@ -8,10 +8,10 @@ import { parseImportFile } from "../lib/importCSV.js";
 import { subscribeToPush, requestPushPermission, isPushSupported, isIosNotInstalled } from "../lib/pushNotifications.js";
 
 const GOALS = [
-  { id: "volumen",       label: "Ganar másculo",  icon: "💪" },
-  { id: "definicion",    label: "Definición",     icon: "🔥" },
-  { id: "mantenimiento", label: "Salud general",  icon: "⚖️" },
-  { id: "rendimiento",   label: "Fuerza",         icon: "⚡" },
+  { id: "volumen",      label: "Volumen",      icon: "💪" },
+  { id: "definicion",   label: "Definición",   icon: "🔥" },
+  { id: "hipertrofia",  label: "Hipertrofia",  icon: "📈" },
+  { id: "fuerza",       label: "Fuerza",       icon: "⚡" },
 ];
 const LEVELS = [
   { id: "principiante", label: "Principiante",  icon: "🌱" },
@@ -616,9 +616,9 @@ export default function ProfilePage() {
               ))}
             </div>
             {(() => {
-              const repRanges = { volumen: "8-12 reps", definicion: "10-15 reps", mantenimiento: "8-15 reps", rendimiento: "1-6 reps" };
-              const restTimes = { volumen: "90 seg", definicion: "45-60 seg", mantenimiento: "75 seg", rendimiento: "3-5 min" };
-              const freqSugg = { volumen: "3-4 días/sem", definicion: "4-5 días/sem", mantenimiento: "3 días/sem", rendimiento: "3-4 días/sem" };
+              const repRanges = { volumen: "8-15 reps", definicion: "12-20 reps", hipertrofia: "6-12 reps", fuerza: "1-5 reps" };
+              const restTimes = { volumen: "60 seg", definicion: "45 seg", hipertrofia: "90 seg", fuerza: "3 min" };
+              const freqSugg = { volumen: "3-4 días/sem", definicion: "4-5 días/sem", hipertrofia: "3-5 días/sem", fuerza: "3-4 días/sem" };
               return (
                 <div style={{ fontSize: 12, color: "var(--muted)", background: "var(--panel2)", borderRadius: 8, padding: "6px 10px", marginTop: 2 }}>
                   <b style={{ color: "var(--text)" }}>{GOALS.find(g => g.id === userGoal)?.label}:</b>{" "}

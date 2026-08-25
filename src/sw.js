@@ -17,8 +17,12 @@ registerRoute(
   )
 );
 
-// Skip waiting
-self.skipWaiting();
+// Do NOT call self.skipWaiting() unconditionally here.
+// Doing so would cause React.lazy chunks loaded by the old SW to 404
+// the moment a deploy lands, producing a white screen mid-workout.
+// Instead, skipWaiting only when the client explicitly requests it
+// (see the SKIP_WAITING message handler below), giving the app a chance
+// to warn the user and wait until any active workout is finished.
 self.addEventListener('activate', e => e.waitUntil(clients.claim()));
 
 // ── Rest Timer ──────────────────────────────────────────────────────────────

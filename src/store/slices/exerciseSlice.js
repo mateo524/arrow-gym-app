@@ -8,8 +8,10 @@ function queueExerciseSync(get) {
 
 export const createExerciseSlice = (set, get) => ({
   customExercises: [],
+  customExercisesModifiedAt: 0,
   recentExercises: [],
   favoriteExercises: [],
+  favoriteExercisesModifiedAt: 0,
   exerciseNotes: {},
 
   getCatalog: () => {
@@ -27,7 +29,10 @@ export const createExerciseSlice = (set, get) => ({
   toggleFavorite: (exerciseName) => {
     set((s) => {
       const exists = (s.favoriteExercises || []).includes(exerciseName);
-      return { favoriteExercises: exists ? s.favoriteExercises.filter((e) => e !== exerciseName) : [...(s.favoriteExercises || []), exerciseName] };
+      return {
+        favoriteExercises: exists ? s.favoriteExercises.filter((e) => e !== exerciseName) : [...(s.favoriteExercises || []), exerciseName],
+        favoriteExercisesModifiedAt: Date.now(),
+      };
     });
     queueExerciseSync(get);
   },
@@ -49,7 +54,10 @@ export const createExerciseSlice = (set, get) => ({
       pattern: payload.pattern || "custom",
       builtin: false,
     };
-    set((s) => ({ customExercises: [exercise, ...(s.customExercises || []).filter((item) => item.name.toLowerCase() !== name.toLowerCase())] }));
+    set((s) => ({
+      customExercises: [exercise, ...(s.customExercises || []).filter((item) => item.name.toLowerCase() !== name.toLowerCase())],
+      customExercisesModifiedAt: Date.now(),
+    }));
     queueExerciseSync(get);
   },
 });

@@ -18,22 +18,41 @@ import { createExerciseSlice } from "./slices/exerciseSlice.js";
 import { createCoachSlice } from "./slices/coachSlice.js";
 import { createNotificationSlice } from "./slices/notificationSlice.js";
 
-// localStorage quota guard: drop oldest workouts if storage is full.
+// localStorage quota guard: free space incrementally when storage is full.
 // safeSetItem receives a JSON string (createJSONStorage serializes before calling).
+// IMPORTANT: never delete the store key — partial data beats total data loss.
 function safeSetItem(key, value) {
   try {
     localStorage.setItem(key, value);
   } catch (e) {
-    if (e.name === "QuotaExceededError" || e.code === 22) {
-      try {
-        const parsed = JSON.parse(value);
-        if (parsed?.state?.workouts?.length > 20) {
-          parsed.state.workouts = parsed.state.workouts.slice(0, parsed.state.workouts.length - 20);
-          localStorage.setItem(key, JSON.stringify(parsed));
+    if (e.name !== "QuotaExceededError" && e.code !== 22) return;
+    let saved = false;
+    try {
+      const parsed = JSON.parse(value);
+      const st = parsed?.state;
+      if (st) {
+        // Strategy 1: drop the 20 oldest workouts
+        if (Array.isArray(st.workouts) && st.workouts.length > 20) {
+          st.workouts = st.workouts.slice(0, st.workouts.length - 20);
         }
-      } catch {
-        localStorage.removeItem(key);
+        // Strategy 2: keep only the 5 most recent coach reports
+        if (Array.isArray(st.coachReports) && st.coachReports.length > 5) {
+          st.coachReports = st.coachReports.slice(0, 5);
+        }
+        // Strategy 3: cap custom foods at 50
+        if (Array.isArray(st.customFoods) && st.customFoods.length > 50) {
+          st.customFoods = st.customFoods.slice(0, 50);
+        }
+        try {
+          localStorage.setItem(key, JSON.stringify(parsed));
+          saved = true;
+        } catch {}
       }
+    } catch {}
+    if (!saved) {
+      // Could not free enough space — log the error clearly so it surfaces in the console.
+      // Do NOT remove the key: stale data is better than no data.
+      console.error("[loop-gym] QuotaExceededError: could not free enough localStorage space. Data was NOT removed. Check storage usage.");
     }
   }
 }

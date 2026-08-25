@@ -28,13 +28,45 @@ export default function RestTimer({ duration = 90, onComplete, onSkip, onClose, 
   const pausedAtRef = useRef(null);
   const timerRef = useRef(null);
   const startTimeRef = useRef(null);
+  const wakeLockRef = useRef(null);
   const onCompleteRef = useRef(onComplete);
   useEffect(() => { onCompleteRef.current = onComplete; }, [onComplete]);
+
+  async function acquireWakeLock() {
+    if (!('wakeLock' in navigator)) return;
+    try {
+      if (wakeLockRef.current) return; // already held
+      wakeLockRef.current = await navigator.wakeLock.request('screen');
+      wakeLockRef.current.addEventListener('release', () => { wakeLockRef.current = null; });
+    } catch { /* permission denied or not supported — silent */ }
+  }
+
+  function releaseWakeLock() {
+    if (wakeLockRef.current) {
+      wakeLockRef.current.release().catch(() => {});
+      wakeLockRef.current = null;
+    }
+  }
+
+  // Re-acquire after the page becomes visible again (screen was locked)
+  useEffect(() => {
+    function onVisChange() {
+      if (document.visibilityState === 'visible' && running && !paused) {
+        acquireWakeLock();
+      }
+    }
+    document.addEventListener('visibilitychange', onVisChange);
+    return () => document.removeEventListener('visibilitychange', onVisChange);
+  }, [running, paused]);
+
+  // Release wake lock on unmount
+  useEffect(() => releaseWakeLock, []);
 
   function stopTimer() {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
     startTimeRef.current = null;
     pausedAtRef.current = null;
+    releaseWakeLock();
     swPost({ type: 'CANCEL_TIMER', id: 'rest-timer' });
   }
 
@@ -46,9 +78,11 @@ export default function RestTimer({ duration = 90, onComplete, onSkip, onClose, 
       startTimeRef.current = startTimeRef.current + pausedDuration;
       pausedAtRef.current = null;
       setPaused(false);
+      acquireWakeLock();
     } else {
       pausedAtRef.current = Date.now();
       setPaused(true);
+      releaseWakeLock(); // screen can sleep while paused
     }
   }
 
@@ -57,6 +91,7 @@ export default function RestTimer({ duration = 90, onComplete, onSkip, onClose, 
     const d = dur ?? selectedDuration;
     doneRef.current = false;
     setRunning(true);
+    acquireWakeLock();
     startTimeRef.current = Date.now();
     setRemaining(d);
     // Schedule SW notification as fallback for background/locked screen

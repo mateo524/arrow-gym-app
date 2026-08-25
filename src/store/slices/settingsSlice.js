@@ -5,6 +5,14 @@ function queueSettingsSync(get) {
   settingsSyncTimer = setTimeout(() => { try { get().syncHealthToDB(); } catch {} }, 300);
 }
 
+function getMonday(date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  d.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
 export const createSettingsSlice = (set, get) => ({
   currentPage: "home",
   selectedWorkoutId: null,
@@ -46,6 +54,9 @@ export const createSettingsSlice = (set, get) => ({
   setCustomKcal: (val) => { set({ customKcal: val }); queueSettingsSync(get); },
   addCustomFood: (food) => set(s => ({
     customFoods: [food, ...(s.customFoods || []).filter(f => f.id !== food.id)].slice(0, 200)
+  })),
+  deleteCustomFood: (id) => set(s => ({
+    customFoods: (s.customFoods || []).filter(f => f.id !== id)
   })),
   setActivityLevel: (level) => { set({ activityLevel: level }); queueSettingsSync(get); },
   setWeeklyGoal: (n) => { set({ weeklyGoal: Math.max(1, Math.min(7, Number(n))) }); queueSettingsSync(get); },

@@ -68,7 +68,8 @@ export default function NutritionPage() {
   const [comboDbQuery, setComboDbQuery] = useState("");
   const [comboDbResults, setComboDbResults] = useState([]);
 
-  const addCustomFood   = useStore(s => s.addCustomFood);
+  const addCustomFood    = useStore(s => s.addCustomFood);
+  const deleteCustomFood = useStore(s => s.deleteCustomFood);
   const storeCustomFoods = useStore(s => s.customFoods) || [];
   const customKcal    = useStore(s => s.customKcal) ?? "";
   const setCustomKcal = useStore(s => s.setCustomKcal);
@@ -243,6 +244,7 @@ export default function NutritionPage() {
         carbs: r2(form.carbs),
         fat: r2(form.fat),
       });
+      window.__showToast?.("Guardada para futuros usos ✓", "success");
     }
     resetForm();
     setSaving(false);
@@ -967,6 +969,18 @@ export default function NutritionPage() {
                 </div>
               )}
             </div>
+
+            {/* "No results" hint — pre-fills form.name so the user can enter macros manually */}
+            {dbQuery.trim().length >= 2 && dbResults.length === 0 && (
+              <div style={{ marginTop:8, padding:"10px 12px", background:"rgba(255,255,255,.04)", border:"1px solid var(--line)", borderRadius:10, display:"flex", alignItems:"center", justifyContent:"space-between", gap:8 }}>
+                <span style={{ fontSize:12, color:"var(--muted)" }}>Sin resultados para "{dbQuery}"</span>
+                <button type="button"
+                  onClick={() => { setForm(f => ({...f, name: dbQuery.trim()})); setDbQuery(""); setDbResults([]); }}
+                  style={{ fontSize:12, fontWeight:700, color:"var(--green)", background:"none", border:"none", cursor:"pointer", padding:0, whiteSpace:"nowrap", flexShrink:0 }}>
+                  Cargar manualmente →
+                </button>
+              </div>
+            )}
 
             </div>{/* end non-scrollable header */}
 
