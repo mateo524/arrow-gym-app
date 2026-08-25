@@ -126,10 +126,10 @@ export default function NutritionPage() {
       return {
         ...f,
         grams: g,
-        kcal: String(Math.round(baseFood.kcal * factor)),
-        protein: String(Math.round(baseFood.protein * factor * 10) / 10),
-        carbs: String(Math.round(baseFood.carbs * factor * 10) / 10),
-        fat: String(Math.round(baseFood.fat * factor * 10) / 10),
+        kcal:    String(r2(baseFood.kcal    * factor)),
+        protein: String(r2(baseFood.protein * factor)),
+        carbs:   String(r2(baseFood.carbs   * factor)),
+        fat:     String(r2(baseFood.fat     * factor)),
       };
     });
   }, [baseFood, macrosEdited]);
@@ -933,7 +933,7 @@ export default function NutritionPage() {
                 {/* Macro preview — shown when a DB food is selected and grams is filled */}
                 {baseFood && form.grams && Number(form.grams) > 0 && !macrosEdited && (
                   <div style={{ marginTop:6, fontSize:12, color:"var(--green)", fontWeight:600, padding:"6px 10px", background:"rgba(52,211,153,.07)", borderRadius:8, border:"1px solid rgba(52,211,153,.15)" }}>
-                    Por {form.grams}g: {form.kcal} kcal · {form.protein}g P · {form.carbs}g C · {form.fat}g G
+                    Por {form.grams}g: {r2(form.kcal)} kcal · {r2(form.protein)}g P · {r2(form.carbs)}g C · {r2(form.fat)}g G
                   </div>
                 )}
               </div>

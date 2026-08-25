@@ -447,6 +447,29 @@ export const FOOD_DB = [
   { id:"new-l2",  cat:"Legumbres",   name:"Arvejas secas cocidas",       serving:"100g", grams:100, kcal:118, protein:8,  carbs:21, fat:0  },
   { id:"new-l3",  cat:"Legumbres",   name:"Habas cocidas",               serving:"100g", grams:100, kcal:110, protein:8,  carbs:20, fat:0  },
 
+  // ── ALIMENTOS AGREGADOS ──────────────────────────────────────────────────
+  // Proteínas
+  { id:"add-p1",  cat:"Carnes",      name:"Milanesa de pollo",           serving:"100g",          grams:100, kcal:220, protein:24, carbs:10, fat:9  },
+  { id:"add-p2",  cat:"Carnes",      name:"Hamburguesa casera",          serving:"100g",          grams:100, kcal:250, protein:20, carbs:0,  fat:18 },
+  { id:"add-p3",  cat:"Fiambres",    name:"Jamón cocido",                serving:"100g",          grams:100, kcal:115, protein:17, carbs:1,  fat:4  },
+  // Carbohidratos
+  { id:"add-c1",  cat:"Cereales",    name:"Fideos cocidos",              serving:"100g",          grams:100, kcal:131, protein:5,  carbs:25, fat:1  },
+  { id:"add-c2",  cat:"Pan",         name:"Pan francés",                 serving:"1 unidad 50g",  grams:50,  kcal:135, protein:4,  carbs:26, fat:1  },
+  // Frutas (porciones específicas)
+  { id:"add-fr1", cat:"Frutas",      name:"Naranja",                     serving:"1 grande 200g", grams:200, kcal:94,  protein:2,  carbs:24, fat:0  },
+  { id:"add-fr2", cat:"Frutas",      name:"Mango",                       serving:"1/2 unidad 150g",grams:150,kcal:96,  protein:1,  carbs:25, fat:0  },
+  // Lácteos
+  { id:"add-d1",  cat:"Lácteos",     name:"Leche descremada",            serving:"1 vaso 250ml",  grams:250, kcal:88,  protein:9,  carbs:12, fat:0  },
+  { id:"add-d2",  cat:"Lácteos",     name:"Yogur natural",               serving:"1 pote 150g",   grams:150, kcal:92,  protein:5,  carbs:12, fat:2  },
+  { id:"add-d3",  cat:"Lácteos",     name:"Queso mozzarella",            serving:"100g",          grams:100, kcal:280, protein:22, carbs:2,  fat:20 },
+  { id:"add-d4",  cat:"Lácteos",     name:"Dulce de leche",              serving:"1 cda 30g",     grams:30,  kcal:105, protein:2,  carbs:20, fat:2  },
+  // Varios
+  { id:"add-v1",  cat:"Frutos secos",name:"Maní tostado",                serving:"30g",           grams:30,  kcal:174, protein:7,  carbs:6,  fat:15 },
+  { id:"add-v2",  cat:"Frutos secos",name:"Mantequilla de maní",         serving:"1 cda 30g",     grams:30,  kcal:188, protein:8,  carbs:6,  fat:16 },
+  { id:"add-v3",  cat:"Aceites",     name:"Aceite de oliva",             serving:"1 cda 10ml",    grams:10,  kcal:90,  protein:0,  carbs:0,  fat:10 },
+  { id:"add-v4",  cat:"Comidas ARG", name:"Empanada de carne",           serving:"1 unidad",      grams:100, kcal:250, protein:12, carbs:28, fat:10 },
+  { id:"add-v5",  cat:"Pan",         name:"Facturas",                    serving:"1 unidad 60g",  grams:60,  kcal:220, protein:4,  carbs:28, fat:11 },
+
 ];
 
 

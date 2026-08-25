@@ -174,6 +174,7 @@ export default function WorkoutPage() {
   const update = useStore((state) => state.updateActiveSet);
   const repeat = useStore((state) => state.repeatSet);
   const remove = useStore((state) => state.removeActiveSet);
+  const loadLastSetsForExercise = useStore((state) => state.loadLastSetsForExercise);
   const addExercise = useStore((state) => state.addExerciseToActiveWorkout);
   const addSeriesToExercise = useStore((state) => state.addSeriesToExercise);
   const linkSuperset = useStore((s) => s.linkSuperset);
@@ -245,6 +246,7 @@ export default function WorkoutPage() {
   const [saveRoutineError, setSaveRoutineError] = useState("");
   const [shareMsg, setShareMsg] = useState("");
   const [showPDF, setShowPDF] = useState(false);
+  const [repeatSetsToast, setRepeatSetsToast] = useState(null); // { msg, exiting }
 
   const [illustrationExercise, setIllustrationExercise] = useState(null);
   const [restDone, setRestDone] = useState(false);
@@ -619,6 +621,20 @@ export default function WorkoutPage() {
     <>
     <section className="page" style={{ padding: 0, display: "flex", flexDirection: "column", overflow: "hidden", position: "fixed", left: 0, right: 0, top: "max(env(safe-area-inset-top, 0px), 0px)", bottom: "calc(60px + 58px + env(safe-area-inset-bottom, 0px))" }}>
 
+      {/* ── REPEAT SETS TOAST ──────────────────────────────────────────────── */}
+      {repeatSetsToast && (
+        <div style={{
+          position: "fixed", top: 16, left: "50%", transform: "translateX(-50%)",
+          background: "rgba(30,30,40,.95)", border: "1px solid rgba(168,85,247,.4)", borderRadius: 12,
+          padding: "10px 20px", zIndex: 9999, fontSize: 13, fontWeight: 700, color: "var(--green)",
+          display: "flex", alignItems: "center", gap: 8,
+          opacity: repeatSetsToast.exiting ? 0 : 1, transition: "opacity .4s",
+          pointerEvents: "none", boxShadow: "0 4px 24px rgba(0,0,0,.5)",
+        }}>
+          <span>↩</span> {repeatSetsToast.msg}
+        </div>
+      )}
+
       {/* ── TOP BAR ─────────────────────────────────────────────────────────── */}
       <div style={{
         padding: "10px 14px 8px",
@@ -772,6 +788,37 @@ export default function WorkoutPage() {
                         })()}
                       </div>
                     )}
+                    {/* ↩ Repetir anterior chip */}
+                    {(() => {
+                      const exName = exercise;
+                      const lastWorkoutWithEx = (workouts || []).find((w) =>
+                        (w.sets || []).some((s) => (s.exercise || "").trim().toLowerCase() === exName.trim().toLowerCase() && s.reps !== "" && Number(s.reps) > 0)
+                      );
+                      if (!lastWorkoutWithEx) return null;
+                      const lastExSets = (lastWorkoutWithEx.sets || []).filter((s) =>
+                        (s.exercise || "").trim().toLowerCase() === exName.trim().toLowerCase() && s.reps !== "" && Number(s.reps) > 0
+                      );
+                      const topSet = lastExSets.reduce((best, s) => (!best || Number(s.weight) > Number(best.weight) ? s : best), null);
+                      const label = topSet ? `${lastExSets.length}×${topSet.weight}kg` : "";
+                      return (
+                        <button
+                          onClick={() => {
+                            const date = loadLastSetsForExercise(exName);
+                            if (date) {
+                              const dateStr = typeof date === "string" ? ` del ${date}` : "";
+                              setRepeatSetsToast({ msg: `Sets cargados${dateStr}`, exiting: false });
+                              setTimeout(() => setRepeatSetsToast((t) => t ? { ...t, exiting: true } : null), 2000);
+                              setTimeout(() => setRepeatSetsToast(null), 2500);
+                            }
+                          }}
+                          style={{ marginTop: 5, background: "rgba(168,85,247,.1)", border: "1px solid rgba(168,85,247,.3)", borderRadius: 10, padding: "3px 10px", cursor: "pointer", fontSize: 12, fontWeight: 700, color: "var(--green)", display: "inline-flex", alignItems: "center", gap: 5 }}
+                        >
+                          <span>↩</span>
+                          <span>Repetir anterior{label ? `: ${label}` : ""}</span>
+                        </button>
+                      );
+                    })()}
+
                     {coachHint && (() => {
                       const isLoop = coachHint.type === 'loop';
                       const isPR   = coachHint.type === 'pr';
@@ -1572,6 +1619,7 @@ export default function WorkoutPage() {
           duration={restDuration}
           soundEnabled={soundEnabled}
           onSkip={handleSkipRest}
+          onClose={handleSkipRest}
           onComplete={handleRestComplete}
           onChangeDuration={(secs) => { if (restExercise) setExerciseRestTime(restExercise, secs); }}
           nextLabel={nextExercise}
@@ -1762,8 +1810,8 @@ export default function WorkoutPage() {
             {prCelebration.exercise}
           </div>
           {prCelebration.weight && (
-            <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8 }}>
-              {prCelebration.weight} kg
+            <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8, whiteSpace: "nowrap" }}>
+              {prCelebration.weight}<span style={{ fontSize: 18, fontWeight: 600, marginLeft: 4 }}>kg</span>
             </div>
           )}
         </div>

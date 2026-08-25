@@ -18,12 +18,14 @@ async function requestNotifPermission() {
   }
 }
 
-export default function RestTimer({ duration = 90, onComplete, onSkip, onChangeDuration, active, soundEnabled = true, nextLabel }) {
+export default function RestTimer({ duration = 90, onComplete, onSkip, onClose, onChangeDuration, active, soundEnabled = true, nextLabel }) {
   const [selectedDuration, setSelectedDuration] = useState(duration);
   const [remaining, setRemaining] = useState(duration);
   const [running, setRunning] = useState(false);
+  const [paused, setPaused] = useState(false);
   const [customInput, setCustomInput] = useState("");
   const doneRef = useRef(false);
+  const pausedAtRef = useRef(null);
   const timerRef = useRef(null);
   const startTimeRef = useRef(null);
   const onCompleteRef = useRef(onComplete);
@@ -32,7 +34,22 @@ export default function RestTimer({ duration = 90, onComplete, onSkip, onChangeD
   function stopTimer() {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
     startTimeRef.current = null;
+    pausedAtRef.current = null;
     swPost({ type: 'CANCEL_TIMER', id: 'rest-timer' });
+  }
+
+  function togglePause() {
+    if (!running) return;
+    if (paused) {
+      // resume: shift startTime forward by the time we were paused
+      const pausedDuration = Date.now() - pausedAtRef.current;
+      startTimeRef.current = startTimeRef.current + pausedDuration;
+      pausedAtRef.current = null;
+      setPaused(false);
+    } else {
+      pausedAtRef.current = Date.now();
+      setPaused(true);
+    }
   }
 
   function startTimer(dur) {
@@ -48,6 +65,7 @@ export default function RestTimer({ duration = 90, onComplete, onSkip, onChangeD
     });
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
+      if (pausedAtRef.current) return; // paused — don't advance
       const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
       const left = Math.max(0, d - elapsed);
       setRemaining(left);
@@ -74,6 +92,7 @@ export default function RestTimer({ duration = 90, onComplete, onSkip, onChangeD
     setSelectedDuration(duration);
     setRemaining(duration);
     setRunning(false);
+    setPaused(false);
   }, [duration]);
 
   useEffect(() => {
@@ -105,6 +124,7 @@ export default function RestTimer({ duration = 90, onComplete, onSkip, onChangeD
   const offset = CIRCUMFERENCE * (1 - progress);
   const minutes = Math.floor(remaining / 60);
   const seconds = remaining % 60;
+  const ringColor = remaining <= 10 ? "var(--danger)" : remaining <= 30 ? "#f59e0b" : "var(--green)";
 
   return (
     <div className="rest-overlay-inner" role="timer" aria-label={`Descanso ${minutes}:${seconds.toString().padStart(2, "0")} restantes`}>
@@ -122,10 +142,10 @@ export default function RestTimer({ duration = 90, onComplete, onSkip, onChangeD
         <svg width={72} height={72} viewBox="0 0 72 72" className="rest-timer-ring">
           <circle cx={36} cy={36} r={28} fill="none" stroke="rgba(255,255,255,.08)" strokeWidth={5} />
           <circle cx={36} cy={36} r={28} fill="none"
-            stroke={remaining < 10 ? "var(--danger)" : "var(--green)"} strokeWidth={5}
+            stroke={ringColor} strokeWidth={5}
             strokeLinecap="round" strokeDasharray={CIRCUMFERENCE} strokeDashoffset={offset}
             transform="rotate(-90 36 36)" className="rest-timer-progress" />
-          <text x={36} y={38} textAnchor="middle" dominantBaseline="central" fill="var(--text)" fontSize={18} fontWeight={900}>
+          <text x={36} y={38} textAnchor="middle" dominantBaseline="central" fill={ringColor} fontSize={18} fontWeight={900}>
             {minutes}:{seconds.toString().padStart(2, "0")}
           </text>
         </svg>
@@ -133,7 +153,20 @@ export default function RestTimer({ duration = 90, onComplete, onSkip, onChangeD
       </div>
 
       {running ? (
-        <button className="ghost rest-skip-btn" onClick={onSkip} aria-label="Saltear descanso">Saltear →</button>
+        <div style={{ display: "flex", gap: 8, width: "100%" }}>
+          <button
+            className="ghost rest-skip-btn"
+            onClick={togglePause}
+            aria-label={paused ? "Reanudar descanso" : "Pausar descanso"}
+            style={{ flex: 1, borderColor: "var(--cyan)", color: "var(--cyan)" }}
+          >
+            {paused ? "▶ Reanudar" : "⏸ Pausar"}
+          </button>
+          <button className="ghost rest-skip-btn" onClick={onSkip} aria-label="Saltear descanso" style={{ flex: 1 }}>Saltear →</button>
+          {onClose && (
+            <button className="ghost rest-skip-btn" onClick={onClose} aria-label="Cerrar timer" style={{ color: "var(--muted)", borderColor: "var(--line)", padding: "0 12px" }}>✕</button>
+          )}
+        </div>
       ) : (
         <button onClick={startTimer}
           style={{ width:"100%", padding:"12px", borderRadius:14, border:"1.5px solid var(--cyan)", background:"rgba(117,217,255,.1)", color:"var(--cyan)", fontSize:15, fontWeight:800, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
