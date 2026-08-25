@@ -42,11 +42,13 @@ export async function syncWorkoutUp(workout, userId) {
   }
   isSyncing = true;
   try {
-    await withTimeout(supabase.from("user_workouts").upsert(row));
+    const { error: upsertError } = await withTimeout(supabase.from("user_workouts").upsert(row));
+    if (upsertError) throw upsertError;
     // Flush any previously queued saves now that we're online.
     await flush(async (item) => {
       if (item.type === "upsert_workout") {
-        await withTimeout(supabase.from("user_workouts").upsert(item.row));
+        const { error: flushError } = await withTimeout(supabase.from("user_workouts").upsert(item.row));
+        if (flushError) throw flushError;
       } else {
         // Unknown type: throw so flush keeps it in the queue instead of
         // silently discarding it — data loss prevention.
@@ -105,7 +107,8 @@ export async function syncAllWorkoutsUp(workouts, userId) {
       sets: w.sets,
       created_at: new Date().toISOString(),
     }));
-    await withTimeout(supabase.from("user_workouts").upsert(rows));
+    const { error: upsertAllError } = await withTimeout(supabase.from("user_workouts").upsert(rows));
+    if (upsertAllError) throw upsertAllError;
   } catch {}
 }
 

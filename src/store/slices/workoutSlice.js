@@ -191,7 +191,8 @@ export const createWorkoutSlice = (set, get) => ({
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.user?.id) return;
-        await withTimeout(supabase.from("profiles").update({ gym_data: payload }).eq("id", session.user.id));
+        const { error: gymError } = await withTimeout(supabase.from("profiles").update({ gym_data: payload }).eq("id", session.user.id));
+        if (gymError) throw gymError;
         get().setSyncStatus?.("saved");
       } catch {
         get().setSyncStatus?.("error");

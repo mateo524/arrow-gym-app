@@ -103,11 +103,15 @@ const useAuthStore = create((set, get) => ({
           // Without this, lastUserId and all scalars return their default initial
           // values (undefined / 8 / null) and resetUserData fires on every open,
           // wiping all local data.
-          await new Promise(resolve => {
-            if (useStore.getState()._rehydrated) { resolve(); return; }
-            const unsub = useStore.subscribe(s => { if (s._rehydrated) { unsub(); resolve(); } });
-            setTimeout(resolve, 1500);
-          });
+          await Promise.race([
+            new Promise(resolve => {
+              if (useStore.getState()._rehydrated) return resolve();
+              const unsub = useStore.subscribe(s => {
+                if (s._rehydrated) { unsub(); resolve(); }
+              });
+            }),
+            new Promise(resolve => setTimeout(resolve, 5000)), // fallback 5s
+          ]);
           const lastUserId = useStore.getState().lastUserId;
           if (lastUserId && lastUserId !== user.id) {
             // Only reset if we KNOW a different user was here before

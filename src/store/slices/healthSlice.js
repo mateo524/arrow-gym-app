@@ -37,7 +37,8 @@ async function syncHealthToDB(state) {
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user?.id) return;
-    await withTimeout(supabase.from("profiles").update({ health_data: buildHealthPayload(state) }).eq("id", session.user.id));
+    const { error: healthError } = await withTimeout(supabase.from("profiles").update({ health_data: buildHealthPayload(state) }).eq("id", session.user.id));
+    if (healthError) throw healthError;
   } catch (e) {
     // Silently fail — table or column may not exist yet (includes timeout on dead WiFi)
   } finally {
@@ -102,9 +103,11 @@ export const createHealthSlice = (set, get) => ({
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.user?.id) { failed.push(item); continue; }
         if (item.type === "health") {
-          await withTimeout(supabase.from("profiles").update({ health_data: item.payload }).eq("id", session.user.id));
+          const { error: healthFlushError } = await withTimeout(supabase.from("profiles").update({ health_data: item.payload }).eq("id", session.user.id));
+          if (healthFlushError) throw healthFlushError;
         } else if (item.type === "gym") {
-          await withTimeout(supabase.from("profiles").update({ gym_data: item.payload }).eq("id", session.user.id));
+          const { error: gymFlushError } = await withTimeout(supabase.from("profiles").update({ gym_data: item.payload }).eq("id", session.user.id));
+          if (gymFlushError) throw gymFlushError;
         }
       } catch {
         failed.push(item);
