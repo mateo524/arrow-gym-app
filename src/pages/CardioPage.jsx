@@ -3,27 +3,42 @@ import useStore from "../store/useStore.js";
 import Icon from "../components/Icon.jsx";
 
 const SPORTS = [
-  // Resistencia
-  { id:"correr",    name:"Correr",        icon:"🏃", cat:"Resistencia", metrics:["distancia"], met:8   },
-  { id:"ciclismo",  name:"Ciclismo",      icon:"🚴", cat:"Resistencia", metrics:["distancia"], met:7   },
-  { id:"natacion",  name:"Natación",      icon:"🏊", cat:"Resistencia", metrics:["distancia"], met:6   },
-  { id:"caminata",  name:"Caminata",      icon:"🚶", cat:"Resistencia", metrics:["distancia"], met:3.5 },
-  { id:"remo",      name:"Remo",          icon:"🚣", cat:"Resistencia", metrics:["distancia"], met:6   },
-  { id:"eliptica",  name:"Elíptica",      icon:"🔄", cat:"Resistencia", metrics:["calorias"],  met:5   },
-  { id:"cinta",     name:"Cinta incl.",   icon:"🏔️", cat:"Resistencia", metrics:["distancia"], met:6   },
-  { id:"soga",      name:"Saltar la soga",icon:"⛓️", cat:"Resistencia", metrics:["rondas"],    met:9   },
+  // Resistencia — cardio libre
+  { id:"correr",      name:"Correr",          icon:"🏃",  cat:"Resistencia", metrics:["distancia"], met:8   },
+  { id:"caminata",    name:"Caminata",         icon:"🚶",  cat:"Resistencia", metrics:["distancia"], met:3.5 },
+  { id:"ciclismo",    name:"Ciclismo",         icon:"🚴",  cat:"Resistencia", metrics:["distancia"], met:7   },
+  { id:"natacion",    name:"Natación",         icon:"🏊",  cat:"Resistencia", metrics:["distancia"], met:6   },
+  { id:"remo",        name:"Remo (agua)",      icon:"🚣",  cat:"Resistencia", metrics:["distancia"], met:6   },
+  { id:"soga",        name:"Saltar la soga",   icon:"⛓️", cat:"Resistencia", metrics:["rondas"],    met:9   },
+  { id:"atletismo",   name:"Atletismo",        icon:"🏅",  cat:"Resistencia", metrics:["distancia"], met:9   },
+  // Resistencia — máquinas de gym
+  { id:"cintaplana",  name:"Cinta (plana)",    icon:"🏃",  cat:"Máquinas",    metrics:["distancia"], met:7   },
+  { id:"cinta",       name:"Cinta (inclinada)",icon:"🏔️", cat:"Máquinas",    metrics:["distancia"], met:8   },
+  { id:"bicicletafija",name:"Bici estática",   icon:"🚲",  cat:"Máquinas",    metrics:["calorias"],  met:6   },
+  { id:"spinning",    name:"Spinning / Clase", icon:"🎯",  cat:"Máquinas",    metrics:["calorias"],  met:7   },
+  { id:"eliptica",    name:"Elíptica",         icon:"🔄",  cat:"Máquinas",    metrics:["calorias"],  met:5   },
+  { id:"stepper",     name:"Stepper",          icon:"🪜",  cat:"Máquinas",    metrics:["calorias"],  met:9   },
+  { id:"remomaquina", name:"Remo (máquina)",   icon:"⛵",  cat:"Máquinas",    metrics:["distancia"], met:7   },
+  { id:"assaultbike", name:"Assault Bike",     icon:"💨",  cat:"Máquinas",    metrics:["calorias"],  met:11  },
+  { id:"skierg",      name:"Ski Erg",          icon:"⛷️", cat:"Máquinas",    metrics:["distancia"], met:9   },
   // Intervalos
-  { id:"hiit",      name:"HIIT",          icon:"⚡", cat:"Intervalos",  metrics:["rondas"],    met:8   },
-  { id:"boxeo",     name:"Boxeo",         icon:"🥊", cat:"Intervalos",  metrics:["rondas"],    met:7   },
-  { id:"crossfit",  name:"CrossFit / WOD",icon:"🔥", cat:"Intervalos",  metrics:["rondas"],    met:8   },
-  { id:"spinning",  name:"Spinning",      icon:"🎯", cat:"Intervalos",  metrics:["calorias"],  met:7   },
+  { id:"hiit",        name:"HIIT",             icon:"⚡",  cat:"Intervalos",  metrics:["rondas"],    met:8   },
+  { id:"tabata",      name:"Tabata",           icon:"🔁",  cat:"Intervalos",  metrics:["rondas"],    met:9   },
+  { id:"crossfit",    name:"CrossFit / WOD",   icon:"🔥",  cat:"Intervalos",  metrics:["rondas"],    met:8   },
+  { id:"boxeo",       name:"Boxeo",            icon:"🥊",  cat:"Intervalos",  metrics:["rondas"],    met:7   },
+  { id:"kickboxing",  name:"Kickboxing",       icon:"🥋",  cat:"Intervalos",  metrics:["rondas"],    met:8   },
   // Deporte
-  { id:"futbol",    name:"Fútbol",        icon:"⚽", cat:"Deporte",     metrics:[],            met:6   },
-  { id:"basquet",   name:"Básquet",       icon:"🏀", cat:"Deporte",     metrics:[],            met:7   },
-  { id:"tenis",     name:"Tenis / Pádel", icon:"🎾", cat:"Deporte",     metrics:[],            met:6   },
-  { id:"hiking",    name:"Hiking / Trek", icon:"🥾", cat:"Deporte",     metrics:["distancia"], met:5   },
-  { id:"escalada",  name:"Escalada",      icon:"🧗", cat:"Deporte",     metrics:[],            met:6   },
-  { id:"yoga",      name:"Yoga / Pilates",icon:"🧘", cat:"Deporte",     metrics:[],            met:3   },
+  { id:"futbol",      name:"Fútbol",           icon:"⚽",  cat:"Deporte",     metrics:[],            met:6   },
+  { id:"basquet",     name:"Básquet",          icon:"🏀",  cat:"Deporte",     metrics:[],            met:7   },
+  { id:"tenis",       name:"Tenis",            icon:"🎾",  cat:"Deporte",     metrics:[],            met:6   },
+  { id:"padel",       name:"Pádel",            icon:"🏓",  cat:"Deporte",     metrics:[],            met:7   },
+  { id:"squash",      name:"Squash",           icon:"🎱",  cat:"Deporte",     metrics:[],            met:10  },
+  { id:"voley",       name:"Vóley",            icon:"🏐",  cat:"Deporte",     metrics:[],            met:6   },
+  { id:"rugby",       name:"Rugby / Handball", icon:"🏉",  cat:"Deporte",     metrics:[],            met:7   },
+  { id:"hiking",      name:"Hiking / Trek",    icon:"🥾",  cat:"Deporte",     metrics:["distancia"], met:5   },
+  { id:"escalada",    name:"Escalada",         icon:"🧗",  cat:"Deporte",     metrics:[],            met:6   },
+  { id:"baile",       name:"Baile / Zumba",    icon:"💃",  cat:"Deporte",     metrics:[],            met:6   },
+  { id:"yoga",        name:"Yoga / Pilates",   icon:"🧘",  cat:"Deporte",     metrics:[],            met:3   },
 ];
 
 const INTENSITY_OPTS = [

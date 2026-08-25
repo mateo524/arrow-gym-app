@@ -161,6 +161,8 @@ export default function MeasurementsPage() {
   const [measTab, setMeasTab] = useState("basico");
   const [photoNote, setPhotoNote] = useState("");
   const [fullscreenPhoto, setFullscreenPhoto] = useState(null);
+  const [compareMode, setCompareMode] = useState(false);
+  const [compareSelected, setCompareSelected] = useState([]);
   const progressPhotos = useStore(s => s.progressPhotos) || [];
   const addProgressPhoto = useStore(s => s.addProgressPhoto);
   const deleteProgressPhoto = useStore(s => s.deleteProgressPhoto);
@@ -869,55 +871,113 @@ export default function MeasurementsPage() {
               placeholder="Nota opcional (ej: 85kg, semana 4…)"
               style={{ width:"100%", background:"var(--panel2)", border:"1px solid var(--line)", borderRadius:10, padding:"9px 12px", color:"var(--text)", fontSize:13, boxSizing:"border-box", marginBottom:14 }}
             />
+            {progressPhotos.length > 1 && (
+              <button onClick={() => { setCompareMode(m => !m); setCompareSelected([]); }}
+                style={{ marginBottom:10, padding:"6px 14px", borderRadius:20, border:"1.5px solid", fontSize:12, fontWeight:700, cursor:"pointer", background: compareMode ? "rgba(52,211,153,.12)" : "transparent", borderColor: compareMode ? "var(--green)" : "var(--line)", color: compareMode ? "var(--green)" : "var(--muted)" }}>
+                {compareMode ? "✓ Comparando — tocá 2 fotos" : "Comparar fotos"}
+              </button>
+            )}
             {progressPhotos.length === 0 ? (
               <p style={{ fontSize:13, color:"var(--muted)", textAlign:"center", padding:"20px 0" }}>Sin fotos aún.</p>
             ) : (
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
-                {progressPhotos.map(photo => (
-                  <div key={photo.id} style={{ position:"relative", borderRadius:12, overflow:"hidden", background:"var(--panel2)", border:"1px solid var(--line)" }}>
-                    <img
-                      src={photo.dataUrl || photo.url}
-                      alt={photo.date}
-                      onClick={() => setFullscreenPhoto(photo)}
-                      style={{ width:"100%", aspectRatio:"3/4", objectFit:"cover", display:"block", cursor:"zoom-in" }}
-                    />
-                    <div style={{ padding:"6px 8px" }}>
-                      <div style={{ fontSize:11, color:"var(--green)", fontWeight:700 }}>{photo.date}</div>
-                      {photo.note && <div style={{ fontSize:11, color:"var(--muted)", marginTop:2 }}>{photo.note}</div>}
+                {progressPhotos.map(photo => {
+                  const isSelected = compareSelected.some(p => p.id === photo.id);
+                  return (
+                    <div key={photo.id} style={{ position:"relative", borderRadius:12, overflow:"hidden", background:"var(--panel2)", border:`1.5px solid ${isSelected ? "var(--green)" : "var(--line)"}` }}>
+                      <img
+                        src={photo.dataUrl || photo.url}
+                        alt={photo.date}
+                        onClick={() => {
+                          if (compareMode) {
+                            setCompareSelected(prev => {
+                              if (prev.some(p => p.id === photo.id)) return prev.filter(p => p.id !== photo.id);
+                              if (prev.length >= 2) return [prev[1], photo];
+                              return [...prev, photo];
+                            });
+                          } else {
+                            setFullscreenPhoto(photo);
+                          }
+                        }}
+                        style={{ width:"100%", aspectRatio:"3/4", objectFit:"cover", display:"block", cursor: compareMode ? "pointer" : "zoom-in" }}
+                      />
+                      {isSelected && (
+                        <div style={{ position:"absolute", top:6, left:6, background:"var(--green)", borderRadius:"50%", width:22, height:22, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, color:"#000", fontWeight:900 }}>
+                          {compareSelected.findIndex(p => p.id === photo.id) + 1}
+                        </div>
+                      )}
+                      <div style={{ padding:"6px 8px" }}>
+                        <div style={{ fontSize:11, color:"var(--green)", fontWeight:700 }}>{photo.date}</div>
+                        {photo.note && <div style={{ fontSize:11, color:"var(--muted)", marginTop:2 }}>{photo.note}</div>}
+                      </div>
+                      {!compareMode && (
+                        <button onClick={() => deleteProgressPhoto(photo.id)}
+                          style={{ position:"absolute", top:6, right:6, background:"rgba(0,0,0,.6)", border:"none", borderRadius:8, width:26, height:26, cursor:"pointer", color:"#fff", fontSize:13, display:"flex", alignItems:"center", justifyContent:"center" }}>
+                          <Icon name="X" size={13} style={{display:'inline-block',verticalAlign:'middle'}} />
+                        </button>
+                      )}
                     </div>
-                    <button onClick={() => deleteProgressPhoto(photo.id)}
-                      style={{ position:"absolute", top:6, right:6, background:"rgba(0,0,0,.6)", border:"none", borderRadius:8, width:26, height:26, cursor:"pointer", color:"#fff", fontSize:13, display:"flex", alignItems:"center", justifyContent:"center" }}>
-                      <Icon name="X" size={13} style={{display:'inline-block',verticalAlign:'middle'}} />
-                    </button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
         )}
       </div>
 
-      {/* Fullscreen photo viewer */}
-      {fullscreenPhoto && (
+      {/* Compare modal */}
+      {compareMode && compareSelected.length === 2 && (
         <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.97)", zIndex:9999, display:"flex", flexDirection:"column" }}>
-          {/* Header with close button — always on top */}
-          <div style={{ flexShrink:0, display:"flex", justifyContent:"flex-end", padding:"12px 16px", paddingTop:"max(12px, env(safe-area-inset-top, 12px))" }}>
-            <button
-              onClick={() => setFullscreenPhoto(null)}
-              style={{ background:"rgba(255,255,255,.18)", border:"none", borderRadius:12, width:44, height:44, cursor:"pointer", color:"#fff", fontSize:22, display:"flex", alignItems:"center", justifyContent:"center", fontWeight:700 }}
-            >×</button>
+          <div style={{ flexShrink:0, display:"flex", justifyContent:"space-between", alignItems:"center", padding:"12px 16px", paddingTop:"max(12px, env(safe-area-inset-top, 12px))" }}>
+            <span style={{ fontSize:13, color:"rgba(255,255,255,.5)" }}>Comparación</span>
+            <button onClick={() => setCompareSelected([])}
+              style={{ background:"rgba(255,255,255,.18)", border:"none", borderRadius:12, width:44, height:44, cursor:"pointer", color:"#fff", fontSize:22, display:"flex", alignItems:"center", justifyContent:"center", fontWeight:700 }}>×</button>
           </div>
-          {/* Image fills remaining space */}
-          <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden", padding:"0 12px" }}>
-            <img src={fullscreenPhoto.dataUrl || fullscreenPhoto.url} alt={fullscreenPhoto.date} style={{ maxWidth:"100%", maxHeight:"100%", objectFit:"contain", borderRadius:8 }} />
-          </div>
-          {/* Caption */}
-          <div style={{ flexShrink:0, padding:"12px 16px", paddingBottom:"max(20px, env(safe-area-inset-bottom, 20px))", textAlign:"center" }}>
-            <div style={{ fontSize:13, color:"#22d37a", fontWeight:700 }}>{fullscreenPhoto.date}</div>
-            {fullscreenPhoto.note && <div style={{ fontSize:12, color:"rgba(255,255,255,.6)", marginTop:4 }}>{fullscreenPhoto.note}</div>}
+          <div style={{ flex:1, display:"flex", gap:4, overflow:"hidden", padding:"0 8px" }}>
+            {compareSelected.map((photo, i) => (
+              <div key={photo.id} style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
+                <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden" }}>
+                  <img src={photo.dataUrl || photo.url} alt={photo.date} style={{ maxWidth:"100%", maxHeight:"100%", objectFit:"contain", borderRadius:8 }} />
+                </div>
+                <div style={{ flexShrink:0, padding:"8px 4px", textAlign:"center" }}>
+                  <div style={{ fontSize:12, color:"#22d37a", fontWeight:700 }}>{photo.date}</div>
+                  {photo.note && <div style={{ fontSize:11, color:"rgba(255,255,255,.5)", marginTop:2 }}>{photo.note}</div>}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
+
+      {/* Fullscreen photo viewer */}
+      {fullscreenPhoto && (() => {
+        const sorted = [...progressPhotos].sort((a, b) => b.date.localeCompare(a.date));
+        const idx = sorted.findIndex(p => p.id === fullscreenPhoto.id);
+        return (
+          <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.97)", zIndex:9999, display:"flex", flexDirection:"column" }}>
+            <div style={{ flexShrink:0, display:"flex", justifyContent:"flex-end", padding:"12px 16px", paddingTop:"max(12px, env(safe-area-inset-top, 12px))" }}>
+              <button onClick={() => setFullscreenPhoto(null)}
+                style={{ background:"rgba(255,255,255,.18)", border:"none", borderRadius:12, width:44, height:44, cursor:"pointer", color:"#fff", fontSize:22, display:"flex", alignItems:"center", justifyContent:"center", fontWeight:700 }}>×</button>
+            </div>
+            <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden", padding:"0 12px", position:"relative" }}>
+              {idx > 0 && (
+                <button onClick={() => setFullscreenPhoto(sorted[idx - 1])}
+                  style={{ position:"absolute", left:4, background:"rgba(255,255,255,.18)", border:"none", borderRadius:12, width:44, height:44, cursor:"pointer", color:"#fff", fontSize:22, display:"flex", alignItems:"center", justifyContent:"center", zIndex:1 }}>‹</button>
+              )}
+              <img src={fullscreenPhoto.dataUrl || fullscreenPhoto.url} alt={fullscreenPhoto.date} style={{ maxWidth:"100%", maxHeight:"100%", objectFit:"contain", borderRadius:8 }} />
+              {idx < sorted.length - 1 && (
+                <button onClick={() => setFullscreenPhoto(sorted[idx + 1])}
+                  style={{ position:"absolute", right:4, background:"rgba(255,255,255,.18)", border:"none", borderRadius:12, width:44, height:44, cursor:"pointer", color:"#fff", fontSize:22, display:"flex", alignItems:"center", justifyContent:"center", zIndex:1 }}>›</button>
+              )}
+            </div>
+            <div style={{ flexShrink:0, padding:"12px 16px", paddingBottom:"max(20px, env(safe-area-inset-bottom, 20px))", textAlign:"center" }}>
+              <div style={{ fontSize:11, color:"rgba(255,255,255,.35)", marginBottom:4 }}>{idx + 1} / {sorted.length}</div>
+              <div style={{ fontSize:13, color:"#22d37a", fontWeight:700 }}>{fullscreenPhoto.date}</div>
+              {fullscreenPhoto.note && <div style={{ fontSize:12, color:"rgba(255,255,255,.6)", marginTop:4 }}>{fullscreenPhoto.note}</div>}
+            </div>
+          </div>
+        );
+      })()}
 
       {bmi && (
         <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:14, padding:"14px", marginBottom:14 }}>

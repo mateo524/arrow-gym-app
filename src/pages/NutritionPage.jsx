@@ -8,7 +8,17 @@ import { searchFoods } from "../data/foodDatabase.js";
 import { generateNutritionPlan } from "../data/nutritionData.js";
 import BarcodeScanner from "../components/BarcodeScanner.jsx";
 
-const MEAL_TYPES = ["Desayuno", "Almuerzo", "Merienda", "Cena", "Snack"];
+const MEAL_TYPES = ["Desayuno", "Colación", "Almuerzo", "Merienda", "Cena"];
+
+function getMealType() {
+  const h = new Date().getHours();
+  if (h >= 7 && h <= 10) return "Desayuno";
+  if (h >= 11 && h <= 13) return "Colación";
+  if (h >= 14 && h <= 16) return "Almuerzo";
+  if (h >= 17 && h <= 19) return "Merienda";
+  if (h >= 20) return "Cena";
+  return "Colación";
+}
 
 // Round to max 2 decimal places, return as number
 const r2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
@@ -27,6 +37,57 @@ const QUICK_FOODS = [
   { name: "Carne picada 90% (100g)",kcal: 218, protein: 26, carbs: 0,  fat: 13 },
   { name: "Pan integral (1 rebanada)",kcal: 70, protein: 3, carbs: 13, fat: 1 },
 ];
+
+function polarToCartesian(cx, cy, r, deg) {
+  const rad = (deg - 90) * Math.PI / 180;
+  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+}
+function arcPath(cx, cy, r, start, end) {
+  if (end - start >= 359.9) end = start + 359.9;
+  const s = polarToCartesian(cx, cy, r, start);
+  const e = polarToCartesian(cx, cy, r, end);
+  return `M${s.x} ${s.y} A${r} ${r} 0 ${end - start > 180 ? 1 : 0} 1 ${e.x} ${e.y}`;
+}
+function MacroDonut({ protein = 0, carbs = 0, fat = 0 }) {
+  const pk = (Number(protein) || 0) * 4;
+  const ck = (Number(carbs) || 0) * 4;
+  const fk = (Number(fat) || 0) * 9;
+  const total = pk + ck + fk || 1;
+  const segs = [
+    { kcal: pk, color: "#60a5fa", label: "Proteína", g: Number(protein) || 0 },
+    { kcal: ck, color: "#f59e0b", label: "Carbs",    g: Number(carbs)   || 0 },
+    { kcal: fk, color: "#f87171", label: "Grasas",   g: Number(fat)     || 0 },
+  ];
+  const cx = 46, cy = 46, r = 38, sw = 12;
+  let cumPct = 0;
+  return (
+    <div style={{ display:"flex", alignItems:"center", gap:16 }}>
+      <svg width="92" height="92" viewBox="0 0 92 92" style={{ flexShrink:0 }}>
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,.06)" strokeWidth={sw} />
+        {segs.map((seg, i) => {
+          const pct = seg.kcal / total;
+          if (pct < 0.005) { cumPct += pct; return null; }
+          const start = cumPct * 360;
+          cumPct += pct;
+          const end = cumPct * 360;
+          return <path key={i} d={arcPath(cx, cy, r, start, end)} fill="none" stroke={seg.color} strokeWidth={sw} strokeLinecap="butt" />;
+        })}
+        <text x={cx} y={cy - 4} textAnchor="middle" fontSize="11" fontWeight="800" fill="var(--text)">{Math.round(protein)}g</text>
+        <text x={cx} y={cy + 8} textAnchor="middle" fontSize="9" fill="var(--muted)">prot</text>
+      </svg>
+      <div style={{ flex:1, display:"flex", flexDirection:"column", gap:7 }}>
+        {segs.map(seg => (
+          <div key={seg.label} style={{ display:"flex", alignItems:"center", gap:8 }}>
+            <div style={{ width:8, height:8, borderRadius:2, background:seg.color, flexShrink:0 }} />
+            <span style={{ fontSize:12, color:"var(--muted)", flex:1 }}>{seg.label}</span>
+            <span style={{ fontSize:12, fontWeight:700, color:"var(--text)" }}>{Math.round(seg.g)}g</span>
+            <span style={{ fontSize:11, color:seg.color, fontWeight:700, minWidth:30, textAlign:"right" }}>{Math.round(seg.kcal / total * 100)}%</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function NutritionPage() {
   const profile  = useAuthStore(s => s.profile);
@@ -53,7 +114,7 @@ export default function NutritionPage() {
 
   const [showForm, setShowForm] = useState(false);
   const [showQuick, setShowQuick] = useState(false);
-  const [form, setForm]       = useState({ type:"Almuerzo", name:"", kcal:"", protein:"", carbs:"", fat:"", grams:"" });
+  const [form, setForm]       = useState({ type:getMealType(), name:"", kcal:"", protein:"", carbs:"", fat:"", grams:"" });
   const [saving, setSaving]   = useState(false);
   const [dbQuery, setDbQuery] = useState("");
   const [dbResults, setDbResults] = useState([]);
@@ -215,7 +276,7 @@ export default function NutritionPage() {
   }, [mealLog]);
 
   function resetForm() {
-    setForm({ type:"Almuerzo", name:"", kcal:"", protein:"", carbs:"", fat:"", grams:"" });
+    setForm({ type:getMealType(), name:"", kcal:"", protein:"", carbs:"", fat:"", grams:"" });
     setShowForm(false);
     setShowQuick(false);
     setDbQuery("");
@@ -304,7 +365,7 @@ export default function NutritionPage() {
 
       {/* Tabs */}
       <div style={{ display:"flex", gap:6, marginBottom:16, overflowX:"auto", scrollbarWidth:"none", WebkitOverflowScrolling:"touch" }}>
-        {[["hoy","Hoy"],["semana","Semana"],["miscomidas","Mis comidas"],...(f.coach_insights ? [["plan","Plan"]] : []),["historial","Historial"]].map(([id,label]) => (
+        {[["hoy","Hoy"],["semana","Semana"],...(f.coach_insights ? [["plan","Plan"]] : []),["historial","Historial"]].map(([id,label]) => (
           <button key={id} onClick={() => setTab(id)} style={{
             padding:"6px 14px", borderRadius:20, border:"none", cursor:"pointer", fontSize:13, fontWeight:600,
             background: tab===id ? "var(--green)" : "var(--panel2)", color: tab===id ? "#fff" : "var(--muted)",
@@ -333,6 +394,14 @@ export default function NutritionPage() {
           </div>
           {macroBar(todayTotals.kcal, effectiveKcal, "var(--green)")}
         </div>
+
+        {/* Split de macros */}
+        {(todayTotals.protein > 0 || todayTotals.carbs > 0 || todayTotals.fat > 0) && (
+          <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:16, padding:"16px 16px 14px", marginBottom:14 }}>
+            <div style={{ fontSize:11, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:12 }}>Split de macros</div>
+            <MacroDonut protein={todayTotals.protein} carbs={todayTotals.carbs} fat={todayTotals.fat} />
+          </div>
+        )}
 
         {/* Macros — hidden in simple mode */}
         {f.coach_insights && <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:14 }}>
@@ -488,67 +557,6 @@ export default function NutritionPage() {
           </div>
         );
       })()}
-
-      {/* ── MIS COMIDAS ── */}
-      {tab === "miscomidas" && (
-        <div>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
-            <div>
-              <p className="section-label" style={{ marginBottom:2 }}>Mis comidas</p>
-              <p style={{ fontSize:12, color:"var(--muted)", margin:0 }}>Combinaciones para agregar de una sola vez</p>
-            </div>
-            <button
-              onClick={() => { setComboName(""); setComboFoods([]); setComboDbQuery(""); setComboDbResults([]); setShowComboModal(true); }}
-              style={{ padding:"8px 14px", background:"var(--green)", color:"#000", border:"none", borderRadius:12, fontSize:13, fontWeight:700, cursor:"pointer", flexShrink:0 }}>
-              + Crear
-            </button>
-          </div>
-
-          {savedCombos.length === 0 ? (
-            <div style={{ textAlign:"center", padding:"40px 16px", color:"var(--muted)" }}>
-              <div style={{ fontSize:40, marginBottom:12 }}>🍽</div>
-              <p style={{ fontSize:14, fontWeight:600, margin:"0 0 6px" }}>Sin combinaciones guardadas</p>
-              <p style={{ fontSize:12, margin:0 }}>Creá tu primera combinación para registrar varias comidas de una vez</p>
-            </div>
-          ) : (
-            <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-              {savedCombos.map(combo => {
-                const tot = (combo.meals || []).reduce((s, m) => ({
-                  kcal:    s.kcal    + (Number(m.kcal)    || 0),
-                  protein: s.protein + (Number(m.protein) || 0),
-                  carbs:   s.carbs   + (Number(m.carbs)   || 0),
-                  fat:     s.fat     + (Number(m.fat)     || 0),
-                }), { kcal:0, protein:0, carbs:0, fat:0 });
-                return (
-                  <div key={combo.id} style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:16, padding:"14px 16px" }}>
-                    <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:8 }}>
-                      <div style={{ flex:1 }}>
-                        <div style={{ fontSize:15, fontWeight:800, marginBottom:4 }}>{combo.name}</div>
-                        <div style={{ fontSize:12, color:"var(--muted)", lineHeight:1.4 }}>
-                          {(combo.meals || []).map(m => m.name).join(", ")}
-                        </div>
-                      </div>
-                      <button onClick={() => deleteMealCombo(combo.id)}
-                        style={{ background:"none", border:"none", cursor:"pointer", fontSize:20, color:"var(--muted)", padding:"0 0 0 10px", lineHeight:1, flexShrink:0 }}>×</button>
-                    </div>
-                    <div style={{ display:"flex", gap:10, marginBottom:10, flexWrap:"wrap" }}>
-                      <span style={{ fontSize:14, fontWeight:800, color:"var(--green)" }}>{Math.round(tot.kcal)} kcal</span>
-                      <span style={{ fontSize:13, color:"#60a5fa", fontWeight:600 }}>{Math.round(tot.protein)}g P</span>
-                      <span style={{ fontSize:13, color:"#f59e0b", fontWeight:600 }}>{Math.round(tot.carbs)}g C</span>
-                      <span style={{ fontSize:13, color:"#f87171", fontWeight:600 }}>{Math.round(tot.fat)}g G</span>
-                    </div>
-                    <button
-                      onClick={() => { logMealCombo(combo.id); window.__showToast?.(`"${combo.name}" registrado en el día`, "success"); }}
-                      style={{ width:"100%", padding:"10px", background:"rgba(52,211,153,.12)", border:"1px solid rgba(52,211,153,.25)", borderRadius:10, color:"var(--green)", fontWeight:700, fontSize:13, cursor:"pointer" }}>
-                      Agregar al día de hoy
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
 
       {tab === "plan" && (<>
         {/* Targets card */}
@@ -1006,6 +1014,21 @@ export default function NutritionPage() {
             )}
 
             <form onSubmit={handleAdd} style={{ display:"flex", flexDirection:"column", gap:10 }}>
+              {/* Tipo de comida según horario */}
+              <div>
+                <div style={{ fontSize:11, color:"var(--muted)", marginBottom:6, fontWeight:600 }}>Tipo de comida</div>
+                <div style={{ display:"flex", gap:5, flexWrap:"wrap" }}>
+                  {MEAL_TYPES.map(t => (
+                    <button key={t} type="button" onClick={() => setForm(f => ({...f, type:t}))}
+                      style={{ padding:"5px 12px", borderRadius:20, border:"1.5px solid", fontSize:12, fontWeight:600, cursor:"pointer",
+                        borderColor: form.type === t ? "var(--green)" : "var(--line)",
+                        background: form.type === t ? "rgba(52,211,153,.12)" : "transparent",
+                        color: form.type === t ? "var(--green)" : "var(--muted)" }}>
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <input className="input" placeholder="Nombre del alimento *" value={form.name} onChange={e => { setForm(f => ({...f,name:e.target.value})); setBaseFood(null); setMacrosEdited(false); }} required />
               {/* Gramaje */}
               <div>

@@ -774,6 +774,24 @@ export const createWorkoutSlice = (set, get) => ({
       currentPage: "workout",
     });
   },
+
+  deleteWorkout: (id) => {
+    set(s => ({
+      workouts: (s.workouts || []).filter(w => w.id !== id),
+      coachReports: (s.coachReports || []).filter(r => r.workoutId !== id),
+      selectedWorkoutId: s.selectedWorkoutId === id ? null : s.selectedWorkoutId,
+    }));
+    queueGymSync(get);
+  },
+
+  updateWorkout: (id, patch) => {
+    set(s => ({
+      workouts: (s.workouts || []).map(w =>
+        w.id === id ? { ...w, ...patch, updated_at: new Date().toISOString() } : w
+      ),
+    }));
+    queueGymSync(get);
+  },
 });
 
 export { ROUTINES };

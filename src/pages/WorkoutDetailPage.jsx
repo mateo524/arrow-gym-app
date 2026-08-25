@@ -7,10 +7,45 @@ export default function WorkoutDetailPage() {
   const id = useStore((state) => state.selectedWorkoutId);
   const workouts = useStore((state) => state.workouts);
   const setPage = useStore((state) => state.setPage);
+  const deleteWorkout = useStore((state) => state.deleteWorkout);
+  const updateWorkout = useStore((state) => state.updateWorkout);
   const workout = workouts.find((item) => item.id === id) || workouts[0];
   const [sharing, setSharing] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editNotes, setEditNotes] = useState("");
+  const [editingSets, setEditingSets] = useState(false);
+  const [draftSets, setDraftSets] = useState([]);
 
   if (!workout) return <section className="page"><h1>Sin entrenamiento</h1></section>;
+
+  function openEdit() {
+    setEditName(workout.type || "");
+    setEditNotes(workout.notes || "");
+    setEditing(true);
+  }
+
+  function saveEdit() {
+    if (!editName.trim()) return;
+    updateWorkout(workout.id, { type: editName.trim(), notes: editNotes.trim() || undefined });
+    setEditing(false);
+  }
+
+  function handleDelete() {
+    deleteWorkout(workout.id);
+    setPage("history");
+  }
+
+  function openEditSets() {
+    setDraftSets((workout.sets || []).map(s => ({ ...s })));
+    setEditingSets(true);
+  }
+
+  function saveSets() {
+    updateWorkout(workout.id, { sets: draftSets });
+    setEditingSets(false);
+  }
 
   async function shareWorkout() {
     setSharing(true);
@@ -111,9 +146,17 @@ export default function WorkoutDetailPage() {
           <p className="eyebrow">{formatDate(workout.date)}</p>
           <h1>{workout.type}</h1>
         </div>
-        <button onClick={shareWorkout} disabled={sharing} className="ghost" style={{ display:"flex", alignItems:"center", gap:6 }}>
-          {sharing ? "Generando…" : "📤 Compartir"}
-        </button>
+        <div style={{ display:"flex", gap:6 }}>
+          <button onClick={openEdit} className="ghost" style={{ padding:"6px 10px", fontSize:13 }} aria-label="Editar">
+            ✏️
+          </button>
+          <button onClick={() => setConfirmDelete(true)} className="ghost" style={{ padding:"6px 10px", fontSize:13, color:"#f87171", borderColor:"rgba(248,113,113,.4)" }} aria-label="Eliminar">
+            🗑️
+          </button>
+          <button onClick={shareWorkout} disabled={sharing} className="ghost" style={{ display:"flex", alignItems:"center", gap:6 }}>
+            {sharing ? "…" : "📤"}
+          </button>
+        </div>
       </div>
 
       {/* Stats strip */}
@@ -176,6 +219,101 @@ export default function WorkoutDetailPage() {
           );
         })}
       </div>
+
+      <button onClick={openEditSets} className="ghost"
+        style={{ width:"100%", marginBottom:16, fontSize:13, display:"flex", alignItems:"center", justifyContent:"center", gap:6 }}>
+        ✏️ Editar series
+      </button>
+
+      {/* ── EDITAR SERIES ── */}
+      {editingSets && (
+        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.8)", zIndex:300, display:"flex", alignItems:"flex-end" }}
+          onClick={e => { if (e.target === e.currentTarget) setEditingSets(false); }}>
+          <div style={{ width:"100%", background:"var(--bg)", borderRadius:"20px 20px 0 0", padding:"24px 20px", paddingBottom:"max(24px, env(safe-area-inset-bottom, 24px))", maxHeight:"90vh", overflowY:"auto" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
+              <h3 style={{ margin:0, fontSize:17 }}>Editar series</h3>
+              <button onClick={() => setEditingSets(false)} style={{ background:"none", border:"none", cursor:"pointer", fontSize:22, color:"var(--muted)" }}>×</button>
+            </div>
+            {byExercise.map(({ exercise }) => {
+              const exerciseDrafts = draftSets.filter(s => s.exercise === exercise);
+              return (
+                <div key={exercise} style={{ marginBottom:20 }}>
+                  <div style={{ fontSize:12, fontWeight:800, color:"var(--muted)", marginBottom:8, textTransform:"uppercase", letterSpacing:"0.05em" }}>{exercise}</div>
+                  {exerciseDrafts.map((s, i) => {
+                    const idx = draftSets.indexOf(s);
+                    return (
+                      <div key={s.id || i} style={{ display:"flex", gap:8, alignItems:"center", marginBottom:8 }}>
+                        <span style={{ fontSize:12, color:"var(--muted)", minWidth:16 }}>{i + 1}</span>
+                        <input type="number" value={s.weight ?? ""} placeholder="kg" min={0} step={0.5}
+                          onChange={e => setDraftSets(prev => prev.map((d, j) => j === idx ? { ...d, weight: e.target.value } : d))}
+                          style={{ width:68, background:"var(--panel2)", border:"1px solid var(--line)", borderRadius:10, padding:"8px 8px", color:"var(--text)", fontSize:14, textAlign:"center", fontWeight:700 }} />
+                        <span style={{ fontSize:11, color:"var(--muted)" }}>kg ×</span>
+                        <input type="number" value={s.reps ?? ""} placeholder="reps" min={0}
+                          onChange={e => setDraftSets(prev => prev.map((d, j) => j === idx ? { ...d, reps: e.target.value } : d))}
+                          style={{ width:62, background:"var(--panel2)", border:"1px solid var(--line)", borderRadius:10, padding:"8px 8px", color:"var(--text)", fontSize:14, textAlign:"center", fontWeight:700 }} />
+                        <span style={{ fontSize:11, color:"var(--muted)" }}>reps</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+            <button onClick={saveSets} className="primary" style={{ width:"100%", marginTop:4 }}>
+              Guardar series
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── EDITAR ENTRENAMIENTO ── */}
+      {editing && (
+        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.75)", zIndex:300, display:"flex", alignItems:"flex-end" }}
+          onClick={e => { if (e.target === e.currentTarget) setEditing(false); }}>
+          <div style={{ width:"100%", background:"var(--bg)", borderRadius:"20px 20px 0 0", padding:"24px 20px", paddingBottom:"max(24px, env(safe-area-inset-bottom, 24px))" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:18 }}>
+              <h3 style={{ margin:0, fontSize:17 }}>Editar entrenamiento</h3>
+              <button onClick={() => setEditing(false)} style={{ background:"none", border:"none", cursor:"pointer", fontSize:22, color:"var(--muted)" }}>×</button>
+            </div>
+            <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+              <div>
+                <label style={{ fontSize:11, color:"var(--muted)", display:"block", marginBottom:4 }}>Nombre</label>
+                <input className="input" value={editName} onChange={e => setEditName(e.target.value)}
+                  placeholder="Nombre del entrenamiento" style={{ width:"100%", boxSizing:"border-box" }} />
+              </div>
+              <div>
+                <label style={{ fontSize:11, color:"var(--muted)", display:"block", marginBottom:4 }}>Notas</label>
+                <textarea className="input" value={editNotes} onChange={e => setEditNotes(e.target.value)}
+                  placeholder="Notas opcionales…"
+                  rows={3}
+                  style={{ width:"100%", boxSizing:"border-box", resize:"vertical", fontFamily:"inherit", fontSize:14 }} />
+              </div>
+              <button onClick={saveEdit} className="primary" style={{ width:"100%" }} disabled={!editName.trim()}>
+                Guardar cambios
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── CONFIRMAR BORRAR ── */}
+      {confirmDelete && (
+        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.75)", zIndex:300, display:"flex", alignItems:"center", justifyContent:"center", padding:24 }}
+          onClick={e => { if (e.target === e.currentTarget) setConfirmDelete(false); }}>
+          <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:20, padding:"24px 20px", width:"100%", maxWidth:340 }}>
+            <h3 style={{ margin:"0 0 8px", fontSize:17 }}>Eliminar entrenamiento</h3>
+            <p style={{ fontSize:13, color:"var(--muted)", margin:"0 0 20px" }}>
+              ¿Borrar "{workout.type}" del {formatDate(workout.date)}? Esta acción no se puede deshacer.
+            </p>
+            <div style={{ display:"flex", gap:10 }}>
+              <button onClick={() => setConfirmDelete(false)} className="ghost" style={{ flex:1 }}>Cancelar</button>
+              <button onClick={handleDelete}
+                style={{ flex:1, padding:"10px", background:"#ef4444", color:"#fff", border:"none", borderRadius:12, fontWeight:700, fontSize:14, cursor:"pointer" }}>
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

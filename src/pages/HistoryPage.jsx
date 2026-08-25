@@ -9,7 +9,7 @@ import Icon from "../components/Icon.jsx";
 const MONTH_NAMES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 const DAY_LABELS = ["L","M","X","J","V","S","D"];
 
-function buildMonthCalendar(workouts, year, month) {
+function buildMonthCalendar(workouts, year, month, cardioHistory = []) {
   const dateMap = {};
   for (const w of workouts) {
     if (!w.date) continue;
@@ -17,6 +17,7 @@ function buildMonthCalendar(workouts, year, month) {
     if (!dateMap[key]) dateMap[key] = [];
     dateMap[key].push(w);
   }
+  const cardioDateSet = new Set((cardioHistory || []).map(c => c.date?.slice(0, 10)).filter(Boolean));
 
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const todayIso = todayLocal();
@@ -30,20 +31,24 @@ function buildMonthCalendar(workouts, year, month) {
   for (let d = 1; d <= daysInMonth; d++) {
     const iso = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
     const dayWorkouts = dateMap[iso] || [];
-    const count = dayWorkouts.reduce((sum, w) => sum + (w.sets?.length || 0), 0);
+    const setCount = dayWorkouts.reduce((sum, w) => sum + (w.sets?.length || 0), 0);
+    const hasCardio = cardioDateSet.has(iso);
+    const count = setCount + (hasCardio && setCount === 0 ? 1 : 0);
     let level = 0;
-    if (count > 0 && count <= 5) level = 1;
-    else if (count > 5 && count <= 15) level = 2;
-    else if (count > 15) level = 3;
-    cells.push({ iso, count, level, day: d, isToday: iso === todayIso, workouts: dayWorkouts });
+    if (setCount > 0 && setCount <= 5) level = 1;
+    else if (setCount > 5 && setCount <= 15) level = 2;
+    else if (setCount > 15) level = 3;
+    else if (hasCardio) level = 1;
+    cells.push({ iso, count, level, day: d, isToday: iso === todayIso, workouts: dayWorkouts, hasCardio });
   }
 
-  const monthCount = workouts.filter(w => w.date?.startsWith(monthPrefix)).length;
+  const monthCount = workouts.filter(w => w.date?.startsWith(monthPrefix)).length
+    + cardioHistory.filter(c => c.date?.startsWith(monthPrefix)).length;
   return { cells, monthCount };
 }
 
-function CalendarMonth({ workouts, year, month, onDayClick, selectedDate }) {
-  const { cells, monthCount } = useMemo(() => buildMonthCalendar(workouts, year, month), [workouts, year, month]);
+function CalendarMonth({ workouts, year, month, onDayClick, selectedDate, cardioHistory }) {
+  const { cells, monthCount } = useMemo(() => buildMonthCalendar(workouts, year, month, cardioHistory), [workouts, year, month, cardioHistory]);
 
   const rows = [];
   for (let i = 0; i < cells.length; i += 7) {
@@ -240,6 +245,7 @@ export default function HistoryPage() {
 
           <CalendarMonth
             workouts={workouts}
+            cardioHistory={cardioHistory}
             year={viewYear}
             month={viewMonth}
             onDayClick={handleDayClick}
@@ -361,7 +367,7 @@ export default function HistoryPage() {
                         {formatDate(entry.date)}
                         {mins ? ` · ${mins} min` : ""}
                         {entry.distance ? ` · ${entry.distance} km` : ""}
-                        {entry.kcal ? ` · ${entry.kcal} kcal` : ""}
+                        {(entry.calories || entry.kcal) ? ` · ${entry.calories || entry.kcal} kcal` : ""}
                       </small>
                     </div>
                   </div>
