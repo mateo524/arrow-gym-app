@@ -156,7 +156,15 @@ export default function MeasurementsPage() {
   const profile = useAuthStore((s) => s.profile);
   const user = useAuthStore((s) => s.user);
   const [todayKg, setTodayKg] = useState("");
+  const [weightSaved, setWeightSaved] = useState(false);
+  const [sleepSaved, setSleepSaved] = useState(false);
+  const [waterFlash, setWaterFlash] = useState(false);
   const latestWeightEntry = weightLog[0];
+
+  function flashSave(setter) {
+    setter(true);
+    setTimeout(() => setter(false), 1600);
+  }
 
   const [measTab, setMeasTab] = useState("basico");
   const [photoNote, setPhotoNote] = useState("");
@@ -427,29 +435,37 @@ export default function MeasurementsPage() {
           );
           return null;
         })()}
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <input
             inputMode="decimal"
             placeholder="kg de hoy"
             value={todayKg}
             onChange={(e) => setTodayKg(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && todayKg && document.activeElement.blur()}
             style={{ flex: 1, background: "var(--panel2)", border: "1px solid var(--line)", borderRadius: 12, padding: "10px 12px", color: "var(--text)", fontSize: 15 }}
           />
-          <button className="primary" style={{ padding: "10px 18px" }} disabled={!todayKg}
-            onClick={async () => {
-              if (!todayKg) return;
-              logWeight(todayKg);
-              setTodayKg("");
-              if (uid) {
-                const newWeight = toNum(todayKg);
-                const updated = { ...(useAuthStore.getState().profile || { id: uid }), weight_kg: newWeight };
-                useAuthStore.setState({ profile: updated });
-                try { localStorage.setItem("loop-gym-profile-v1", JSON.stringify(updated)); } catch {}
-                supabase.from("profiles").update({ weight_kg: newWeight }).eq("id", uid).catch(() => {});
-              }
-            }}>
-            +
-          </button>
+          {weightSaved ? (
+            <div style={{ padding: "10px 14px", borderRadius: 12, background: "rgba(52,211,153,.15)", border: "1px solid rgba(52,211,153,.4)", display: "flex", alignItems: "center", gap: 6, color: "var(--green)", fontWeight: 700, fontSize: 14, flexShrink: 0 }}>
+              <Icon name="Check" size={16} /> Guardado
+            </div>
+          ) : (
+            <button className="primary" style={{ padding: "10px 18px" }} disabled={!todayKg}
+              onClick={async () => {
+                if (!todayKg) return;
+                logWeight(todayKg);
+                setTodayKg("");
+                flashSave(setWeightSaved);
+                if (uid) {
+                  const newWeight = toNum(todayKg);
+                  const updated = { ...(useAuthStore.getState().profile || { id: uid }), weight_kg: newWeight };
+                  useAuthStore.setState({ profile: updated });
+                  try { localStorage.setItem("loop-gym-profile-v1", JSON.stringify(updated)); } catch {}
+                  supabase.from("profiles").update({ weight_kg: newWeight }).eq("id", uid).catch(() => {});
+                }
+              }}>
+              Guardar
+            </button>
+          )}
         </div>
         {weightLog.length >= 2 && <WeightChart data={weightLog} />}
       </div>
@@ -465,9 +481,9 @@ export default function MeasurementsPage() {
             </div>
           </div>
         </div>
-        <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+        <div style={{ display:"flex", gap:8, flexWrap:"wrap", alignItems:"center" }}>
           {[1,2,3].map(n => (
-            <button key={n} onClick={() => logWater(todayWater + n)} className="ghost" style={{ fontSize:13, padding:"7px 14px" }}>
+            <button key={n} onClick={() => { logWater(todayWater + n); flashSave(setWaterFlash); }} className="ghost" style={{ fontSize:13, padding:"7px 14px" }}>
               +{n} <Icon name="Droplet" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:0}} />
             </button>
           ))}
@@ -475,6 +491,11 @@ export default function MeasurementsPage() {
             <button onClick={() => logWater(Math.max(0, todayWater - 1))} className="ghost" style={{ fontSize:13, padding:"7px 14px", color:"var(--muted)" }}>
               -1
             </button>
+          )}
+          {waterFlash && (
+            <span style={{ fontSize:13, fontWeight:700, color:"var(--green)", display:"flex", alignItems:"center", gap:4 }}>
+              <Icon name="Check" size={14} /> ✓
+            </span>
           )}
         </div>
       </div>
@@ -499,10 +520,16 @@ export default function MeasurementsPage() {
             min="1" max="12" step="0.5"
             style={{ flex:1, background:"var(--panel2)", border:"1px solid var(--line)", borderRadius:10, padding:"9px 12px", color:"var(--text)", fontSize:14 }}
           />
-          <button className="primary" disabled={!todaySleep} style={{ padding:"9px 18px" }}
-            onClick={() => { if(todaySleep) { logSleep(todaySleep); setTodaySleep(""); } }}>
-            Guardar
-          </button>
+          {sleepSaved ? (
+            <div style={{ padding:"9px 14px", borderRadius:10, background:"rgba(52,211,153,.15)", border:"1px solid rgba(52,211,153,.4)", display:"flex", alignItems:"center", gap:6, color:"var(--green)", fontWeight:700, fontSize:13, flexShrink:0 }}>
+              <Icon name="Check" size={15} /> Guardado
+            </div>
+          ) : (
+            <button className="primary" disabled={!todaySleep} style={{ padding:"9px 18px" }}
+              onClick={() => { if(todaySleep) { logSleep(todaySleep); setTodaySleep(""); flashSave(setSleepSaved); } }}>
+              Guardar
+            </button>
+          )}
         </div>
         {sleepLog.length >= 3 && (() => {
           const recent = sleepLog.slice(0, 7);
@@ -618,7 +645,10 @@ export default function MeasurementsPage() {
                 )}
                 <div style={{ display: "flex", gap: 8 }}>
                   <button type="button" className="ghost" style={{ flex: 1 }} onClick={() => setEditBasico(false)}>Cancelar</button>
-                  <button type="submit" className="primary" style={{ flex: 1 }}>Guardar</button>
+                  <button type="submit" className="primary" style={{ flex: 1, background: basicoMsg.startsWith("✓") ? "rgba(52,211,153,.8)" : undefined }}
+                    disabled={basicoMsg === "Guardando…" || basicoMsg.startsWith("✓")}>
+                    {basicoMsg === "Guardando…" ? "Guardando…" : basicoMsg.startsWith("✓") ? "✓ Guardado" : "Guardar"}
+                  </button>
                 </div>
               </form>
             )}
@@ -687,7 +717,10 @@ export default function MeasurementsPage() {
                 )}
                 <div style={{ display: "flex", gap: 8 }}>
                   <button type="button" className="ghost" style={{ flex: 1 }} onClick={() => setEditPliegues(false)}>Cancelar</button>
-                  <button type="submit" className="primary" style={{ flex: 1 }}>Guardar</button>
+                  <button type="submit" className="primary" style={{ flex: 1, background: plieguesMsg.startsWith("✓") ? "rgba(52,211,153,.8)" : undefined }}
+                    disabled={plieguesMsg === "Guardando…" || plieguesMsg.startsWith("✓")}>
+                    {plieguesMsg === "Guardando…" ? "Guardando…" : plieguesMsg.startsWith("✓") ? "✓ Guardado" : "Guardar"}
+                  </button>
                 </div>
               </form>
             )}
@@ -825,7 +858,10 @@ export default function MeasurementsPage() {
                 )}
                 <div style={{ display: "flex", gap: 8 }}>
                   <button type="button" className="ghost" style={{ flex: 1 }} onClick={() => setEditPerimetros(false)}>Cancelar</button>
-                  <button type="submit" className="primary" style={{ flex: 1 }}>Guardar</button>
+                  <button type="submit" className="primary" style={{ flex: 1, background: perimetrosMsg.startsWith("✓") ? "rgba(52,211,153,.8)" : undefined }}
+                    disabled={perimetrosMsg === "Guardando…" || perimetrosMsg.startsWith("✓")}>
+                    {perimetrosMsg === "Guardando…" ? "Guardando…" : perimetrosMsg.startsWith("✓") ? "✓ Guardado" : "Guardar"}
+                  </button>
                 </div>
               </form>
             )}
