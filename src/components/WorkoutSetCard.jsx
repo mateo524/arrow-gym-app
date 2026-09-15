@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import Icon from "./Icon.jsx";
 import useStore from "../store/useStore.js";
 import { calc1RM } from "../lib/analytics.js";
@@ -10,14 +10,18 @@ function haptic(type = "tap") {
   else if (type === "delete") navigator.vibrate([15, 20, 15]);
 }
 
-export default function WorkoutSetCard({ setItem, index, onUpdate, onApplyToNext, onRepeat, onRemove, onStartRest, prData, coachSuggestion, isBodyweight=false, bodyWeight=0, prevSet=null }) {
-  const [flipped, setFlipped] = useState(false);
+export default function WorkoutSetCard({
+  setItem, index, onUpdate, onApplyToNext, onRepeat, onRemove, onStartRest,
+  prData, coachSuggestion, isBodyweight = false, bodyWeight = 0,
+  prevSet = null, beyondLastSession = false
+}) {
   const [done, setDone] = useState(false);
-  const hasData = isBodyweight
-    ? (Number(setItem.weight) > 0 && setItem.reps !== '' && setItem.reps !== null && setItem.reps !== undefined && Number(setItem.reps) > 0)
-    : ((setItem.weight !== '' && setItem.weight !== null && setItem.weight !== undefined) &&
-       (setItem.reps !== '' && setItem.reps !== null && setItem.reps !== undefined && Number(setItem.reps) > 0));
-  const isPrefilled = Boolean((setItem.lastWeight || setItem.lastReps) && !hasData);
+  const [showPRPanel, setShowPRPanel] = useState(false);
+  const [editingNote, setEditingNote] = useState(false);
+  const exerciseNotes = useStore(s => s.exerciseNotes) || {};
+  const setExerciseNote = useStore(s => s.setExerciseNote);
+  const note = exerciseNotes[setItem.exercise] || "";
+  const [noteText, setNoteText] = useState(note);
 
   function sanitizeWeight(v) {
     return v.replace(/,/g, ".").replace(/[^0-9.]/g, "").replace(/^(\d{0,4})(\.\d{0,2})?.*/, "$1$2");
@@ -25,372 +29,235 @@ export default function WorkoutSetCard({ setItem, index, onUpdate, onApplyToNext
   function sanitizeReps(v) {
     return v.replace(/[^0-9]/g, "").slice(0, 3);
   }
-  const exerciseNotes = useStore(s => s.exerciseNotes) || {};
-  const setExerciseNote = useStore(s => s.setExerciseNote);
-  const note = exerciseNotes[setItem.exercise] || "";
-  const [editingNote, setEditingNote] = useState(false);
-  const [noteText, setNoteText] = useState(note);
 
-  if (flipped) {
-    return (
-      <div className="set-card set-card-flipped">
-        <div className="set-head">
-          <b style={{ color: "var(--green)" }}>Serie {index || 1} · Récords</b>
-          <button className="set-delete-btn" onClick={() => setFlipped(false)} aria-label="Volver">↩</button>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginTop: 8 }}>
-          {[
-            { label: "Mejor peso",  value: prData?.bestWeight ? `${prData.bestWeight}kg` : "—" },
-            { label: "Mejor vol.",  value: prData?.bestVolume ? `${prData.bestVolume}kg` : "—" },
-            { label: "Más reps",   value: prData?.bestReps ? `${prData.bestReps}×${prData.bestRepsWeight}kg` : "—" },
-          ].map(({ label, value }) => (
-            <div key={label} style={{ background: "var(--panel2)", borderRadius: 10, padding: "8px 6px", textAlign: "center" }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: "var(--green)" }}>{value}</div>
-              <div style={{ fontSize: 9, color: "var(--muted)", marginTop: 2 }}>{label}</div>
-            </div>
-          ))}
-        </div>
-        {prData?.lastDate && (
-          <p style={{ fontSize: 11, color: "var(--muted)", margin: "8px 0 0", textAlign: "center" }}>
-            Última sesión: {prData.lastDate}
-          </p>
-        )}
-      </div>
-    );
-  }
+  const hasData = isBodyweight
+    ? (Number(setItem.weight) > 0 && setItem.reps !== '' && setItem.reps !== null && setItem.reps !== undefined && Number(setItem.reps) > 0)
+    : ((setItem.weight !== '' && setItem.weight !== null && setItem.weight !== undefined) &&
+       (setItem.reps !== '' && setItem.reps !== null && setItem.reps !== undefined && Number(setItem.reps) > 0));
+
+  // Prev data — only from indexed prevSet when not beyondLastSession
+  const antW = beyondLastSession ? null : (prevSet?.weight || setItem.lastWeight);
+  const antR = beyondLastSession ? null : (prevSet?.reps || setItem.lastReps);
+  const hasPrev = !beyondLastSession && (antW || antR);
+
+  const isNewPR = Number(setItem.weight) > 0 && prData?.bestWeight && Number(setItem.weight) > prData.bestWeight;
+
+  const orm = (() => {
+    if (Number(setItem.reps) <= 0 || Number(setItem.reps) > 10) return null;
+    const eff = isBodyweight
+      ? (Number(setItem.weight) || 0) + (Number(setItem.extraWeight) || 0)
+      : Number(setItem.weight) || 0;
+    const rir = setItem.rir !== undefined && setItem.rir !== "" ? Number(setItem.rir) : 0;
+    return calc1RM(eff, Math.min(Number(setItem.reps) + rir, 30));
+  })();
+
+  const hasExtras = editingNote || (note && !editingNote) || showPRPanel || (coachSuggestion !== null && coachSuggestion !== undefined);
 
   return (
-    <div
-      className={`set-card compact-set-card${isPrefilled ? " set-card-ghost" : ""}${done ? " set-card-done" : ""}`}
-      aria-label={`Serie ${index || 1}`}
-    >
-      <div className="set-head">
-        {/* Set number badge — display only */}
-        <span className={`set-done-btn${done ? " done" : ""}`} style={{ cursor: "default", pointerEvents: "none" }}>
-          {done ? <Icon name="Check" size={13} style={{display:'inline-block',verticalAlign:'middle'}} /> : index || 1}
-        </span>
-        <div style={{ flex:1, minWidth:0 }}>
-          {Number(setItem.weight) > 0 && prData?.bestWeight && Number(setItem.weight) > prData.bestWeight && (
-            <span style={{ background:"var(--green)", color:"#fff", fontSize:9, fontWeight:900, padding:"2px 6px", borderRadius:6, marginRight:4 }}>PR</span>
-          )}
-          {(() => {
-            // Per-set history: prefer prevSet (correct index from last session), fall back to first-set data
-            const antW = prevSet?.weight || setItem.lastWeight;
-            const antR = prevSet?.reps || setItem.lastReps;
-            if (!antW && !antR) return null;
-            return (
-              <small style={{ color: "var(--muted)", fontSize:13 }}>
-                ant. {antW ? `${antW}kg` : "—"}×{antR || "—"}
-              </small>
-            );
-          })()}
-        </div>
-        <div style={{ display: "flex", gap: 4 }}>
-          <button className="set-delete-btn" style={{ color: note ? "var(--green)" : "var(--muted)" }}
-            onClick={() => { setNoteText(note); setEditingNote(!editingNote); }} aria-label="Nota">
-            <Icon name="FileText" size={13} />
-          </button>
-          <button className="set-delete-btn" style={{ color: "var(--muted)" }} onClick={() => setFlipped(true)} aria-label="Ver récords">
-            <Icon name="BarChart2" size={13} />
-          </button>
-          <button className="set-delete-btn set-delete-x" onClick={onRemove} aria-label="Borrar"><Icon name="X" size={17} style={{display:'inline-block',verticalAlign:'middle'}} /></button>
-        </div>
-      </div>
+    <div style={{ marginBottom: 4 }}>
+      {/* ── Compact row ── */}
+      <div className={`set-row${done ? " set-row-done" : ""}${beyondLastSession ? " set-row-new" : ""}`}>
 
-      {editingNote && (
-        <div style={{ marginBottom:8 }}>
-          <textarea
-            value={noteText}
-            onChange={e => setNoteText(e.target.value)}
-            onBlur={() => { setExerciseNote(setItem.exercise, noteText); setEditingNote(false); }}
-            placeholder="Nota del ejercicio (ej: bajar más en sentadilla)..."
-            rows={2}
-            style={{ width:"100%", background:"var(--panel2)", border:"1px solid var(--green)", borderRadius:10, padding:"8px 10px", color:"var(--text)", fontSize:12, resize:"none", boxSizing:"border-box" }}
-            autoFocus
-          />
-        </div>
-      )}
-      {!editingNote && note && (
-        <p style={{ margin:"2px 0 6px", fontSize:11, color:"var(--green)", background:"rgba(168,85,247,.07)", borderRadius:8, padding:"4px 8px" }}>
-          <Icon name="ClipboardList" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> {note}
-        </p>
-      )}
-
-      {/* Live coach weight suggestion */}
-      {coachSuggestion && coachSuggestion.dir !== null && (
-        <div style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(168,85,247,.08)", border: "1px solid rgba(168,85,247,.25)", borderRadius: 10, padding: "6px 10px", marginBottom: 6 }}>
-          <span style={{ fontSize: 14, color: "var(--green)", fontWeight: 700, flexShrink: 0 }}>
-            {coachSuggestion.dir === "up" ? "⬆" : "⬇"} {coachSuggestion.weight}kg
+        {/* Left: set number + ant info */}
+        <div className="set-row-meta">
+          <span className={`set-num-sm${done ? " done" : ""}`}>
+            {done ? <Icon name="Check" size={10} /> : index}
           </span>
-          <span style={{ fontSize: 12, color: "var(--muted)", flex: 1 }}>{coachSuggestion.reason}</span>
-          {onApplyToNext && (
-            <button className="ghost" style={{ fontSize: 12, padding: "3px 10px", flexShrink: 0, borderColor: "var(--green)", color: "var(--green)" }}
-              onClick={() => onApplyToNext(coachSuggestion.weight)}>
-              Aplicar al próximo
-            </button>
-          )}
-        </div>
-      )}
-      {coachSuggestion && coachSuggestion.dir === null && (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(52,211,153,.07)", border: "1px solid rgba(52,211,153,.2)", borderRadius: 10, padding: "5px 10px", marginBottom: 6 }}>
-          <span style={{ fontSize: 13, color: "#34d399", fontWeight: 700 }}><Icon name="Check" size={13} style={{display:'inline-block',verticalAlign:'middle'}} /></span>
-          <span style={{ fontSize: 12, color: "var(--muted)", flex: 1 }}>{coachSuggestion.reason}</span>
-          {coachSuggestion.rest && (
-            <span style={{ fontSize: 11, color: "rgba(117,217,255,.8)", fontWeight: 700, flexShrink: 0 }}>
-              <Icon name="Timer" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> {coachSuggestion.rest < 60 ? `${coachSuggestion.rest}s` : `${coachSuggestion.rest/60}min`} descanso
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* Pre-set suggestion: tap to fill — not shown for bodyweight (weight is auto-filled) */}
-      {!isBodyweight && !setItem.weight && setItem.lastWeight != null && setItem.lastWeight !== '' && (
-        <button
-          onClick={() => onUpdate({ weight: String(setItem.lastWeight), reps: String(setItem.lastReps || '') })}
-          style={{
-            width: "100%", marginBottom: 6, padding: "7px 12px",
-            background: "rgba(168,85,247,.07)", border: "1px dashed rgba(168,85,247,.3)",
-            borderRadius: 10, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between",
-          }}
-        >
-          <span style={{ fontSize: 12, color: "var(--muted)" }}>Probá igual que última vez</span>
-          <span style={{ fontSize: 13, fontWeight: 800, color: "var(--green)" }}>
-            {isBodyweight ? (setItem.lastWeight > 0 ? `+${setItem.lastWeight}kg` : "PC") : `${setItem.lastWeight}kg`} × {setItem.lastReps || "?"}
+          <span className="set-ant-sm">
+            {beyondLastSession
+              ? <span style={{ color: "var(--muted)", opacity: 0.3 }}>—</span>
+              : hasPrev
+                ? <>{antW ? `${antW}kg` : "—"}×{antR || "—"}</>
+                : <span style={{ opacity: 0.25 }}>—</span>
+            }
           </span>
-        </button>
-      )}
-
-      {/* kg + reps side by side — bodyweight layout uses separate extra-weight input */}
-      {isBodyweight ? (
-        <div style={{ margin: "10px 0 8px" }}>
-          {/* Body weight row: static label + extra input + reps input */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-            {/* Body weight — static, non-editable */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.6px" }}>PC</span>
-              <div className="set-val" style={{ display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, fontWeight: 800, color: "#60a5fa", background: "rgba(96,165,250,.07)", border: "1px solid rgba(96,165,250,.2)", borderRadius: 10, padding: "8px 0", userSelect: "none" }}>
-                {bodyWeight > 0 ? bodyWeight : "?"}<span style={{ fontSize: 13, fontWeight: 600 }}>kg</span>
-              </div>
-            </div>
-            {/* Extra weight input */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.6px" }}>+extra</span>
-                {setItem.lastExtraWeight && !setItem.extraWeight && (
-                  <span style={{ fontSize: 11, color: "rgba(168,85,247,.6)", fontWeight: 700 }}>ult. +{setItem.lastExtraWeight}</span>
-                )}
-              </div>
-              <input
-                className="set-val"
-                inputMode="decimal"
-                value={setItem.extraWeight === 0 || setItem.extraWeight === "0" ? "" : (setItem.extraWeight || "")}
-                placeholder={setItem.lastExtraWeight ? `+${setItem.lastExtraWeight}` : "+0"}
-                onChange={(e) => { haptic(); setDone(false); onUpdate({ extraWeight: sanitizeWeight(e.target.value) || 0 }); }}
-                onFocus={(e) => {
-                  if ((!setItem.extraWeight || setItem.extraWeight === 0) && setItem.lastExtraWeight) {
-                    onUpdate({ extraWeight: Number(setItem.lastExtraWeight) });
-                  }
-                  e.target.select();
-                }}
-                style={{ width: "100%", textAlign: "center", fontSize: 22, fontWeight: 800, borderColor: setItem.extraWeight ? "rgba(168,85,247,.5)" : undefined, transition: "border-color .2s" }}
-              />
-            </div>
-            {/* Reps */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.6px" }}>reps</span>
-                {(setItem.planReps || setItem.lastReps) && !setItem.reps && (
-                  <span style={{ fontSize: 11, color: "rgba(168,85,247,.6)", fontWeight: 700 }}>{setItem.planReps ? `p${setItem.planReps}` : `${setItem.lastReps}`}</span>
-                )}
-              </div>
-              <input
-                className="set-val"
-                inputMode="numeric"
-                value={setItem.reps}
-                placeholder={setItem.planReps || setItem.lastReps || "—"}
-                onChange={(e) => { haptic(); setDone(false); onUpdate({ reps: sanitizeReps(e.target.value) }); }}
-                onFocus={(e) => {
-                  if (!setItem.reps && setItem.lastReps) {
-                    onUpdate({ reps: String(setItem.lastReps) });
-                  }
-                  e.target.select();
-                }}
-                style={{ width: "100%", textAlign: "center", fontSize: 22, fontWeight: 800, borderColor: setItem.reps ? "rgba(168,85,247,.5)" : undefined, transition: "border-color .2s" }}
-              />
-            </div>
-          </div>
-          {/* Total weight indicator */}
-          {bodyWeight > 0 && (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", marginTop: 4, gap: 6 }}>
-              <span style={{ fontSize: 11, color: "var(--muted)" }}>
-                Total: <b style={{ color: "#60a5fa" }}>{bodyWeight + (Number(setItem.extraWeight) || 0)}kg</b>
-                {setItem.reps ? <> × {setItem.reps} = <b style={{ color: "var(--green)" }}>{(bodyWeight + (Number(setItem.extraWeight) || 0)) * Number(setItem.reps)}kg vol</b></> : null}
-              </span>
-            </div>
-          )}
         </div>
-      ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, margin: "10px 0 8px" }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.6px" }}>kg</span>
-              {setItem.lastWeight && !setItem.weight && (
-                <span style={{ fontSize: 12, color: "rgba(168,85,247,.6)", fontWeight: 700 }}>ult. {setItem.lastWeight}</span>
-              )}
-            </div>
+
+        {/* Middle: inputs */}
+        {isBodyweight ? (
+          <div className="set-row-inputs">
+            <span className="set-bw-badge">{bodyWeight > 0 ? bodyWeight : "?"}</span>
+            <span className="set-sep">+</span>
             <input
-              className="set-val"
+              className="set-val-sm"
               inputMode="decimal"
-              value={setItem.weight}
-              placeholder={(!setItem.weight && coachSuggestion?.weight != null) ? String(coachSuggestion.weight) : (setItem.lastWeight || "")}
-              onChange={(e) => { haptic(); setDone(false); onUpdate({ weight: sanitizeWeight(e.target.value) }); }}
+              value={setItem.extraWeight === 0 || setItem.extraWeight === "0" ? "" : (setItem.extraWeight || "")}
+              placeholder={setItem.lastExtraWeight && !beyondLastSession ? `${setItem.lastExtraWeight}` : "0"}
+              onChange={(e) => { haptic(); setDone(false); onUpdate({ extraWeight: sanitizeWeight(e.target.value) || 0 }); }}
               onFocus={(e) => {
-                if (!setItem.weight && setItem.lastWeight) {
-                  onUpdate({ weight: String(setItem.lastWeight) });
-                }
+                if ((!setItem.extraWeight || setItem.extraWeight === 0) && setItem.lastExtraWeight && !beyondLastSession)
+                  onUpdate({ extraWeight: Number(setItem.lastExtraWeight) });
                 e.target.select();
               }}
-              style={{ width: "100%", textAlign: "center", fontSize: 26, fontWeight: 800, borderColor: setItem.weight ? "rgba(168,85,247,.5)" : undefined, transition: "border-color .2s" }}
+              style={{ borderColor: setItem.extraWeight ? "rgba(168,85,247,.5)" : undefined }}
             />
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.6px" }}>reps</span>
-              {(setItem.planReps || setItem.lastReps) && !setItem.reps && (
-                <span style={{ fontSize: 12, color: "rgba(168,85,247,.6)", fontWeight: 700 }}>{setItem.planReps ? `plan ${setItem.planReps}` : `ult. ${setItem.lastReps}`}</span>
-              )}
-            </div>
+            <span className="set-sep">×</span>
             <input
-              className="set-val"
+              className="set-val-sm"
               inputMode="numeric"
               value={setItem.reps}
-              placeholder={setItem.planReps || setItem.lastReps || "—"}
+              placeholder={!beyondLastSession ? (setItem.planReps || setItem.lastReps || "—") : "—"}
               onChange={(e) => { haptic(); setDone(false); onUpdate({ reps: sanitizeReps(e.target.value) }); }}
               onFocus={(e) => {
-                if (!setItem.reps && setItem.lastReps) {
+                if (!setItem.reps && setItem.lastReps && !beyondLastSession)
                   onUpdate({ reps: String(setItem.lastReps) });
-                }
                 e.target.select();
               }}
-              style={{ width: "100%", textAlign: "center", fontSize: 26, fontWeight: 800, borderColor: setItem.reps ? "rgba(168,85,247,.5)" : undefined, transition: "border-color .2s" }}
+              style={{ borderColor: setItem.reps ? "rgba(168,85,247,.5)" : undefined }}
             />
           </div>
+        ) : (
+          <div className="set-row-inputs">
+            <input
+              className="set-val-sm"
+              inputMode="decimal"
+              value={setItem.weight}
+              placeholder={!beyondLastSession
+                ? ((!setItem.weight && coachSuggestion?.weight != null) ? String(coachSuggestion.weight) : (setItem.lastWeight || ""))
+                : ""}
+              onChange={(e) => { haptic(); setDone(false); onUpdate({ weight: sanitizeWeight(e.target.value) }); }}
+              onFocus={(e) => {
+                if (!setItem.weight && setItem.lastWeight && !beyondLastSession)
+                  onUpdate({ weight: String(setItem.lastWeight) });
+                e.target.select();
+              }}
+              style={{ borderColor: setItem.weight ? "rgba(168,85,247,.5)" : undefined }}
+            />
+            <span className="set-sep">×</span>
+            <input
+              className="set-val-sm"
+              inputMode="numeric"
+              value={setItem.reps}
+              placeholder={!beyondLastSession ? (setItem.planReps || setItem.lastReps || "—") : "—"}
+              onChange={(e) => { haptic(); setDone(false); onUpdate({ reps: sanitizeReps(e.target.value) }); }}
+              onFocus={(e) => {
+                if (!setItem.reps && setItem.lastReps && !beyondLastSession)
+                  onUpdate({ reps: String(setItem.lastReps) });
+                e.target.select();
+              }}
+              style={{ borderColor: setItem.reps ? "rgba(168,85,247,.5)" : undefined }}
+            />
+          </div>
+        )}
+
+        {/* Right: actions */}
+        <div className="set-row-actions">
+          {isNewPR && (
+            <span style={{ background: "var(--green)", color: "#fff", fontSize: 8, fontWeight: 900, padding: "2px 5px", borderRadius: 5, flexShrink: 0 }}>PR</span>
+          )}
+          {orm && hasData && (
+            <span style={{ fontSize: 9, color: "var(--muted)", fontWeight: 700, flexShrink: 0, lineHeight: 1 }}>{Math.round(orm)}</span>
+          )}
+          <button
+            className="set-delete-btn"
+            style={{ color: note ? "var(--green)" : "var(--muted)" }}
+            onClick={() => { setNoteText(note); setEditingNote(!editingNote); }}
+            title="Nota"
+          >
+            <Icon name="FileText" size={12} />
+          </button>
+          <button
+            className="set-delete-btn"
+            style={{ color: showPRPanel ? "var(--green)" : "var(--muted)" }}
+            onClick={() => setShowPRPanel(!showPRPanel)}
+            title="Récords"
+          >
+            <Icon name="BarChart2" size={12} />
+          </button>
+
+          {hasData && !done ? (
+            <button
+              onClick={() => {
+                haptic("done"); setDone(true); onUpdate({ done: true });
+                const rpe = setItem.rir !== undefined && setItem.rir !== "" ? Math.max(6, 10 - Number(setItem.rir)) : setItem.rpe;
+                onStartRest(rpe);
+              }}
+              className="set-done-action"
+            >
+              <Icon name="Check" size={12} /> Hecho
+            </button>
+          ) : done ? (
+            <span className="set-done-label">
+              <Icon name="CheckCircle" size={15} />
+            </span>
+          ) : (
+            <button
+              onClick={() => { haptic(); setDone(true); onStartRest(setItem.rpe); }}
+              className="set-rest-action"
+              title="Descanso"
+            >
+              <Icon name="Timer" size={13} />
+            </button>
+          )}
+
+          <button className="set-delete-btn set-delete-x" onClick={onRemove} aria-label="Borrar">
+            <Icon name="X" size={14} />
+          </button>
         </div>
-      )}
+      </div>
 
-      {/* e1RM estimate badge — only shown for reliable rep ranges (≤ 10 reps) */}
-      {Number(setItem.reps) > 0 && Number(setItem.reps) <= 10 && (() => {
-        const effectiveWeight = isBodyweight
-          ? (Number(setItem.weight) || 0) + (Number(setItem.extraWeight) || 0)
-          : Number(setItem.weight) || 0;
-        const rir = setItem.rir !== undefined && setItem.rir !== "" ? Number(setItem.rir) : 0;
-        const effectiveReps = Math.min(Number(setItem.reps) + rir, 30);
-        const orm = calc1RM(effectiveWeight, effectiveReps);
-        if (!orm || orm <= 0) return null;
-        return (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", marginBottom: 4 }}>
-            <span style={{ fontSize: 10, color: "var(--muted)", background: "var(--panel2)", borderRadius: 6, padding: "2px 7px", fontWeight: 700 }}>
-              1RM est. {Math.round(orm)}kg
-            </span>
-          </div>
-        );
-      })()}
-
-      {/* RIR selector (Reps In Reserve) — hidden per Fix #3 */}
-      {setItem.reps && (
-        <div style={{ display: "none" }}>
-          <span style={{ fontSize: 10, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px", flexShrink: 0 }}>RIR</span>
-          <div style={{ display: "flex", gap: 3 }}>
-            {[
-              { val: 0, label: "0", tip: "Al fallo" },
-              { val: 1, label: "1", tip: "1 en reserva" },
-              { val: 2, label: "2", tip: "2 en reserva" },
-              { val: 3, label: "3+", tip: "Fácil" },
-            ].map(({ val, label, tip }) => {
-              const selected = setItem.rir === val;
-              const bg = selected ? (val === 0 ? "var(--danger)" : val === 1 ? "#f59e0b" : "var(--green)") : "var(--panel2)";
-              return (
-                <button key={val}
-                  onClick={() => onUpdate({ rir: selected ? undefined : val, rpe: selected ? null : Math.max(6, 10 - val) })}
-                  title={tip}
-                  style={{
-                    minWidth: 28, height: 24, borderRadius: 6, fontSize: 11, fontWeight: 700,
-                    cursor: "pointer", border: "none", background: bg,
-                    color: selected ? "#fff" : "var(--muted)", padding: "0 5px",
-                  }}>
-                  {label}
+      {/* ── Expandable extras ── */}
+      {hasExtras && (
+        <div style={{ padding: "2px 4px 2px", display: "flex", flexDirection: "column", gap: 4 }}>
+          {editingNote && (
+            <textarea
+              value={noteText}
+              onChange={e => setNoteText(e.target.value)}
+              onBlur={() => { setExerciseNote(setItem.exercise, noteText); setEditingNote(false); }}
+              placeholder="Nota del ejercicio..."
+              rows={2}
+              style={{ width: "100%", background: "var(--panel2)", border: "1px solid var(--green)", borderRadius: 10, padding: "8px 10px", color: "var(--text)", fontSize: 12, resize: "none", boxSizing: "border-box" }}
+              autoFocus
+            />
+          )}
+          {!editingNote && note && (
+            <p style={{ margin: 0, fontSize: 11, color: "var(--green)", background: "rgba(168,85,247,.07)", borderRadius: 8, padding: "4px 8px", display: "flex", alignItems: "center", gap: 4 }}>
+              <Icon name="ClipboardList" size={11} /> {note}
+            </p>
+          )}
+          {showPRPanel && (
+            <div style={{ background: "var(--panel2)", borderRadius: 12, padding: "10px 12px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
+                {[
+                  { label: "Mejor peso", value: prData?.bestWeight ? `${prData.bestWeight}kg` : "—" },
+                  { label: "Mejor vol.", value: prData?.bestVolume ? `${prData.bestVolume}kg` : "—" },
+                  { label: "Mas reps", value: prData?.bestReps ? `${prData.bestReps}×${prData.bestRepsWeight}` : "—" },
+                ].map(({ label, value }) => (
+                  <div key={label} style={{ textAlign: "center" }}>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: "var(--green)" }}>{value}</div>
+                    <div style={{ fontSize: 9, color: "var(--muted)", marginTop: 2 }}>{label}</div>
+                  </div>
+                ))}
+              </div>
+              {prData?.lastDate && (
+                <p style={{ fontSize: 10, color: "var(--muted)", margin: "6px 0 0", textAlign: "center" }}>
+                  Ultima sesion: {prData.lastDate}
+                </p>
+              )}
+            </div>
+          )}
+          {coachSuggestion && coachSuggestion.dir !== null && (
+            <div style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(168,85,247,.08)", border: "1px solid rgba(168,85,247,.25)", borderRadius: 10, padding: "5px 10px" }}>
+              <span style={{ fontSize: 13, color: "var(--green)", fontWeight: 700, flexShrink: 0 }}>
+                {coachSuggestion.dir === "up" ? "+" : "-"} {coachSuggestion.weight}kg
+              </span>
+              <span style={{ fontSize: 11, color: "var(--muted)", flex: 1 }}>{coachSuggestion.reason}</span>
+              {onApplyToNext && (
+                <button className="ghost" style={{ fontSize: 11, padding: "3px 8px", flexShrink: 0, borderColor: "var(--green)", color: "var(--green)" }}
+                  onClick={() => onApplyToNext(coachSuggestion.weight)}>
+                  Aplicar
                 </button>
-              );
-            })}
-          </div>
-          {setItem.rir !== undefined && setItem.rir !== "" && (
-            <span style={{ fontSize: 10, color: "var(--muted)" }}>
-              {setItem.rir === 0 ? "Al fallo" : setItem.rir === 1 ? "1 rep en reserva" : setItem.rir === 2 ? "2 reps en reserva" : "Fácil (3+)"}
-            </span>
+              )}
+            </div>
+          )}
+          {coachSuggestion && coachSuggestion.dir === null && (
+            <div style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(52,211,153,.07)", border: "1px solid rgba(52,211,153,.2)", borderRadius: 10, padding: "5px 10px" }}>
+              <span style={{ color: "#34d399", flexShrink: 0 }}><Icon name="Check" size={11} /></span>
+              <span style={{ fontSize: 11, color: "var(--muted)", flex: 1 }}>{coachSuggestion.reason}</span>
+            </div>
           )}
         </div>
       )}
-
-      <div className="set-actions">
-        {/* Botón principal: confirma la serie Y arranca el descanso en un tap */}
-        {hasData && !done && (
-          <button
-            className="ghost set-action-sm"
-            onClick={() => {
-              haptic("done");
-              setDone(true);
-              onUpdate({ done: true });
-              const effectiveRpe = setItem.rir !== undefined && setItem.rir !== ""
-                ? Math.max(6, 10 - Number(setItem.rir))
-                : setItem.rpe;
-              onStartRest(effectiveRpe);
-            }}
-            style={{
-              flex: 1, fontWeight: 800, fontSize: 14,
-              background: "rgba(52,211,153,.12)", border: "1.5px solid rgba(52,211,153,.4)",
-              color: "#34d399", display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-            }}
-          >
-            <Icon name="Check" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> Hecho
-          </button>
-        )}
-        {done && (
-          <span style={{
-            flex: 1, fontWeight: 800, fontSize: 13, textAlign: "center",
-            color: "#34d399", display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
-          }}>
-            <Icon name="CheckCircle" size={14} /> Completada
-          </span>
-        )}
-        {!hasData && (
-          <button
-            className="ghost set-action-sm"
-            onClick={() => {
-              haptic();
-              setDone(true);
-              const effectiveRpe = setItem.rir !== undefined && setItem.rir !== ""
-                ? Math.max(6, 10 - Number(setItem.rir))
-                : setItem.rpe;
-              onStartRest(effectiveRpe);
-            }}
-            title="Descanso"
-            style={{ display:"flex", alignItems:"center", gap:5, border:"1.5px dashed var(--cyan)", color:"var(--cyan)", background:"rgba(117,217,255,.06)" }}
-          >
-            <Icon name="Timer" size={13} />
-            Descanso
-          </button>
-        )}
-        <button
-          className="ghost set-action-sm"
-          onClick={() => { haptic(); onRepeat(); }}
-          title="Repetir serie"
-          style={{ display:"flex", alignItems:"center", gap:5 }}
-        >
-          <Icon name="RefreshCw" size={13} />
-          Repetir
-        </button>
-      </div>
     </div>
   );
 }
-

@@ -36,6 +36,81 @@ const TIME_BASED_EXERCISES = new Set([
   "side plank", "plancha lateral",
 ]);
 
+// BUG-11: moved out of groupedExercises.map() to avoid recreating on every render
+const PER_EXERCISE_TYPES = new Set(["pr","ready","plateau","fatigue","form","loop"]);
+
+// BUG-12: extracted from the inline IIFE in sets.map() to avoid recomputing on every keystroke
+function computeCoachSuggestion(setItem, sets, exercise, weightPrescriptions, profile, goal) {
+  const w = Number(setItem.weight);
+  const r = Number(setItem.reps);
+  const rir = setItem.rir !== undefined && setItem.rir !== "" ? Number(setItem.rir) : null;
+
+  if (!w || !r) {
+    const prescription = weightPrescriptions.find(p => p.exercise === exercise);
+    if (prescription) {
+      const dir = prescription.suggestedWeight > prescription.lastWeight ? "up"
+                : prescription.suggestedWeight < prescription.lastWeight ? "down" : null;
+      return { dir, weight: prescription.suggestedWeight, reason: prescription.reason };
+    }
+    return null;
+  }
+
+  if (rir !== null) {
+    if (rir === 0) {
+      const next = Math.max(Math.round((w - 2.5) * 2) / 2, 0);
+      return { dir: "down", weight: next, reason: `Fuiste al fallo → próxima serie: ${next}kg` };
+    }
+    if (rir >= 3) {
+      const next = Math.round((w + 2.5) * 2) / 2;
+      return { dir: "up", weight: next, reason: `Te quedaron ${rir} reps → próxima serie: ${next}kg` };
+    }
+    return { dir: null, weight: w, reason: `RIR ${rir} — zona óptima, mantené ${w}kg` };
+  }
+
+  const g = (goal || "volumen").toLowerCase();
+  const lvl = (profile?.fitness_level || "intermedio").toLowerCase();
+  let lowThresh = 8, highThresh = 12, restSec = 90;
+  if (g === "rendimiento") {
+    lowThresh = lvl === "principiante" ? 3 : 1;
+    highThresh = lvl === "principiante" ? 6 : lvl === "intermedio" ? 5 : 4;
+    restSec = lvl === "principiante" ? 150 : 180;
+  } else if (g === "volumen") {
+    lowThresh = 8;
+    highThresh = 12;
+    restSec = lvl === "avanzado" ? 120 : 90;
+  } else if (g === "definicion") {
+    lowThresh = 8;
+    highThresh = lvl === "principiante" ? 18 : 15;
+    restSec = lvl === "avanzado" ? 45 : 60;
+  } else if (g === "mantenimiento") {
+    lowThresh = 8; highThresh = 15; restSec = 75;
+  }
+
+  const sameW = sets.filter(s => Number(s.weight) === w && Number(s.reps) >= highThresh).length;
+  if (sameW >= 3) {
+    const next = Math.round((w + 2.5) * 2) / 2;
+    return { dir: "up", weight: next, reason: `3+ series en ${w}kg → subí a ${next}kg`, rest: restSec };
+  }
+  if (r > highThresh) {
+    const next = Math.round((w + 2.5) * 2) / 2;
+    const upReason = g === "rendimiento"
+      ? `${r} reps — peso liviano para fuerza, subí a ${next}kg`
+      : `${r} reps — subí a ${next}kg`;
+    return { dir: "up", weight: next, reason: upReason, rest: restSec };
+  }
+  if (r < lowThresh) {
+    const next = Math.max(Math.round((w - 2.5) * 2) / 2, 0);
+    const downReason = g === "rendimiento"
+      ? `${r} rep${r !== 1 ? "s" : ""} — muy pesado para controlar, bajá a ${next}kg`
+      : `${r} reps — bajá a ${next}kg para trabajar en rango`;
+    return { dir: "down", weight: next, reason: downReason, rest: restSec };
+  }
+  const goodReason = g === "rendimiento"
+    ? `${r} reps — rango de fuerza, dejá todo en la barra`
+    : `Buen rango — dejá 1-3 reps en reserva`;
+  return { dir: null, weight: w, reason: goodReason, rest: restSec };
+}
+
 function isTimeBasedExercise(name) {
   if (!name) return false;
   const lower = name.toLowerCase();
@@ -140,8 +215,11 @@ function getProgressiveSuggestion(workouts, exercise, goal) {
   let sameStreak = 1;
   if (sessions.length >= 2) {
     const prev = sessions[1].sets.filter(s => s.exercise === exercise && s.weight);
-    const prevBest = prev.reduce((b, s) => Number(s.weight) > Number(b.weight) ? s : b, prev[0] || {});
-    if (Number(prevBest.weight) === lastWeight) sameStreak = 2;
+    // Guard: prev may be empty for migrated/incomplete data; skip to avoid NaN comparisons
+    if (prev.length > 0) {
+      const prevBest = prev.reduce((b, s) => Number(s.weight) > Number(b.weight) ? s : b, prev[0]);
+      if (Number(prevBest.weight) === lastWeight) sameStreak = 2;
+    }
   }
   if (lastReps > high || (sameStreak >= 2 && lastReps >= low)) {
     return Math.round((lastWeight + 2.5) * 2) / 2;
@@ -187,13 +265,30 @@ function getTip(exerciseName) {
   return "Ejecutá el movimiento en forma controlada. Concentrarte en el músculo objetivo, exhalá en el esfuerzo, inhalá en la fase excéntrica.";
 }
 
+// BUG-04: single source of truth for PR counting used in both the pre-confirm
+// summary modal and the post-workout coach panel. Counts one PR per exercise,
+// based on best volume-per-set vs. the historical best for that exercise.
+function countNewPRs(sets, workouts) {
+  const seen = new Set();
+  let count = 0;
+  for (const s of sets) {
+    const key = s.exercise;
+    if (!seen.has(key)) {
+      const prev = (workouts || []).flatMap(w => (w.sets || []).filter(ps => ps.exercise === key && ps.weight && ps.reps));
+      const bestPrev = prev.reduce((m, ps) => Math.max(m, Number(ps.weight) * Number(ps.reps)), 0);
+      if (Number(s.weight) * Number(s.reps) > bestPrev) count++;
+      seen.add(key);
+    }
+  }
+  return count;
+}
+
 export default function WorkoutPage() {
   const active = useStore((state) => state.activeWorkout);
   const workouts = useStore((state) => state.workouts);
   const update = useStore((state) => state.updateActiveSet);
   const repeat = useStore((state) => state.repeatSet);
   const remove = useStore((state) => state.removeActiveSet);
-  const loadLastSetsForExercise = useStore((state) => state.loadLastSetsForExercise);
   const addExercise = useStore((state) => state.addExerciseToActiveWorkout);
   const addSeriesToExercise = useStore((state) => state.addSeriesToExercise);
   const linkSuperset = useStore((s) => s.linkSuperset);
@@ -265,7 +360,6 @@ export default function WorkoutPage() {
   const [saveRoutineError, setSaveRoutineError] = useState("");
   const [shareMsg, setShareMsg] = useState("");
   const [showPDF, setShowPDF] = useState(false);
-  const [repeatSetsToast, setRepeatSetsToast] = useState(null); // { msg, exiting }
 
   const [illustrationExercise, setIllustrationExercise] = useState(null);
   const [restDone, setRestDone] = useState(false);
@@ -278,7 +372,10 @@ export default function WorkoutPage() {
 
   // Derived
   const groupedExercises = useMemo(() => groupSetsByExercise(active?.sets || []), [active?.sets]);
-  const emptySetsCount = useMemo(() => (active?.sets || []).filter((s) => !s.weight || !s.reps).length, [active?.sets]);
+  const emptySetsCount = useMemo(() => (active?.sets || []).filter((s) => {
+    const isBodyweight = s.equipment === "Peso corporal" || s.equipment === "Bodyweight" || s.bodyweight === true;
+    return !((isBodyweight || Number(s.weight) > 0) && Number(s.reps) > 0);
+  }).length, [active?.sets]);
   const completedSetsCount = useMemo(() => (active?.sets || []).filter((s) => s.weight && s.reps).length, [active?.sets]);
   const todayReadiness = readiness?.date === todayLocal() ? readiness.score : null;
   const liveHints = useMemo(() => {
@@ -293,6 +390,17 @@ export default function WorkoutPage() {
   const sessionStrain = useMemo(() => { try { return calcSessionStrain(active); } catch { return 0; } }, [active?.sets]);
   const volStatus  = useMemo(() => { try { return getLiveVolumeStatus(active, workouts); } catch { return {}; } }, [active?.sets, workouts]);
   const weightPrescriptions = useMemo(() => { try { return getWeightPrescriptions(workouts); } catch { return []; } }, [workouts]);
+
+  // BUG-03: memoize all coach suggestions by set id to avoid recomputing on every keystroke
+  const coachSuggestionsBySetId = useMemo(() => {
+    const map = {};
+    groupedExercises.forEach(({ exercise, sets }) => {
+      sets.forEach((setItem) => {
+        map[setItem.id] = computeCoachSuggestion(setItem, sets, exercise, weightPrescriptions, profile, goal);
+      });
+    });
+    return map;
+  }, [groupedExercises, weightPrescriptions, profile, goal]);
 
   const workoutTypeTheme = useMemo(() => {
     const t = (active?.type || "").toLowerCase();
@@ -360,13 +468,16 @@ export default function WorkoutPage() {
     });
   }, [liveHints]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Auto-save draft
+  // Auto-save draft — reads the store directly inside the callback so edits to
+  // individual sets (which replace the activeWorkout reference via spread) do not
+  // reset the 30-second interval.
   useEffect(() => {
     const interval = setInterval(() => {
-      if (active) saveWorkoutDraft({ sets: active.sets, type: active.type, savedAt: new Date().toISOString() });
+      const currentActive = useStore.getState().activeWorkout;
+      if (currentActive) saveWorkoutDraft({ sets: currentActive.sets, type: currentActive.type, savedAt: new Date().toISOString() });
     }, 30000);
     return () => clearInterval(interval);
-  }, [active, saveWorkoutDraft]);
+  }, [saveWorkoutDraft]);
 
   // Wake lock cleanup on unmount
   useEffect(() => {
@@ -483,7 +594,7 @@ export default function WorkoutPage() {
         if (partnerIdx !== -1) setTimeout(() => scrollToExercise(partnerIdx), 600);
       }
     }
-  }, [groupedExercises]);
+  }, [groupedExercises, prs]);
 
   const cancelRestTimerPush = useCallback(() => {
     navigator.serviceWorker?.controller?.postMessage({ type: 'CANCEL_TIMER' });
@@ -508,21 +619,15 @@ export default function WorkoutPage() {
   function doFinish(notes, rpe, mood) {
     setShowSummary(false);
     const baseSummary = getPostWorkoutSummary(active, workouts);
-    const allSets = (active?.sets || []).filter(s => s.weight && s.reps);
+    const allSets = (active?.sets || []).filter(s => {
+      const isBodyweight = s.equipment === "Peso corporal" || s.equipment === "Bodyweight" || s.bodyweight === true;
+      const hasWeight = Number(s.weight) > 0;
+      return s.exercise && (hasWeight || isBodyweight) && Number(s.reps) > 0;
+    });
     const exerciseNames = (active?.sets || []).map(s => s.exercise).filter(Boolean);
     const uniqueExercises = [...new Set(exerciseNames)];
-    // Count new PRs the same way summaryData does
-    const seenPR = new Set();
-    let newPRsCount = 0;
-    for (const s of allSets) {
-      const key = s.exercise;
-      if (!seenPR.has(key)) {
-        const prev = (workouts || []).flatMap(w => (w.sets || []).filter(ps => ps.exercise === key && ps.weight && ps.reps));
-        const bestPrev = prev.reduce((m, ps) => Math.max(m, Number(ps.weight) * Number(ps.reps)), 0);
-        if (Number(s.weight) * Number(s.reps) > bestPrev) newPRsCount++;
-        seenPR.add(key);
-      }
-    }
+    // Count new PRs using the shared helper (same logic as the pre-confirm modal)
+    const newPRsCount = countNewPRs(allSets, workouts);
     const summary = baseSummary
       ? {
           ...baseSummary,
@@ -539,11 +644,18 @@ export default function WorkoutPage() {
       _commitFinish(notes, rpe, summary, mood);
       return;
     }
-    const timeout = setTimeout(() => _commitFinish(notes, rpe, summary, mood), 2000);
+    // BUG-02: guard against _commitFinish being invoked by both the timeout and the .then() chain
+    let committed = false;
+    function commitOnce() {
+      if (committed) return;
+      committed = true;
+      _commitFinish(notes, rpe, summary, mood);
+    }
+    const timeout = setTimeout(commitOnce, 2000);
     import("../lib/supabase.js").then(({ supabase }) => {
       supabase.from("routines").select("id, exercises").eq("user_id", userId).then(({ data, error }) => {
         clearTimeout(timeout);
-        if (error || !data) { _commitFinish(notes, rpe, summary, mood); return; }
+        if (error || !data) { commitOnce(); return; }
         const routines = data || [];
         const alreadySaved = routines.some(r => {
           const rNames = (r.exercises || []).map(e => e.name);
@@ -555,20 +667,27 @@ export default function WorkoutPage() {
           setShowSummary(false);
           setShowSaveRoutine(true);
         } else {
-          _commitFinish(notes, rpe, summary, mood);
+          commitOnce();
         }
-      }).catch(() => { clearTimeout(timeout); _commitFinish(notes, rpe, summary, mood); });
-    }).catch(() => { clearTimeout(timeout); _commitFinish(notes, rpe, summary, mood); });
+      }).catch(() => { clearTimeout(timeout); commitOnce(); });
+    }).catch(() => { clearTimeout(timeout); commitOnce(); });
   }
 
-  function _commitFinish(notes, rpe, summary, mood) {
-    clearWorkoutDraft();
+  async function _commitFinish(notes, rpe, summary, mood) {
     if (summary) {
-      // Show post-workout coach summary first; the "Listo" button will call finish()
+      // BUG-03: do NOT clear the draft yet — clearWorkoutDraft is called by the
+      // "Listo" / "Ver análisis" handlers after finish() so a crash before the
+      // user confirms does not lose an uncommitted workout.
       setPostSummary({ ...summary, rpe, mood: checkinMood || undefined });
       // mood will be read from checkinMood state in the postSummary modal
     } else {
-      finish(notes, mood);
+      // BUG-03: finish() is async and has an early-return guard when no valid sets
+      // exist. Await it, then only discard the draft if the workout was actually
+      // committed (finishWorkout sets activeWorkout to null on success).
+      await finish(notes, mood);
+      if (!useStore.getState().activeWorkout) {
+        clearWorkoutDraft();
+      }
       setCheckinMood(null);
     }
   }
@@ -576,7 +695,11 @@ export default function WorkoutPage() {
   async function handleSaveRoutineAndFinish() {
     if (!saveRoutineName.trim()) {
       const { notes, rpe, summary, mood } = pendingFinishRef.current || {};
-      _commitFinish(notes, rpe, summary, mood);
+      try {
+        await _commitFinish(notes, rpe, summary, mood);
+      } catch {
+        setSaveRoutineError("No se pudo guardar el workout. Intentá de nuevo.");
+      }
       return;
     }
     setSavingRoutine(true);
@@ -594,7 +717,7 @@ export default function WorkoutPage() {
       setSavingRoutine(false);
       setShowSaveRoutine(false);
       const { notes, rpe, summary, mood } = pendingFinishRef.current || {};
-      _commitFinish(notes, rpe, summary, mood);
+      await _commitFinish(notes, rpe, summary, mood);
     } catch {
       setSaveRoutineError("No se pudo guardar la rutina. Intentá de nuevo.");
       setSavingRoutine(false);
@@ -606,7 +729,10 @@ export default function WorkoutPage() {
     setPrCelebration(null);
     if (navigator.vibrate) navigator.vibrate(20);
     const allSets = active?.sets || [];
-    const validSets = allSets.filter(s => s.weight && s.reps);
+    const validSets = allSets.filter(s => {
+      const isBodyweight = s.equipment === "Peso corporal" || s.equipment === "Bodyweight" || s.bodyweight === true;
+      return (isBodyweight || Number(s.weight) > 0) && Number(s.reps) > 0;
+    });
     setSummaryData({
       totalSets: validSets.length,
       totalVolume: validSets.reduce((sum, s) => {
@@ -616,14 +742,7 @@ export default function WorkoutPage() {
         return sum + w * (Number(s.reps) || 0);
       }, 0),
       exercises: new Set(validSets.map(s => s.exercise)).size,
-      newPRs: (() => {
-        const seen = new Set();
-        for (const s of validSets) {
-          const best = prs.filter(p => p.exercise === s.exercise).reduce((max, p) => Math.max(max, Number(p.weight)||0), 0);
-          if (Number(s.weight) > 0 && Number(s.weight) > best) seen.add(s.exercise);
-        }
-        return seen.size;
-      })(),
+      newPRs: countNewPRs(validSets, workouts),
     });
     setShowSummary(true);
   }
@@ -648,20 +767,6 @@ export default function WorkoutPage() {
   return (
     <>
     <section className="page" style={{ padding: 0, display: "flex", flexDirection: "column", overflow: "hidden", position: "fixed", left: 0, right: 0, top: "max(env(safe-area-inset-top, 0px), 0px)", bottom: "calc(60px + 58px + env(safe-area-inset-bottom, 0px))" }}>
-
-      {/* ── REPEAT SETS TOAST ──────────────────────────────────────────────── */}
-      {repeatSetsToast && (
-        <div style={{
-          position: "fixed", top: 16, left: "50%", transform: "translateX(-50%)",
-          background: "rgba(30,30,40,.95)", border: "1px solid rgba(168,85,247,.4)", borderRadius: 12,
-          padding: "10px 20px", zIndex: 9999, fontSize: 13, fontWeight: 700, color: "var(--green)",
-          display: "flex", alignItems: "center", gap: 8,
-          opacity: repeatSetsToast.exiting ? 0 : 1, transition: "opacity .4s",
-          pointerEvents: "none", boxShadow: "0 4px 24px rgba(0,0,0,.5)",
-        }}>
-          <span>↩</span> {repeatSetsToast.msg}
-        </div>
-      )}
 
       {/* ── TOP BAR ─────────────────────────────────────────────────────────── */}
       <div style={{
@@ -703,7 +808,7 @@ export default function WorkoutPage() {
           className="ghost"
           onClick={handleFinishClick}
           style={{ flexShrink: 0, fontSize: 13, fontWeight: 700, color: "var(--green)", border: "1px solid rgba(168,85,247,.3)", borderRadius: 10, padding: "5px 10px", background: "rgba(168,85,247,.08)", cursor: "pointer" }}>
-          ✓ Listo
+          Listo
         </button>
       </div>
 
@@ -753,7 +858,6 @@ export default function WorkoutPage() {
           const prData = prCache[exercise] || {};
           const isFlipped = flippedExercise === exercise;
           const isHistory = historyExercise === exercise;
-          const PER_EXERCISE_TYPES = new Set(["pr","ready","plateau","fatigue","form","loop"]);
           const coachHint = liveHints.find(h => PER_EXERCISE_TYPES.has(h.type) && (h.exercise === exercise || h.msg?.startsWith(exercise)));
           const isSupersetted = sets.some(s => s.supersetGroup);
           const supersetGroupId = sets.find(s => s.supersetGroup)?.supersetGroup;
@@ -832,36 +936,6 @@ export default function WorkoutPage() {
                       );
                     })()}
 
-                    {/* ↩ Repetir anterior chip */}
-                    {(() => {
-                      const exName = exercise;
-                      const lastWorkoutWithEx = (workouts || []).find((w) =>
-                        (w.sets || []).some((s) => (s.exercise || "").trim().toLowerCase() === exName.trim().toLowerCase() && s.reps !== "" && Number(s.reps) > 0)
-                      );
-                      if (!lastWorkoutWithEx) return null;
-                      const lastExSets = (lastWorkoutWithEx.sets || []).filter((s) =>
-                        (s.exercise || "").trim().toLowerCase() === exName.trim().toLowerCase() && s.reps !== "" && Number(s.reps) > 0
-                      );
-                      const topSet = lastExSets.reduce((best, s) => (!best || Number(s.weight) > Number(best.weight) ? s : best), null);
-                      const label = topSet ? `${lastExSets.length}×${topSet.weight}kg` : "";
-                      return (
-                        <button
-                          onClick={() => {
-                            const date = loadLastSetsForExercise(exName);
-                            if (date) {
-                              const dateStr = typeof date === "string" ? ` del ${date}` : "";
-                              setRepeatSetsToast({ msg: `Sets cargados${dateStr}`, exiting: false });
-                              setTimeout(() => setRepeatSetsToast((t) => t ? { ...t, exiting: true } : null), 2000);
-                              setTimeout(() => setRepeatSetsToast(null), 2500);
-                            }
-                          }}
-                          style={{ marginTop: 5, background: "rgba(168,85,247,.1)", border: "1px solid rgba(168,85,247,.3)", borderRadius: 10, padding: "3px 10px", cursor: "pointer", fontSize: 12, fontWeight: 700, color: "var(--green)", display: "inline-flex", alignItems: "center", gap: 5 }}
-                        >
-                          <span>↩</span>
-                          <span>Repetir anterior{label ? `: ${label}` : ""}</span>
-                        </button>
-                      );
-                    })()}
 
                     {coachHint && (() => {
                       const isLoop = coachHint.type === 'loop';
@@ -892,7 +966,7 @@ export default function WorkoutPage() {
                 <div style={{ margin: "0 16px 4px", display: "flex", alignItems: "center", gap: 8, padding: "4px 10px", background: "rgba(168,85,247,.07)", border: "1px solid rgba(168,85,247,.2)", borderRadius: 8 }}>
                   {todayReadiness && (
                     <span style={{ fontSize: 11, color: "var(--muted)" }}>
-                      {["😴","😩","😐","💪","🔥"][todayReadiness - 1]}
+                      {["1","2","3","4","5"][todayReadiness - 1]}
                       <span style={{ marginLeft: 3, fontSize: 10 }}>{todayReadiness}/5</span>
                     </span>
                   )}
@@ -985,6 +1059,10 @@ export default function WorkoutPage() {
                             index={index + 1}
                             setItem={setItem}
                             prevSet={lastSessionsByExercise[exercise]?.sets[index] || null}
+                            beyondLastSession={
+                              !!(lastSessionsByExercise[exercise]?.sets?.length) &&
+                              index >= (lastSessionsByExercise[exercise]?.sets?.length || 0)
+                            }
                             onUpdate={(patch) => {
                               try { navigator.vibrate?.([30]); } catch {}
                               update(setItem.id, patch);
@@ -1008,82 +1086,7 @@ export default function WorkoutPage() {
                             isBodyweight={first?.equipment === "Peso corporal"}
                             bodyWeight={latestBodyWeight}
                             prData={prData}
-                            coachSuggestion={(() => {
-                              const w = Number(setItem.weight);
-                              const r = Number(setItem.reps);
-                              const rir = setItem.rir !== undefined && setItem.rir !== "" ? Number(setItem.rir) : null;
-
-                              // Proactive: show prescription before the athlete enters data
-                              if (!w || !r) {
-                                const prescription = weightPrescriptions.find(p => p.exercise === exercise);
-                                if (prescription) {
-                                  const dir = prescription.suggestedWeight > prescription.lastWeight ? "up"
-                                            : prescription.suggestedWeight < prescription.lastWeight ? "down" : null;
-                                  return { dir, weight: prescription.suggestedWeight, reason: prescription.reason };
-                                }
-                                return null;
-                              }
-
-                              // RIR-based next set suggestion (highest priority — most precise signal)
-                              if (rir !== null) {
-                                if (rir === 0) {
-                                  const next = Math.max(Math.round((w - 2.5) * 2) / 2, 0);
-                                  return { dir: "down", weight: next, reason: `Fuiste al fallo → próxima serie: ${next}kg` };
-                                }
-                                if (rir >= 3) {
-                                  const next = Math.round((w + 2.5) * 2) / 2;
-                                  return { dir: "up", weight: next, reason: `Te quedaron ${rir} reps → próxima serie: ${next}kg` };
-                                }
-                                // RIR 1-2: zona óptima
-                                return { dir: null, weight: w, reason: `RIR ${rir} — zona óptima, mantené ${w}kg` };
-                              }
-
-                              // Rep-range based suggestions — goal × fitness_level
-                              // Read directly from store to avoid any stale-closure issue
-                              const g = (useStore.getState().userGoal || "volumen").toLowerCase();
-                              const lvl = (profile?.fitness_level || "intermedio").toLowerCase();
-                              let lowThresh = 8, highThresh = 12, restSec = 90;
-                              if (g === "rendimiento") {
-                                // Fuerza: reps bajas, descansos largos
-                                lowThresh = lvl === "principiante" ? 3 : 1;
-                                highThresh = lvl === "principiante" ? 6 : lvl === "intermedio" ? 5 : 4;
-                                restSec = lvl === "principiante" ? 150 : 180;
-                              } else if (g === "volumen") {
-                                lowThresh = 8;
-                                highThresh = 12;
-                                restSec = lvl === "avanzado" ? 120 : 90;
-                              } else if (g === "definicion") {
-                                lowThresh = 8;
-                                highThresh = lvl === "principiante" ? 18 : 15;
-                                restSec = lvl === "avanzado" ? 45 : 60;
-                              } else if (g === "mantenimiento") {
-                                lowThresh = 8; highThresh = 15; restSec = 75;
-                              }
-
-                              const sameW = sets.filter(s => Number(s.weight) === w && Number(s.reps) >= highThresh).length;
-                              if (sameW >= 3) {
-                                const next = Math.round((w + 2.5) * 2) / 2;
-                                return { dir: "up", weight: next, reason: `3+ series en ${w}kg → subí a ${next}kg`, rest: restSec };
-                              }
-                              if (r > highThresh) {
-                                const next = Math.round((w + 2.5) * 2) / 2;
-                                const upReason = g === "rendimiento"
-                                  ? `${r} reps — peso liviano para fuerza, subí a ${next}kg`
-                                  : `${r} reps — subí a ${next}kg`;
-                                return { dir: "up", weight: next, reason: upReason, rest: restSec };
-                              }
-                              if (r < lowThresh) {
-                                const next = Math.max(Math.round((w - 2.5) * 2) / 2, 0);
-                                const downReason = g === "rendimiento"
-                                  ? `${r} rep${r !== 1 ? "s" : ""} — muy pesado para controlar, bajá a ${next}kg`
-                                  : `${r} reps — bajá a ${next}kg para trabajar en rango`;
-                                return { dir: "down", weight: next, reason: downReason, rest: restSec };
-                              }
-                              const goodReason = g === "rendimiento"
-                                ? `${r} reps — rango de fuerza, dejá todo en la barra`
-                                : `Buen rango — dejá 1-3 reps en reserva`;
-                              return { dir: null, weight: w, reason: goodReason, rest: restSec };
-                            })()}
+                            coachSuggestion={coachSuggestionsBySetId[setItem.id]}
                           />
                         </div>
                       );
@@ -1177,7 +1180,7 @@ export default function WorkoutPage() {
         {groupedExercises.length > 0 && (
           <div style={{ flex: "0 0 100%", scrollSnapAlign: "start", display: "flex", flexDirection: "column", height: "100%", alignItems: "center", justifyContent: "center", padding: 24 }}>
             <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 48, marginBottom: 16 }}>➕</div>
+              <div style={{ fontSize: 48, marginBottom: 16 }}>+</div>
               <h2 style={{ margin: "0 0 8px", fontSize: 18, fontWeight: 800 }}>Agregar más ejercicios</h2>
               <p style={{ color: "var(--muted)", fontSize: 14, margin: "0 0 24px", lineHeight: 1.5 }}>Deslizaste hasta el final.<br/>¿Querés agregar ejercicios extra?</p>
               <button onClick={() => setShowPicker(true)} style={{ background: "rgba(168,85,247,.15)", border: "1px solid rgba(168,85,247,.4)", borderRadius: 14, padding: "14px 32px", cursor: "pointer", fontSize: 15, fontWeight: 700, color: "var(--green)", display: "inline-flex", alignItems: "center", gap: 8 }}>
@@ -1496,20 +1499,20 @@ export default function WorkoutPage() {
           })()}
           {postSummary.mood && (
             <p style={{ fontSize: 24, textAlign: "center", margin: "0 0 4px" }}>
-              {postSummary.mood === "tired" ? "😓" : postSummary.mood === "good" ? "💪" : "🔥"}
+              {postSummary.mood === "tired" ? "Cansado" : postSummary.mood === "good" ? "Bien" : "Excelente"}
             </p>
           )}
           <p style={{ fontSize: 12, color: "var(--muted)", textAlign: "center", margin: "0 0 14px", lineHeight: 1.5 }}>
             {postSummary.mood === "tired" && postSummary.rpe >= 7
-              ? "Lo lograste cansado — eso es disciplina de verdad. 💪"
+              ? "Lo lograste cansado — eso es disciplina de verdad."
               : postSummary.mood === "tired" && postSummary.overallPct > 0
               ? "Volumen arriba incluso en un día difícil. Brutal."
               : postSummary.mood === "tired"
               ? "Lo lograste igual. Eso es lo que distingue a los que progresan."
               : postSummary.mood === "great" && postSummary.overallPct > 10
-              ? "¡Día perfecto! Energía top y sesión superior. Guardá esta sensación. 🔥"
+              ? "¡Día perfecto! Energía top y sesión superior. Guardá esta sensación."
               : postSummary.mood === "great" && postSummary.rpe >= 8
-              ? "Energía top, esfuerzo alto. Combinación ganadora. ⚡"
+              ? "Energía top, esfuerzo alto. Combinación ganadora."
               : postSummary.mood === "great"
               ? "¡Excelente estado hoy! Aprovechá el momentum esta semana."
               : postSummary.mood === "good" && postSummary.rpe >= 9
@@ -1531,26 +1534,32 @@ export default function WorkoutPage() {
               : "Sesión dentro de tu promedio. Constancia es la clave."}
           </p>
           <ShareWorkoutCard summary={postSummary} />
-          <button className="primary" style={{ width: "100%", marginTop: 10 }} onClick={() => {
+          <button className="primary" style={{ width: "100%", marginTop: 10 }} onClick={async () => {
             const { notes } = pendingFinishRef.current || {};
             const mood = checkinMood;
             setPostSummary(null);
             setCheckinMood(null);
-            finish(notes, mood);
-            if (window.__showToast) window.__showToast("✓ Entrenamiento guardado");
+            await finish(notes, mood);
+            if (!useStore.getState().activeWorkout) {
+              clearWorkoutDraft();
+              if (window.__showToast) window.__showToast("✓ Entrenamiento guardado");
+            }
           }}>
             Listo
           </button>
           <button
             className="ghost"
             style={{ width: "100%", marginTop: 8, fontSize: 14 }}
-            onClick={() => {
+            onClick={async () => {
               const { notes } = pendingFinishRef.current || {};
               const mood = checkinMood;
               setPostSummary(null);
               setCheckinMood(null);
-              finish(notes, mood);
-              setPage("coach");
+              await finish(notes, mood);
+              if (!useStore.getState().activeWorkout) {
+                clearWorkoutDraft();
+                setPage("coach");
+              }
             }}
           >
             <Icon name="BarChart2" size={14} style={{display:'inline-block',verticalAlign:'middle',marginRight:4}} /> Ver análisis completo del entrenamiento
@@ -1563,7 +1572,7 @@ export default function WorkoutPage() {
     {showSaveRoutine && (
       <div className="modal-overlay" style={{ alignItems: "center", padding: "16px" }}>
         <div className="modal-card" style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 40, marginBottom: 8 }}>💾</div>
+          <div style={{ fontSize: 18, marginBottom: 8, fontWeight: 700 }}>Rutina</div>
           <h2 style={{ margin: "0 0 6px" }}>¿Guardás esta rutina?</h2>
           <p style={{ color: "var(--muted)", fontSize: 13, margin: "0 0 18px" }}>
             Este entrenamiento no coincide con ninguna rutina guardada.
@@ -1807,9 +1816,9 @@ export default function WorkoutPage() {
             <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, color: "var(--muted)", textAlign: "center", textTransform: "uppercase", letterSpacing: "0.06em" }}>¿Cómo te sentiste?</p>
             <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
               {[
-                { id: "tired", emoji: "😴", label: "Cansado" },
-                { id: "good",  emoji: "😊", label: "Bien"    },
-                { id: "great", emoji: "💪", label: "¡Excelente!" },
+                { id: "tired", emoji: "", label: "Cansado" },
+                { id: "good",  emoji: "", label: "Bien"    },
+                { id: "great", emoji: "", label: "¡Excelente!" },
               ].map(({ id, emoji, label }) => (
                 <button key={id} onClick={() => setCheckinMood(id)} style={{
                   flex: 1, padding: "8px 4px", borderRadius: 12, border: "2px solid",
@@ -1876,11 +1885,11 @@ export default function WorkoutPage() {
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {[
-              { score: 1, emoji: "😴", label: "Muy cansado / sin energía" },
-              { score: 2, emoji: "😩", label: "Por debajo del promedio" },
-              { score: 3, emoji: "😐", label: "Normal" },
-              { score: 4, emoji: "💪", label: "Con energía" },
-              { score: 5, emoji: "🔥", label: "En mi mejor momento" },
+              { score: 1, emoji: "", label: "Muy cansado / sin energía" },
+              { score: 2, emoji: "", label: "Por debajo del promedio" },
+              { score: 3, emoji: "", label: "Normal" },
+              { score: 4, emoji: "", label: "Con energía" },
+              { score: 5, emoji: "", label: "En mi mejor momento" },
             ].map(({ score, emoji, label }) => (
               <button
                 key={score}
@@ -1912,7 +1921,7 @@ export default function WorkoutPage() {
         <div className="no-print" style={{ flexShrink:0, display:"flex", alignItems:"center", gap:10, padding:"12px 16px", borderBottom:"1px solid var(--line)", background:"var(--bg)" }}>
           <button onClick={() => setShowPDF(false)}
             style={{ padding:"9px 18px", borderRadius:12, background:"#ef4444", border:"none", cursor:"pointer", color:"#fff", fontWeight:800, fontSize:15 }}>
-            ✕ Cerrar
+            Cerrar
           </button>
           <span style={{ fontWeight:700, flex:1, fontSize:15, textAlign:"center" }}>
             {active?.name || active?.type || "Rutina"}
