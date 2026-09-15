@@ -335,6 +335,34 @@ export const EXERCISE_DATABASE = [
   ex("Crunch con piernas elevadas", "Core", "Recto abdominal", "Sin equipamiento", "core", ["Oblicuos"], "Piernas en 90°, curlá el tronco hacia las rodillas, lumbar en el suelo."),
   ex("Hollow body rocks", "Core", "Recto abdominal", "Sin equipamiento", "core", ["Flexores de cadera"], "Posición cóncava, mecé el cuerpo adelante y atrás manteniendo la forma."),
   ex("Superman modificado", "Core", "Lumbar", "Sin equipamiento", "core", ["Glúteos", "Isquios"], "Acostado, elevá brazo y pierna opuestos, apretá glúteo arriba."),
+
+  // ── SMITH ─────────────────────────────────────────────────────────────────
+  // Pecho en Smith
+  ex("Press de banca en Smith", "Pecho", "Pectoral mayor", "Smith", "push", ["Tríceps", "Deltoide anterior"], "Escápulas retraídas, arco natural, bajá al esternón, empujá abriendo la barra."),
+  ex("Press inclinado en Smith", "Pecho", "Pectoral superior", "Smith", "push", ["Tríceps", "Deltoide anterior"], "Asiento inclinado 30-45°, retractá las escápulas, pies planos en el piso."),
+  ex("Press declinado en Smith", "Pecho", "Pectoral inferior", "Smith", "push", ["Tríceps"], "Cabeza más baja que la cadera, empujá controlando todo el recorrido."),
+
+  // Hombros en Smith
+  ex("Press militar en Smith", "Hombros", "Deltoide anterior", "Smith", "push", ["Tríceps", "Deltoide lateral"], "De pie o sentado, core apretado, empujá sobre la cabeza sin arquear la lumbar."),
+  ex("Press trasnuca en Smith", "Hombros", "Deltoide anterior", "Smith", "push", ["Trapecio superior", "Deltoide lateral"], "Barra detrás de la cabeza, agarre ancho, bajá solo hasta la altura de las orejas."),
+
+  // Espalda en Smith
+  ex("Remo invertido en Smith", "Espalda", "Dorsales", "Smith", "pull", ["Romboides", "Bíceps"], "Barra fija a la altura de la cadera, cuerpo recto como plancha, jalá el pecho a la barra."),
+  ex("Shrug en Smith", "Espalda", "Trapecio superior", "Smith", "pull", [], "Agarre prono, elevá los hombros hasta las orejas, pausa arriba, bajá lento."),
+
+  // Brazos en Smith
+  ex("Curl de bíceps en Smith", "Brazos", "Bíceps", "Smith", "pull", ["Braquial"], "Codos fijos al costado del torso, curlá hasta los hombros, bajá controlado."),
+  ex("Press cerrado en Smith", "Brazos", "Tríceps", "Smith", "push", ["Pectoral mayor"], "Agarre estrecho, codos cerca del cuerpo, empujá extendiendo completamente."),
+
+  // Piernas en Smith
+  ex("Zancada en Smith", "Piernas", "Cuádriceps", "Smith", "legs", ["Glúteos", "Isquios"], "Paso largo adelante, rodilla trasera casi al suelo, torso erecto, alterna piernas."),
+  ex("Sentadilla frontal en Smith", "Piernas", "Cuádriceps", "Smith", "legs", ["Glúteos"], "Barra en la parte delantera de los hombros, torso erecto, bajá hasta paralelo."),
+  ex("Sentadilla sumo en Smith", "Piernas", "Aductores", "Smith", "legs", ["Cuádriceps", "Glúteos"], "Pies muy abiertos y en punta, rodillas hacia afuera, bajá profundo."),
+  ex("Hip thrust en Smith", "Piernas", "Glúteos", "Smith", "legs", ["Isquios"], "Espalda alta en el banco, barra en la cadera, empujá con el glúteo, pausa arriba."),
+  ex("Peso muerto rumano en Smith", "Piernas", "Isquios", "Smith", "legs", ["Glúteos", "Erectores espinales"], "Rodillas levemente flexionadas, empujá la cadera hacia atrás, espalda neutral."),
+  ex("Elevación de talones en Smith", "Piernas", "Gemelos", "Smith", "legs", ["Sóleo"], "Antepié en el borde de una plataforma, rango completo, pausa arriba y abajo."),
+  ex("Split squat búlgaro en Smith", "Piernas", "Cuádriceps", "Smith", "legs", ["Glúteos", "Isquios"], "Pie trasero elevado en banco, bajá hasta que la rodilla trasera casi toque el suelo."),
+  ex("Good morning en Smith", "Espalda", "Erectores espinales", "Smith", "pull", ["Isquios", "Glúteos"], "Barra en espalda alta, bisagra de cadera con rodillas levemente flexionadas, espalda neutral."),
 ];
 
 // O(1) lookup map built once at module load
