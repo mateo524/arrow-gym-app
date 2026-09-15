@@ -9,7 +9,7 @@ import Icon from "../components/Icon.jsx";
 const MONTH_NAMES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 const DAY_LABELS = ["L","M","X","J","V","S","D"];
 
-function buildMonthCalendar(workouts, year, month, cardioHistory = []) {
+function buildMonthCalendar(workouts, year, month, cardioHistory = [], restDays = []) {
   const dateMap = {};
   for (const w of workouts) {
     if (!w.date) continue;
@@ -18,6 +18,7 @@ function buildMonthCalendar(workouts, year, month, cardioHistory = []) {
     dateMap[key].push(w);
   }
   const cardioDateSet = new Set((cardioHistory || []).map(c => c.date?.slice(0, 10)).filter(Boolean));
+  const restDateSet = new Set((restDays || []).map(r => r.date?.slice(0, 10)).filter(Boolean));
 
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const todayIso = todayLocal();
@@ -33,13 +34,14 @@ function buildMonthCalendar(workouts, year, month, cardioHistory = []) {
     const dayWorkouts = dateMap[iso] || [];
     const setCount = dayWorkouts.reduce((sum, w) => sum + (w.sets?.length || 0), 0);
     const hasCardio = cardioDateSet.has(iso);
+    const isRest = restDateSet.has(iso);
     const count = setCount + (hasCardio && setCount === 0 ? 1 : 0);
     let level = 0;
     if (setCount > 0 && setCount <= 5) level = 1;
     else if (setCount > 5 && setCount <= 15) level = 2;
     else if (setCount > 15) level = 3;
     else if (hasCardio) level = 1;
-    cells.push({ iso, count, level, day: d, isToday: iso === todayIso, workouts: dayWorkouts, hasCardio });
+    cells.push({ iso, count, level, day: d, isToday: iso === todayIso, workouts: dayWorkouts, hasCardio, isRest });
   }
 
   const monthCount = workouts.filter(w => w.date?.startsWith(monthPrefix)).length
@@ -47,8 +49,8 @@ function buildMonthCalendar(workouts, year, month, cardioHistory = []) {
   return { cells, monthCount };
 }
 
-function CalendarMonth({ workouts, year, month, onDayClick, selectedDate, cardioHistory }) {
-  const { cells, monthCount } = useMemo(() => buildMonthCalendar(workouts, year, month, cardioHistory), [workouts, year, month, cardioHistory]);
+function CalendarMonth({ workouts, year, month, onDayClick, selectedDate, cardioHistory, restDays }) {
+  const { cells, monthCount } = useMemo(() => buildMonthCalendar(workouts, year, month, cardioHistory, restDays), [workouts, year, month, cardioHistory, restDays]);
 
   const rows = [];
   for (let i = 0; i < cells.length; i += 7) {
@@ -68,21 +70,33 @@ function CalendarMonth({ workouts, year, month, onDayClick, selectedDate, cardio
       </div>
       {rows.map((row, ri) => (
         <div key={ri} className="cal-grid" style={{ marginBottom: 3 }}>
-          {row.map((cell, ci) =>
-            cell ? (
+          {row.map((cell, ci) => {
+            const isPureCardio = cell && cell.hasCardio && cell.workouts.length === 0;
+            const isRestOnly = cell && cell.isRest && !cell.hasCardio && cell.workouts.length === 0;
+            const extraClass = isPureCardio ? " cal-day-cardio" : isRestOnly ? " cal-day-rest" : "";
+            const dayTitle = cell
+              ? isRestOnly
+                ? `${cell.iso}: Descanso`
+                : isPureCardio
+                  ? `${cell.iso}: Cardio`
+                  : `${cell.iso}: ${cell.count} series`
+              : "";
+            return cell ? (
               <button
                 key={ci}
-                className={`cal-day cal-day-${cell.level}${cell.isToday ? " cal-day-today" : ""}${selectedDate === cell.iso ? " cal-day-selected" : ""}`}
-                onClick={() => cell.workouts.length > 0 ? onDayClick(cell.iso, cell.workouts) : null}
-                title={`${cell.iso}: ${cell.count} series`}
-                style={{ cursor: cell.workouts.length > 0 ? "pointer" : "default", border: "none", padding: 0 }}
+                className={`cal-day cal-day-${cell.level}${extraClass}${cell.isToday ? " cal-day-today" : ""}${selectedDate === cell.iso ? " cal-day-selected" : ""}`}
+                onClick={() => (cell.workouts.length > 0 || cell.hasCardio) ? onDayClick(cell.iso, cell.workouts) : null}
+                title={dayTitle}
+                style={{ cursor: (cell.workouts.length > 0 || cell.hasCardio) ? "pointer" : "default", border: "none", padding: 0 }}
               >
                 <span className="cal-day-num">{cell.day}</span>
+                {isPureCardio && <span style={{ fontSize: 7, fontWeight: 800, color: "var(--cyan)", textTransform: "uppercase", lineHeight: 1, letterSpacing: "0.04em" }}>CD</span>}
+                {isRestOnly && <span style={{ fontSize: 7, fontWeight: 700, color: "var(--muted)", lineHeight: 1 }}>ZZ</span>}
               </button>
             ) : (
               <div key={ci} className="cal-day cal-day-empty" />
-            )
-          )}
+            );
+          })}
         </div>
       ))}
     </div>
@@ -197,7 +211,6 @@ export default function HistoryPage() {
 
       {workouts.length === 0 && (
         <div style={{ textAlign:"center", padding:"48px 24px", color:"var(--muted)" }}>
-          <div style={{ fontSize:48, marginBottom:12 }}>📋</div>
           <p style={{ fontSize:16, fontWeight:600, marginBottom:6, color:"var(--text)" }}>Sin entrenamientos aún</p>
           <p style={{ fontSize:14 }}>Completá tu primer entreno para ver el historial aquí.</p>
         </div>
@@ -246,6 +259,7 @@ export default function HistoryPage() {
           <CalendarMonth
             workouts={workouts}
             cardioHistory={cardioHistory}
+            restDays={restDays}
             year={viewYear}
             month={viewMonth}
             onDayClick={handleDayClick}
@@ -253,7 +267,7 @@ export default function HistoryPage() {
           />
 
           {/* Day detail popup */}
-          {selectedDate && selectedWorkouts.length > 0 && (
+          {selectedDate && (selectedWorkouts.length > 0 || cardioHistory.some(c => c.date?.slice(0, 10) === selectedDate)) && (
             <div className="card" style={{ marginBottom: 14 }}>
               <p className="eyebrow" style={{ marginBottom: 6 }}>{selectedDate}</p>
               {selectedWorkouts.map(w => {
@@ -267,6 +281,22 @@ export default function HistoryPage() {
                     {best && <span style={{ fontSize: 12 }}>{best.exercise} {best.weight}kg×{best.reps}</span>}
                     <strong>{Math.round(getWorkoutVolume(w))} kg</strong>
                   </button>
+                );
+              })}
+              {cardioHistory.filter(c => c.date?.slice(0, 10) === selectedDate).map(c => {
+                const mins = c.duration ? Math.round(c.duration / 60) : null;
+                return (
+                  <div key={c.id || `cardio-${c.date}-${c.sport}`} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 2px", borderTop: selectedWorkouts.length > 0 ? "1px solid var(--line)" : "none" }}>
+                    <div style={{ flex: 1 }}>
+                      <b style={{ fontSize: 13 }}>{c.sportName || c.sport || "Cardio"}</b>
+                      <small style={{ display: "block", color: "var(--muted)" }}>
+                        {mins ? `${mins} min` : ""}
+                        {c.distance ? ` · ${c.distance} km` : ""}
+                        {(c.calories || c.kcal) ? ` · ${c.calories || c.kcal} kcal` : ""}
+                      </small>
+                    </div>
+                    <span style={{ fontSize: 10, fontWeight: 800, color: "var(--cyan)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Cardio</span>
+                  </div>
                 );
               })}
             </div>
@@ -348,10 +378,9 @@ export default function HistoryPage() {
 
               if (entry._type === 'rest') {
                 items.push(
-                  <div key={entry.id} style={{ display:"flex", alignItems:"center", gap:10, background:"var(--panel)", border:"1px solid var(--line)", borderRadius:12, padding:"10px 14px", marginBottom:6, opacity:0.7 }}>
-                    <span style={{ fontSize:18 }}>🌙</span>
+                  <div key={entry.id} style={{ display:"flex", alignItems:"center", gap:10, background:"var(--panel)", border:"1px solid var(--line)", borderLeft:"3px solid var(--muted)", borderRadius:12, padding:"10px 14px", marginBottom:6, opacity:0.65 }}>
                     <div>
-                      <p style={{ margin:0, fontSize:13, fontWeight:600, color:"var(--text)" }}>Día de descanso</p>
+                      <p style={{ margin:0, fontSize:13, fontWeight:600, color:"var(--muted)" }}>Descanso</p>
                       <small style={{ color:"var(--muted)" }}>{formatDate(entry.date)}</small>
                     </div>
                   </div>
@@ -359,10 +388,12 @@ export default function HistoryPage() {
               } else if (entry._type === 'cardio') {
                 const mins = entry.duration ? Math.round(entry.duration / 60) : null;
                 items.push(
-                  <div key={entry.id || `cardio-${entry.date}-${entry.sport}`} style={{ display:"flex", alignItems:"center", gap:10, background:"var(--panel)", border:"1px solid rgba(117,217,255,.2)", borderRadius:12, padding:"10px 14px", marginBottom:6 }}>
-                    <span style={{ fontSize:20 }}>{entry.icon || "🏃"}</span>
+                  <div key={entry.id || `cardio-${entry.date}-${entry.sport}`} style={{ display:"flex", alignItems:"center", gap:10, background:"var(--panel)", border:"1px solid rgba(6,182,212,.2)", borderLeft:"3px solid var(--cyan)", borderRadius:12, padding:"10px 14px", marginBottom:6 }}>
                     <div style={{ flex:1 }}>
-                      <p style={{ margin:"0 0 2px", fontSize:13, fontWeight:700, color:"var(--text)" }}>{entry.sportName || entry.sport || "Cardio"}</p>
+                      <div style={{ display:"flex", alignItems:"baseline", gap:6, marginBottom:2 }}>
+                        <p style={{ margin:0, fontSize:13, fontWeight:700, color:"var(--text)" }}>{entry.sportName || entry.sport || "Cardio"}</p>
+                        <span style={{ fontSize:10, fontWeight:800, color:"var(--cyan)", textTransform:"uppercase", letterSpacing:"0.05em" }}>Cardio</span>
+                      </div>
                       <small style={{ color:"var(--muted)" }}>
                         {formatDate(entry.date)}
                         {mins ? ` · ${mins} min` : ""}
@@ -389,7 +420,7 @@ export default function HistoryPage() {
                             setCompareIds(prev => prev.includes(workout.id) ? prev.filter(id => id !== workout.id) : prev.length < 2 ? [...prev, workout.id] : prev);
                           }}
                         >
-                          {compareIds.includes(workout.id) && <span style={{ color:"#fff", fontSize:12, fontWeight:900 }}>✓</span>}
+                          {compareIds.includes(workout.id) && <span style={{ color:"#fff", fontSize:12, fontWeight:900 }}>+</span>}
                         </div>
                       )}
                       <button
@@ -440,7 +471,7 @@ export default function HistoryPage() {
           <p style={{ fontSize:13, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.05em", margin:"0 0 8px" }}>Cardio</p>
           {cardioHistory.slice(0, 10).map(c => (
             <div key={c.id} style={{ display:"flex", alignItems:"center", gap:10, background:"var(--panel)", border:"1px solid var(--line)", borderRadius:12, padding:"8px 12px", marginBottom:4 }}>
-              <span style={{ fontSize:20 }}>{c.sportIcon || "🏃"}</span>
+              <span style={{ fontSize:13, color:"var(--muted)", fontWeight:700 }}>{c.sportName || c.sport}</span>
               <div style={{ flex:1 }}>
                 <p style={{ margin:0, fontSize:13, fontWeight:600 }}>{c.sportName || c.sport}</p>
                 <p style={{ margin:0, fontSize:11, color:"var(--muted)" }}>

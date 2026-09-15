@@ -12,7 +12,7 @@ export default function WorkoutSharePage({ data }) {
   if (!summary) {
     return (
       <div style={{ minHeight: "100dvh", background: "#050408", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24, textAlign: "center" }}>
-        <div style={{ fontSize: 40, marginBottom: 16 }}>😕</div>
+        <div style={{ fontSize: 16, marginBottom: 16, fontWeight: 700 }}>Enlace inválido</div>
         <p style={{ color: "rgba(255,255,255,.5)", fontSize: 14 }}>Link de entreno inválido o expirado.</p>
         <a href="https://loop-gym.vercel.app" style={{ marginTop: 16, color: "#a855f7", fontWeight: 700, fontSize: 14, textDecoration: "none" }}>Abrir Loop Gym →</a>
       </div>
@@ -30,7 +30,7 @@ export default function WorkoutSharePage({ data }) {
     { label: "Volumen",    value: summary.thisVol ? `${summary.thisVol}kg` : "–" },
     { label: "Series",     value: summary.totalSets ?? "–"  },
     { label: "Ejercicios", value: summary.exercises ?? "–"  },
-    ...(summary.newPRs > 0 ? [{ label: "PRs", value: `⚡ ${summary.newPRs}` }] : []),
+    ...(summary.newPRs > 0 ? [{ label: "PRs", value: `${summary.newPRs}` }] : []),
   ];
 
   return (
@@ -88,7 +88,7 @@ export default function WorkoutSharePage({ data }) {
         {summary.mood && (
           <div style={{ textAlign: "center", marginBottom: 12 }}>
             <span style={{ fontSize: 22 }}>
-              {summary.mood === "tired" ? "😴" : summary.mood === "good" ? "😊" : "💪"}
+              {summary.mood === "tired" ? "Cansado" : summary.mood === "good" ? "Bien" : "Excelente"}
             </span>
             <span style={{ marginLeft: 8, fontSize: 13, color: "rgba(255,255,255,.5)" }}>
               {summary.mood === "tired" ? "Estaba cansado" : summary.mood === "good" ? "Se sintió bien" : "¡Sesión excelente!"}

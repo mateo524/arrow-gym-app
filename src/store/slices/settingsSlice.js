@@ -107,5 +107,9 @@ export const createSettingsSlice = (set, get) => ({
     restDays: [],
     pendingSyncs: [],
     syncStatus: "idle",
+    customKcal: "",
+    userGoal: "mantenimiento",
+    customFoods: [],
+    exerciseRestTimes: {},
   }),
 });

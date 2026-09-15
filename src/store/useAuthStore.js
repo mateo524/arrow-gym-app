@@ -32,9 +32,15 @@ function getCachedProfile(userId) {
 }
 
 function saveCachedProfile(profile) {
+  if (!profile?.id) return;
   try {
-    if (profile?.id) localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(profile));
-  } catch {}
+    localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(profile));
+  } catch (e) {
+    if (e.name === "QuotaExceededError" || e.code === 22) {
+      console.error("[loop-gym] QuotaExceededError: profile cache write skipped (storage full)");
+    }
+    throw e;
+  }
 }
 
 function clearCachedProfile() {
@@ -86,6 +92,19 @@ const useAuthStore = create((set, get) => ({
   },
 
   fetchProfile: async (user) => {
+    // Eagerly detect cross-user switch before the Supabase round-trip so the
+    // new user never briefly sees stale mealLog data from localStorage.
+    try {
+      const raw = localStorage.getItem("loop-gym-v4");
+      const stored = raw ? JSON.parse(raw) : null;
+      const storedLastUserId = stored?.state?.lastUserId;
+      if (storedLastUserId && storedLastUserId !== user.id) {
+        const { default: useStore } = await import("./useStore.js");
+        if (useStore.getState()._rehydrated) {
+          useStore.getState().resetUserData(user.id);
+        }
+      }
+    } catch {}
     try {
       const { data: profile, error } = await supabase
         .from("profiles")
@@ -94,7 +113,7 @@ const useAuthStore = create((set, get) => ({
         .single();
 
       if (profile && !error) {
-        saveCachedProfile(profile);
+        try { saveCachedProfile(profile); } catch { /* best-effort; QuotaExceededError already logged by saveCachedProfile */ }
         set({ profile });
         setAuthProfile(profile);
         try {
@@ -103,16 +122,28 @@ const useAuthStore = create((set, get) => ({
           // Without this, lastUserId and all scalars return their default initial
           // values (undefined / 8 / null) and resetUserData fires on every open,
           // wiping all local data.
+          let rehydrated = false;
           await Promise.race([
             new Promise(resolve => {
-              if (useStore.getState()._rehydrated) return resolve();
+              if (useStore.getState()._rehydrated) { rehydrated = true; return resolve(); }
               const unsub = useStore.subscribe(s => {
-                if (s._rehydrated) { unsub(); resolve(); }
+                if (s._rehydrated) { rehydrated = true; unsub(); resolve(); }
               });
             }),
             new Promise(resolve => setTimeout(resolve, 5000)), // fallback 5s
           ]);
-          const lastUserId = useStore.getState().lastUserId;
+          let lastUserId;
+          if (rehydrated) {
+            lastUserId = useStore.getState().lastUserId;
+          } else {
+            // Timeout fired before rehydration completed — read directly from
+            // localStorage so we never hand a stale undefined to the guard below.
+            try {
+              const raw = localStorage.getItem("loop-gym-v4");
+              const stored = raw ? JSON.parse(raw) : null;
+              lastUserId = stored?.state?.lastUserId;
+            } catch {}
+          }
           if (lastUserId && lastUserId !== user.id) {
             // Only reset if we KNOW a different user was here before
             useStore.getState().resetUserData(user.id);
@@ -173,6 +204,8 @@ const useAuthStore = create((set, get) => ({
     }
     return true;
   },
+
+  cacheProfile: (profile) => { saveCachedProfile(profile); },
 
   logout: async () => {
     clearCachedProfile();

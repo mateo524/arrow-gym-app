@@ -20,8 +20,8 @@ function getMealType() {
   return "Colación";
 }
 
-// Round to max 2 decimal places, return as number
-const r2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
+// Round to max 1 decimal place, return as number (eliminates trailing zeros)
+const r2 = (n) => Math.round((Number(n) || 0) * 10) / 10;
 
 const QUICK_FOODS = [
   { name: "Arroz (100g cocido)",    kcal: 130, protein: 3,  carbs: 28, fat: 0 },
@@ -252,7 +252,10 @@ export default function NutritionPage() {
     return { ...targets, kcal, carbs };
   }, [customKcal, targets]);
 
-  const todayMeals = useMemo(() => mealLog.filter(m => m.date === today), [mealLog, today]);
+  const todayMeals = useMemo(() => {
+    const uid = profile?.id;
+    return mealLog.filter(m => m.date === today && (!uid || m.user_id === uid));
+  }, [mealLog, today, profile]);
   const todayTotals = useMemo(() => {
     const raw = todayMeals.reduce((s,m) => ({
       kcal:    s.kcal    + (Number(m.kcal)    || 0),
@@ -265,15 +268,16 @@ export default function NutritionPage() {
 
   // Last 7 days avg
   const weekAvg = useMemo(() => {
+    const uid = profile?.id;
     const days = Array.from({length:7},(_,i) => {
       const d = new Date(); d.setDate(d.getDate()-i);
       const offset = d.getTimezoneOffset() * 60000;
       return new Date(d - offset).toISOString().slice(0,10);
     });
-    const dayTotals = days.map(d => mealLog.filter(m => m.date===d).reduce((s,m) => s+(Number(m.kcal)||0), 0));
+    const dayTotals = days.map(d => mealLog.filter(m => m.date===d && (!uid || m.user_id === uid)).reduce((s,m) => s+(Number(m.kcal)||0), 0));
     const filled = dayTotals.filter(v => v > 0);
     return filled.length ? Math.round(filled.reduce((a,b) => a+b, 0) / filled.length) : 0;
-  }, [mealLog]);
+  }, [mealLog, profile]);
 
   function resetForm() {
     setForm({ type:getMealType(), name:"", kcal:"", protein:"", carbs:"", fat:"", grams:"" });
@@ -305,7 +309,7 @@ export default function NutritionPage() {
         carbs: r2(form.carbs),
         fat: r2(form.fat),
       });
-      window.__showToast?.("Guardada para futuros usos ✓", "success");
+      window.__showToast?.("Guardada para futuros usos", "success");
     }
     resetForm();
     setSaving(false);
@@ -329,7 +333,6 @@ export default function NutritionPage() {
   if (isLocked) {
     return (
       <section className="page" style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", textAlign:"center", padding:"48px 24px" }}>
-        <span style={{ fontSize:56, marginBottom:16 }}>🥗</span>
         <h2 style={{ margin:"0 0 8px", fontSize:22 }}>Nutrición</h2>
         <p style={{ color:"var(--muted)", fontSize:14, marginBottom:28, maxWidth:280 }}>
           Registrá tus comidas, seguí tus macros y recibí recomendaciones adaptadas a tu objetivo.
@@ -427,7 +430,7 @@ export default function NutritionPage() {
               {savedCombos.map(c => (
                 <button key={c.id} onClick={() => { logMealCombo(c.id); window.__showToast?.(`${c.name} registrado`, "success"); }}
                   style={{ flexShrink:0, background:"var(--panel)", border:"1px solid var(--line)", borderRadius:12, padding:"8px 14px", fontSize:13, fontWeight:600, cursor:"pointer", color:"var(--text)", whiteSpace:"nowrap" }}>
-                  🍽 {c.name}
+                  {c.name}
                 </button>
               ))}
             </div>
@@ -438,7 +441,6 @@ export default function NutritionPage() {
         <p className="section-label">Comidas de hoy</p>
         {todayMeals.length === 0 ? (
           <div style={{ textAlign:"center", padding:"28px 16px", color:"var(--muted)", fontSize:13 }}>
-            <div style={{ fontSize:32, marginBottom:8 }}>🍽</div>
             Todavía no registraste nada hoy
           </div>
         ) : (
@@ -508,7 +510,6 @@ export default function NutritionPage() {
 
         if (dates.length === 0) return (
           <div style={{ textAlign:"center", padding:40, color:"var(--muted)" }}>
-            <p style={{ fontSize:32, margin:"0 0 12px" }}>📊</p>
             <p style={{ margin:0 }}>Sin historial todavía. Comenzá registrando tus comidas.</p>
           </div>
         );
@@ -861,16 +862,15 @@ export default function NutritionPage() {
         <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:16, padding:"16px", marginBottom:14 }}>
           <div style={{ fontSize:13, fontWeight:700, marginBottom:10 }}>Distribución diaria sugerida</div>
           {[
-            { name:"Desayuno", pct:0.25, icon:"🌅", hint:"Carbos + proteína para arrancar" },
-            { name:"Almuerzo", pct:0.35, icon:"☀️", hint:"La comida más completa del día" },
-            { name:"Merienda", pct:0.15, icon:"🍎", hint:"Snack pre/post entreno" },
-            { name:"Cena",     pct:0.25, icon:"🌙", hint:"Proteína + vegetales, menos carbos" },
+            { name:"Desayuno", pct:0.25, icon:"", hint:"Carbos + proteína para arrancar" },
+            { name:"Almuerzo", pct:0.35, icon:"", hint:"La comida más completa del día" },
+            { name:"Merienda", pct:0.15, icon:"", hint:"Snack pre/post entreno" },
+            { name:"Cena",     pct:0.25, icon:"", hint:"Proteína + vegetales, menos carbos" },
           ].map(({ name, pct, icon, hint }) => {
             const kcal  = Math.round(effectiveKcal * pct);
             const prot  = Math.round(effectiveTargets.protein * pct);
             return (
               <div key={name} style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 0", borderBottom:"1px solid var(--line)" }}>
-                <span style={{ fontSize:22, width:28, textAlign:"center", flexShrink:0 }}>{icon}</span>
                 <div style={{ flex:1 }}>
                   <div style={{ fontSize:13, fontWeight:700 }}>{name}</div>
                   <div style={{ fontSize:11, color:"var(--muted)" }}>{hint}</div>
@@ -944,7 +944,7 @@ export default function NutritionPage() {
               <div style={{ display:"flex", gap:8 }}>
                 <input
                   className="input"
-                  placeholder="🔍 Buscar alimento (ej: pollo, manzana, arroz…)"
+                  placeholder="Buscar alimento (ej: pollo, manzana, arroz…)"
                   value={dbQuery}
                   onChange={e => handleDbSearch(e.target.value)}
                   style={{ flex:1, boxSizing:"border-box" }}
@@ -1099,7 +1099,7 @@ export default function NutritionPage() {
               <div style={{ position:"relative", marginBottom:4 }}>
                 <input
                   className="input"
-                  placeholder="🔍 Buscar y agregar alimento…"
+                  placeholder="Buscar y agregar alimento…"
                   value={comboDbQuery}
                   onChange={e => {
                     const q = e.target.value;

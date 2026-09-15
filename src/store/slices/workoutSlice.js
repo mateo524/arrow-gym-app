@@ -429,8 +429,8 @@ export const createWorkoutSlice = (set, get) => ({
       sets: active.sets
         .filter((s) => {
           const isBodyweight = s.equipment === "Peso corporal" || s.equipment === "Bodyweight" || s.bodyweight === true;
-          const hasWeight = s.weight !== "" && s.weight !== null;
-          return s.exercise && (hasWeight || isBodyweight) && (s.reps !== "" && s.reps !== null) && Number(s.reps) > 0;
+          const hasWeight = Number(s.weight) > 0;
+          return s.exercise && (hasWeight || isBodyweight) && Number(s.reps) > 0;
         })
         .map(normalizeSet),
     };

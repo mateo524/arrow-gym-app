@@ -100,7 +100,7 @@ export default function CountdownTimer({ defaultSeconds = 60, onComplete, setInd
         </svg>
         <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center" }}>
           <span style={{ fontSize:32, fontWeight:900, fontVariantNumeric:"tabular-nums", color: done ? "#22d37a" : "var(--text)", letterSpacing:-1 }}>
-            {done ? "✓" : fmt(remaining)}
+            {done ? "Listo" : fmt(remaining)}
           </span>
           {!done && <span style={{ fontSize:11, color:"var(--muted)" }}>de {fmt(duration)}</span>}
         </div>

@@ -57,7 +57,6 @@ export default function CoachPage() {
   if (profile && (profile.coach_enabled === false)) {
     return (
       <section className="page" style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", textAlign:"center", padding:"48px 24px" }}>
-        <span style={{ fontSize:56, marginBottom:16 }}>⏸️</span>
         <h2 style={{ margin:"0 0 8px", fontSize:22 }}>Coach pausado</h2>
         <p style={{ color:"var(--muted)", fontSize:14, marginBottom:28, maxWidth:280 }}>
           Las sugerencias del coach están desactivadas. Activalas desde Configuración cuando quieras.
@@ -278,7 +277,7 @@ export default function CoachPage() {
       } else if (bodyFatPct > bfModThresh) {
         alerts.push({ type: "bodyfat_mod", msg: `% grasa moderadamente elevado (${bodyFatPct.toFixed(1)}%). Considerá una fase de definición con déficit conservador (300 kcal/día) para llegar al rango óptimo (15-20% hombres, 22-28% mujeres) antes de un ciclo de volumen.` });
       } else if (bodyFatPct < bfEssential) {
-        alerts.push({ type: "bodyfat_critical", msg: `⚠️ % grasa crítico (${bodyFatPct.toFixed(1)}%). Por debajo de la grasa esencial (5% hombres, 10% mujeres). Riesgo serio de disfunción hormonal, amenorrea e inmunodepresión (Friedl et al. 1994). Aumentá calorías de inmediato.` });
+        alerts.push({ type: "bodyfat_critical", msg: `% grasa crítico (${bodyFatPct.toFixed(1)}%). Por debajo de la grasa esencial (5% hombres, 10% mujeres). Riesgo serio de disfunción hormonal, amenorrea e inmunodepresión (Friedl et al. 1994). Aumentá calorías de inmediato.` });
       } else if (bodyFatPct < bfLowRisk) {
         alerts.push({ type: "bodyfat_low", msg: `% grasa muy bajo (${bodyFatPct.toFixed(1)}%). Valores <8% en hombres (<14% mujeres) pueden comprometer testosterona y rendimiento (Friedl et al. 1994). Priorizar calorías suficientes y proteína =2g/kg.` });
       }
@@ -414,7 +413,7 @@ export default function CoachPage() {
       const minW = Math.min(...weights);
       // Signal 1: consistently high RPE with no weight gain = stuck at ceiling
       if (highRPE >= 3 && maxW === minW) {
-        alerts.push({ exercise: ex, rpe: recent[0].rpe, msg: `📉 ${ex}: RPE 9+ en ${highRPE} sesiones sin subir peso (${maxW}kg). Considerá una semana de menor intensidad antes de progresar.` });
+        alerts.push({ exercise: ex, rpe: recent[0].rpe, msg: `${ex}: RPE 9+ en ${highRPE} sesiones sin subir peso (${maxW}kg). Considerá una semana de menor intensidad antes de progresar.` });
       }
       // Signal 2: RPE trending up while weight constant or only slightly up — efficiency declining
       if (recent.length >= 4) {
@@ -426,7 +425,7 @@ export default function CoachPage() {
         const weightRise = lateW - earlyW;
         // RPE went up >=1.5 points but weight barely moved (<5% increase)
         if (rpeRise >= 1.5 && weightRise < earlyW * 0.05 && lateRPE >= 8) {
-          alerts.push({ exercise: ex, rpe: Math.round(lateRPE * 10) / 10, msg: `⚠️ ${ex}: RPE subió ${rpeRise.toFixed(1)} puntos sin ganancia de carga (${earlyW.toFixed(1)}→${lateW.toFixed(1)}kg). Tu eficiencia bajó — es señal de fatiga acumulada.` });
+          alerts.push({ exercise: ex, rpe: Math.round(lateRPE * 10) / 10, msg: `${ex}: RPE subió ${rpeRise.toFixed(1)} puntos sin ganancia de carga (${earlyW.toFixed(1)}→${lateW.toFixed(1)}kg). Tu eficiencia bajó — es señal de fatiga acumulada.` });
         }
       }
     });
@@ -472,7 +471,7 @@ export default function CoachPage() {
     // Tip mejorado con datos de sueño
     const sleepHours = todaySleep?.hours || 0;
     const sleepTip = sleepHours > 0 && sleepHours < 6
-      ? ` 😴 Dormiste ${sleepHours}h — síntesis proteica reducida ~18% (PMC12610528). Bajá el RPE objetivo 1-2 puntos.`
+      ? ` Dormiste ${sleepHours}h — síntesis proteica reducida ~18% (PMC12610528). Bajá el RPE objetivo 1-2 puntos.`
       : sleepHours >= 6 && sleepHours < 7 ? " Dormiste algo menos de lo ideal (7-9h recomendadas)." : "";
     const tip   = (score >= 80 ? "Ideal para entrenar fuerte hoy." : score >= 60 ? "Buen estado — entrenamiento normal." : score >= 40 ? "Reducé el volumen un 15-20% hoy." : "Priorizá recuperación — descanso activo o día libre.") + sleepTip;
     return { score, label, color, tip };
@@ -659,7 +658,7 @@ export default function CoachPage() {
             </div>
           )}
 
-          {/* 📊 Análisis avanzado (colapsable) */}
+          {/* Análisis avanzado (colapsable) */}
           <button onClick={() => setShowAdvanced(s => !s)}
             style={{ width:"100%", padding:"8px", borderRadius:10, border:"1px solid var(--line)", background:"var(--panel)", cursor:"pointer", fontSize:12, fontWeight:600, color:"var(--muted)", marginBottom:12 }}>
             {showAdvanced ? <><Icon name="ChevronUp" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> Ocultar análisis avanzado</> : <><Icon name="ChevronDown" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> Ver análisis avanzado</>}
@@ -748,7 +747,7 @@ export default function CoachPage() {
                     onClick={async () => {
                       const volStr = totalVol >= 1000000 ? (totalVol/1000000).toFixed(1)+"M" : totalVol >= 1000 ? (totalVol/1000).toFixed(0)+"k" : String(totalVol);
                       const prsCount = (prs||[]).filter(p=>(p.date||"").startsWith(String(year))).length;
-                      const text = `🏆 Mi ${year} en Loop Gym:\n💪 ${yearWorkouts.length} entrenamientos\n🥇 ${prsCount} PRs nuevos\n📊 ${volStr}kg de volumen\n🔥 Ejercicio favorito: ${topEx?.[0] || "–"}\n\nDescargá Loop Gym 🏋️ loop-gym.vercel.app`;
+                      const text = `Mi ${year} en Loop Gym:\n${yearWorkouts.length} entrenamientos\n${prsCount} PRs nuevos\n${volStr}kg de volumen\nEjercicio favorito: ${topEx?.[0] || "–"}\n\nDescargá Loop Gym: loop-gym.vercel.app`;
                       try {
                         if (navigator.share) {
                           await navigator.share({ text });
@@ -1303,7 +1302,7 @@ export default function CoachPage() {
                 // Water
                 if (waterAvg !== null && waterGoal) {
                   const ok = waterAvg >= waterGoal;
-                  insights.push({ icon:"Droplet", text:`Agua: ${waterAvg.toFixed(0)}/${waterGoal} vasos${ok ? " ✓" : ""}`, color:ok ? "var(--green)" : "#f59e0b" });
+                  insights.push({ icon:"Droplet", text:`Agua: ${waterAvg.toFixed(0)}/${waterGoal} vasos${ok ? " OK" : ""}`, color:ok ? "var(--green)" : "#f59e0b" });
                 }
                 // Body composition
                 if (bodyFatPct !== null && lbm !== null) {

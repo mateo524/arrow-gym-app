@@ -17,7 +17,6 @@ export default function HealthSyncPage() {
       </div>
 
       <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"60px 24px", textAlign:"center", flex:1 }}>
-        <div style={{ fontSize:64, marginBottom:20 }}>🔌</div>
         <h2 style={{ margin:"0 0 8px", fontSize:20, fontWeight:800 }}>Próximamente</h2>
         <p style={{ color:"var(--muted)", fontSize:14, lineHeight:1.6, margin:"0 0 4px", maxWidth:320 }}>
           Estamos trabajando en la integración nativa con Apple Health y Google Fit.

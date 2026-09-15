@@ -36,7 +36,7 @@ export default function SyncChip() {
         </>
       )}
       {syncStatus === "saved" && <>&#10003; Guardado</>}
-      {syncStatus === "error"  && <>⚠ Sin conexión</>}
+      {syncStatus === "error"  && <>Sin conexión</>}
     </span>
   );
 }

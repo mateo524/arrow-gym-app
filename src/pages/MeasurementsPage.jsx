@@ -7,6 +7,16 @@ import { todayLocal } from "../lib/dates.js";
 import { formatDate } from "../lib/analytics.js";
 import Icon from "../components/Icon.jsx";
 
+function calcDurninWomersleyPct(tri, sub, bic, ili, age) {
+  const sum4 = tri + sub + bic + ili;
+  const logSum = Math.log10(sum4);
+  const density = age >= 30
+    ? 1.1581 - 0.0720 * logSum
+    : 1.1620 - 0.0630 * logSum;
+  const pct = ((4.95 / density) - 4.5) * 100;
+  return { pct: Math.round(pct * 10) / 10, sum4: Math.round(sum4) };
+}
+
 function calcAge(dob) {
   if (!dob) return null;
   const d = new Date(dob + "T12:00:00");
@@ -149,6 +159,13 @@ function WeightChart({ data }) {
   );
 }
 
+const withTimeout = (promise, ms = 8000) => {
+  const timeout = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error("timeout")), ms)
+  );
+  return Promise.race([promise, timeout]);
+};
+
 export default function MeasurementsPage() {
   const setPage = useStore((s) => s.setPage);
   const logWeight = useStore((s) => s.logWeight);
@@ -185,25 +202,14 @@ export default function MeasurementsPage() {
   // Pliegues
   const [editPliegues, setEditPliegues] = useState(false);
   const [plieguesMsg, setPlieguesMsg] = useState("");
-  const [triceps, setTriceps] = useState("");
-  const [subscapular, setSubscapular] = useState("");
-  const [biceps, setBiceps] = useState("");
-  const [iliacCrest, setIliacCrest] = useState("");
-  const [supraspinal, setSupraspinal] = useState("");
-  const [abdominal, setAbdominal] = useState("");
-  const [frontThigh, setFrontThigh] = useState("");
-  const [medialCalf, setMedialCalf] = useState("");
+  const [plieguesFields, setPlieguesFields] = useState({ triceps: "", subscapular: "", biceps: "", iliacCrest: "", supraspinal: "", abdominal: "", frontThigh: "", medialCalf: "" });
+  const setPlieguesField = (k, v) => setPlieguesFields(f => ({ ...f, [k]: v }));
 
   // Perímetros
   const [editPerimetros, setEditPerimetros] = useState(false);
   const [perimetrosMsg, setPerimetrosMsg] = useState("");
-  const [armRelaxed, setArmRelaxed] = useState("");
-  const [armFlexed, setArmFlexed] = useState("");
-  const [waist, setWaist] = useState("");
-  const [hip, setHip] = useState("");
-  const [calfPer, setCalfPer] = useState("");
-  const [humerus, setHumerus] = useState("");
-  const [femur, setFemur] = useState("");
+  const [perimetrosFields, setPerimetrosFields] = useState({ armRelaxed: "", armFlexed: "", waist: "", hip: "", calfPer: "", humerus: "", femur: "" });
+  const setPerimetrosField = (k, v) => setPerimetrosFields(f => ({ ...f, [k]: v }));
 
   // Hidratación
   const waterLog = useStore(s => s.waterLog) || [];
@@ -217,13 +223,13 @@ export default function MeasurementsPage() {
   const [todaySleep, setTodaySleep] = useState("");
   const todaySleepEntry = sleepLog.find(e => e.date === todayLocal());
 
-  // Historial de circunferencias (localStorage)
-  const [measHistory, setMeasHistory] = useState(() => {
-    try { return JSON.parse(localStorage.getItem("pulse-meas-history") || "[]"); }
-    catch { return []; }
-  });
+  // Historial de circunferencias (Zustand, goes through safeSetItem quota guard)
+  const _allMeasHistory = useStore(s => s.measurementsHistory) || [];
 
   const uid = profile?.id || user?.id;
+  // Filter history to current user only; legacy entries without user_id are excluded to
+  // prevent cross-account data leaks on shared devices.
+  const measHistory = _allMeasHistory.filter(e => uid && e.user_id === uid);
 
   // Computed age from stored DOB
   const storedDob = profile?.date_of_birth;
@@ -247,17 +253,11 @@ export default function MeasurementsPage() {
     const sub = Number(profile?.subscapular_mm);
     const bic = Number(profile?.biceps_mm);
     const ili = Number(profile?.iliac_crest_mm);
-    const age = Number(profile?.age);
+    const age = profile?.date_of_birth ? calcAge(profile.date_of_birth) : (Number(profile?.age) || 25);
     if (!tri || !sub || !bic || !ili) return null;
-    const sum4 = tri + sub + bic + ili;
-    const logSum = Math.log10(sum4);
-    // Durnin-Womersley constants (male, simplified for 17-29 y.o.)
-    const density = age && age >= 30
-      ? 1.1581 - 0.0720 * logSum   // 30-39
-      : 1.1620 - 0.0630 * logSum;  // 17-29 default
-    const pct = ((4.95 / density) - 4.5) * 100;
+    const { pct, sum4 } = calcDurninWomersleyPct(tri, sub, bic, ili, age);
     const category = pct < 10 ? "Muy magro" : pct < 15 ? "Atlético" : pct < 20 ? "Buena forma" : pct < 25 ? "Normal" : "Por encima de lo óptimo";
-    return { pct: Math.round(pct * 10) / 10, sum4: Math.round(sum4), category };
+    return { pct, sum4, category };
   }, [profile]);
 
   function openBasico() {
@@ -281,27 +281,30 @@ export default function MeasurementsPage() {
     }
     if (!Object.keys(payload).length) { setBasicoMsg("Ingresá al menos un valor."); return; }
     setBasicoMsg("Guardando…");
-    const { error } = await supabase.from("profiles").update(payload).eq("id", uid);
-    if (error) {
-      setBasicoMsg("Error: " + error.message);
-    } else {
+    try {
+      const { error } = await withTimeout(supabase.from("profiles").update(payload).eq("id", uid));
+      if (error) { setBasicoMsg("Error: " + error.message); return; }
       const updated = { ...(useAuthStore.getState().profile || { id: uid }), ...payload };
       useAuthStore.setState({ profile: updated });
-      try { localStorage.setItem("loop-gym-profile-v1", JSON.stringify(updated)); } catch {}
+      try { useAuthStore.getState().cacheProfile(updated); } catch { /* localStorage lleno — guardado en servidor OK */ }
       setBasicoMsg("✓ Guardado");
       setTimeout(() => { setEditBasico(false); setBasicoMsg(""); }, 1400);
+    } catch (err) {
+      setBasicoMsg("Error: " + (err.message === "timeout" ? "tiempo agotado" : err.message));
     }
   }
 
   function openPliegues() {
-    setTriceps(String(profile?.triceps_mm || ""));
-    setSubscapular(String(profile?.subscapular_mm || ""));
-    setBiceps(String(profile?.biceps_mm || ""));
-    setIliacCrest(String(profile?.iliac_crest_mm || ""));
-    setSupraspinal(String(profile?.supraspinal_mm || ""));
-    setAbdominal(String(profile?.abdominal_mm || ""));
-    setFrontThigh(String(profile?.front_thigh_mm || ""));
-    setMedialCalf(String(profile?.medial_calf_mm || ""));
+    setPlieguesFields({
+      triceps: String(profile?.triceps_mm || ""),
+      subscapular: String(profile?.subscapular_mm || ""),
+      biceps: String(profile?.biceps_mm || ""),
+      iliacCrest: String(profile?.iliac_crest_mm || ""),
+      supraspinal: String(profile?.supraspinal_mm || ""),
+      abdominal: String(profile?.abdominal_mm || ""),
+      frontThigh: String(profile?.front_thigh_mm || ""),
+      medialCalf: String(profile?.medial_calf_mm || ""),
+    });
     setPlieguesMsg("");
     setEditPliegues(true);
   }
@@ -309,6 +312,7 @@ export default function MeasurementsPage() {
   async function savePliegues(e) {
     e.preventDefault();
     if (!uid) { setPlieguesMsg("Error: sesión no válida"); return; }
+    const { triceps, subscapular, biceps, iliacCrest, supraspinal, abdominal, frontThigh, medialCalf } = plieguesFields;
     const payload = {};
     if (triceps)     payload.triceps_mm     = toNum(triceps);
     if (subscapular) payload.subscapular_mm = toNum(subscapular);
@@ -320,43 +324,51 @@ export default function MeasurementsPage() {
     if (medialCalf)  payload.medial_calf_mm = toNum(medialCalf);
     if (!Object.keys(payload).length) { setPlieguesMsg("Ingresá al menos un valor."); return; }
     setPlieguesMsg("Guardando…");
-    const { error } = await supabase.from("profiles").update(payload).eq("id", uid);
-    if (error) {
-      setPlieguesMsg("Error: " + error.message);
-    } else {
+    try {
+      const { error } = await withTimeout(supabase.from("profiles").update(payload).eq("id", uid));
+      if (error) { setPlieguesMsg("Error: " + error.message); return; }
+    } catch (err) {
+      setPlieguesMsg("Error: " + (err.message === "timeout" ? "tiempo agotado" : err.message));
+      return;
+    }
+    {
       const updated = { ...(useAuthStore.getState().profile || { id: uid }), ...payload };
       useAuthStore.setState({ profile: updated });
-      try { localStorage.setItem("loop-gym-profile-v1", JSON.stringify(updated)); } catch {}
+      try {
+        useAuthStore.getState().cacheProfile(updated);
+      } catch {
+        // localStorage lleno — el perfil ya se actualizó en Supabase; continuamos para guardar measurements_log
+      }
       // Calcular % grasa y guardar historial en measurements_log
       const tri = toNum(payload.triceps_mm ?? updated.triceps_mm);
       const sub = toNum(payload.subscapular_mm ?? updated.subscapular_mm);
       const bic = toNum(payload.biceps_mm ?? updated.biceps_mm);
       const ili = toNum(payload.iliac_crest_mm ?? updated.iliac_crest_mm);
-      const age = updated.age || 25;
+      const age = updated.date_of_birth ? calcAge(updated.date_of_birth) : (Number(updated.age) || 25);
       let bf = null;
       if (tri && sub && bic && ili) {
-        const sum4 = tri + sub + bic + ili;
-        const logSum = Math.log10(sum4);
-        const density = age >= 30 ? 1.1581 - 0.0720 * logSum : 1.1620 - 0.0630 * logSum;
-        bf = Math.round(((4.95 / density) - 4.5) * 100 * 10) / 10;
+        bf = calcDurninWomersleyPct(tri, sub, bic, ili, age).pct;
       }
       const logEntry = { user_id: uid, date: todayLocal(), ...payload };
       if (bf !== null) logEntry.body_fat_pct = bf;
       if (updated.weight_kg) logEntry.weight_kg = Number(updated.weight_kg);
       supabase.from("measurements_log").upsert(logEntry, { onConflict: "user_id,date" }).catch(() => {});
+      useStore.getState().saveMeasHistoryEntry(logEntry);
       setPlieguesMsg("✓ Pliegues guardados");
       setTimeout(() => { setEditPliegues(false); setPlieguesMsg(""); }, 1400);
     }
   }
 
   function openPerimetros() {
-    setArmRelaxed(String(profile?.arm_relaxed_cm || ""));
-    setArmFlexed(String(profile?.arm_flexed_cm || ""));
-    setWaist(String(profile?.waist_cm || ""));
-    setHip(String(profile?.hip_cm || ""));
-    setCalfPer(String(profile?.calf_cm || ""));
-    setHumerus(String(profile?.humerus_cm || ""));
-    setFemur(String(profile?.femur_cm || ""));
+    setPerimetrosFields({
+      armRelaxed: String(profile?.arm_relaxed_cm || ""),
+      armFlexed: String(profile?.arm_flexed_cm || ""),
+      waist: String(profile?.waist_cm || ""),
+      hip: String(profile?.hip_cm || ""),
+      calfPer: String(profile?.calf_cm || ""),
+      humerus: String(profile?.humerus_cm || ""),
+      femur: String(profile?.femur_cm || ""),
+    });
     setPerimetrosMsg("");
     setEditPerimetros(true);
   }
@@ -364,6 +376,7 @@ export default function MeasurementsPage() {
   async function savePerimetros(e) {
     e.preventDefault();
     if (!uid) { setPerimetrosMsg("Error: sesión no válida"); return; }
+    const { armRelaxed, armFlexed, waist, hip, calfPer, humerus, femur } = perimetrosFields;
     const payload = {};
     if (armRelaxed) payload.arm_relaxed_cm = toNum(armRelaxed);
     if (armFlexed)  payload.arm_flexed_cm  = toNum(armFlexed);
@@ -374,25 +387,26 @@ export default function MeasurementsPage() {
     if (femur)      payload.femur_cm       = toNum(femur);
     if (!Object.keys(payload).length) { setPerimetrosMsg("Ingresá al menos un valor."); return; }
     setPerimetrosMsg("Guardando…");
-    const { error } = await supabase.from("profiles").update(payload).eq("id", uid);
-    if (error) {
-      setPerimetrosMsg("Error: " + error.message);
-    } else {
-      const updated = { ...(useAuthStore.getState().profile || { id: uid }), ...payload };
-      useAuthStore.setState({ profile: updated });
-      try { localStorage.setItem("loop-gym-profile-v1", JSON.stringify(updated)); } catch {}
-      // Guardar en measurements_log (historial en Supabase)
-      supabase.from("measurements_log").upsert({ user_id: uid, date: todayLocal(), ...payload }, { onConflict: "user_id,date" }).catch(() => {});
-      // Guardar en historial local de circunferencias
-      const today = todayLocal();
-      setMeasHistory(prev => {
-        const next = [{ date: today, ...payload }, ...prev.filter(e => e.date !== today)].slice(0, 60);
-        try { localStorage.setItem("pulse-meas-history", JSON.stringify(next)); } catch {}
-        return next;
-      });
-      setPerimetrosMsg("✓ Guardado");
-      setTimeout(() => { setEditPerimetros(false); setPerimetrosMsg(""); }, 1400);
+    try {
+      const { error } = await withTimeout(supabase.from("profiles").update(payload).eq("id", uid));
+      if (error) { setPerimetrosMsg("Error: " + error.message); return; }
+    } catch (err) {
+      setPerimetrosMsg("Error: " + (err.message === "timeout" ? "tiempo agotado" : err.message));
+      return;
     }
+    const updated = { ...(useAuthStore.getState().profile || { id: uid }), ...payload };
+    useAuthStore.setState({ profile: updated });
+    try {
+      useAuthStore.getState().cacheProfile(updated);
+    } catch {
+      // localStorage lleno — el perfil ya se actualizó en Supabase; continuamos para guardar measurements_log
+    }
+    // Guardar en measurements_log (historial en Supabase)
+    supabase.from("measurements_log").upsert({ user_id: uid, date: todayLocal(), ...payload }, { onConflict: "user_id,date" }).catch(() => {});
+    // Guardar historial local de circunferencias via Zustand (safeSetItem quota guard)
+    useStore.getState().saveMeasHistoryEntry({ user_id: uid, date: todayLocal(), ...payload });
+    setPerimetrosMsg("✓ Guardado");
+    setTimeout(() => { setEditPerimetros(false); setPerimetrosMsg(""); }, 1400);
   }
 
   return (
@@ -459,7 +473,7 @@ export default function MeasurementsPage() {
                   const newWeight = toNum(todayKg);
                   const updated = { ...(useAuthStore.getState().profile || { id: uid }), weight_kg: newWeight };
                   useAuthStore.setState({ profile: updated });
-                  try { localStorage.setItem("loop-gym-profile-v1", JSON.stringify(updated)); } catch {}
+                  try { useAuthStore.getState().cacheProfile(updated); } catch { /* localStorage lleno — Supabase sync continúa igual */ }
                   supabase.from("profiles").update({ weight_kg: newWeight }).eq("id", uid).catch(() => {});
                 }
               }}>
@@ -694,18 +708,18 @@ export default function MeasurementsPage() {
               <form onSubmit={savePliegues} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                   {[
-                    { label: "Tríceps (mm)", val: triceps, set: setTriceps },
-                    { label: "Subescapular (mm)", val: subscapular, set: setSubscapular },
-                    { label: "Bíceps (mm)", val: biceps, set: setBiceps },
-                    { label: "Cresta ilíaca (mm)", val: iliacCrest, set: setIliacCrest },
-                    { label: "Supraspinal (mm)", val: supraspinal, set: setSupraspinal },
-                    { label: "Abdominal (mm)", val: abdominal, set: setAbdominal },
-                    { label: "Muslo anterior (mm)", val: frontThigh, set: setFrontThigh },
-                    { label: "Pantorrilla medial (mm)", val: medialCalf, set: setMedialCalf },
-                  ].map(({ label, val, set }) => (
+                    { label: "Tríceps (mm)", k: "triceps" },
+                    { label: "Subescapular (mm)", k: "subscapular" },
+                    { label: "Bíceps (mm)", k: "biceps" },
+                    { label: "Cresta ilíaca (mm)", k: "iliacCrest" },
+                    { label: "Supraspinal (mm)", k: "supraspinal" },
+                    { label: "Abdominal (mm)", k: "abdominal" },
+                    { label: "Muslo anterior (mm)", k: "frontThigh" },
+                    { label: "Pantorrilla medial (mm)", k: "medialCalf" },
+                  ].map(({ label, k }) => (
                     <label key={label} style={fieldGroupStyle}>
                       {label}
-                      <input inputMode="decimal" value={val} onChange={(e) => set(e.target.value)} placeholder="mm" style={inputStyle} />
+                      <input inputMode="decimal" value={plieguesFields[k]} onChange={(e) => setPlieguesField(k, e.target.value)} placeholder="mm" style={inputStyle} />
                     </label>
                   ))}
                 </div>
@@ -826,27 +840,27 @@ export default function MeasurementsPage() {
                 <p style={{ fontSize: 11, color: "var(--muted)", margin: 0, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Perímetros</p>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                   {[
-                    { label: "Brazo relajado (cm)", val: armRelaxed, set: setArmRelaxed },
-                    { label: "Brazo contraído (cm)", val: armFlexed, set: setArmFlexed },
-                    { label: "Cintura (cm)", val: waist, set: setWaist },
-                    { label: "Caderas (cm)", val: hip, set: setHip },
-                    { label: "Pantorrilla (cm)", val: calfPer, set: setCalfPer },
-                  ].map(({ label, val, set }) => (
+                    { label: "Brazo relajado (cm)", k: "armRelaxed" },
+                    { label: "Brazo contraído (cm)", k: "armFlexed" },
+                    { label: "Cintura (cm)", k: "waist" },
+                    { label: "Caderas (cm)", k: "hip" },
+                    { label: "Pantorrilla (cm)", k: "calfPer" },
+                  ].map(({ label, k }) => (
                     <label key={label} style={fieldGroupStyle}>
                       {label}
-                      <input inputMode="decimal" value={val} onChange={(e) => set(e.target.value)} placeholder="cm" style={inputStyle} />
+                      <input inputMode="decimal" value={perimetrosFields[k]} onChange={(e) => setPerimetrosField(k, e.target.value)} placeholder="cm" style={inputStyle} />
                     </label>
                   ))}
                 </div>
                 <p style={{ fontSize: 11, color: "var(--muted)", margin: "4px 0 0", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Diámetros</p>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                   {[
-                    { label: "Húmero (cm)", val: humerus, set: setHumerus },
-                    { label: "Fémur (cm)", val: femur, set: setFemur },
-                  ].map(({ label, val, set }) => (
+                    { label: "Húmero (cm)", k: "humerus" },
+                    { label: "Fémur (cm)", k: "femur" },
+                  ].map(({ label, k }) => (
                     <label key={label} style={fieldGroupStyle}>
                       {label}
-                      <input inputMode="decimal" value={val} onChange={(e) => set(e.target.value)} placeholder="cm" style={inputStyle} />
+                      <input inputMode="decimal" value={perimetrosFields[k]} onChange={(e) => setPerimetrosField(k, e.target.value)} placeholder="cm" style={inputStyle} />
                     </label>
                   ))}
                 </div>

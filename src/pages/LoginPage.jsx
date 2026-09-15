@@ -7,11 +7,11 @@ const MAX_ATTEMPTS = 5;
 const COOLDOWN_MS = 30_000;
 const LS_KEY = "pulse-login-attempts";
 
-function getRateLimit() {
-  try { return JSON.parse(localStorage.getItem(LS_KEY) || "{}"); } catch { return {}; }
+function getRateLimit(email = "") {
+  try { return JSON.parse(localStorage.getItem(LS_KEY + "::" + email) || "{}"); } catch { return {}; }
 }
-function setRateLimit(data) {
-  localStorage.setItem(LS_KEY, JSON.stringify(data));
+function setRateLimit(email = "", data) {
+  localStorage.setItem(LS_KEY + "::" + email, JSON.stringify(data));
 }
 
 export default function LoginPage() {
@@ -28,26 +28,33 @@ export default function LoginPage() {
 
   // Tick down cooldown display
   useEffect(() => {
-    const rl = getRateLimit();
+    const rl = getRateLimit(email.trim());
     if (rl.lockedUntil && rl.lockedUntil > Date.now()) {
+      let active = true;
+      let timerId;
       const tick = () => {
+        if (!active) return;
         const left = Math.ceil((rl.lockedUntil - Date.now()) / 1000);
-        if (left <= 0) { setCooldownSecs(0); } else { setCooldownSecs(left); setTimeout(tick, 1000); }
+        if (left <= 0) { setCooldownSecs(0); } else { setCooldownSecs(left); timerId = setTimeout(tick, 1000); }
       };
       tick();
+      return () => { active = false; clearTimeout(timerId); };
+    } else {
+      setCooldownSecs(0);
     }
-  }, []);
+  }, [email]);
 
   async function handleLogin(e) {
     e.preventDefault();
-    const rl = getRateLimit();
+    const trimmedEmail = email.trim();
+    const rl = getRateLimit(trimmedEmail);
     if (rl.lockedUntil && rl.lockedUntil > Date.now()) {
       const left = Math.ceil((rl.lockedUntil - Date.now()) / 1000);
       setCooldownSecs(left);
       return;
     }
     setSubmitting(true);
-    await login(email.trim(), password);
+    await login(trimmedEmail, password);
     const error = useAuthStore.getState().authError;
     if (error) {
       const isEmailNotConfirmed = error.includes("Email not confirmed") || error.includes("email_not_confirmed");
@@ -55,15 +62,15 @@ export default function LoginPage() {
         const attempts = (rl.attempts || 0) + 1;
         if (attempts >= MAX_ATTEMPTS) {
           const lockedUntil = Date.now() + COOLDOWN_MS;
-          setRateLimit({ attempts, lockedUntil });
+          setRateLimit(trimmedEmail, { attempts, lockedUntil });
           setCooldownSecs(Math.ceil(COOLDOWN_MS / 1000));
-          setTimeout(() => { setRateLimit({}); setCooldownSecs(0); }, COOLDOWN_MS);
+          setTimeout(() => { setRateLimit(trimmedEmail, {}); setCooldownSecs(0); }, COOLDOWN_MS);
         } else {
-          setRateLimit({ ...rl, attempts });
+          setRateLimit(trimmedEmail, { ...rl, attempts });
         }
       }
     } else {
-      setRateLimit({});
+      setRateLimit(trimmedEmail, {});
     }
     setSubmitting(false);
   }
@@ -150,7 +157,7 @@ export default function LoginPage() {
                 {submitting ? "Creando cuenta…" : "Crear cuenta"}
               </button>
               <button type="button" className="ghost" style={{ width:"100%", fontSize:13, color:"var(--muted)" }}
-                onClick={() => { setMode("login"); setMsg(""); }}>
+                onClick={() => { setMode("login"); setMsg(""); useAuthStore.setState({ authError: null }); }}>
                 ← Ya tengo cuenta
               </button>
             </form>
@@ -202,7 +209,7 @@ export default function LoginPage() {
               </button>
 
               <button type="button" className="ghost" style={{ width: "100%", fontSize: 13, color: "var(--muted)" }}
-                onClick={() => { setMode("forgot"); setMsg(""); }}>
+                onClick={() => { setMode("forgot"); setMsg(""); useAuthStore.setState({ authError: null }); }}>
                 Olvidé mi contraseña
               </button>
             </form>
@@ -229,7 +236,7 @@ export default function LoginPage() {
               </button>
 
               <button type="button" className="ghost" style={{ width: "100%", fontSize: 13, color:"var(--muted)" }}
-                onClick={() => { setMode("login"); setMsg(""); }}>
+                onClick={() => { setMode("login"); setMsg(""); useAuthStore.setState({ authError: null }); }}>
                 ← Volver al login
               </button>
             </form>
@@ -240,7 +247,7 @@ export default function LoginPage() {
           <p className="login-footer">
             ¿No tenés cuenta?{" "}
             <button type="button" className="ghost" style={{ display:"inline", padding:0, fontSize:"inherit", color:"var(--green)", textDecoration:"underline", background:"none", border:"none", cursor:"pointer" }}
-              onClick={() => { setMode("register"); setMsg(""); }}>
+              onClick={() => { setMode("register"); setMsg(""); useAuthStore.setState({ authError: null }); }}>
               Registrarse
             </button>
           </p>

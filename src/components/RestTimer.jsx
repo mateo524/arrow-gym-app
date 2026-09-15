@@ -195,17 +195,17 @@ export default function RestTimer({ duration = 90, onComplete, onSkip, onClose, 
             aria-label={paused ? "Reanudar descanso" : "Pausar descanso"}
             style={{ flex: 1, borderColor: "var(--cyan)", color: "var(--cyan)" }}
           >
-            {paused ? "▶ Reanudar" : "⏸ Pausar"}
+            {paused ? "Reanudar" : "Pausar"}
           </button>
           <button className="ghost rest-skip-btn" onClick={onSkip} aria-label="Saltear descanso" style={{ flex: 1 }}>Saltear →</button>
           {onClose && (
-            <button className="ghost rest-skip-btn" onClick={onClose} aria-label="Cerrar timer" style={{ color: "var(--muted)", borderColor: "var(--line)", padding: "0 12px" }}>✕</button>
+            <button className="ghost rest-skip-btn" onClick={onClose} aria-label="Cerrar timer" style={{ color: "var(--muted)", borderColor: "var(--line)", padding: "0 12px" }}>X</button>
           )}
         </div>
       ) : (
         <button onClick={startTimer}
           style={{ width:"100%", padding:"12px", borderRadius:14, border:"1.5px solid var(--cyan)", background:"rgba(117,217,255,.1)", color:"var(--cyan)", fontSize:15, fontWeight:800, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
-          ▶ Iniciar descanso
+          Iniciar descanso
         </button>
       )}
     </div>

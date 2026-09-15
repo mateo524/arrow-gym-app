@@ -29,8 +29,8 @@ export default function PRCard({ pr, totalWorkouts, onClose }) {
   // Motivational share text (Rioplatense) including the referral link.
   const trainerTag = trainerName ? ` Entrenando con ${trainerName}.` : "";
   const shareText =
-    `🔥 Rompí mi récord en ${exerciseName}: ${weight}${unit} x ${reps} reps.` +
-    `${trainerTag} Arrow Gym 👊 ${referralUrl}`;
+    `Rompí mi récord en ${exerciseName}: ${weight}${unit} x ${reps} reps.` +
+    `${trainerTag} Arrow Gym ${referralUrl}`;
 
   // Invite message copied to clipboard for the second CTA.
   const inviteMessage =
@@ -75,7 +75,7 @@ export default function PRCard({ pr, totalWorkouts, onClose }) {
     ctx.fillStyle = "#a855f7";
     ctx.font = "bold 13px 'Inter', system-ui, sans-serif";
     ctx.letterSpacing = "3px";
-    ctx.fillText("⚡ NUEVO RÉCORD PERSONAL", 24, 36);
+    ctx.fillText("NUEVO RÉCORD PERSONAL", 24, 36);
 
     // Exercise name
     ctx.fillStyle = "#ffffff";
@@ -235,7 +235,7 @@ export default function PRCard({ pr, totalWorkouts, onClose }) {
           maxWidth: "min(540px, 100%)",
         }}>
           <p style={{ color: "#e9d5ff", fontWeight: 600, fontSize: 15, margin: 0, textAlign: "center" }}>
-            ¿Querés que un amigo vea tu progreso? 👊
+            ¿Querés que un amigo vea tu progreso?
           </p>
           <button className="btn-primary" onClick={copyInviteLink} style={{ gap: 6 }}>
             <Icon name={copied ? "Check" : "Copy"} size={14} />

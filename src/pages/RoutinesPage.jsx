@@ -29,11 +29,16 @@ export default function RoutinesPage() {
 
   async function loadRoutines() {
     setLoading(true);
-    const { data } = await supabase
+    const { data, error: loadError } = await supabase
       .from("routines")
       .select("*")
       .or(`user_id.eq.${profile?.id}${profile?.trainer_id ? `,user_id.eq.${profile.trainer_id}` : ""}`)
       .order("created_at", { ascending: false });
+    if (loadError) {
+      setError(loadError.message);
+      setLoading(false);
+      return;
+    }
     setRoutines((data || []).filter(r =>
       r.user_id === profile?.id ||
       (profile?.trainer_id && r.user_id === profile.trainer_id && r.notes?.startsWith("[GRUPO:"))
@@ -67,7 +72,7 @@ export default function RoutinesPage() {
 
     let err;
     if (editing) {
-      ({ error: err } = await supabase.from("routines").update(payload).eq("id", editing.id));
+      ({ error: err } = await supabase.from("routines").update(payload).eq("id", editing.id).eq("user_id", profile.id));
     } else {
       ({ error: err } = await supabase.from("routines").insert(payload));
     }
@@ -88,12 +93,18 @@ export default function RoutinesPage() {
       setDeleteTarget(null);
       return;
     }
-    const { error } = await supabase
-      .from("routines")
-      .delete()
-      .eq("id", deleteTarget.id)
-      .eq("user_id", profile.id);
-    if (error) { setError(error.message); setDeleteTarget(null); return; }
+    try {
+      const { error } = await supabase
+        .from("routines")
+        .delete()
+        .eq("id", deleteTarget.id)
+        .eq("user_id", profile.id);
+      if (error) { setError(error.message); setDeleteTarget(null); return; }
+    } catch (e) {
+      setError(e?.message || "Error al eliminar la rutina. Intentá de nuevo.");
+      setDeleteTarget(null);
+      return;
+    }
     setDeleteTarget(null);
     loadRoutines();
   }
@@ -217,9 +228,13 @@ export default function RoutinesPage() {
     const assignmentId = notif.data?.assignment_id;
 
     if (assignmentId) {
-      await supabase.from("routine_assignments")
+      const { error: assignmentError } = await supabase.from("routine_assignments")
         .update({ status: accept ? "accepted" : "declined", updated_at: new Date().toISOString() })
         .eq("id", assignmentId);
+      if (assignmentError) {
+        setError(assignmentError.message || "No se pudo actualizar la asignación. Intentá de nuevo.");
+        return;
+      }
     }
 
     // Always mark notification as read
@@ -299,12 +314,12 @@ export default function RoutinesPage() {
                     {r.is_template && <span style={{ marginLeft: 8, color: "var(--accent)", fontWeight: 600 }}>· Plantilla</span>}
                     {(r.notes || "").startsWith("[GRUPO:") && (() => {
                       const g = (r.notes || "").match(/^\[GRUPO: (.+?)\]/);
-                      return g ? <span style={{ marginLeft: 8, color: "var(--green)", fontWeight: 600 }}>· 👥 {g[1]}</span> : null;
+                      return g ? <span style={{ marginLeft: 8, color: "var(--green)", fontWeight: 600 }}>· {g[1]}</span> : null;
                     })()}
                   </div>
                 </div>
                 <button className="ghost icon-btn" onClick={() => openEdit(r)}><Icon name="Edit2" size={16} /></button>
-                <button className="ghost icon-btn" style={{ color: "var(--danger)" }} onClick={() => setDeleteTarget({ id: r.id, name: r.name })}><Icon name="Trash2" size={16} /></button>
+                <button className="ghost icon-btn" style={{ color: "var(--danger)" }} onClick={() => setDeleteTarget({ id: r.id, name: r.name, user_id: r.user_id })}><Icon name="Trash2" size={16} /></button>
               </div>
               {(r.exercises || []).length > 0 && (
                 <div style={{ marginTop: 10, borderTop: "1px solid var(--line)", paddingTop: 10, display: "flex", flexDirection: "column", gap: 4 }}>

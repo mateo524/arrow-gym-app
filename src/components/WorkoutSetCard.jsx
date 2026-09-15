@@ -24,10 +24,14 @@ export default function WorkoutSetCard({
   const [noteText, setNoteText] = useState(note);
 
   function sanitizeWeight(v) {
-    return v.replace(/,/g, ".").replace(/[^0-9.]/g, "").replace(/^(\d{0,4})(\.\d{0,2})?.*/, "$1$2");
+    const cleaned = v.replace(/,/g, ".").replace(/[^0-9.]/g, "").replace(/^(\d{0,4})(\.\d{0,2})?.*/, "$1$2");
+    // BUG-02: reject exactly "0" — zero weight is not a valid workout value
+    return cleaned === "0" ? "" : cleaned;
   }
   function sanitizeReps(v) {
-    return v.replace(/[^0-9]/g, "").slice(0, 3);
+    const cleaned = v.replace(/[^0-9]/g, "").slice(0, 3);
+    // BUG-02: reject exactly "0" — zero reps is not a valid workout value
+    return cleaned === "0" ? "" : cleaned;
   }
 
   const hasData = isBodyweight

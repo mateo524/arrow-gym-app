@@ -17,12 +17,13 @@ registerRoute(
   )
 );
 
-// Do NOT call self.skipWaiting() unconditionally here.
-// Doing so would cause React.lazy chunks loaded by the old SW to 404
-// the moment a deploy lands, producing a white screen mid-workout.
-// Instead, skipWaiting only when the client explicitly requests it
-// (see the SKIP_WAITING message handler below), giving the app a chance
-// to warn the user and wait until any active workout is finished.
+// Call skipWaiting() unconditionally on install so the new SW activates
+// immediately without requiring a button click from the user.
+// Vercel keeps all deployed assets at their content-hashed URLs so there is
+// no risk of 404-ing old chunks even if a page was open during the update.
+// A global controllerchange listener in App.jsx triggers a page reload so
+// the user gets the new version seamlessly.
+self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil(clients.claim()));
 
 // ── Rest Timer ──────────────────────────────────────────────────────────────

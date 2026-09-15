@@ -127,7 +127,7 @@ export async function shareWorkout(workout) {
     roundRect(ctx, 14, prY, W - 28, 36, 10); ctx.stroke();
     ctx.fillStyle = "#a855f7";
     ctx.font = "700 12px -apple-system, system-ui, sans-serif";
-    ctx.fillText(`🔥 ${prSets.length} PR${prSets.length > 1 ? "s" : ""} nuevo${prSets.length > 1 ? "s" : ""}`, 28, prY + 23);
+    ctx.fillText(`${prSets.length} PR${prSets.length > 1 ? "s" : ""} nuevo${prSets.length > 1 ? "s" : ""}`, 28, prY + 23);
   }
 
   // ── Footer ────────────────────────────────────────────────────────────────────

@@ -36,7 +36,7 @@ export default function WorkoutPDF({ workout, onClose, hideToolbar = false }) {
           className="ghost"
           onClick={onClose}
           style={{ fontSize: 14, padding: '6px 12px', borderRadius: 10, cursor: 'pointer', background: 'var(--panel2)', border: 'none', color: 'var(--text)' }}>
-          ✕ Cerrar
+          Cerrar
         </button>
         <span style={{ fontWeight: 700, fontSize: 15 }}>{workout?.name || workout?.type || 'Rutina'}</span>
         <button

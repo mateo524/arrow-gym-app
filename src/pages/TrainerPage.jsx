@@ -262,15 +262,15 @@ export default function TrainerPage() {
   function adherenceStatus(userId) {
     const days = daysSinceLast(userId);
     if (days === null) {
-      return { level: "red", emoji: "🔴", chip: "Inactivo", color: "#f87171", bg: "rgba(220,38,38,.18)", days: null };
+      return { level: "red", chip: "Inactivo", color: "#f87171", bg: "rgba(220,38,38,.18)", days: null };
     }
     if (days <= 3) {
-      return { level: "green", emoji: "🟢", chip: "Activo", color: "#4ade80", bg: "rgba(34,197,94,.18)", days };
+      return { level: "green", chip: "Activo", color: "#4ade80", bg: "rgba(34,197,94,.18)", days };
     }
     if (days <= 5) {
-      return { level: "yellow", emoji: "🟡", chip: "En riesgo", color: "#fbbf24", bg: "rgba(234,179,8,.18)", days };
+      return { level: "yellow", chip: "En riesgo", color: "#fbbf24", bg: "rgba(234,179,8,.18)", days };
     }
-    return { level: "red", emoji: "🔴", chip: "Inactivo", color: "#f87171", bg: "rgba(220,38,38,.18)", days };
+    return { level: "red", chip: "Inactivo", color: "#f87171", bg: "rgba(220,38,38,.18)", days };
   }
 
   // Payment helpers
@@ -290,8 +290,8 @@ export default function TrainerPage() {
   function paymentReminderMsg(client) {
     const ps = clientPaymentStatus(client);
     const name = client.name?.split(" ")[0] || "hola";
-    if (ps.label === "Vencido") return `Hola ${name}! 👋 Tu suscripción a Loop venció. Para seguir entrenando con tu rutina personalizada, renová acá: ${window.location.origin}/#/home`;
-    if (ps.trialDaysLeft !== null && ps.trialDaysLeft <= 7) return `Hola ${name}! ⏳ Te quedan ${ps.trialDaysLeft} días de prueba gratuita en Loop. Para seguir sin interrupciones, suscribite acá: ${window.location.origin}/#/home`;
+    if (ps.label === "Vencido") return `Hola ${name}! Tu suscripción a Loop venció. Para seguir entrenando con tu rutina personalizada, renová acá: ${window.location.origin}/#/home`;
+    if (ps.trialDaysLeft !== null && ps.trialDaysLeft <= 7) return `Hola ${name}! Te quedan ${ps.trialDaysLeft} días de prueba gratuita en Loop. Para seguir sin interrupciones, suscribite acá: ${window.location.origin}/#/home`;
     return `Hola ${name}! Recordatorio de Loop: tu suscripción vence pronto. Renovala acá: ${window.location.origin}/#/home`;
   }
 
@@ -432,7 +432,7 @@ export default function TrainerPage() {
     if (error) {
       setSaveMsg("Error al guardar: " + error.message);
     } else {
-      setSaveMsg("✓ Rutina guardada");
+      setSaveMsg("Rutina guardada");
       await selectClient(selectedClient);
       setEditingRoutine(null);
     }
@@ -481,7 +481,7 @@ export default function TrainerPage() {
       await loadTemplates();
       setShowSaveTemplate(false);
       setSaveTemplateProgramName("");
-      setSaveMsg("✓ Guardada como plantilla");
+      setSaveMsg("Guardada como plantilla");
     } else {
       setSaveMsg("Error al guardar plantilla");
     }
@@ -615,7 +615,7 @@ export default function TrainerPage() {
         <div style={{ display: "flex", gap: 4, marginBottom: 16, background: "var(--panel)", borderRadius: 12, padding: 4 }}>
           {[
             { id: "alumnos", label: "Alumnos" },
-            { id: "pagos",   label: "Pagos 💳" },
+            { id: "pagos",   label: "Pagos" },
           ].map(t => (
             <button key={t.id} onClick={() => setTrainerTab(t.id)} style={{
               flex: 1, padding: "8px 0", borderRadius: 9, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 700,
@@ -834,13 +834,13 @@ export default function TrainerPage() {
                           disabled={isResponding}
                           onClick={() => respondToRequest(req.id, "accepted")}
                           style={{ padding: "6px 12px", borderRadius: 8, background: "rgba(52,211,153,.2)", border: "1px solid rgba(52,211,153,.5)", color: "#34d399", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-                          ✓ Aceptar
+                          Aceptar
                         </button>
                         <button
                           disabled={isResponding}
                           onClick={() => respondToRequest(req.id, "rejected")}
                           style={{ padding: "6px 12px", borderRadius: 8, background: "rgba(239,68,68,.1)", border: "1px solid rgba(239,68,68,.35)", color: "#ef4444", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-                          ✕
+                          Rechazar
                         </button>
                       </div>
                     </div>
@@ -871,7 +871,7 @@ export default function TrainerPage() {
                 <button key={c.id} className="user-row as-button" onClick={() => selectClient(c)}>
                   <div className="user-avatar" style={{ position: "relative" }}>
                     {(c.name || c.email || "?")[0].toUpperCase()}
-                    <span style={{ position: "absolute", bottom: -2, right: -2, fontSize: 12, lineHeight: 1 }}>{status.emoji}</span>
+                    <span style={{ position: "absolute", bottom: -2, right: -2, width: 10, height: 10, borderRadius: "50%", background: status.color, border: "2px solid var(--bg)", display: "block" }} />
                   </div>
                   <div className="user-info" style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
@@ -890,9 +890,9 @@ export default function TrainerPage() {
                       <span style={{ fontSize: 11, color: "var(--muted)", whiteSpace: "nowrap" }}>
                         · {lastWorkoutLabel(c.id)}
                         {lastMoodMap[c.id] && (
-                          <span style={{ marginLeft: 6, fontSize: 14 }}>
-                            {lastMoodMap[c.id] === "tired" ? "😓" :
-                             lastMoodMap[c.id] === "great" ? "🔥" : "💪"}
+                          <span style={{ marginLeft: 6, fontSize: 11, color: "var(--muted)" }}>
+                            {lastMoodMap[c.id] === "tired" ? "(cansado)" :
+                             lastMoodMap[c.id] === "great" ? "(excelente)" : "(bien)"}
                           </span>
                         )}
                       </span>
@@ -996,12 +996,12 @@ export default function TrainerPage() {
                                 color: "#25d366", borderRadius: 8, padding: "6px 8px", cursor: "pointer",
                                 fontSize: 16, lineHeight: 1, flexShrink: 0,
                               }}
-                            >💬</button>
+                            >WA</button>
                             <button
                               onClick={() => setPayModal(c)}
                               style={{ background:"var(--green)", color:"#fff", border:"none", borderRadius:8, padding:"6px 12px", fontSize:12, cursor:"pointer" }}
                             >
-                              ✓ Cobrado
+                              Cobrado
                             </button>
                           </div>
                         );
@@ -1197,7 +1197,7 @@ export default function TrainerPage() {
                 <Icon name="Plus" size={14} /> Agregar ejercicio
               </button>
 
-              {saveMsg && <p className={saveMsg.startsWith("✓") ? "success-msg" : "login-error"}>{saveMsg}</p>}
+              {saveMsg && <p className={!saveMsg.startsWith("Error") ? "success-msg" : "login-error"}>{saveMsg}</p>}
 
               <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
                 <button className="primary" style={{ flex: 1 }} disabled={saving} onClick={saveRoutine}>
@@ -1262,7 +1262,7 @@ export default function TrainerPage() {
                             )}
                             {(r.notes || "").startsWith("[GRUPO:") && (() => {
                               const g = (r.notes || "").match(/^\[GRUPO: (.+?)\]/);
-                              return g ? <span className="day-badge" style={{ background:"rgba(168,85,247,.15)", color:"var(--green)", marginLeft:4 }}>👥 {g[1]}</span> : null;
+                              return g ? <span className="day-badge" style={{ background:"rgba(168,85,247,.15)", color:"var(--green)", marginLeft:4 }}>{g[1]}</span> : null;
                             })()}
                             <strong style={{ display:"block" }}>{r.name}</strong>
                             <small>{r.exercises?.length || 0} ejercicios</small>

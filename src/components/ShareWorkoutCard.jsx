@@ -30,11 +30,11 @@ export default function ShareWorkoutCard({ summary }) {
   async function handleShare() {
     const url = buildLink();
     const text = [
-      `💪 Completé un entreno en Loop Gym`,
-      summary.type ? `🏋️ ${summary.type}` : null,
-      summary.thisVol ? `📦 ${summary.thisVol}kg de volumen` : null,
-      summary.totalSets ? `🔁 ${summary.totalSets} series` : null,
-      summary.newPRs > 0 ? `⚡ ${summary.newPRs} récord${summary.newPRs > 1 ? "s" : ""} nuevo${summary.newPRs > 1 ? "s" : ""}` : null,
+      `Completé un entreno en Loop Gym`,
+      summary.type ? `${summary.type}` : null,
+      summary.thisVol ? `${summary.thisVol}kg de volumen` : null,
+      summary.totalSets ? `${summary.totalSets} series` : null,
+      summary.newPRs > 0 ? `${summary.newPRs} récord${summary.newPRs > 1 ? "s" : ""} nuevo${summary.newPRs > 1 ? "s" : ""}` : null,
     ].filter(Boolean).join("\n");
 
     if (navigator.share) {
@@ -72,7 +72,6 @@ export default function ShareWorkoutCard({ summary }) {
         letterSpacing: "0.3px",
       }}
     >
-      <span style={{ fontSize: 18 }}>{copied ? "✓" : "🔗"}</span>
       {copied ? "¡Link copiado!" : "Compartir entreno"}
     </button>
   );

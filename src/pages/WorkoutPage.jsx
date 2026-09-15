@@ -733,6 +733,8 @@ export default function WorkoutPage() {
       const isBodyweight = s.equipment === "Peso corporal" || s.equipment === "Bodyweight" || s.bodyweight === true;
       return (isBodyweight || Number(s.weight) > 0) && Number(s.reps) > 0;
     });
+    // BUG-02: track sets that had data but were excluded due to weight=0 or reps=0
+    const excludedSets = allSets.length - validSets.length;
     setSummaryData({
       totalSets: validSets.length,
       totalVolume: validSets.reduce((sum, s) => {
@@ -743,6 +745,7 @@ export default function WorkoutPage() {
       }, 0),
       exercises: new Set(validSets.map(s => s.exercise)).size,
       newPRs: countNewPRs(validSets, workouts),
+      excludedSets,
     });
     setShowSummary(true);
   }
@@ -1798,6 +1801,15 @@ export default function WorkoutPage() {
               </div>
             ))}
           </div>
+          {/* BUG-02: warn the user when sets were silently excluded due to weight=0 or reps=0 */}
+          {summaryData.excludedSets > 0 && (
+            <div style={{ marginBottom: 12, padding: "8px 12px", background: "rgba(245,158,11,.08)", border: "1px solid rgba(245,158,11,.3)", borderRadius: 10 }}>
+              <p style={{ margin: 0, fontSize: 12, color: "#f59e0b", lineHeight: 1.45 }}>
+                <b>{summaryData.excludedSets} {summaryData.excludedSets === 1 ? "serie" : "series"} no {summaryData.excludedSets === 1 ? "se guardará" : "se guardarán"}</b>
+                {" "}— tienen peso o reps en 0. Volvé a cargarlas si querés incluirlas.
+              </p>
+            </div>
+          )}
           <button className="ghost" style={{ width: "100%", marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
             onClick={() => {
               const mins = String(Math.floor(elapsed/60)).padStart(2,"0");

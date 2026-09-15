@@ -49,21 +49,31 @@ function InstallBanner({ onInstall, onDismiss, isIOS }) {
       <div style={{ position:"fixed", bottom:80, left:12, right:12, zIndex:9997, background:"var(--panel)", border:"1px solid var(--border)", borderRadius:16, padding:"14px 16px", boxShadow:"0 4px 24px rgba(0,0,0,.5)" }}>
         <button onClick={onDismiss} style={{ position:"absolute", top:10, right:12, background:"none", border:"none", color:"var(--muted)", fontSize:18, cursor:"pointer" }}><Icon name="X" size={16} style={{display:'inline-block',verticalAlign:'middle'}} /></button>
         <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:10 }}>
-          <img src="/icon-192.png" width={40} height={40} style={{ borderRadius:10 }} alt="Loop" />
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" width={40} height={40} style={{ borderRadius:10, flexShrink:0 }} aria-label="Loop">
+            <rect width="100" height="100" rx="20" fill="#050709"/>
+            <path d="M 77.6 73.1 A 36 36 0 1 1 77.6 26.9" stroke="#22c55e" strokeWidth="6" strokeLinecap="round"/>
+            <polygon points="82.1,32.3 72.6,27.2 78.8,22.0" fill="#22c55e"/>
+            <polyline points="22,50 32,50 36,45 41,28 46,63 51,50 73,50" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.65"/>
+          </svg>
           <div>
             <div style={{ fontWeight:800, fontSize:14 }}>Instalá Loop</div>
             <div style={{ fontSize:12, color:"var(--muted)" }}>Accedé desde tu pantalla de inicio</div>
           </div>
         </div>
         <div style={{ fontSize:13, color:"var(--muted)", lineHeight:1.6 }}>
-          Para activar notificaciones, instalá la app: tocá <b style={{ color:"var(--text)" }}>📤 Compartir</b> y después <b style={{ color:"var(--text)" }}>"Agregar al inicio"</b>
+          Para activar notificaciones, instalá la app: tocá <b style={{ color:"var(--text)" }}>Compartir</b> y después <b style={{ color:"var(--text)" }}>"Agregar al inicio"</b>
         </div>
       </div>
     );
   }
   return (
     <div style={{ position:"fixed", bottom:80, left:12, right:12, zIndex:9997, background:"var(--panel)", border:"1px solid var(--green)", borderRadius:16, padding:"14px 16px", boxShadow:"0 4px 24px rgba(0,0,0,.5)", display:"flex", alignItems:"center", gap:12 }}>
-      <img src="/icon-192.png" width={40} height={40} style={{ borderRadius:10, flexShrink:0 }} alt="Loop" />
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" width={40} height={40} style={{ borderRadius:10, flexShrink:0 }} aria-label="Loop">
+        <rect width="100" height="100" rx="20" fill="#050709"/>
+        <path d="M 77.6 73.1 A 36 36 0 1 1 77.6 26.9" stroke="#22c55e" strokeWidth="6" strokeLinecap="round"/>
+        <polygon points="82.1,32.3 72.6,27.2 78.8,22.0" fill="#22c55e"/>
+        <polyline points="22,50 32,50 36,45 41,28 46,63 51,50 73,50" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.65"/>
+      </svg>
       <div style={{ flex:1, minWidth:0 }}>
         <div style={{ fontWeight:800, fontSize:14 }}>Instalá Loop</div>
         <div style={{ fontSize:12, color:"var(--muted)" }}>Agregala a tu pantalla de inicio</div>
@@ -273,6 +283,31 @@ function AppContent() {
     }).catch(() => {});
   }, []);
 
+  // When a new SW takes control (fired after skipWaiting), reload the page so
+  // the user immediately gets the new version. Works with both the unconditional
+  // skipWaiting in sw.js and the manual SKIP_WAITING message path.
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+    const handleControllerChange = () => window.location.reload();
+    navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
+    return () => navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
+  }, []);
+
+  // Auto-apply the waiting SW update after 3 s when there is no active workout.
+  // The controllerchange listener above handles the reload once skipWaiting fires.
+  useEffect(() => {
+    if (!swUpdateReady || activeWorkout) return;
+    const timer = setTimeout(() => {
+      const reg = swWaitingRegRef.current;
+      if (reg?.waiting) {
+        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+      } else {
+        window.location.reload();
+      }
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [swUpdateReady, activeWorkout]);
+
   // Background Sync: the SW notifies open tabs to flush pending gym data.
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
@@ -472,7 +507,7 @@ function AppContent() {
     (async () => {
       const { data, error } = await supabase.rpc("request_trainer_from_invite", { p_invite_code: code });
       if (!error && data?.ok) {
-        window.__showToast?.(`Solicitud enviada a ${data.trainer_name || "tu entrenador"} 🎉. Te avisamos cuando la acepte.`, "success");
+        window.__showToast?.(`Solicitud enviada a ${data.trainer_name || "tu entrenador"}. Te avisamos cuando la acepte.`, "success");
       } else if (data?.error !== "invalid_code") {
         // Fallback: just set referred_by for commission tracking
         const { data: inv } = await supabase.from("invite_codes").select("trainer_id").eq("code", code).maybeSingle();
@@ -495,7 +530,7 @@ function AppContent() {
         // Reload profile so the new role takes effect
         const { data: p } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
         if (p) useAuthStore.getState().setProfile(p);
-        window.__showToast?.("¡Ya sos entrenador en Loop! 🎉", "success");
+        window.__showToast?.("¡Ya sos entrenador en Loop!", "success");
       } else if (data?.error === "invalid_or_expired") {
         window.__showToast?.("El link de invitación ya fue usado o expiró.", "error");
       }
@@ -788,28 +823,23 @@ function AppContent() {
           is in progress swUpdateReady is still true, so the banner appears
           automatically once the user finishes and activeWorkout clears. */}
       {swUpdateReady && !activeWorkout && (
-        <div style={{ position:"fixed", top:0, left:0, right:0, zIndex:9999,
+        <div style={{ position:"fixed", bottom:"calc(80px + env(safe-area-inset-bottom, 0px))", left:12, right:12, zIndex:9999,
           background:"var(--green)", color:"#050709", padding:"12px 16px",
+          borderRadius:16, boxShadow:"0 4px 24px rgba(0,0,0,.5)",
           display:"flex", alignItems:"center", justifyContent:"space-between", gap:12 }}>
-          <span style={{ fontSize:14, fontWeight:700 }}>Nueva versión disponible</span>
+          <span style={{ fontSize:14, fontWeight:700 }}>Nueva versión disponible — actualizando...</span>
           <button
             onClick={() => {
               const reg = swWaitingRegRef.current;
               if (reg?.waiting) {
-                // Tell the waiting SW to take over; reload once it does.
-                navigator.serviceWorker.addEventListener(
-                  'controllerchange',
-                  () => window.location.reload(),
-                  { once: true }
-                );
                 reg.waiting.postMessage({ type: 'SKIP_WAITING' });
               } else {
                 window.location.reload();
               }
             }}
             style={{ background:"#050709", color:"var(--green)", border:"none",
-              padding:"7px 16px", borderRadius:8, fontWeight:700, fontSize:13, cursor:"pointer" }}>
-            Actualizar
+              padding:"7px 16px", borderRadius:8, fontWeight:700, fontSize:13, cursor:"pointer", flexShrink:0 }}>
+            Ahora
           </button>
         </div>
       )}

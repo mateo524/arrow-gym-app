@@ -148,13 +148,13 @@ export default function WorkoutDetailPage() {
         </div>
         <div style={{ display:"flex", gap:6 }}>
           <button onClick={openEdit} className="ghost" style={{ padding:"6px 10px", fontSize:13 }} aria-label="Editar">
-            ✏️
+            Editar
           </button>
           <button onClick={() => setConfirmDelete(true)} className="ghost" style={{ padding:"6px 10px", fontSize:13, color:"#f87171", borderColor:"rgba(248,113,113,.4)" }} aria-label="Eliminar">
-            🗑️
+            Borrar
           </button>
           <button onClick={shareWorkout} disabled={sharing} className="ghost" style={{ display:"flex", alignItems:"center", gap:6 }}>
-            {sharing ? "…" : "📤"}
+            {sharing ? "…" : "Compartir"}
           </button>
         </div>
       </div>
@@ -222,7 +222,7 @@ export default function WorkoutDetailPage() {
 
       <button onClick={openEditSets} className="ghost"
         style={{ width:"100%", marginBottom:16, fontSize:13, display:"flex", alignItems:"center", justifyContent:"center", gap:6 }}>
-        ✏️ Editar series
+        Editar series
       </button>
 
       {/* ── EDITAR SERIES ── */}

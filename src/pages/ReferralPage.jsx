@@ -143,7 +143,7 @@ export default function ReferralPage() {
                   <p className="section-label" style={{ marginBottom: 2 }}>Recompensa por referidos</p>
                   <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>
                     {rewardReached
-                      ? `Ganaste ${monthsEarned} mes${monthsEarned > 1 ? "es" : ""} de acceso premium 🎉`
+                      ? `Ganaste ${monthsEarned} mes${monthsEarned > 1 ? "es" : ""} de acceso premium`
                       : `Llevá ${PAYING_GOAL} alumnos pagando → 1 mes premium gratis`}
                   </p>
                 </div>
@@ -199,7 +199,7 @@ export default function ReferralPage() {
                         {s.name || s.email}
                       </div>
                       <div style={{ fontSize: 11, color: "var(--green)" }}>
-                        Suscripción activa ✓
+                        Suscripción activa
                       </div>
                     </div>
                   </div>
@@ -229,7 +229,7 @@ export default function ReferralPage() {
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 13, fontWeight: 600 }}>{name}</div>
-                        <div style={{ fontSize: 11, color: "var(--green)" }}>Suscripción activada ✓</div>
+                        <div style={{ fontSize: 11, color: "var(--green)" }}>Suscripción activada</div>
                       </div>
                       <div style={{ fontSize: 11, color: "var(--muted)", flexShrink: 0 }}>{date}</div>
                     </div>

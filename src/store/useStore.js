@@ -18,6 +18,11 @@ import { createExerciseSlice } from "./slices/exerciseSlice.js";
 import { createCoachSlice } from "./slices/coachSlice.js";
 import { createNotificationSlice } from "./slices/notificationSlice.js";
 
+// Thresholds for the quota-pruning strategies inside safeSetItem.
+const QUOTA_DROP_OLDEST_WORKOUTS = 20;
+const QUOTA_KEEP_COACH_REPORTS = 5;
+const QUOTA_MAX_CUSTOM_FOODS = 50;
+
 // localStorage quota guard: free space incrementally when storage is full.
 // safeSetItem receives a JSON string (createJSONStorage serializes before calling).
 // IMPORTANT: never delete the store key — partial data beats total data loss.
@@ -31,17 +36,17 @@ function safeSetItem(key, value) {
       const parsed = JSON.parse(value);
       const st = parsed?.state;
       if (st) {
-        // Strategy 1: drop the 20 oldest workouts
-        if (Array.isArray(st.workouts) && st.workouts.length > 20) {
-          st.workouts = st.workouts.slice(0, st.workouts.length - 20);
+        // Strategy 1: drop the N oldest workouts
+        if (Array.isArray(st.workouts) && st.workouts.length > QUOTA_DROP_OLDEST_WORKOUTS) {
+          st.workouts = st.workouts.slice(0, st.workouts.length - QUOTA_DROP_OLDEST_WORKOUTS);
         }
-        // Strategy 2: keep only the 5 most recent coach reports
-        if (Array.isArray(st.coachReports) && st.coachReports.length > 5) {
-          st.coachReports = st.coachReports.slice(0, 5);
+        // Strategy 2: keep only the N most recent coach reports
+        if (Array.isArray(st.coachReports) && st.coachReports.length > QUOTA_KEEP_COACH_REPORTS) {
+          st.coachReports = st.coachReports.slice(0, QUOTA_KEEP_COACH_REPORTS);
         }
-        // Strategy 3: cap custom foods at 50
-        if (Array.isArray(st.customFoods) && st.customFoods.length > 50) {
-          st.customFoods = st.customFoods.slice(0, 50);
+        // Strategy 3: cap custom foods at N
+        if (Array.isArray(st.customFoods) && st.customFoods.length > QUOTA_MAX_CUSTOM_FOODS) {
+          st.customFoods = st.customFoods.slice(0, QUOTA_MAX_CUSTOM_FOODS);
         }
         try {
           localStorage.setItem(key, JSON.stringify(parsed));
@@ -70,7 +75,7 @@ const useStore = create(
       ...createSettingsSlice(...a),
       ...createHealthSlice(...a),
       ...createExerciseSlice(...a),
-      ...createCoachSlice(...a.slice(0, 2)),
+      ...createCoachSlice(...a),
       ...createNotificationSlice(...a),
     }),
     {

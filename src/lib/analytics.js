@@ -1,4 +1,4 @@
-import { BODY_GROUPS, MUSCLES_BY_GROUP, resolveExerciseGroup, resolveExerciseMuscle, findExerciseMeta, EXERCISE_MAP } from "../data/exerciseDatabase.js";
+﻿import { BODY_GROUPS, MUSCLES_BY_GROUP, resolveExerciseGroup, resolveExerciseMuscle, findExerciseMeta, EXERCISE_MAP } from "../data/exerciseDatabase.js";
 
 export function hasData(set) {
   return set && Number(set.weight) > 0 && Number(set.reps) > 0;
@@ -65,8 +65,9 @@ function groupFromLegacyMuscle(value) {
 }
 
 export function parseDate(date) {
+  if (date == null) return null;
   const parsed = new Date(`${date}T12:00:00`);
-  return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
 export function getStartOfWeek(date = new Date()) {
@@ -82,12 +83,12 @@ export function filterByRange(workouts, rangeId) {
   const range = RANGE_OPTIONS.find((item) => item.id === rangeId) || RANGE_OPTIONS[0];
   if (!range.days) return workouts;
   const min = Date.now() - range.days * 86400000;
-  return workouts.filter((workout) => parseDate(workout.date).getTime() >= min);
+  return workouts.filter((workout) => (parseDate(workout.date)?.getTime() ?? -Infinity) >= min);
 }
 
 export function filterCurrentWeek(workouts) {
   const min = getStartOfWeek().getTime();
-  return workouts.filter((workout) => parseDate(workout.date).getTime() >= min);
+  return workouts.filter((workout) => (parseDate(workout.date)?.getTime() ?? -Infinity) >= min);
 }
 
 export function getSetVolume(set) {
@@ -329,7 +330,7 @@ export function getMuscleGroupFatigue(workouts, cardioHistory = []) {
   const result = {};
   BODY_GROUPS.forEach((group) => {
     const found = [...(workouts || [])]
-      .sort((a, b) => b.date.localeCompare(a.date))
+      .sort((a, b) => String(b.date).localeCompare(String(a.date)))
       .find((w) => (w.sets || []).some((s) => hydrateSet(s).group === group));
     const daysSince = found?.date ? Math.round((now - parseDate(found.date)) / 86400000) : 999;
     let fatigue = 0;
@@ -400,11 +401,11 @@ export function getDeloadSuggestion(workouts) {
   const now = Date.now();
   const msWeek = 7 * 86400000;
   const thisWeekVol = workouts
-    .filter(w => parseDate(w.date).getTime() >= now - msWeek)
+    .filter(w => (parseDate(w.date)?.getTime() ?? -Infinity) >= now - msWeek)
     .reduce((s, w) => s + getWorkoutVolume(w), 0);
   const prevWeeks = [1, 2, 3].map(n =>
     workouts
-      .filter(w => { const t = parseDate(w.date).getTime(); return t >= now - (n + 1) * msWeek && t < now - n * msWeek; })
+      .filter(w => { const t = parseDate(w.date)?.getTime() ?? -Infinity; return t >= now - (n + 1) * msWeek && t < now - n * msWeek; })
       .reduce((s, w) => s + getWorkoutVolume(w), 0)
   ).filter(v => v > 0);
   if (prevWeeks.length >= 2) {
@@ -417,10 +418,12 @@ export function getDeloadSuggestion(workouts) {
 
 export function getExerciseProgression(workouts, exercise) {
   const pts = [];
-  [...(workouts || [])].sort((a, b) => a.date.localeCompare(b.date)).forEach((w) => {
+  [...(workouts || [])].sort((a, b) => String(a.date).localeCompare(String(b.date))).forEach((w) => {
     const sets = (w.sets || []).filter((s) => s.exercise === exercise && Number(s.weight) > 0 && Number(s.reps) > 0);
     if (!sets.length) return;
-    const best1RM = Math.max(...sets.map((s) => calc1RM(s.weight, s.reps)));
+    const orms = sets.map((s) => calc1RM(s.weight, s.reps)).filter(v => v > 0);
+    if (!orms.length) return;
+    const best1RM = Math.max(...orms);
     pts.push({ date: w.date, best1RM, maxWeight: Math.max(...sets.map((s) => Number(s.weight))) });
   });
   return pts;
@@ -520,7 +523,7 @@ function countSetTowardMuscles(raw, bucket, primaryMuscle) {
 export function getLiveVolumeStatus(activeWorkout, allWorkouts = []) {
   const now = Date.now();
   const weekStart = getStartOfWeek().getTime();
-  const recentWorkouts = (allWorkouts || []).filter(w => parseDate(w.date).getTime() >= weekStart);
+  const recentWorkouts = (allWorkouts || []).filter(w => (parseDate(w.date)?.getTime() ?? -Infinity) >= weekStart);
 
   const weekSets = {}; // landmark → count this week
   recentWorkouts.forEach(w => {
@@ -753,7 +756,7 @@ function ruleCardioRecovery(ctx) {
   if (!ctx.cardioHistory?.length) return [];
   const now = Date.now();
   const recentIntense = ctx.cardioHistory.filter(c =>
-    parseDate(c.date).getTime() >= now - 86400000 &&
+    (parseDate(c.date)?.getTime() ?? -Infinity) >= now - 86400000 &&
     (c.intensity === "alta" || c.duration >= 3600)
   );
   if (!recentIntense.length) return [];
@@ -770,7 +773,7 @@ export function buildLiveCoachHints(activeWorkout, allWorkouts = [], cardioHisto
   if (!activeWorkout) return [];
   const { hintFeedback = {}, readinessScore = null, progressionTargets = {} } = opts;
 
-  const history = (allWorkouts || []).sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  const history = [...(allWorkouts || [])].sort((a, b) => String(b.date).localeCompare(String(a.date)));
   const byExercise = {};
   (activeWorkout.sets || []).forEach(set => {
     if (!byExercise[set.exercise]) byExercise[set.exercise] = [];
@@ -810,7 +813,7 @@ export function getPeriodizationPhase(workouts) {
     const start = now - (w + 1) * 7 * 86400000;
     const end   = now - w * 7 * 86400000;
     const vol = workouts
-      .filter(wo => { const t = parseDate(wo.date).getTime(); return t >= start && t < end; })
+      .filter(wo => { const t = parseDate(wo.date)?.getTime() ?? -Infinity; return t >= start && t < end; })
       .reduce((sum, wo) => sum + getWorkoutVolume(wo), 0);
     weekVolumes.push(Math.round(vol));
   }
@@ -831,11 +834,7 @@ export function getWeeklyFatigueScore(workouts) {
   if (!workouts || !workouts.length) return { thisWeek: 0, lastWeek: 0, pctChange: 0, overreaching: false, acwr: null };
   const sumLoad = ws => ws.reduce((sum, w) => sum + (w.sets || []).filter(hasData).reduce((s, set) => s + (Number(set.weight) || 0) * (Number(set.reps) || 0), 0), 0);
   const now = new Date();
-  const dayOfWeek = now.getDay();
-  const daysFromMon = (dayOfWeek + 6) % 7;
-  const thisMonday = new Date(now);
-  thisMonday.setDate(now.getDate() - daysFromMon);
-  thisMonday.setHours(0, 0, 0, 0);
+  const thisMonday = getStartOfWeek(now);
   const lastMonday = new Date(thisMonday);
   lastMonday.setDate(thisMonday.getDate() - 7);
   const twoMondaysAgo = new Date(thisMonday);
@@ -933,7 +932,7 @@ export function getSkippedGroups(workouts, weeks = 4) {
       const start = now - (w + 1) * 7 * 86400000;
       const end   = now - w * 7 * 86400000;
       const found = workouts.some(wo => {
-        const t = parseDate(wo.date).getTime();
+        const t = parseDate(wo.date)?.getTime() ?? -Infinity;
         return t >= start && t < end && (wo.sets || []).some(s => hydrateSet(s).group === group);
       });
       if (found) weeksWithGroup++;
@@ -970,6 +969,7 @@ export function getOneRMHistory(workouts, exercise) {
       const sets = (w.sets || []).filter(s => s.exercise === exercise && Number(s.weight) > 0 && Number(s.reps) > 0);
       if (!sets.length) return;
       const best = Math.max(...sets.map(s => calc1RM(s.weight, s.reps)));
+      if (best <= 0) return;
       pts.push({ date: w.date, orm: best });
     });
   return pts.slice(-12);
@@ -979,7 +979,7 @@ export function getCycleComparison(workouts) {
   const now = Date.now();
   const msDay = 86400000;
   const split = (start, end) => (workouts || []).filter(w => {
-    const t = parseDate(w.date).getTime();
+    const t = parseDate(w.date)?.getTime() ?? -Infinity;
     return t >= start && t < end;
   });
   const thisCycle = split(now - 28 * msDay, now);
@@ -1056,94 +1056,94 @@ export function getStreak(workouts, restDays = []) {
  */
 export const ACHIEVEMENTS_DEF = [
   // --- CONSISTENCIA ---
-  { id: "first_workout",    cat: "Consistencia", icon: "🏁", title: "Primeros pasos",     tiers: [{lvl:1,label:"Bronce",req:1,desc:"Completá tu primer entrenamiento"},{lvl:2,label:"Plata",req:10,desc:"Completá 10 entrenamientos"},{lvl:3,label:"Oro",req:25,desc:"Completá 25 entrenamientos"}] },
-  { id: "centurion",        cat: "Consistencia", icon: "💯", title: "Centurión",           tiers: [{lvl:1,label:"Bronce",req:50,desc:"50 entrenamientos"},{lvl:2,label:"Plata",req:100,desc:"100 entrenamientos"},{lvl:3,label:"Oro",req:250,desc:"250 entrenamientos"}] },
-  { id: "streak_fire",      cat: "Consistencia", icon: "🔥", title: "En racha",            tiers: [{lvl:1,label:"Bronce",req:3,desc:"3 días seguidos"},{lvl:2,label:"Plata",req:7,desc:"7 días seguidos"},{lvl:3,label:"Oro",req:14,desc:"14 días seguidos"}] },
-  { id: "streak_legend",    cat: "Consistencia", icon: "⚡", title: "Leyenda",             tiers: [{lvl:1,label:"Bronce",req:21,desc:"21 días seguidos"},{lvl:2,label:"Plata",req:30,desc:"30 días seguidos"},{lvl:3,label:"Oro",req:60,desc:"60 días seguidos"}] },
-  { id: "weekly_habit",     cat: "Consistencia", icon: "📅", title: "Hábito semanal",     tiers: [{lvl:1,label:"Bronce",req:4,desc:"4 semanas con al menos 1 entreno"},{lvl:2,label:"Plata",req:12,desc:"12 semanas activas"},{lvl:3,label:"Oro",req:24,desc:"24 semanas activas"}] },
-  { id: "freq_3x",          cat: "Consistencia", icon: "📆", title: "Trifuerza",           tiers: [{lvl:1,label:"Bronce",req:1,desc:"Entrená 3 veces en una semana"},{lvl:2,label:"Plata",req:4,desc:"4 semanas con 3+ entrenamientos"},{lvl:3,label:"Oro",req:12,desc:"12 semanas con 3+ entrenamientos"}] },
-  { id: "freq_5x",          cat: "Consistencia", icon: "🗓️", title: "Máquina",             tiers: [{lvl:1,label:"Bronce",req:1,desc:"Entrená 5 veces en una semana"},{lvl:2,label:"Plata",req:4,desc:"4 semanas con 5+ entrenamientos"},{lvl:3,label:"Oro",req:8,desc:"8 semanas con 5+ entrenamientos"}] },
-  { id: "early_bird",       cat: "Consistencia", icon: "🌅", title: "Madrugador",          tiers: [{lvl:1,label:"Bronce",req:3,desc:"3 entrenamientos antes de las 8am"},{lvl:2,label:"Plata",req:10,desc:"10 entrenamientos matutinos"},{lvl:3,label:"Oro",req:30,desc:"30 entrenamientos matutinos"}] },
-  { id: "night_owl",        cat: "Consistencia", icon: "🦉", title: "Noctámbulo",          tiers: [{lvl:1,label:"Bronce",req:3,desc:"3 entrenamientos después de las 21hs"},{lvl:2,label:"Plata",req:10,desc:"10 entrenamientos nocturnos"},{lvl:3,label:"Oro",req:30,desc:"30 entrenamientos nocturnos"}] },
-  { id: "months_active",    cat: "Consistencia", icon: "🗓", title: "Meses de hierro",    tiers: [{lvl:1,label:"Bronce",req:1,desc:"1 mes entrenando"},{lvl:2,label:"Plata",req:3,desc:"3 meses entrenando"},{lvl:3,label:"Oro",req:6,desc:"6 meses entrenando"}] },
+  { id: "first_workout",    cat: "Consistencia", icon: "", title: "Primeros pasos",     tiers: [{lvl:1,label:"Bronce",req:1,desc:"Completá tu primer entrenamiento"},{lvl:2,label:"Plata",req:10,desc:"Completá 10 entrenamientos"},{lvl:3,label:"Oro",req:25,desc:"Completá 25 entrenamientos"}] },
+  { id: "centurion",        cat: "Consistencia", icon: "", title: "Centurión",           tiers: [{lvl:1,label:"Bronce",req:50,desc:"50 entrenamientos"},{lvl:2,label:"Plata",req:100,desc:"100 entrenamientos"},{lvl:3,label:"Oro",req:250,desc:"250 entrenamientos"}] },
+  { id: "streak_fire",      cat: "Consistencia", icon: "", title: "En racha",            tiers: [{lvl:1,label:"Bronce",req:3,desc:"3 días seguidos"},{lvl:2,label:"Plata",req:7,desc:"7 días seguidos"},{lvl:3,label:"Oro",req:14,desc:"14 días seguidos"}] },
+  { id: "streak_legend",    cat: "Consistencia", icon: "", title: "Leyenda",             tiers: [{lvl:1,label:"Bronce",req:21,desc:"21 días seguidos"},{lvl:2,label:"Plata",req:30,desc:"30 días seguidos"},{lvl:3,label:"Oro",req:60,desc:"60 días seguidos"}] },
+  { id: "weekly_habit",     cat: "Consistencia", icon: "", title: "Hábito semanal",     tiers: [{lvl:1,label:"Bronce",req:4,desc:"4 semanas con al menos 1 entreno"},{lvl:2,label:"Plata",req:12,desc:"12 semanas activas"},{lvl:3,label:"Oro",req:24,desc:"24 semanas activas"}] },
+  { id: "freq_3x",          cat: "Consistencia", icon: "", title: "Trifuerza",           tiers: [{lvl:1,label:"Bronce",req:1,desc:"Entrená 3 veces en una semana"},{lvl:2,label:"Plata",req:4,desc:"4 semanas con 3+ entrenamientos"},{lvl:3,label:"Oro",req:12,desc:"12 semanas con 3+ entrenamientos"}] },
+  { id: "freq_5x",          cat: "Consistencia", icon: "", title: "Máquina",             tiers: [{lvl:1,label:"Bronce",req:1,desc:"Entrená 5 veces en una semana"},{lvl:2,label:"Plata",req:4,desc:"4 semanas con 5+ entrenamientos"},{lvl:3,label:"Oro",req:8,desc:"8 semanas con 5+ entrenamientos"}] },
+  { id: "early_bird",       cat: "Consistencia", icon: "", title: "Madrugador",          tiers: [{lvl:1,label:"Bronce",req:3,desc:"3 entrenamientos antes de las 8am"},{lvl:2,label:"Plata",req:10,desc:"10 entrenamientos matutinos"},{lvl:3,label:"Oro",req:30,desc:"30 entrenamientos matutinos"}] },
+  { id: "night_owl",        cat: "Consistencia", icon: "", title: "Noctámbulo",          tiers: [{lvl:1,label:"Bronce",req:3,desc:"3 entrenamientos después de las 21hs"},{lvl:2,label:"Plata",req:10,desc:"10 entrenamientos nocturnos"},{lvl:3,label:"Oro",req:30,desc:"30 entrenamientos nocturnos"}] },
+  { id: "months_active",    cat: "Consistencia", icon: "", title: "Meses de hierro",    tiers: [{lvl:1,label:"Bronce",req:1,desc:"1 mes entrenando"},{lvl:2,label:"Plata",req:3,desc:"3 meses entrenando"},{lvl:3,label:"Oro",req:6,desc:"6 meses entrenando"}] },
 
   // --- FUERZA / PRs ---
-  { id: "first_pr",         cat: "Fuerza", icon: "⭐", title: "Primer PR",              tiers: [{lvl:1,label:"Bronce",req:1,desc:"Lograste tu primer PR"},{lvl:2,label:"Plata",req:10,desc:"10 PRs en total"},{lvl:3,label:"Oro",req:25,desc:"25 PRs en total"}] },
-  { id: "pr_machine",       cat: "Fuerza", icon: "🌟", title: "Máquina de PRs",         tiers: [{lvl:1,label:"Bronce",req:50,desc:"50 PRs en total"},{lvl:2,label:"Plata",req:100,desc:"100 PRs en total"},{lvl:3,label:"Oro",req:200,desc:"200 PRs en total"}] },
-  { id: "pr_chest",         cat: "Fuerza", icon: "🫁", title: "Pecho de acero",         tiers: [{lvl:1,label:"Bronce",req:1,desc:"PR en ejercicio de pecho"},{lvl:2,label:"Plata",req:5,desc:"5 PRs de pecho"},{lvl:3,label:"Oro",req:10,desc:"10 PRs de pecho"}] },
-  { id: "pr_back",          cat: "Fuerza", icon: "🏋️", title: "Espalda de titan",       tiers: [{lvl:1,label:"Bronce",req:1,desc:"PR en ejercicio de espalda"},{lvl:2,label:"Plata",req:5,desc:"5 PRs de espalda"},{lvl:3,label:"Oro",req:10,desc:"10 PRs de espalda"}] },
-  { id: "pr_legs",          cat: "Fuerza", icon: "🦵", title: "Piernas de hierro",      tiers: [{lvl:1,label:"Bronce",req:1,desc:"PR en ejercicio de piernas"},{lvl:2,label:"Plata",req:5,desc:"5 PRs de piernas"},{lvl:3,label:"Oro",req:10,desc:"10 PRs de piernas"}] },
-  { id: "pr_arms",          cat: "Fuerza", icon: "💪", title: "Brazos de poder",         tiers: [{lvl:1,label:"Bronce",req:1,desc:"PR en bíceps o tríceps"},{lvl:2,label:"Plata",req:5,desc:"5 PRs de brazos"},{lvl:3,label:"Oro",req:15,desc:"15 PRs de brazos"}] },
-  { id: "pr_shoulders",     cat: "Fuerza", icon: "🔱", title: "Hombros de Atlas",        tiers: [{lvl:1,label:"Bronce",req:1,desc:"PR en ejercicio de hombros"},{lvl:2,label:"Plata",req:5,desc:"5 PRs de hombros"},{lvl:3,label:"Oro",req:10,desc:"10 PRs de hombros"}] },
-  { id: "pr_core",          cat: "Fuerza", icon: "🎯", title: "Core de acero",           tiers: [{lvl:1,label:"Bronce",req:1,desc:"PR en ejercicio de core"},{lvl:2,label:"Plata",req:5,desc:"5 PRs de core"},{lvl:3,label:"Oro",req:10,desc:"10 PRs de core"}] },
-  { id: "pr_multigroup",    cat: "Fuerza", icon: "🏆", title: "Polivalente",             tiers: [{lvl:1,label:"Bronce",req:3,desc:"PRs en 3 grupos musculares distintos"},{lvl:2,label:"Plata",req:5,desc:"PRs en 5 grupos musculares"},{lvl:3,label:"Oro",req:7,desc:"PRs en 7 grupos musculares"}] },
-  { id: "pr_week",          cat: "Fuerza", icon: "🎆", title: "Semana explosiva",        tiers: [{lvl:1,label:"Bronce",req:3,desc:"3 PRs en una semana"},{lvl:2,label:"Plata",req:5,desc:"5 PRs en una semana"},{lvl:3,label:"Oro",req:10,desc:"10 PRs en una semana"}] },
+  { id: "first_pr",         cat: "Fuerza", icon: "", title: "Primer PR",              tiers: [{lvl:1,label:"Bronce",req:1,desc:"Lograste tu primer PR"},{lvl:2,label:"Plata",req:10,desc:"10 PRs en total"},{lvl:3,label:"Oro",req:25,desc:"25 PRs en total"}] },
+  { id: "pr_machine",       cat: "Fuerza", icon: "", title: "Máquina de PRs",         tiers: [{lvl:1,label:"Bronce",req:50,desc:"50 PRs en total"},{lvl:2,label:"Plata",req:100,desc:"100 PRs en total"},{lvl:3,label:"Oro",req:200,desc:"200 PRs en total"}] },
+  { id: "pr_chest",         cat: "Fuerza", icon: "", title: "Pecho de acero",         tiers: [{lvl:1,label:"Bronce",req:1,desc:"PR en ejercicio de pecho"},{lvl:2,label:"Plata",req:5,desc:"5 PRs de pecho"},{lvl:3,label:"Oro",req:10,desc:"10 PRs de pecho"}] },
+  { id: "pr_back",          cat: "Fuerza", icon: "", title: "Espalda de titan",       tiers: [{lvl:1,label:"Bronce",req:1,desc:"PR en ejercicio de espalda"},{lvl:2,label:"Plata",req:5,desc:"5 PRs de espalda"},{lvl:3,label:"Oro",req:10,desc:"10 PRs de espalda"}] },
+  { id: "pr_legs",          cat: "Fuerza", icon: "", title: "Piernas de hierro",      tiers: [{lvl:1,label:"Bronce",req:1,desc:"PR en ejercicio de piernas"},{lvl:2,label:"Plata",req:5,desc:"5 PRs de piernas"},{lvl:3,label:"Oro",req:10,desc:"10 PRs de piernas"}] },
+  { id: "pr_arms",          cat: "Fuerza", icon: "", title: "Brazos de poder",         tiers: [{lvl:1,label:"Bronce",req:1,desc:"PR en bíceps o tríceps"},{lvl:2,label:"Plata",req:5,desc:"5 PRs de brazos"},{lvl:3,label:"Oro",req:15,desc:"15 PRs de brazos"}] },
+  { id: "pr_shoulders",     cat: "Fuerza", icon: "", title: "Hombros de Atlas",        tiers: [{lvl:1,label:"Bronce",req:1,desc:"PR en ejercicio de hombros"},{lvl:2,label:"Plata",req:5,desc:"5 PRs de hombros"},{lvl:3,label:"Oro",req:10,desc:"10 PRs de hombros"}] },
+  { id: "pr_core",          cat: "Fuerza", icon: "", title: "Core de acero",           tiers: [{lvl:1,label:"Bronce",req:1,desc:"PR en ejercicio de core"},{lvl:2,label:"Plata",req:5,desc:"5 PRs de core"},{lvl:3,label:"Oro",req:10,desc:"10 PRs de core"}] },
+  { id: "pr_multigroup",    cat: "Fuerza", icon: "", title: "Polivalente",             tiers: [{lvl:1,label:"Bronce",req:3,desc:"PRs en 3 grupos musculares distintos"},{lvl:2,label:"Plata",req:5,desc:"PRs en 5 grupos musculares"},{lvl:3,label:"Oro",req:7,desc:"PRs en 7 grupos musculares"}] },
+  { id: "pr_week",          cat: "Fuerza", icon: "", title: "Semana explosiva",        tiers: [{lvl:1,label:"Bronce",req:3,desc:"3 PRs en una semana"},{lvl:2,label:"Plata",req:5,desc:"5 PRs en una semana"},{lvl:3,label:"Oro",req:10,desc:"10 PRs en una semana"}] },
 
   // --- VOLUMEN ---
-  { id: "volume_total",     cat: "Volumen", icon: "📦", title: "Levanta el mundo",       tiers: [{lvl:1,label:"Bronce",req:10000,desc:"10,000 kg totales levantados"},{lvl:2,label:"Plata",req:50000,desc:"50,000 kg totales"},{lvl:3,label:"Oro",req:200000,desc:"200,000 kg totales"}] },
-  { id: "volume_500k",      cat: "Volumen", icon: "🌍", title: "Atlas",                   tiers: [{lvl:1,label:"Bronce",req:500000,desc:"500k kg totales"},{lvl:2,label:"Plata",req:1000000,desc:"1 millón de kg"},{lvl:3,label:"Oro",req:5000000,desc:"5 millones de kg"}] },
-  { id: "volume_session",   cat: "Volumen", icon: "💥", title: "Sesión épica",            tiers: [{lvl:1,label:"Bronce",req:1000,desc:"1,000 kg en una sesión"},{lvl:2,label:"Plata",req:3000,desc:"3,000 kg en una sesión"},{lvl:3,label:"Oro",req:5000,desc:"5,000 kg en una sesión"}] },
-  { id: "volume_weekly",    cat: "Volumen", icon: "📊", title: "Semana brutal",           tiers: [{lvl:1,label:"Bronce",req:10000,desc:"10k kg en una semana"},{lvl:2,label:"Plata",req:25000,desc:"25k kg en una semana"},{lvl:3,label:"Oro",req:50000,desc:"50k kg en una semana"}] },
-  { id: "sets_total",       cat: "Volumen", icon: "📈", title: "Series sin fin",          tiers: [{lvl:1,label:"Bronce",req:100,desc:"100 series completadas"},{lvl:2,label:"Plata",req:500,desc:"500 series"},{lvl:3,label:"Oro",req:2000,desc:"2,000 series"}] },
-  { id: "reps_total",       cat: "Volumen", icon: "🔢", title: "Rep King",                tiers: [{lvl:1,label:"Bronce",req:1000,desc:"1,000 reps totales"},{lvl:2,label:"Plata",req:10000,desc:"10,000 reps"},{lvl:3,label:"Oro",req:50000,desc:"50,000 reps"}] },
+  { id: "volume_total",     cat: "Volumen", icon: "", title: "Levanta el mundo",       tiers: [{lvl:1,label:"Bronce",req:10000,desc:"10,000 kg totales levantados"},{lvl:2,label:"Plata",req:50000,desc:"50,000 kg totales"},{lvl:3,label:"Oro",req:200000,desc:"200,000 kg totales"}] },
+  { id: "volume_500k",      cat: "Volumen", icon: "", title: "Atlas",                   tiers: [{lvl:1,label:"Bronce",req:500000,desc:"500k kg totales"},{lvl:2,label:"Plata",req:1000000,desc:"1 millón de kg"},{lvl:3,label:"Oro",req:5000000,desc:"5 millones de kg"}] },
+  { id: "volume_session",   cat: "Volumen", icon: "", title: "Sesión épica",            tiers: [{lvl:1,label:"Bronce",req:1000,desc:"1,000 kg en una sesión"},{lvl:2,label:"Plata",req:3000,desc:"3,000 kg en una sesión"},{lvl:3,label:"Oro",req:5000,desc:"5,000 kg en una sesión"}] },
+  { id: "volume_weekly",    cat: "Volumen", icon: "", title: "Semana brutal",           tiers: [{lvl:1,label:"Bronce",req:10000,desc:"10k kg en una semana"},{lvl:2,label:"Plata",req:25000,desc:"25k kg en una semana"},{lvl:3,label:"Oro",req:50000,desc:"50k kg en una semana"}] },
+  { id: "sets_total",       cat: "Volumen", icon: "", title: "Series sin fin",          tiers: [{lvl:1,label:"Bronce",req:100,desc:"100 series completadas"},{lvl:2,label:"Plata",req:500,desc:"500 series"},{lvl:3,label:"Oro",req:2000,desc:"2,000 series"}] },
+  { id: "reps_total",       cat: "Volumen", icon: "", title: "Rep King",                tiers: [{lvl:1,label:"Bronce",req:1000,desc:"1,000 reps totales"},{lvl:2,label:"Plata",req:10000,desc:"10,000 reps"},{lvl:3,label:"Oro",req:50000,desc:"50,000 reps"}] },
 
   // --- VARIEDAD ---
-  { id: "explorer",         cat: "Variedad", icon: "🧭", title: "Explorador",             tiers: [{lvl:1,label:"Bronce",req:10,desc:"10 ejercicios distintos"},{lvl:2,label:"Plata",req:25,desc:"25 ejercicios distintos"},{lvl:3,label:"Oro",req:50,desc:"50 ejercicios distintos"}] },
-  { id: "complete_athlete", cat: "Variedad", icon: "🤸", title: "Atleta completo",        tiers: [{lvl:1,label:"Bronce",req:3,desc:"Trabajaste 3 grupos musculares distintos"},{lvl:2,label:"Plata",req:5,desc:"5 grupos musculares distintos"},{lvl:3,label:"Oro",req:7,desc:"Los 7 grupos musculares"}] },
-  { id: "ppl_cycle",        cat: "Variedad", icon: "🔄", title: "Push Pull Legs",         tiers: [{lvl:1,label:"Bronce",req:1,desc:"Completá un ciclo PPL completo"},{lvl:2,label:"Plata",req:5,desc:"5 ciclos PPL completos"},{lvl:3,label:"Oro",req:20,desc:"20 ciclos PPL"}] },
-  { id: "push_master",      cat: "Variedad", icon: "👊", title: "Maestro del Push",       tiers: [{lvl:1,label:"Bronce",req:5,desc:"5 entrenamientos de Push"},{lvl:2,label:"Plata",req:20,desc:"20 entrenamientos de Push"},{lvl:3,label:"Oro",req:50,desc:"50 entrenamientos de Push"}] },
-  { id: "pull_master",      cat: "Variedad", icon: "🫳", title: "Maestro del Pull",       tiers: [{lvl:1,label:"Bronce",req:5,desc:"5 entrenamientos de Pull"},{lvl:2,label:"Plata",req:20,desc:"20 entrenamientos de Pull"},{lvl:3,label:"Oro",req:50,desc:"50 entrenamientos de Pull"}] },
-  { id: "legs_master",      cat: "Variedad", icon: "🦿", title: "Maestro de Piernas",    tiers: [{lvl:1,label:"Bronce",req:5,desc:"5 entrenamientos de Piernas"},{lvl:2,label:"Plata",req:20,desc:"20 entrenamientos de Piernas"},{lvl:3,label:"Oro",req:50,desc:"50 entrenamientos de Piernas"}] },
-  { id: "high_reps",        cat: "Variedad", icon: "🔁", title: "Resistencia",            tiers: [{lvl:1,label:"Bronce",req:5,desc:"5 series con 20+ reps"},{lvl:2,label:"Plata",req:20,desc:"20 series con 20+ reps"},{lvl:3,label:"Oro",req:50,desc:"50 series con 20+ reps"}] },
-  { id: "big_session",      cat: "Variedad", icon: "🌋", title: "Sesión monumental",     tiers: [{lvl:1,label:"Bronce",req:15,desc:"15 series en una sesión"},{lvl:2,label:"Plata",req:20,desc:"20 series en una sesión"},{lvl:3,label:"Oro",req:30,desc:"30 series en una sesión"}] },
-  { id: "cardio_warrior",   cat: "Variedad", icon: "🏃", title: "Guerrero cardio",        tiers: [{lvl:1,label:"Bronce",req:5,desc:"5 sesiones de cardio"},{lvl:2,label:"Plata",req:20,desc:"20 sesiones de cardio"},{lvl:3,label:"Oro",req:50,desc:"50 sesiones de cardio"}] },
+  { id: "explorer",         cat: "Variedad", icon: "", title: "Explorador",             tiers: [{lvl:1,label:"Bronce",req:10,desc:"10 ejercicios distintos"},{lvl:2,label:"Plata",req:25,desc:"25 ejercicios distintos"},{lvl:3,label:"Oro",req:50,desc:"50 ejercicios distintos"}] },
+  { id: "complete_athlete", cat: "Variedad", icon: "", title: "Atleta completo",        tiers: [{lvl:1,label:"Bronce",req:3,desc:"Trabajaste 3 grupos musculares distintos"},{lvl:2,label:"Plata",req:5,desc:"5 grupos musculares distintos"},{lvl:3,label:"Oro",req:7,desc:"Los 7 grupos musculares"}] },
+  { id: "ppl_cycle",        cat: "Variedad", icon: "", title: "Push Pull Legs",         tiers: [{lvl:1,label:"Bronce",req:1,desc:"Completá un ciclo PPL completo"},{lvl:2,label:"Plata",req:5,desc:"5 ciclos PPL completos"},{lvl:3,label:"Oro",req:20,desc:"20 ciclos PPL"}] },
+  { id: "push_master",      cat: "Variedad", icon: "", title: "Maestro del Push",       tiers: [{lvl:1,label:"Bronce",req:5,desc:"5 entrenamientos de Push"},{lvl:2,label:"Plata",req:20,desc:"20 entrenamientos de Push"},{lvl:3,label:"Oro",req:50,desc:"50 entrenamientos de Push"}] },
+  { id: "pull_master",      cat: "Variedad", icon: "", title: "Maestro del Pull",       tiers: [{lvl:1,label:"Bronce",req:5,desc:"5 entrenamientos de Pull"},{lvl:2,label:"Plata",req:20,desc:"20 entrenamientos de Pull"},{lvl:3,label:"Oro",req:50,desc:"50 entrenamientos de Pull"}] },
+  { id: "legs_master",      cat: "Variedad", icon: "", title: "Maestro de Piernas",    tiers: [{lvl:1,label:"Bronce",req:5,desc:"5 entrenamientos de Piernas"},{lvl:2,label:"Plata",req:20,desc:"20 entrenamientos de Piernas"},{lvl:3,label:"Oro",req:50,desc:"50 entrenamientos de Piernas"}] },
+  { id: "high_reps",        cat: "Variedad", icon: "", title: "Resistencia",            tiers: [{lvl:1,label:"Bronce",req:5,desc:"5 series con 20+ reps"},{lvl:2,label:"Plata",req:20,desc:"20 series con 20+ reps"},{lvl:3,label:"Oro",req:50,desc:"50 series con 20+ reps"}] },
+  { id: "big_session",      cat: "Variedad", icon: "", title: "Sesión monumental",     tiers: [{lvl:1,label:"Bronce",req:15,desc:"15 series en una sesión"},{lvl:2,label:"Plata",req:20,desc:"20 series en una sesión"},{lvl:3,label:"Oro",req:30,desc:"30 series en una sesión"}] },
+  { id: "cardio_warrior",   cat: "Variedad", icon: "", title: "Guerrero cardio",        tiers: [{lvl:1,label:"Bronce",req:5,desc:"5 sesiones de cardio"},{lvl:2,label:"Plata",req:20,desc:"20 sesiones de cardio"},{lvl:3,label:"Oro",req:50,desc:"50 sesiones de cardio"}] },
 
   // --- TIEMPO ---
-  { id: "time_total",       cat: "Tiempo", icon: "⏱️", title: "Horas en el gym",         tiers: [{lvl:1,label:"Bronce",req:600,desc:"10 horas de entrenamiento"},{lvl:2,label:"Plata",req:3000,desc:"50 horas de entrenamiento"},{lvl:3,label:"Oro",req:6000,desc:"100 horas de entrenamiento"}] },
-  { id: "long_session",     cat: "Tiempo", icon: "⌛", title: "Maratón de gym",           tiers: [{lvl:1,label:"Bronce",req:5,desc:"5 sesiones de más de 60 min"},{lvl:2,label:"Plata",req:15,desc:"15 sesiones de más de 60 min"},{lvl:3,label:"Oro",req:40,desc:"40 sesiones de más de 60 min"}] },
-  { id: "quick_session",    cat: "Tiempo", icon: "⚡", title: "Velocista",                tiers: [{lvl:1,label:"Bronce",req:5,desc:"5 sesiones efectivas en menos de 30 min"},{lvl:2,label:"Plata",req:15,desc:"15 sesiones rápidas"},{lvl:3,label:"Oro",req:30,desc:"30 sesiones rápidas"}] },
+  { id: "time_total",       cat: "Tiempo", icon: "", title: "Horas en el gym",         tiers: [{lvl:1,label:"Bronce",req:600,desc:"10 horas de entrenamiento"},{lvl:2,label:"Plata",req:3000,desc:"50 horas de entrenamiento"},{lvl:3,label:"Oro",req:6000,desc:"100 horas de entrenamiento"}] },
+  { id: "long_session",     cat: "Tiempo", icon: "", title: "Maratón de gym",           tiers: [{lvl:1,label:"Bronce",req:5,desc:"5 sesiones de más de 60 min"},{lvl:2,label:"Plata",req:15,desc:"15 sesiones de más de 60 min"},{lvl:3,label:"Oro",req:40,desc:"40 sesiones de más de 60 min"}] },
+  { id: "quick_session",    cat: "Tiempo", icon: "", title: "Velocista",                tiers: [{lvl:1,label:"Bronce",req:5,desc:"5 sesiones efectivas en menos de 30 min"},{lvl:2,label:"Plata",req:15,desc:"15 sesiones rápidas"},{lvl:3,label:"Oro",req:30,desc:"30 sesiones rápidas"}] },
 
   // --- PROGRESIÓN ---
-  { id: "weight_increase",  cat: "Progresión", icon: "📉", title: "Siempre arriba",      tiers: [{lvl:1,label:"Bronce",req:5,desc:"Aumentaste peso 5 veces"},{lvl:2,label:"Plata",req:20,desc:"Aumentaste peso 20 veces"},{lvl:3,label:"Oro",req:50,desc:"Aumentaste peso 50 veces"}] },
-  { id: "progression_king", cat: "Progresión", icon: "🚀", title: "Imparable",           tiers: [{lvl:1,label:"Bronce",req:3,desc:"3 semanas de progresión continua"},{lvl:2,label:"Plata",req:6,desc:"6 semanas de progresión"},{lvl:3,label:"Oro",req:12,desc:"12 semanas de progresión"}] },
-  { id: "no_plateau",       cat: "Progresión", icon: "📐", title: "Sin techo",            tiers: [{lvl:1,label:"Bronce",req:5,desc:"PRs en 5 ejercicios distintos en 30 días"},{lvl:2,label:"Plata",req:10,desc:"PRs en 10 ejercicios en 30 días"},{lvl:3,label:"Oro",req:15,desc:"PRs en 15 ejercicios en 30 días"}] },
+  { id: "weight_increase",  cat: "Progresión", icon: "", title: "Siempre arriba",      tiers: [{lvl:1,label:"Bronce",req:5,desc:"Aumentaste peso 5 veces"},{lvl:2,label:"Plata",req:20,desc:"Aumentaste peso 20 veces"},{lvl:3,label:"Oro",req:50,desc:"Aumentaste peso 50 veces"}] },
+  { id: "progression_king", cat: "Progresión", icon: "", title: "Imparable",           tiers: [{lvl:1,label:"Bronce",req:3,desc:"3 semanas de progresión continua"},{lvl:2,label:"Plata",req:6,desc:"6 semanas de progresión"},{lvl:3,label:"Oro",req:12,desc:"12 semanas de progresión"}] },
+  { id: "no_plateau",       cat: "Progresión", icon: "", title: "Sin techo",            tiers: [{lvl:1,label:"Bronce",req:5,desc:"PRs en 5 ejercicios distintos en 30 días"},{lvl:2,label:"Plata",req:10,desc:"PRs en 10 ejercicios en 30 días"},{lvl:3,label:"Oro",req:15,desc:"PRs en 15 ejercicios en 30 días"}] },
 
   // --- NUTRICIÓN ---
-  { id: "food_diary",       cat: "Nutrición", icon: "🍎", title: "Diario de comidas",    tiers: [{lvl:1,label:"Bronce",req:5,desc:"Registrá 5 comidas"},{lvl:2,label:"Plata",req:30,desc:"Registrá 30 comidas"},{lvl:3,label:"Oro",req:100,desc:"Registrá 100 comidas"}] },
-  { id: "calorie_goal",     cat: "Nutrición", icon: "🎯", title: "Objetivo cumplido",    tiers: [{lvl:1,label:"Bronce",req:3,desc:"Alcanzá tu objetivo calórico 3 días"},{lvl:2,label:"Plata",req:7,desc:"7 días en objetivo calórico"},{lvl:3,label:"Oro",req:30,desc:"30 días en objetivo calórico"}] },
-  { id: "protein_pro",      cat: "Nutrición", icon: "🥩", title: "Proteína pro",         tiers: [{lvl:1,label:"Bronce",req:3,desc:"Superá tu objetivo de proteína 3 días"},{lvl:2,label:"Plata",req:14,desc:"14 días superando proteína"},{lvl:3,label:"Oro",req:30,desc:"30 días superando proteína"}] },
+  { id: "food_diary",       cat: "Nutrición", icon: "", title: "Diario de comidas",    tiers: [{lvl:1,label:"Bronce",req:5,desc:"Registrá 5 comidas"},{lvl:2,label:"Plata",req:30,desc:"Registrá 30 comidas"},{lvl:3,label:"Oro",req:100,desc:"Registrá 100 comidas"}] },
+  { id: "calorie_goal",     cat: "Nutrición", icon: "", title: "Objetivo cumplido",    tiers: [{lvl:1,label:"Bronce",req:3,desc:"Alcanzá tu objetivo calórico 3 días"},{lvl:2,label:"Plata",req:7,desc:"7 días en objetivo calórico"},{lvl:3,label:"Oro",req:30,desc:"30 días en objetivo calórico"}] },
+  { id: "protein_pro",      cat: "Nutrición", icon: "", title: "Proteína pro",         tiers: [{lvl:1,label:"Bronce",req:3,desc:"Superá tu objetivo de proteína 3 días"},{lvl:2,label:"Plata",req:14,desc:"14 días superando proteína"},{lvl:3,label:"Oro",req:30,desc:"30 días superando proteína"}] },
 
   // --- ESPECIALES ---
-  { id: "first_day",        cat: "Especial", icon: "🎉", title: "El comienzo",            tiers: [{lvl:1,label:"Bronce",req:1,desc:"Completaste el perfil inicial"},{lvl:2,label:"Plata",req:1,desc:"Registraste tus primeras medidas"},{lvl:3,label:"Oro",req:1,desc:"Completaste tu primera semana completa"}] },
-  { id: "comeback",         cat: "Especial", icon: "💫", title: "Comeback",               tiers: [{lvl:1,label:"Bronce",req:1,desc:"Volviste después de 7+ días sin entrenar"},{lvl:2,label:"Plata",req:3,desc:"3 comebacks"},{lvl:3,label:"Oro",req:10,desc:"10 comebacks — perseverancia pura"}] },
-  { id: "share_workout",    cat: "Especial", icon: "📤", title: "Inspiración",             tiers: [{lvl:1,label:"Bronce",req:1,desc:"Compartiste tu primer entrenamiento"},{lvl:2,label:"Plata",req:5,desc:"5 entrenamientos compartidos"},{lvl:3,label:"Oro",req:20,desc:"20 entrenamientos compartidos"}] },
-  { id: "log_weight",       cat: "Especial", icon: "⚖️", title: "En control",             tiers: [{lvl:1,label:"Bronce",req:3,desc:"Registraste tu peso 3 veces"},{lvl:2,label:"Plata",req:10,desc:"10 registros de peso"},{lvl:3,label:"Oro",req:30,desc:"30 registros de peso"}] },
-  { id: "perfect_week",     cat: "Especial", icon: "💎", title: "Semana perfecta",        tiers: [{lvl:1,label:"Bronce",req:1,desc:"Cumpliste tu meta semanal de entrenamientos"},{lvl:2,label:"Plata",req:4,desc:"4 semanas perfectas"},{lvl:3,label:"Oro",req:12,desc:"12 semanas perfectas"}] },
-  { id: "veteran",          cat: "Especial", icon: "🎖️", title: "Veterano",               tiers: [{lvl:1,label:"Bronce",req:90,desc:"3 meses de uso de la app"},{lvl:2,label:"Plata",req:180,desc:"6 meses de uso"},{lvl:3,label:"Oro",req:365,desc:"1 año de uso de la app"},{lvl:4,label:"Diamante",req:730,desc:"2 años de uso — sos una institución"}] },
+  { id: "first_day",        cat: "Especial", icon: "", title: "El comienzo",            tiers: [{lvl:1,label:"Bronce",req:1,desc:"Completaste el perfil inicial"},{lvl:2,label:"Plata",req:1,desc:"Registraste tus primeras medidas"},{lvl:3,label:"Oro",req:1,desc:"Completaste tu primera semana completa"}] },
+  { id: "comeback",         cat: "Especial", icon: "", title: "Comeback",               tiers: [{lvl:1,label:"Bronce",req:1,desc:"Volviste después de 7+ días sin entrenar"},{lvl:2,label:"Plata",req:3,desc:"3 comebacks"},{lvl:3,label:"Oro",req:10,desc:"10 comebacks — perseverancia pura"}] },
+  { id: "share_workout",    cat: "Especial", icon: "", title: "Inspiración",             tiers: [{lvl:1,label:"Bronce",req:1,desc:"Compartiste tu primer entrenamiento"},{lvl:2,label:"Plata",req:5,desc:"5 entrenamientos compartidos"},{lvl:3,label:"Oro",req:20,desc:"20 entrenamientos compartidos"}] },
+  { id: "log_weight",       cat: "Especial", icon: "", title: "En control",             tiers: [{lvl:1,label:"Bronce",req:3,desc:"Registraste tu peso 3 veces"},{lvl:2,label:"Plata",req:10,desc:"10 registros de peso"},{lvl:3,label:"Oro",req:30,desc:"30 registros de peso"}] },
+  { id: "perfect_week",     cat: "Especial", icon: "", title: "Semana perfecta",        tiers: [{lvl:1,label:"Bronce",req:1,desc:"Cumpliste tu meta semanal de entrenamientos"},{lvl:2,label:"Plata",req:4,desc:"4 semanas perfectas"},{lvl:3,label:"Oro",req:12,desc:"12 semanas perfectas"}] },
+  { id: "veteran",          cat: "Especial", icon: "", title: "Veterano",               tiers: [{lvl:1,label:"Bronce",req:90,desc:"3 meses de uso de la app"},{lvl:2,label:"Plata",req:180,desc:"6 meses de uso"},{lvl:3,label:"Oro",req:365,desc:"1 año de uso de la app"},{lvl:4,label:"Diamante",req:730,desc:"2 años de uso — sos una institución"}] },
 
   // --- DIAMANTE TIER extras (id único, compartido value con primario) ---
-  { id: "centurion_d",     cat: "Consistencia", icon: "💯", title: "Centurión élite",       tiers: [{lvl:1,label:"Diamante",req:500,desc:"500 entrenamientos completados"}] },
-  { id: "streak_d",        cat: "Consistencia", icon: "🔥", title: "Llama eterna",          tiers: [{lvl:1,label:"Diamante",req:100,desc:"100 días seguidos de entrenamiento"}] },
-  { id: "volume_d",        cat: "Volumen",      icon: "🌍", title: "Titán de hierro",       tiers: [{lvl:1,label:"Diamante",req:2000000,desc:"2 millones de kg levantados en total"}] },
-  { id: "sets_d",          cat: "Volumen",      icon: "📈", title: "Infinito",              tiers: [{lvl:1,label:"Diamante",req:10000,desc:"10,000 series completadas"}] },
-  { id: "reps_d",          cat: "Volumen",      icon: "🔢", title: "Rep God",               tiers: [{lvl:1,label:"Diamante",req:200000,desc:"200,000 repeticiones totales"}] },
-  { id: "time_d",          cat: "Tiempo",       icon: "⏱️", title: "Dedicación absoluta",   tiers: [{lvl:1,label:"Diamante",req:30000,desc:"500 horas de entrenamiento"}] },
-  { id: "food_d",          cat: "Nutrición",    icon: "🍎", title: "Nutricionista",         tiers: [{lvl:1,label:"Diamante",req:500,desc:"500 comidas registradas"}] },
+  { id: "centurion_d",     cat: "Consistencia", icon: "", title: "Centurión élite",       tiers: [{lvl:1,label:"Diamante",req:500,desc:"500 entrenamientos completados"}] },
+  { id: "streak_d",        cat: "Consistencia", icon: "", title: "Llama eterna",          tiers: [{lvl:1,label:"Diamante",req:100,desc:"100 días seguidos de entrenamiento"}] },
+  { id: "volume_d",        cat: "Volumen",      icon: "", title: "Titán de hierro",       tiers: [{lvl:1,label:"Diamante",req:2000000,desc:"2 millones de kg levantados en total"}] },
+  { id: "sets_d",          cat: "Volumen",      icon: "", title: "Infinito",              tiers: [{lvl:1,label:"Diamante",req:10000,desc:"10,000 series completadas"}] },
+  { id: "reps_d",          cat: "Volumen",      icon: "", title: "Rep God",               tiers: [{lvl:1,label:"Diamante",req:200000,desc:"200,000 repeticiones totales"}] },
+  { id: "time_d",          cat: "Tiempo",       icon: "", title: "Dedicación absoluta",   tiers: [{lvl:1,label:"Diamante",req:30000,desc:"500 horas de entrenamiento"}] },
+  { id: "food_d",          cat: "Nutrición",    icon: "", title: "Nutricionista",         tiers: [{lvl:1,label:"Diamante",req:500,desc:"500 comidas registradas"}] },
 
   // --- NUEVOS LOGROS ---
-  { id: "weight_loss",     cat: "Progresión", icon: "⚖️", title: "Transformación",         tiers: [{lvl:1,label:"Bronce",req:3,desc:"Perdiste 3+ kg registrados"},{lvl:2,label:"Plata",req:7,desc:"Perdiste 7+ kg"},{lvl:3,label:"Oro",req:15,desc:"Perdiste 15+ kg"},{lvl:4,label:"Diamante",req:25,desc:"Perdiste 25+ kg — transformación total"}] },
-  { id: "weight_gain",     cat: "Progresión", icon: "📈", title: "Volumen puro",            tiers: [{lvl:1,label:"Bronce",req:2,desc:"Ganaste 2+ kg en etapa de volumen"},{lvl:2,label:"Plata",req:5,desc:"Ganaste 5+ kg"},{lvl:3,label:"Oro",req:10,desc:"Ganaste 10+ kg"}] },
-  { id: "measures_track",  cat: "Especial",   icon: "📏", title: "Mediciones constantes",  tiers: [{lvl:1,label:"Bronce",req:5,desc:"5 registros de medidas corporales"},{lvl:2,label:"Plata",req:15,desc:"15 registros de medidas"},{lvl:3,label:"Oro",req:30,desc:"30 registros de medidas — datos = progreso"}] },
-  { id: "weekend_warrior", cat: "Consistencia",icon:"🛡️", title: "Guerrero de fin de semana",tiers:[{lvl:1,label:"Bronce",req:5,desc:"5 entrenamientos en sábado o domingo"},{lvl:2,label:"Plata",req:20,desc:"20 entrenos en fin de semana"},{lvl:3,label:"Oro",req:50,desc:"50 entrenos en fin de semana"}] },
-  { id: "super_session",   cat: "Volumen",    icon: "💪", title: "Sesión épica",            tiers: [{lvl:1,label:"Bronce",req:20,desc:"20+ series en una sesión"},{lvl:2,label:"Plata",req:25,desc:"25+ series en una sesión"},{lvl:3,label:"Oro",req:35,desc:"35+ series — monstruo"}] },
-  { id: "hydration",       cat: "Nutrición",  icon: "💧", title: "Hidratación pro",         tiers: [{lvl:1,label:"Bronce",req:7,desc:"7 días registrando agua"},{lvl:2,label:"Plata",req:21,desc:"21 días registrando agua"},{lvl:3,label:"Oro",req:60,desc:"60 días registrando agua"}] },
-  { id: "sleep_track",     cat: "Nutrición",  icon: "😴", title: "Recuperación activa",     tiers: [{lvl:1,label:"Bronce",req:7,desc:"7 días registrando sueño"},{lvl:2,label:"Plata",req:21,desc:"21 días registrando sueño"},{lvl:3,label:"Oro",req:60,desc:"60 días registrando sueño"}] },
-  { id: "multiday_pr",     cat: "Fuerza",     icon: "🎯", title: "Día de records",          tiers: [{lvl:1,label:"Bronce",req:3,desc:"3 PRs en un mismo día"},{lvl:2,label:"Plata",req:5,desc:"5 PRs en un mismo día"},{lvl:3,label:"Oro",req:10,desc:"10 PRs en un día — brutal"}] },
-  { id: "bodyweight_king", cat: "Variedad",   icon: "🤸", title: "Rey del peso corporal",   tiers: [{lvl:1,label:"Bronce",req:5,desc:"5 entrenamientos de peso corporal"},{lvl:2,label:"Plata",req:20,desc:"20 entrenos de peso corporal"},{lvl:3,label:"Oro",req:50,desc:"50 entrenos de peso corporal"}] },
-  { id: "pr_5_exercises",  cat: "Fuerza",     icon: "🏅", title: "Multipoder",              tiers: [{lvl:1,label:"Bronce",req:5,desc:"PRs en 5 ejercicios distintos"},{lvl:2,label:"Plata",req:15,desc:"PRs en 15 ejercicios distintos"},{lvl:3,label:"Oro",req:30,desc:"PRs en 30 ejercicios distintos"}] },
-  { id: "morning_routine", cat: "Consistencia",icon:"☀️", title: "Rutina matinal",          tiers: [{lvl:1,label:"Bronce",req:7,desc:"7 entrenos matutinos seguidos"},{lvl:2,label:"Plata",req:14,desc:"14 entrenos matutinos seguidos"},{lvl:3,label:"Oro",req:30,desc:"30 entrenos matutinos seguidos"}] },
-  { id: "rest_discipline", cat: "Especial",   icon:"🧘", title: "Descanso activo",          tiers: [{lvl:1,label:"Bronce",req:4,desc:"Marcaste 4 días de descanso"},{lvl:2,label:"Plata",req:15,desc:"15 días de descanso programados"},{lvl:3,label:"Oro",req:30,desc:"30 días de descanso — recovery es clave"}] },
-  { id: "exercise_variety",cat: "Variedad",   icon:"🎭", title: "Sin repetirme",            tiers: [{lvl:1,label:"Bronce",req:30,desc:"30 ejercicios distintos realizados"},{lvl:2,label:"Plata",req:60,desc:"60 ejercicios distintos"},{lvl:3,label:"Oro",req:100,desc:"100 ejercicios distintos — enciclopedia viva"}] },
+  { id: "weight_loss",     cat: "Progresión", icon: "", title: "Transformación",         tiers: [{lvl:1,label:"Bronce",req:3,desc:"Perdiste 3+ kg registrados"},{lvl:2,label:"Plata",req:7,desc:"Perdiste 7+ kg"},{lvl:3,label:"Oro",req:15,desc:"Perdiste 15+ kg"},{lvl:4,label:"Diamante",req:25,desc:"Perdiste 25+ kg — transformación total"}] },
+  { id: "weight_gain",     cat: "Progresión", icon: "", title: "Volumen puro",            tiers: [{lvl:1,label:"Bronce",req:2,desc:"Ganaste 2+ kg en etapa de volumen"},{lvl:2,label:"Plata",req:5,desc:"Ganaste 5+ kg"},{lvl:3,label:"Oro",req:10,desc:"Ganaste 10+ kg"}] },
+  { id: "measures_track",  cat: "Especial",   icon: "", title: "Mediciones constantes",  tiers: [{lvl:1,label:"Bronce",req:5,desc:"5 registros de medidas corporales"},{lvl:2,label:"Plata",req:15,desc:"15 registros de medidas"},{lvl:3,label:"Oro",req:30,desc:"30 registros de medidas — datos = progreso"}] },
+  { id: "weekend_warrior", cat: "Consistencia",icon:"", title: "Guerrero de fin de semana",tiers:[{lvl:1,label:"Bronce",req:5,desc:"5 entrenamientos en sábado o domingo"},{lvl:2,label:"Plata",req:20,desc:"20 entrenos en fin de semana"},{lvl:3,label:"Oro",req:50,desc:"50 entrenos en fin de semana"}] },
+  { id: "super_session",   cat: "Volumen",    icon: "", title: "Sesión épica",            tiers: [{lvl:1,label:"Bronce",req:20,desc:"20+ series en una sesión"},{lvl:2,label:"Plata",req:25,desc:"25+ series en una sesión"},{lvl:3,label:"Oro",req:35,desc:"35+ series — monstruo"}] },
+  { id: "hydration",       cat: "Nutrición",  icon: "", title: "Hidratación pro",         tiers: [{lvl:1,label:"Bronce",req:7,desc:"7 días registrando agua"},{lvl:2,label:"Plata",req:21,desc:"21 días registrando agua"},{lvl:3,label:"Oro",req:60,desc:"60 días registrando agua"}] },
+  { id: "sleep_track",     cat: "Nutrición",  icon: "", title: "Recuperación activa",     tiers: [{lvl:1,label:"Bronce",req:7,desc:"7 días registrando sueño"},{lvl:2,label:"Plata",req:21,desc:"21 días registrando sueño"},{lvl:3,label:"Oro",req:60,desc:"60 días registrando sueño"}] },
+  { id: "multiday_pr",     cat: "Fuerza",     icon: "", title: "Día de records",          tiers: [{lvl:1,label:"Bronce",req:3,desc:"3 PRs en un mismo día"},{lvl:2,label:"Plata",req:5,desc:"5 PRs en un mismo día"},{lvl:3,label:"Oro",req:10,desc:"10 PRs en un día — brutal"}] },
+  { id: "bodyweight_king", cat: "Variedad",   icon: "", title: "Rey del peso corporal",   tiers: [{lvl:1,label:"Bronce",req:5,desc:"5 entrenamientos de peso corporal"},{lvl:2,label:"Plata",req:20,desc:"20 entrenos de peso corporal"},{lvl:3,label:"Oro",req:50,desc:"50 entrenos de peso corporal"}] },
+  { id: "pr_5_exercises",  cat: "Fuerza",     icon: "", title: "Multipoder",              tiers: [{lvl:1,label:"Bronce",req:5,desc:"PRs en 5 ejercicios distintos"},{lvl:2,label:"Plata",req:15,desc:"PRs en 15 ejercicios distintos"},{lvl:3,label:"Oro",req:30,desc:"PRs en 30 ejercicios distintos"}] },
+  { id: "morning_routine", cat: "Consistencia",icon:"", title: "Rutina matinal",          tiers: [{lvl:1,label:"Bronce",req:7,desc:"7 entrenos matutinos seguidos"},{lvl:2,label:"Plata",req:14,desc:"14 entrenos matutinos seguidos"},{lvl:3,label:"Oro",req:30,desc:"30 entrenos matutinos seguidos"}] },
+  { id: "rest_discipline", cat: "Especial",   icon:"", title: "Descanso activo",          tiers: [{lvl:1,label:"Bronce",req:4,desc:"Marcaste 4 días de descanso"},{lvl:2,label:"Plata",req:15,desc:"15 días de descanso programados"},{lvl:3,label:"Oro",req:30,desc:"30 días de descanso — recovery es clave"}] },
+  { id: "exercise_variety",cat: "Variedad",   icon:"", title: "Sin repetirme",            tiers: [{lvl:1,label:"Bronce",req:30,desc:"30 ejercicios distintos realizados"},{lvl:2,label:"Plata",req:60,desc:"60 ejercicios distintos"},{lvl:3,label:"Oro",req:100,desc:"100 ejercicios distintos — enciclopedia viva"}] },
 ];
 
 export function getAchievements(workouts = [], prs = [], mealLog = [], weightLog = [], restDays = []) {

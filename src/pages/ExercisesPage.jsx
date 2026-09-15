@@ -42,7 +42,6 @@ export default function ExercisesPage() {
     <section className="page">
       {!isOnline && (
         <div style={{ background: "rgba(245,158,11,.12)", border: "1px solid rgba(245,158,11,.3)", borderRadius: 12, padding: "8px 12px", marginBottom: 12, display: "flex", gap: 8, alignItems: "center", fontSize: 13 }}>
-          <span>📡</span>
           <span style={{ color: "var(--muted)" }}>Sin conexión — mostrando caché local</span>
         </div>
       )}

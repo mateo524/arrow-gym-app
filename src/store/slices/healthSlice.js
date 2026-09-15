@@ -1,5 +1,6 @@
 import { todayLocal } from "../../lib/dates.js";
 import { supabase } from "../../lib/supabase.js";
+import { getAuthUserId } from "../../lib/authBridge.js";
 
 function uid(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -72,6 +73,13 @@ function queueHealthSync(get) {
 export const createHealthSlice = (set, get) => ({
   bodyMetrics: [],
   addBodyMetric: (entry) => set(s => ({ bodyMetrics: [...(s.bodyMetrics || []), entry] })),
+
+  measurementsHistory: [],
+  saveMeasHistoryEntry: (entry) => {
+    set(s => ({
+      measurementsHistory: [entry, ...(s.measurementsHistory || []).filter(e => e.date !== entry.date)].slice(0, 60),
+    }));
+  },
 
   weightLog: [],
   restDays: [],
@@ -198,7 +206,7 @@ export const createHealthSlice = (set, get) => ({
   },
 
   logMeal: (meal) => {
-    const m = { id: uid("meal"), date: today(), ...meal };
+    const m = { id: uid("meal"), date: today(), ...meal, user_id: getAuthUserId() };
     set((s) => ({ mealLog: [m, ...(s.mealLog || [])] }));
     queueHealthSync(get);
   },
@@ -229,7 +237,7 @@ export const createHealthSlice = (set, get) => ({
     const combo = (get().savedMealCombos || []).find((c) => c.id === comboId);
     if (!combo) return;
     const todayDate = today();
-    const newMeals = combo.meals.map((m) => ({ id: uid("meal"), date: todayDate, ...m }));
+    const newMeals = combo.meals.map((m) => ({ id: uid("meal"), date: todayDate, ...m, user_id: getAuthUserId() }));
     set((s) => ({ mealLog: [...newMeals, ...(s.mealLog || [])] }));
     queueHealthSync(get);
   },

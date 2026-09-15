@@ -4,41 +4,41 @@ import Icon from "../components/Icon.jsx";
 
 const SPORTS = [
   // Resistencia — cardio libre
-  { id:"correr",      name:"Correr",          icon:"🏃",  cat:"Resistencia", metrics:["distancia"], met:8   },
-  { id:"caminata",    name:"Caminata",         icon:"🚶",  cat:"Resistencia", metrics:["distancia"], met:3.5 },
-  { id:"ciclismo",    name:"Ciclismo",         icon:"🚴",  cat:"Resistencia", metrics:["distancia"], met:7   },
-  { id:"natacion",    name:"Natación",         icon:"🏊",  cat:"Resistencia", metrics:["distancia"], met:6   },
-  { id:"remo",        name:"Remo (agua)",      icon:"🚣",  cat:"Resistencia", metrics:["distancia"], met:6   },
-  { id:"soga",        name:"Saltar la soga",   icon:"⛓️", cat:"Resistencia", metrics:["rondas"],    met:9   },
-  { id:"atletismo",   name:"Atletismo",        icon:"🏅",  cat:"Resistencia", metrics:["distancia"], met:9   },
+  { id:"correr",      name:"Correr",          icon:"",  cat:"Resistencia", metrics:["distancia"], met:8   },
+  { id:"caminata",    name:"Caminata",         icon:"",  cat:"Resistencia", metrics:["distancia"], met:3.5 },
+  { id:"ciclismo",    name:"Ciclismo",         icon:"",  cat:"Resistencia", metrics:["distancia"], met:7   },
+  { id:"natacion",    name:"Natación",         icon:"",  cat:"Resistencia", metrics:["distancia"], met:6   },
+  { id:"remo",        name:"Remo (agua)",      icon:"",  cat:"Resistencia", metrics:["distancia"], met:6   },
+  { id:"soga",        name:"Saltar la soga",   icon:"", cat:"Resistencia", metrics:["rondas"],    met:9   },
+  { id:"atletismo",   name:"Atletismo",        icon:"",  cat:"Resistencia", metrics:["distancia"], met:9   },
   // Resistencia — máquinas de gym
-  { id:"cintaplana",  name:"Cinta (plana)",    icon:"🏃",  cat:"Máquinas",    metrics:["distancia"], met:7   },
-  { id:"cinta",       name:"Cinta (inclinada)",icon:"🏔️", cat:"Máquinas",    metrics:["distancia"], met:8   },
-  { id:"bicicletafija",name:"Bici estática",   icon:"🚲",  cat:"Máquinas",    metrics:["calorias"],  met:6   },
-  { id:"spinning",    name:"Spinning / Clase", icon:"🎯",  cat:"Máquinas",    metrics:["calorias"],  met:7   },
-  { id:"eliptica",    name:"Elíptica",         icon:"🔄",  cat:"Máquinas",    metrics:["calorias"],  met:5   },
-  { id:"stepper",     name:"Stepper",          icon:"🪜",  cat:"Máquinas",    metrics:["calorias"],  met:9   },
-  { id:"remomaquina", name:"Remo (máquina)",   icon:"⛵",  cat:"Máquinas",    metrics:["distancia"], met:7   },
-  { id:"assaultbike", name:"Assault Bike",     icon:"💨",  cat:"Máquinas",    metrics:["calorias"],  met:11  },
-  { id:"skierg",      name:"Ski Erg",          icon:"⛷️", cat:"Máquinas",    metrics:["distancia"], met:9   },
+  { id:"cintaplana",  name:"Cinta (plana)",    icon:"",  cat:"Máquinas",    metrics:["distancia"], met:7   },
+  { id:"cinta",       name:"Cinta (inclinada)",icon:"", cat:"Máquinas",    metrics:["distancia"], met:8   },
+  { id:"bicicletafija",name:"Bici estática",   icon:"",  cat:"Máquinas",    metrics:["calorias"],  met:6   },
+  { id:"spinning",    name:"Spinning / Clase", icon:"",  cat:"Máquinas",    metrics:["calorias"],  met:7   },
+  { id:"eliptica",    name:"Elíptica",         icon:"",  cat:"Máquinas",    metrics:["calorias"],  met:5   },
+  { id:"stepper",     name:"Stepper",          icon:"",  cat:"Máquinas",    metrics:["calorias"],  met:9   },
+  { id:"remomaquina", name:"Remo (máquina)",   icon:"",  cat:"Máquinas",    metrics:["distancia"], met:7   },
+  { id:"assaultbike", name:"Assault Bike",     icon:"",  cat:"Máquinas",    metrics:["calorias"],  met:11  },
+  { id:"skierg",      name:"Ski Erg",          icon:"", cat:"Máquinas",    metrics:["distancia"], met:9   },
   // Intervalos
-  { id:"hiit",        name:"HIIT",             icon:"⚡",  cat:"Intervalos",  metrics:["rondas"],    met:8   },
-  { id:"tabata",      name:"Tabata",           icon:"🔁",  cat:"Intervalos",  metrics:["rondas"],    met:9   },
-  { id:"crossfit",    name:"CrossFit / WOD",   icon:"🔥",  cat:"Intervalos",  metrics:["rondas"],    met:8   },
-  { id:"boxeo",       name:"Boxeo",            icon:"🥊",  cat:"Intervalos",  metrics:["rondas"],    met:7   },
-  { id:"kickboxing",  name:"Kickboxing",       icon:"🥋",  cat:"Intervalos",  metrics:["rondas"],    met:8   },
+  { id:"hiit",        name:"HIIT",             icon:"",  cat:"Intervalos",  metrics:["rondas"],    met:8   },
+  { id:"tabata",      name:"Tabata",           icon:"",  cat:"Intervalos",  metrics:["rondas"],    met:9   },
+  { id:"crossfit",    name:"CrossFit / WOD",   icon:"",  cat:"Intervalos",  metrics:["rondas"],    met:8   },
+  { id:"boxeo",       name:"Boxeo",            icon:"",  cat:"Intervalos",  metrics:["rondas"],    met:7   },
+  { id:"kickboxing",  name:"Kickboxing",       icon:"",  cat:"Intervalos",  metrics:["rondas"],    met:8   },
   // Deporte
-  { id:"futbol",      name:"Fútbol",           icon:"⚽",  cat:"Deporte",     metrics:[],            met:6   },
-  { id:"basquet",     name:"Básquet",          icon:"🏀",  cat:"Deporte",     metrics:[],            met:7   },
-  { id:"tenis",       name:"Tenis",            icon:"🎾",  cat:"Deporte",     metrics:[],            met:6   },
-  { id:"padel",       name:"Pádel",            icon:"🏓",  cat:"Deporte",     metrics:[],            met:7   },
-  { id:"squash",      name:"Squash",           icon:"🎱",  cat:"Deporte",     metrics:[],            met:10  },
-  { id:"voley",       name:"Vóley",            icon:"🏐",  cat:"Deporte",     metrics:[],            met:6   },
-  { id:"rugby",       name:"Rugby / Handball", icon:"🏉",  cat:"Deporte",     metrics:[],            met:7   },
-  { id:"hiking",      name:"Hiking / Trek",    icon:"🥾",  cat:"Deporte",     metrics:["distancia"], met:5   },
-  { id:"escalada",    name:"Escalada",         icon:"🧗",  cat:"Deporte",     metrics:[],            met:6   },
-  { id:"baile",       name:"Baile / Zumba",    icon:"💃",  cat:"Deporte",     metrics:[],            met:6   },
-  { id:"yoga",        name:"Yoga / Pilates",   icon:"🧘",  cat:"Deporte",     metrics:[],            met:3   },
+  { id:"futbol",      name:"Fútbol",           icon:"",  cat:"Deporte",     metrics:[],            met:6   },
+  { id:"basquet",     name:"Básquet",          icon:"",  cat:"Deporte",     metrics:[],            met:7   },
+  { id:"tenis",       name:"Tenis",            icon:"",  cat:"Deporte",     metrics:[],            met:6   },
+  { id:"padel",       name:"Pádel",            icon:"",  cat:"Deporte",     metrics:[],            met:7   },
+  { id:"squash",      name:"Squash",           icon:"",  cat:"Deporte",     metrics:[],            met:10  },
+  { id:"voley",       name:"Vóley",            icon:"",  cat:"Deporte",     metrics:[],            met:6   },
+  { id:"rugby",       name:"Rugby / Handball", icon:"",  cat:"Deporte",     metrics:[],            met:7   },
+  { id:"hiking",      name:"Hiking / Trek",    icon:"",  cat:"Deporte",     metrics:["distancia"], met:5   },
+  { id:"escalada",    name:"Escalada",         icon:"",  cat:"Deporte",     metrics:[],            met:6   },
+  { id:"baile",       name:"Baile / Zumba",    icon:"",  cat:"Deporte",     metrics:[],            met:6   },
+  { id:"yoga",        name:"Yoga / Pilates",   icon:"",  cat:"Deporte",     metrics:[],            met:3   },
 ];
 
 const INTENSITY_OPTS = [
@@ -124,7 +124,7 @@ export default function CardioPage() {
     setSaved(session);
     setStep("done");
     setRunning(false);
-    if (window.__showToast) window.__showToast("✓ Cardio guardado");
+    if (window.__showToast) window.__showToast("Cardio guardado");
   }
 
   const cats = [...new Set(SPORTS.map(s => s.cat))];
@@ -175,7 +175,7 @@ export default function CardioPage() {
                 <div style={{ flex: 1 }}>
                   <p style={{ fontWeight: 700, fontSize: 13, margin: 0 }}>{c.sportName}</p>
                   <p style={{ fontSize: 11, color: "var(--muted)", margin: 0 }}>
-                    {fmt(c.duration)} · ~{c.calories} kcal · {c.date}
+                    {fmt(c.duration)} · ~{Math.round((c.calories||0)*10)/10} kcal · {c.date}
                     {c.distance ? ` · ${c.distance} km` : ""}
                     {c.rounds ? ` · ${c.rounds} rondas` : ""}
                   </p>
@@ -361,7 +361,7 @@ export default function CardioPage() {
               <span style={{ fontSize: 13, color: "var(--muted)" }}><Icon name="Flame" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> Estimación calórica (aprox.)</span>
               <div style={{ fontSize:10, color:"var(--muted)", marginTop:2 }}>Los valores son aproximados</div>
             </div>
-            <span style={{ fontSize: 18, fontWeight: 900, color: "var(--green)" }}>{calories || estCal} kcal</span>
+            <span style={{ fontSize: 18, fontWeight: 900, color: "var(--green)" }}>{Math.round((Number(calories)||estCal)*10)/10} kcal</span>
           </div>
         )}
 
@@ -402,7 +402,7 @@ export default function CardioPage() {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 24 }}>
           {[
             { label: "Tiempo", value: fmt(saved.duration) },
-            { label: "Calorías (aprox.)", value: `${saved.calories} kcal` },
+            { label: "Calorías (aprox.)", value: `${Math.round((saved.calories||0)*10)/10} kcal` },
             saved.distance && { label: "Distancia", value: `${saved.distance} km` },
             saved.rounds && { label: "Rondas", value: saved.rounds },
             pace && { label: "Ritmo", value: pace },

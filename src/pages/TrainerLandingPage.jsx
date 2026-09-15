@@ -55,7 +55,6 @@ export default function TrainerLandingPage({ inviteCode, onJoin, onBack }) {
   if (error) {
     return (
       <div style={{ minHeight: "100dvh", background: "var(--bg)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24, textAlign: "center" }}>
-        <div style={{ fontSize: 40, marginBottom: 16 }}>😕</div>
         <p style={{ color: "var(--muted)", fontSize: 14 }}>{error}</p>
         <button className="ghost" style={{ marginTop: 16 }} onClick={onBack}>Volver al inicio</button>
       </div>

@@ -146,7 +146,7 @@ export default function BarcodeScanner({ onDetect, onClose }) {
           onClick={() => fileInputRef.current?.click()}
           style={{ width:"100%", padding:"11px", background:"rgba(168,85,247,.2)", border:"1px solid rgba(168,85,247,.5)", borderRadius:12, color:"#c084fc", fontWeight:700, fontSize:14, cursor:"pointer" }}
         >
-          📷 Tomar foto del código (iOS)
+          Tomar foto del código (iOS)
         </button>
         <input ref={fileInputRef} type="file" accept="image/*" capture="environment" style={{ display:"none" }} onChange={handleImageFile} />
 

@@ -1,11 +1,34 @@
-﻿import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo, useCallback } from "react";
 import useStore, { ROUTINES } from "../store/useStore.js";
 import { todayLocal } from "../lib/dates.js";
-import { supabase } from "../lib/supabase.js";
+import { VOLUME_LANDMARKS } from "../lib/analytics.js";
 import useAuthStore from "../store/useAuthStore.js";
 import { EXERCISE_DATABASE } from "../data/exerciseDatabase.js";
 import Icon from "../components/Icon.jsx";
 import ExercisePicker from "../components/ExercisePicker.jsx";
+
+// BUG-REC-01: derive weekly volume targets from VOLUME_LANDMARKS so any change there
+// propagates here automatically. "Brazos" uses min(Bíceps, Tríceps) MAV — the more
+// conservative threshold — so the progress bar never contradicts getLiveVolumeStatus.
+// "Piernas" → Cuádriceps (primary leg landmark in GROUP_TO_LANDMARK).
+const WEEKLY_REC = {
+  "Piernas": VOLUME_LANDMARKS["Cuádriceps"].mav,
+  "Espalda": VOLUME_LANDMARKS["Espalda"].mav,
+  "Pecho":   VOLUME_LANDMARKS["Pecho"].mav,
+  "Hombros": VOLUME_LANDMARKS["Hombros"].mav,
+  "Brazos":  Math.min(VOLUME_LANDMARKS["Bíceps"].mav, VOLUME_LANDMARKS["Tríceps"].mav),
+  "Core":    VOLUME_LANDMARKS["Core"].mav,
+};
+
+// BUG-18: static object — no benefit from useMemo, moved to module scope
+const EXERCISES_BY_SPLIT = {
+  push:     ["Press de banca plano","Incline Chest Press Machine","Landmine Shoulder Press","Cable Lateral Raise","Triceps Pushdown","Chest Press Machine"],
+  pull:     ["Cable Lat Pulldown","Close Grip Lat Pulldown","Dumbbell Row","High Row Machine","Cable Face Pull","Cable Biceps Curl","Hammer Curl"],
+  legs:     ["Leg Extension","Leg Curl","Bulgarian Split Squat","Sentadilla","Peso muerto"],
+  upper:    ["Press de banca plano","Cable Lat Pulldown","Landmine Shoulder Press","Dumbbell Row","Cable Biceps Curl","Triceps Pushdown"],
+  lower:    ["Sentadilla","Peso muerto","Leg Extension","Leg Curl","Bulgarian Split Squat"],
+  fullbody: ["Press de banca plano","Cable Lat Pulldown","Sentadilla","Dumbbell Row","Leg Extension","Cable Biceps Curl","Triceps Pushdown"],
+};
 
 export default function StartWorkoutPage() {
   const startWorkout = useStore((s) => s.startWorkout);
@@ -47,15 +70,22 @@ export default function StartWorkoutPage() {
   const [coachSplit, setCoachSplit] = useState("");
   const [coachGoal, setCoachGoal] = useState("");
 
-  function fetchRoutines() {
+  // BUG-19: wrapped with useCallback so effects always see the current closure
+  const fetchRoutines = useCallback(() => {
     if (!profile?.id) return;
     setLoadingRoutines(true);
-    supabase
+    import("../lib/supabase.js").then(({ supabase }) => supabase
       .from("routines")
       .select("*")
       .or(`user_id.eq.${profile.id}${profile.trainer_id ? `,user_id.eq.${profile.trainer_id}` : ""}`)
       .order("day_index", { ascending: true, nullsFirst: false })
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) {
+          setSavedMsg("Error al cargar las rutinas. Intentá de nuevo.");
+          setTimeout(() => setSavedMsg(""), 3000);
+          setLoadingRoutines(false);
+          return;
+        }
         // Filter: personal routines (user_id = my id) OR group routines from my trainer
         const filtered = (data || []).filter(r =>
           r.user_id === profile.id ||
@@ -64,18 +94,22 @@ export default function StartWorkoutPage() {
         setAssignedRoutines(filtered);
         setLoadingRoutines(false);
       })
-      .catch(() => { setLoadingRoutines(false); });
-  }
+      .catch(() => {
+        setSavedMsg("Error al cargar las rutinas. Intentá de nuevo.");
+        setTimeout(() => setSavedMsg(""), 3000);
+        setLoadingRoutines(false);
+      }));
+  }, [profile?.id, profile?.trainer_id]);
 
   useEffect(() => {
     fetchRoutines();
-  }, [profile?.id]);
+  }, [fetchRoutines]);
 
   useEffect(() => {
     function onVisible() { if (document.visibilityState === "visible") fetchRoutines(); }
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);
-  }, [profile?.id]);
+  }, [fetchRoutines]);
 
   /* ── "Hoy toca" logic ──────────────────────────────────────── */
   const todayRoutine = useMemo(() => {
@@ -175,10 +209,28 @@ export default function StartWorkoutPage() {
 
   async function confirmDeleteRoutine() {
     if (!deleteRoutineTarget) return;
+    // Client-side ownership guard: prevent deleting trainer-owned group routines
+    if (deleteRoutineTarget.user_id !== profile?.id) {
+      setSavedMsg("No podés eliminar rutinas de tu entrenador");
+      setTimeout(() => setSavedMsg(""), 2500);
+      setDeleteRoutineTarget(null);
+      return;
+    }
+    const { supabase } = await import("../lib/supabase.js");
     try {
-      await supabase.from("routines").delete().eq("id", deleteRoutineTarget.id);
+      const { error } = await supabase.from("routines").delete().eq("id", deleteRoutineTarget.id).eq("user_id", profile.id);
+      if (error) {
+        setSavedMsg("Error al eliminar la rutina");
+        setTimeout(() => setSavedMsg(""), 2500);
+        setDeleteRoutineTarget(null);
+        return;
+      }
       setAssignedRoutines(rs => rs.filter(r => r.id !== deleteRoutineTarget.id));
-    } catch {}
+    } catch {
+      setSavedMsg("Error al eliminar la rutina");
+      setTimeout(() => setSavedMsg(""), 2500);
+      setDeleteRoutineTarget(null);
+    }
     setDeleteRoutineTarget(null);
   }
 
@@ -187,6 +239,7 @@ export default function StartWorkoutPage() {
     const exercises = newRoutineExercises.filter(Boolean);
     if (!name || exercises.length === 0 || !profile?.id) return;
     setSavingRoutine(true);
+    const { supabase } = await import("../lib/supabase.js");
     try {
       const { data, error } = await supabase.from("routines").insert({
         user_id: profile.id,
@@ -194,10 +247,21 @@ export default function StartWorkoutPage() {
         exercises: exercises.map(e => ({ name: e })),
         day_index: assignedRoutines.length,
       }).select().single();
-      if (!error && data) {
+      if (error) {
+        setSavedMsg("Error al guardar la rutina");
+        setTimeout(() => setSavedMsg(""), 2500);
+        setSavingRoutine(false);
+        return;
+      }
+      if (data) {
         setAssignedRoutines(rs => [...rs, data]);
       }
-    } catch {}
+    } catch {
+      setSavedMsg("Error al guardar la rutina");
+      setTimeout(() => setSavedMsg(""), 2500);
+      setSavingRoutine(false);
+      return;
+    }
     setSavingRoutine(false);
     setCreateRoutineModal(false);
     setCreationMode("choose");
@@ -211,15 +275,27 @@ export default function StartWorkoutPage() {
     const exercises = editRoutineExercises.map(e => e.trim()).filter(Boolean);
     if (!name || exercises.length === 0 || !editRoutineTarget?.id) return;
     setSavingEditRoutine(true);
+    const { supabase } = await import("../lib/supabase.js");
     try {
       const { data, error } = await supabase.from("routines").update({
         name,
         exercises: exercises.map(e => ({ name: e })),
-      }).eq("id", editRoutineTarget.id).select().single();
-      if (!error && data) {
+      }).eq("id", editRoutineTarget.id).eq("user_id", profile.id).select().single();
+      if (error) {
+        setSavedMsg("Error al guardar los cambios");
+        setTimeout(() => setSavedMsg(""), 2500);
+        setSavingEditRoutine(false);
+        return;
+      }
+      if (data) {
         setAssignedRoutines(rs => rs.map(r => r.id === data.id ? data : r));
       }
-    } catch {}
+    } catch {
+      setSavedMsg("Error al guardar los cambios");
+      setTimeout(() => setSavedMsg(""), 2500);
+      setSavingEditRoutine(false);
+      return;
+    }
     setSavingEditRoutine(false);
     setEditRoutineTarget(null);
   }
@@ -239,14 +315,7 @@ export default function StartWorkoutPage() {
     { id:"hipertrofia",   icon:"Dumbbell",  label:"Hipertrofia",  desc:"Reps moderadas, volumen alto" },
     { id:"resistencia",   icon:"Activity",  label:"Resistencia",  desc:"Muchas reps, peso moderado" },
   ];
-  const EXERCISES_BY_SPLIT = useMemo(() => ({
-    push:     ["Press de banca plano","Incline Chest Press Machine","Landmine Shoulder Press","Cable Lateral Raise","Triceps Pushdown","Chest Press Machine"],
-    pull:     ["Cable Lat Pulldown","Close Grip Lat Pulldown","Dumbbell Row","High Row Machine","Cable Face Pull","Cable Biceps Curl","Hammer Curl"],
-    legs:     ["Leg Extension","Leg Curl","Bulgarian Split Squat","Sentadilla","Peso muerto"],
-    upper:    ["Press de banca plano","Cable Lat Pulldown","Landmine Shoulder Press","Dumbbell Row","Cable Biceps Curl","Triceps Pushdown"],
-    lower:    ["Sentadilla","Peso muerto","Leg Extension","Leg Curl","Bulgarian Split Squat"],
-    fullbody: ["Press de banca plano","Cable Lat Pulldown","Sentadilla","Dumbbell Row","Leg Extension","Cable Biceps Curl","Triceps Pushdown"],
-  }), []);
+  // EXERCISES_BY_SPLIT moved to module scope (BUG-18)
 
   const weeklyMuscleVolume = useMemo(() => {
     const GROUPS = ["Piernas","Espalda","Pecho","Hombros","Brazos","Core"];
@@ -262,13 +331,11 @@ export default function StartWorkoutPage() {
         if (counts[s.group] !== undefined) counts[s.group]++;
       });
     });
-    // Recommended weekly sets per group
-    const REC = { "Piernas":12,"Espalda":14,"Pecho":12,"Hombros":10,"Brazos":10,"Core":8 };
     return GROUPS.map(g => ({
       name: g,
       sets: counts[g],
-      rec: REC[g],
-      pct: Math.min(100, Math.round((counts[g] / REC[g]) * 100)),
+      rec: WEEKLY_REC[g],
+      pct: Math.min(100, Math.round((counts[g] / WEEKLY_REC[g]) * 100)),
     }));
   }, [workouts]);
 
@@ -403,7 +470,7 @@ export default function StartWorkoutPage() {
                       <Icon name="Pencil" size={13} /> Editar
                     </button>
                     <button
-                      onClick={() => setDeleteRoutineTarget({ id: r.id, name: r.name })}
+                      onClick={() => setDeleteRoutineTarget({ id: r.id, name: r.name, user_id: r.user_id })}
                       style={{ background:"none", border:"none", color:"var(--danger)", fontSize:12, cursor:"pointer", padding:"2px 0", fontWeight:600, display:"flex", alignItems:"center", gap:5 }}>
                       <Icon name="Trash2" size={13} /> Eliminar
                     </button>

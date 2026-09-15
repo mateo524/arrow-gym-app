@@ -121,7 +121,7 @@ export default function TestamentoPage() {
         <div className="card" style={{ marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
             <p style={{ margin: 0, fontWeight: 700, fontSize: 14 }}>
-              {isActive ? "🟢 Modo Testamento activo" : "⚪ Modo Testamento inactivo"}
+              {isActive ? "Modo Testamento activo" : "Modo Testamento inactivo"}
             </p>
             <p style={{ margin: 0, fontSize: 12, color: "var(--muted)" }}>
               {isActive ? "Tus alumnos pueden consultarte via IA" : "Tus alumnos ven el chat normal"}
