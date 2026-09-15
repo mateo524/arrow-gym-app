@@ -416,12 +416,21 @@ function _fuzzyScore(text, query) {
   return 10;
 }
 
+// Maps the 4 user-facing equipment category chips to underlying equipment values
+export const EQUIPMENT_CATEGORIES = {
+  "Peso Libre": ["Barra", "Mancuernas", "Kettlebell", "Landmine"],
+  "Máquina":    ["Máquina"],
+  "Polea":      ["Polea"],
+  "Smith":      ["Smith"],
+};
+
 export function getFilteredExercises({ query = "", group = "Todos", muscle = "Todos", equipment = "Todos" } = {}) {
   const q = query.trim().toLowerCase();
+  const equipSet = equipment !== "Todos" ? (EQUIPMENT_CATEGORIES[equipment] || [equipment]) : null;
   const filtered = EXERCISE_DATABASE.filter((e) => {
     if (group !== "Todos" && e.group !== group) return false;
     if (muscle !== "Todos" && e.muscle !== muscle) return false;
-    if (equipment !== "Todos" && e.equipment !== equipment) return false;
+    if (equipSet && !equipSet.includes(e.equipment)) return false;
     if (q) {
       const searchText = `${e.name} ${e.group} ${e.muscle}`;
       if (!_fuzzyMatch(searchText, q)) return false;

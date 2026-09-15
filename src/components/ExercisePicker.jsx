@@ -1,10 +1,11 @@
 import { useMemo, useState, useRef, useCallback, useEffect } from "react";
-import { BODY_GROUPS, MUSCLES_BY_GROUP, EQUIPMENT_OPTIONS, getFilteredExercises } from "../data/exerciseDatabase.js";
+import { BODY_GROUPS, MUSCLES_BY_GROUP, EQUIPMENT_CATEGORIES, getFilteredExercises } from "../data/exerciseDatabase.js";
 import useStore from "../store/useStore.js";
 import Icon from "./Icon.jsx";
 
 const ALL = "Todos";
 const CHIPS = [ALL, ...BODY_GROUPS];
+const EQUIP_CHIPS = Object.keys(EQUIPMENT_CATEGORIES);
 
 function ExerciseList({ items, favoriteExercises, toggleFavorite, onExerciseTap, handlePick, totalCount }) {
   if (items.length === 0) {
@@ -147,14 +148,24 @@ export default function ExercisePicker({ onPick, compact = false, query: queryPr
         </button>
       </div>
 
+      <div className="chips-row" role="tablist" aria-label="Equipment filter" style={{ marginTop: 2 }}>
+        {EQUIP_CHIPS.map((cat) => (
+          <button
+            key={cat}
+            role="tab"
+            aria-selected={equipment === cat}
+            className={`chip ${equipment === cat ? "chip-active" : ""}`}
+            onClick={() => setEquipment(equipment === cat ? ALL : cat)}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
+
       <div className="filters">
         <select value={muscle} onChange={(e) => setMuscle(e.target.value)} aria-label="Filter by muscle">
           <option value={ALL}>Músculo</option>
           {muscles.map((m) => <option key={m}>{m}</option>)}
-        </select>
-        <select value={equipment} onChange={(e) => setEquipment(e.target.value)} aria-label="Filter by equipment">
-          <option value={ALL}>Equipo</option>
-          {EQUIPMENT_OPTIONS.map((eq) => <option key={eq}>{eq}</option>)}
         </select>
       </div>
 
