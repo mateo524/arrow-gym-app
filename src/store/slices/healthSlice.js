@@ -21,7 +21,12 @@ function buildHealthPayload(state) {
     saved_meal_combos: state.savedMealCombos || [],
     nutrition_plan: state.nutritionPlan,
     active_challenges: state.activeChallenges || [],
-    progress_photos: state.progressPhotos || [],
+    // Only sync photos that have a real storage URL. Base64 dataUrls can be
+    // several MB each and blow the JSONB payload limit, causing the update to
+    // fail silently and wipe the photos on the next session load from Supabase.
+    progress_photos: (state.progressPhotos || [])
+      .filter(p => p.url)
+      .map(({ id, date, url, note }) => ({ id, date, url, note })),
     competition_date: state.competitionDate,
     competition_name: state.competitionName,
     // Settings that live in settingsSlice — included so they survive localStorage wipes

@@ -663,6 +663,7 @@ export default function WorkoutPage() {
           return overlap >= Math.min(uniqueExercises.length, rNames.length) * 0.8;
         });
         if (!alreadySaved) {
+          if (committed) return;
           setSaveRoutineName("");
           setShowSummary(false);
           setShowSaveRoutine(true);

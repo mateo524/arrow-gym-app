@@ -185,6 +185,8 @@ export default function MeasurementsPage() {
 
   const [measTab, setMeasTab] = useState("basico");
   const [photoNote, setPhotoNote] = useState("");
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoError, setPhotoError] = useState("");
   const [fullscreenPhoto, setFullscreenPhoto] = useState(null);
   const [compareMode, setCompareMode] = useState(false);
   const [compareSelected, setCompareSelected] = useState([]);
@@ -888,33 +890,42 @@ export default function MeasurementsPage() {
             <p style={{ fontSize:13, color:"var(--muted)", margin:"0 0 14px" }}>
               Subí fotos mensuales para comparar tu progreso visual.
             </p>
-            <label style={{ display:"block", background:"rgba(168,85,247,.07)", border:"2px dashed rgba(168,85,247,.3)", borderRadius:14, padding:"18px", textAlign:"center", cursor:"pointer", marginBottom:14 }}>
-              <Icon name="Camera" size={28} style={{display:'inline-block',verticalAlign:'middle'}} />
-              <p style={{ margin:"6px 0 0", fontSize:13, color:"var(--green)", fontWeight:700 }}>Agregar foto</p>
+            <label style={{ display:"block", background:"rgba(168,85,247,.07)", border:"2px dashed rgba(168,85,247,.3)", borderRadius:14, padding:"18px", textAlign:"center", cursor: photoUploading ? "wait" : "pointer", marginBottom:14, opacity: photoUploading ? 0.7 : 1 }}>
+              <Icon name={photoUploading ? "Loader" : "Camera"} size={28} style={{display:'inline-block',verticalAlign:'middle'}} />
+              <p style={{ margin:"6px 0 0", fontSize:13, color:"var(--green)", fontWeight:700 }}>
+                {photoUploading ? "Subiendo…" : "Agregar foto"}
+              </p>
               <p style={{ margin:"2px 0 0", fontSize:11, color:"var(--muted)" }}>Tocá para seleccionar una imagen</p>
-              <input type="file" accept="image/*" style={{ display:"none" }} onChange={e => {
+              <input type="file" accept="image/*" disabled={photoUploading} style={{ display:"none" }} onChange={e => {
                 const file = e.target.files?.[0];
                 if (!file) return;
+                e.target.value = "";
+                const userId = user?.id;
+                if (!userId) { setPhotoError("Iniciá sesión para guardar fotos."); return; }
+                setPhotoError("");
+                setPhotoUploading(true);
                 const reader = new FileReader();
                 reader.onload = async ev => {
-                  const dataUrl = ev.target.result;
-                  const userId = user?.id;
-                  if (userId) {
-                    try {
-                      const url = await uploadProgressPhoto(dataUrl, userId);
-                      addProgressPhoto(url, photoNote);
-                      return;
-                    } catch (err) {
-                      console.warn("Progress photo upload failed, falling back to base64:", err);
-                    }
+                  try {
+                    const url = await uploadProgressPhoto(ev.target.result, userId);
+                    addProgressPhoto(url, photoNote);
+                    setPhotoNote("");
+                  } catch (err) {
+                    console.warn("Progress photo upload failed:", err);
+                    setPhotoError("No se pudo guardar la foto. Verificá tu conexión o que el bucket 'progress-photos' exista en Supabase.");
+                  } finally {
+                    setPhotoUploading(false);
                   }
-                  // Fallback: store base64 directly (old behaviour)
-                  addProgressPhoto(dataUrl, photoNote);
                 };
                 reader.readAsDataURL(file);
-                e.target.value = "";
               }} />
             </label>
+            {photoError && (
+              <div className="login-error" style={{ marginBottom:10 }}>
+                <Icon name="AlertCircle" size={14} />
+                <span>{photoError}</span>
+              </div>
+            )}
             <input
               value={photoNote}
               onChange={e => setPhotoNote(e.target.value)}

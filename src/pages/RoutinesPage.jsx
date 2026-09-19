@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import { supabase } from "../lib/supabase.js";
 import useStore from "../store/useStore.js";
 import useAuthStore from "../store/useAuthStore.js";
 import Icon from "../components/Icon.jsx";
@@ -28,6 +27,7 @@ export default function RoutinesPage() {
   useEffect(() => { if (profile?.id) { loadRoutines(); loadNotifications(); } }, [profile?.id]);
 
   async function loadRoutines() {
+    const { supabase } = await import("../lib/supabase.js");
     setLoading(true);
     const { data, error: loadError } = await supabase
       .from("routines")
@@ -47,6 +47,7 @@ export default function RoutinesPage() {
   }
 
   async function loadNotifications() {
+    const { supabase } = await import("../lib/supabase.js");
     const { data } = await supabase
       .from("notifications")
       .select("*")
@@ -59,6 +60,7 @@ export default function RoutinesPage() {
   async function saveRoutine(e) {
     e.preventDefault();
     if (!form.name.trim()) return;
+    const { supabase } = await import("../lib/supabase.js");
     setSaving(true);
     setError("");
 
@@ -88,6 +90,7 @@ export default function RoutinesPage() {
 
   async function confirmDelete() {
     if (!deleteTarget) return;
+    const { supabase } = await import("../lib/supabase.js");
     if (deleteTarget.user_id !== profile?.id) {
       setError("No tenés permisos para eliminar esta rutina.");
       setDeleteTarget(null);
@@ -225,6 +228,7 @@ export default function RoutinesPage() {
   }
 
   async function respondNotification(notif, accept) {
+    const { supabase } = await import("../lib/supabase.js");
     const assignmentId = notif.data?.assignment_id;
 
     if (assignmentId) {
@@ -233,7 +237,7 @@ export default function RoutinesPage() {
         .eq("id", assignmentId);
       if (assignmentError) {
         setError(assignmentError.message || "No se pudo actualizar la asignación. Intentá de nuevo.");
-        return;
+        // Do not return — fall through so the notification is always marked as read
       }
     }
 
