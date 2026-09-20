@@ -912,7 +912,8 @@ export default function MeasurementsPage() {
                     setPhotoNote("");
                   } catch (err) {
                     console.warn("Progress photo upload failed:", err);
-                    setPhotoError("No se pudo guardar la foto. Verificá tu conexión o que el bucket 'progress-photos' exista en Supabase.");
+                    const detail = err?.message || err?.error_description || JSON.stringify(err);
+                    setPhotoError(`Error al subir foto: ${detail}`);
                   } finally {
                     setPhotoUploading(false);
                   }
