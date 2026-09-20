@@ -9,9 +9,17 @@ import { supabase } from "./supabase.js";
  * @param {string} userId  - authenticated user's id
  * @returns {Promise<string>} public URL of the uploaded file
  */
+function dataUrlToBlob(dataUrl) {
+  const [header, data] = dataUrl.split(",");
+  const mime = header.match(/:(.*?);/)[1];
+  const bytes = atob(data);
+  const arr = new Uint8Array(bytes.length);
+  for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+  return new Blob([arr], { type: mime });
+}
+
 export async function uploadProgressPhoto(dataUrl, userId) {
-  const res = await fetch(dataUrl);
-  const blob = await res.blob();
+  const blob = dataUrlToBlob(dataUrl);
   const ext = blob.type.includes("png") ? "png" : "jpg";
   const path = `${userId}/progress/${Date.now()}.${ext}`;
 
