@@ -1,3 +1,5 @@
+import { BRAND } from "../config/brand.js";
+
 // Canvas-based workout share image. Returns a Promise that resolves when done.
 export async function shareWorkout(workout) {
   const W = 390, H = 720;
@@ -25,7 +27,7 @@ export async function shareWorkout(workout) {
   // ── Logo / brand ─────────────────────────────────────────────────────────────
   ctx.fillStyle = "rgba(255,255,255,.6)";
   ctx.font = "600 11px -apple-system, system-ui, sans-serif";
-  ctx.fillText("PULSE · ENTRENAMIENTO", 20, 22);
+  ctx.fillText(`${BRAND.toUpperCase()} · ENTRENAMIENTO`, 20, 22);
 
   // ── Workout title ─────────────────────────────────────────────────────────────
   ctx.fillStyle = "#fff";
@@ -134,12 +136,12 @@ export async function shareWorkout(workout) {
   ctx.fillStyle = "rgba(255,255,255,.2)";
   ctx.font = "500 11px -apple-system, system-ui, sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText("Entrenado con Loop App", W / 2, H - 16);
+  ctx.fillText(`Entrenado con ${BRAND}`, W / 2, H - 16);
   ctx.textAlign = "left";
 
   return new Promise((resolve) => {
     canvas.toBlob(async (blob) => {
-      const file = new File([blob], "entrenamiento-pulse.png", { type: "image/png" });
+      const file = new File([blob], "entrenamiento-loop.png", { type: "image/png" });
       try {
         if (navigator.canShare?.({ files: [file] })) {
           await navigator.share({ files: [file], title: "Loop — " + (workout.type || "Entrenamiento") });
@@ -150,7 +152,7 @@ export async function shareWorkout(workout) {
       // Fallback: download
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url; a.download = "entrenamiento-pulse.png"; a.click();
+      a.href = url; a.download = "entrenamiento-loop.png"; a.click();
       setTimeout(() => URL.revokeObjectURL(url), 2000);
       resolve("downloaded");
     }, "image/png");

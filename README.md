@@ -1,28 +1,36 @@
-# Arrow Gym V4
+# Loop Gym
 
-App de entrenamiento mobile-first para iPhone.
+App de entrenamiento y comidas, mobile-first. PWA (Vite + React) con empaquetado nativo vía Capacitor (Android/iOS). Backend en Supabase.
 
-## Qué corrige esta versión
+## Funciones
 
-- Usa el historial original de la primera carpeta/ZIP como seed base.
-- Migra entrenamientos anteriores desde localStorage si se deploya en el mismo dominio.
-- Recupera el coach post-entreno con estado, alertas, recomendaciones y volumen.
-- Corrige hombros en analytics: Landmine Shoulder Press, Cable Lateral Raise y Cable Face Pull cuentan como Hombros.
-- Mapa muscular frontal/posterior más profesional.
-- Radar: Hombros, Pecho, Espalda, Brazos, Piernas y Core.
-- Banco grande de ejercicios offline con filtros.
+- Registro de entrenamientos, historial y analytics por grupo muscular (radar, mapa muscular frontal/posterior).
+- Banco de ejercicios offline con filtros.
+- Registro de comidas con escáner de códigos de barras.
+- Medidas corporales y coach post-entreno.
+- Notificaciones push (nativas).
 
-## Deploy Vercel
+## Desarrollo
 
 ```bash
-npm install
+cp .env.example .env   # completar VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY
+npm ci
+npm run dev
+npm test
 npm run build
 ```
 
-En Vercel:
+## Deploy (Vercel)
 
-- Framework: Vite
-- Build command: npm run build
-- Output directory: dist
+El único destino de deploy es Vercel (framework Vite, build `npm run build`, salida `dist`). Variables requeridas en Vercel: `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`. Los headers de seguridad (CSP, HSTS, etc.) están en `vercel.json`.
 
-No subir node_modules, dist ni package-lock.json.
+La CI (`.github/workflows/ci.yml`) corre `npm ci`, `npm test`, `npm run build` y `npm audit --audit-level=high`; no despliega.
+
+## Apps nativas
+
+```bash
+npm run sync:android && npm run open:android
+npm run sync:ios && npm run open:ios
+```
+
+Ver `PUSH_SETUP.md` para notificaciones push. Pendiente manual: firma de release (keystore Android, certificados/provisioning iOS), credenciales APNs/FCM y capacidad HealthKit.

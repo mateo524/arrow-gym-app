@@ -30,8 +30,8 @@ export default function AchievementToast({ achievement, onClose }) {
     <>
       <style>{styles}</style>
       <div
-        role="alert"
-        aria-live="assertive"
+        role="status"
+        aria-live="polite"
         style={{
           position: "fixed",
           bottom: "32px",

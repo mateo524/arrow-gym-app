@@ -1,6 +1,19 @@
 import webpush from "npm:web-push@3.6.6";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
+// Comparación en tiempo constante (SHA-256 evita filtrar el largo)
+async function timingSafeEqual(a: string, b: string): Promise<boolean> {
+  const enc = new TextEncoder();
+  const [ha, hb] = await Promise.all([
+    crypto.subtle.digest("SHA-256", enc.encode(a)),
+    crypto.subtle.digest("SHA-256", enc.encode(String(b ?? ""))),
+  ]);
+  const x = new Uint8Array(ha), y = new Uint8Array(hb);
+  let diff = 0;
+  for (let i = 0; i < x.length; i++) diff |= x[i] ^ y[i];
+  return diff === 0;
+}
+
 Deno.serve(async (req: Request) => {
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -25,7 +38,7 @@ Deno.serve(async (req: Request) => {
     .eq("key", "cron_secret")
     .single();
 
-  if (configError || !configData || cronSecret !== configData.value) {
+  if (configError || !configData || !(await timingSafeEqual(cronSecret, configData.value))) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 403,
       headers: { "Content-Type": "application/json" },

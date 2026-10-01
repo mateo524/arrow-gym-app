@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "Loop",
+  "name": "Loop Gym",
   "short_name": "Loop",
-  "description": "Tu app de entrenamiento y nutrición",
+  "description": "Tu app de entrenamiento y comidas",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

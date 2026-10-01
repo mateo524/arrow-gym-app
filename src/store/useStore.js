@@ -62,10 +62,40 @@ function safeSetItem(key, value) {
   }
 }
 
+// Debounce writes (~500 ms): the JSON of the whole store is large and every
+// state change would otherwise serialize+write it synchronously.
+const PERSIST_DEBOUNCE_MS = 500;
+let pendingWrite = null; // { key, value }
+let persistTimer = null;
+function flushPendingWrite() {
+  clearTimeout(persistTimer);
+  persistTimer = null;
+  if (pendingWrite) {
+    const { key, value } = pendingWrite;
+    pendingWrite = null;
+    safeSetItem(key, value);
+  }
+}
+function debouncedSetItem(key, value) {
+  pendingWrite = { key, value };
+  clearTimeout(persistTimer);
+  persistTimer = setTimeout(flushPendingWrite, PERSIST_DEBOUNCE_MS);
+}
+if (typeof window !== "undefined") {
+  window.addEventListener("pagehide", flushPendingWrite);
+  window.addEventListener("beforeunload", flushPendingWrite);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") flushPendingWrite();
+  });
+}
+
 const quotaStorage = createJSONStorage(() => ({
-  getItem: (key) => localStorage.getItem(key),
-  setItem: safeSetItem,
-  removeItem: (key) => localStorage.removeItem(key),
+  getItem: (key) => (pendingWrite && pendingWrite.key === key ? pendingWrite.value : localStorage.getItem(key)),
+  setItem: debouncedSetItem,
+  removeItem: (key) => {
+    if (pendingWrite && pendingWrite.key === key) pendingWrite = null;
+    localStorage.removeItem(key);
+  },
 }));
 
 const useStore = create(

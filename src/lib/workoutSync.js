@@ -1,5 +1,6 @@
 import { supabase } from "./supabase.js";
-import { enqueue, flush } from "./offlineQueue.js";
+import { track } from "./telemetry.js";
+import { enqueue, flush, items } from "./offlineQueue.js";
 
 // Race a Supabase promise against a hard timeout so that dead-WiFi situations
 // (navigator.onLine returns true but there is no real connectivity) don't leave
@@ -11,56 +12,52 @@ const withTimeout = (promise, ms = 8000) => {
   return Promise.race([promise, timeout]);
 };
 
-// Prevent parallel requests that could race each other (the older one winning
-// over a newer write when the network is slow but not fully dead).
-let isSyncing = false;
+const ROW_FIELDS = (w, userId) => ({
+  id: w.id,
+  user_id: userId,
+  type: w.type,
+  date: w.date,
+  sets: w.sets,
+  duration_min: w.durationMin ?? null,
+  notes: w.notes ?? null,
+  mood: w.mood ?? null,
+  // created_at intentionally omitted: DB default sets it once; updated_at is a trigger.
+});
 
-// Upload a completed workout to Supabase.
-// If offline (or a request is already in-flight), queues it for later and
-// flushes the pending queue on the next successful upload.
+// Single processor shared by every flush path (syncWorkoutUp, online handler, background sync).
+export async function processItem(item) {
+  if (item.type === "upsert_workout") {
+    const { error } = await withTimeout(supabase.from("user_workouts").upsert(item.row));
+    if (error) throw error;
+  } else if (item.type === "delete_workout") {
+    const { error } = await withTimeout(
+      supabase.from("user_workouts").update({ deleted_at: item.deleted_at }).eq("id", item.id).eq("user_id", item.userId)
+    );
+    if (error) throw error;
+  } else {
+    // Unknown type: throw so the queue keeps it (never discard silently).
+    throw new Error(`tipo no reconocido: ${item.type}`);
+  }
+}
+
+export function flushPending({ force = false } = {}) {
+  if (typeof navigator !== "undefined" && !navigator.onLine) return Promise.resolve(0);
+  return flush(processItem, { force });
+}
+
+// Upload a completed workout: always persisted in the queue first (keyed by id,
+// last write wins), then flushed in order.
 export async function syncWorkoutUp(workout, userId) {
   if (!userId || !workout?.id) return;
-  const row = {
-    id: workout.id,
-    user_id: userId,
-    type: workout.type,
-    date: workout.date,
-    sets: workout.sets,
-    duration_min: workout.durationMin ?? null,
-    notes: workout.notes ?? null,
-    mood: workout.mood ?? null,
-    created_at: new Date().toISOString(),
-  };
-  if (!navigator.onLine) {
-    enqueue({ type: "upsert_workout", row });
-    return;
-  }
-  // Avoid concurrent requests for the same resource.
-  if (isSyncing) {
-    enqueue({ type: "upsert_workout", row });
-    return;
-  }
-  isSyncing = true;
-  try {
-    const { error: upsertError } = await withTimeout(supabase.from("user_workouts").upsert(row));
-    if (upsertError) throw upsertError;
-    // Flush any previously queued saves now that we're online.
-    await flush(async (item) => {
-      if (item.type === "upsert_workout") {
-        const { error: flushError } = await withTimeout(supabase.from("user_workouts").upsert(item.row));
-        if (flushError) throw flushError;
-      } else {
-        // Unknown type: throw so flush keeps it in the queue instead of
-        // silently discarding it — data loss prevention.
-        console.error(`[offlineQueue] tipo no reconocido: "${item.type}" — dejando en cola para reintentar`);
-        throw new Error(`tipo no reconocido: ${item.type}`);
-      }
-    });
-  } catch {
-    enqueue({ type: "upsert_workout", row });
-  } finally {
-    isSyncing = false;
-  }
+  enqueue({ type: "upsert_workout", id: workout.id, key: `workout:${workout.id}`, row: ROW_FIELDS(workout, userId) });
+  await flushPending();
+}
+
+// Soft-delete a workout remotely (queued if offline).
+export async function syncWorkoutDelete(id, userId) {
+  if (!userId || !id) return;
+  enqueue({ type: "delete_workout", id, userId, key: `workout:${id}`, deleted_at: new Date().toISOString() });
+  await flushPending();
 }
 
 const PAGE_SIZE = 500;
@@ -83,7 +80,7 @@ export async function fetchWorkoutsFromDB(userId) {
           .order("created_at", { ascending: false })
           .range(from, from + PAGE_SIZE - 1)
       );
-      if (error) return [];
+      if (error) { console.warn("[workoutSync] fetch falló:", error.message); return []; }
       allRows = [...allRows, ...(data || [])];
       if (!data || data.length < PAGE_SIZE) break;
       from += PAGE_SIZE;
@@ -97,9 +94,11 @@ export async function fetchWorkoutsFromDB(userId) {
       notes: row.notes ?? null,
       mood: row.mood ?? null,
       updated_at: row.updated_at ?? null,
+      deleted_at: row.deleted_at ?? null,
       created_at: row.created_at ?? null,
     }));
-  } catch {
+  } catch (e) {
+    console.warn("[workoutSync] fetch falló:", e?.message || e);
     return [];
   }
 }
@@ -112,17 +111,13 @@ export async function syncAllWorkoutsUp(workouts, userId) {
     // Never upload seed/demo workouts — they have no place in a real user's DB
     const real = workouts.filter(w => !w.isSeed);
     if (!real.length) return;
-    const rows = real.map((w) => ({
-      id: w.id,
-      user_id: userId,
-      type: w.type,
-      date: w.date,
-      sets: w.sets,
-      created_at: new Date().toISOString(),
-    }));
-    const { error: upsertAllError } = await withTimeout(supabase.from("user_workouts").upsert(rows));
-    if (upsertAllError) throw upsertAllError;
-  } catch {}
+    const rows = real.map((w) => ROW_FIELDS(w, userId));
+    const { error } = await withTimeout(supabase.from("user_workouts").upsert(rows));
+    if (error) throw error;
+  } catch (e) {
+    console.warn("[workoutSync] syncAllWorkoutsUp falló:", e?.message || e);
+    try { track("sync_all_workouts_failed", { error: String(e?.message || e) }); } catch {}
+  }
 }
 
 // Merge local workouts (from localStorage) with remote ones (from DB).
@@ -131,10 +126,13 @@ export async function syncAllWorkoutsUp(workouts, userId) {
 // local from always overwriting a remote edit made on another device.
 export function mergeWorkouts(local, remote) {
   const map = new Map();
+  // Ids with a delete still queued must not be resurrected by a stale remote row.
+  const pendingDeletes = new Set(items().filter((i) => i.type === "delete_workout").map((i) => i.id));
   // Seed with local entries (have full transient fields)
   for (const w of local) map.set(w.id, w);
   // Remote: prefer whichever copy was updated most recently
   for (const w of remote) {
+    if (w.deleted_at || pendingDeletes.has(w.id)) { map.delete(w.id); continue; }
     if (map.has(w.id)) {
       const local = map.get(w.id);
       const remoteTs = new Date(w.updated_at || w.created_at || w.date || 0).getTime();

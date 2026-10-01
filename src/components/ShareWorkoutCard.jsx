@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { BRAND } from "../config/brand.js";
 
 /**
  * ShareWorkoutCard — comparte un link público al resumen del entreno.
@@ -30,7 +31,7 @@ export default function ShareWorkoutCard({ summary }) {
   async function handleShare() {
     const url = buildLink();
     const text = [
-      `Completé un entreno en Loop Gym`,
+      `Completé un entreno en ${BRAND}`,
       summary.type ? `${summary.type}` : null,
       summary.thisVol ? `${summary.thisVol}kg de volumen` : null,
       summary.totalSets ? `${summary.totalSets} series` : null,
@@ -39,7 +40,7 @@ export default function ShareWorkoutCard({ summary }) {
 
     if (navigator.share) {
       try {
-        await navigator.share({ title: "Mi entreno en Loop Gym", text, url });
+        await navigator.share({ title: `Mi entreno en ${BRAND}`, text, url });
         return;
       } catch (e) {
         if (e.name === "AbortError") return;

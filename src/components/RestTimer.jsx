@@ -128,12 +128,12 @@ export default function RestTimer({ duration = 90, onComplete, onSkip, onClose, 
     setRemaining(duration);
     setRunning(false);
     setPaused(false);
-  }, [duration]);
+  }, [duration]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (active && !running) startTimer();
     return stopTimer;
-  }, [active]);
+  }, [active]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function applyDuration(secs) {
     if (!secs || secs < 5 || secs > 600) return;
@@ -203,7 +203,7 @@ export default function RestTimer({ duration = 90, onComplete, onSkip, onClose, 
           )}
         </div>
       ) : (
-        <button onClick={startTimer}
+        <button onClick={() => startTimer()}
           style={{ width:"100%", padding:"12px", borderRadius:14, border:"1.5px solid var(--cyan)", background:"rgba(117,217,255,.1)", color:"var(--cyan)", fontSize:15, fontWeight:800, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
           Iniciar descanso
         </button>

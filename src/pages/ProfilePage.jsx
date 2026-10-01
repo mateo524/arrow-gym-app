@@ -4,6 +4,7 @@ import useAuthStore from "../store/useAuthStore.js";
 import { supabase } from "../lib/supabase.js";
 import { todayLocal } from "../lib/dates.js";
 import Icon from "../components/Icon.jsx";
+import SupportForm from "../components/SupportForm.jsx";
 import { parseImportFile } from "../lib/importCSV.js";
 import { subscribeToPush, requestPushPermission, isPushSupported, isIosNotInstalled } from "../lib/pushNotifications.js";
 
@@ -396,22 +397,37 @@ export default function ProfilePage() {
                   <div style={{ fontSize: 12, color: "var(--muted)" }}>
                     {isActive
                       ? hasPreapproval
-                        ? `Se renueva automáticamente${daysUntilRenewal !== null ? ` — vence en ${daysUntilRenewal} día${daysUntilRenewal !== 1 ? "s" : ""}` : ""}`
+                        ? `No se renueva solo, te avisamos antes de vencer${daysUntilRenewal !== null ? ` — vence en ${daysUntilRenewal} día${daysUntilRenewal !== 1 ? "s" : ""}` : ""}`
                         : `Plan mensual $10.000 ARS${daysUntilRenewal !== null ? ` — vence en ${daysUntilRenewal} día${daysUntilRenewal !== 1 ? "s" : ""}` : ""}`
-                      : "Accedá al Coach IA y Nutrición — $10.000/mes"}
+                      : "Accedá al Coach IA y Comidas — $10.000/mes"}
                   </div>
                 </div>
               </div>
               {!isActive && (
                 <button className="primary" style={{ width: "100%", padding: "11px", borderRadius: 12, fontSize: 13, marginTop: 8 }} onClick={handleSubscribe}>
-                  Suscribirme — $10.000/mes — renovación automática
+                  Pagar plan mensual — $10.000 (30 días, sin débito automático)
                 </button>
               )}
-              {isActive && hasPreapproval && (
+              {isActive && (
                 <button onClick={handleCancel} style={{ background: "none", border: "none", color: "var(--muted)", fontSize: 12, cursor: "pointer", padding: "4px 0", textDecoration: "underline" }}>
-                  Cancelar suscripción
+                  No renovar
                 </button>
               )}
+              {isActive && (
+                <a
+                  href={`mailto:[COMPLETAR: email de contacto]?subject=${encodeURIComponent("Botón de arrepentimiento")}&body=${encodeURIComponent("Quiero ejercer mi derecho de arrepentimiento (10 días). Email de mi cuenta: " + (profile?.email || ""))}`}
+                  style={{ display: "inline-block", marginLeft: 14, color: "var(--muted)", fontSize: 12, padding: "4px 0", textDecoration: "underline" }}
+                >
+                  Botón de arrepentimiento
+                </a>
+              )}
+              <div style={{ marginTop: 6 }}>
+                <a href="#/legal/reembolso" target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: "var(--muted)" }}>Política de reembolso</a>
+                {" · "}
+                <a href="#/legal/terminos" target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: "var(--muted)" }}>Términos</a>
+                {" · "}
+                <a href="#/legal/privacidad" target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: "var(--muted)" }}>Privacidad</a>
+              </div>
             </div>
           );
         })()}
@@ -808,6 +824,8 @@ export default function ProfilePage() {
             </form>
           )}
         </div>
+
+        <SupportForm />
 
         {/* Export data */}
         <div className="card" style={{ marginTop: 14 }}>

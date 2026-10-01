@@ -5,8 +5,11 @@ import Icon from "../components/Icon";
 import { todayLocal } from "../lib/dates.js";
 import { features, vocab } from "../config/features.js";
 import { searchFoods } from "../data/foodDatabase.js";
+import { searchSharedFoods, publishSharedFood } from "../lib/sharedFoods.js";
 import { generateNutritionPlan } from "../data/nutritionData.js";
 import BarcodeScanner from "../components/BarcodeScanner.jsx";
+import ReportFoodButton from "../components/ReportFoodButton.jsx";
+import { isSubscribed as hasAccess } from "../config/pricing.js";
 
 const MEAL_TYPES = ["Desayuno", "Colación", "Almuerzo", "Merienda", "Cena"];
 
@@ -94,7 +97,7 @@ export default function NutritionPage() {
   const setPage  = useStore(s => s.setPage);
 
   // Subscription gate — compute flag only, actual gate applied after all hooks
-  const isSubscribed = profile?.subscription_status === "active" || ["trainer","admin","superadmin"].includes(profile?.role);
+  const isSubscribed = hasAccess(profile) || ["trainer","admin","superadmin"].includes(profile?.role);
   const isLocked = profile && !isSubscribed;
 
   const f   = features(profile);
@@ -113,6 +116,7 @@ export default function NutritionPage() {
   const [tab, setTab]         = useState("hoy");    // "hoy" | "semana" | "plan" (plan hidden in simple)
 
   const [showForm, setShowForm] = useState(false);
+  const [foodMode, setFoodMode] = useState("buscar"); // "buscar" = elegir de la lista | "crear" = alimento nuevo
   const [showQuick, setShowQuick] = useState(false);
   const [form, setForm]       = useState({ type:getMealType(), name:"", kcal:"", protein:"", carbs:"", fat:"", grams:"" });
   const [saving, setSaving]   = useState(false);
@@ -150,15 +154,25 @@ export default function NutritionPage() {
   const [expandedPlanDay, setExpandedPlanDay] = useState(0);
   const wizSeedRef = useRef(Math.floor(Math.random() * 9999));
 
+  const searchSeqRef = useRef(0);
   const handleDbSearch = useCallback((q) => {
     setDbQuery(q);
+    const seq = ++searchSeqRef.current;
     if (q.trim().length >= 2) {
       const matches = searchFoods(q, 12);
       const lq = q.toLowerCase();
       const customMatches = (storeCustomFoods || []).filter(f =>
         f.name.toLowerCase().includes(lq)
       );
-      setDbResults([...customMatches, ...matches].slice(0, 20));
+      const local = [...customMatches, ...matches];
+      setDbResults(local.slice(0, 20));
+      // Alimentos creados por otros usuarios (catálogo compartido)
+      searchSharedFoods(q, 10).then(shared => {
+        if (seq !== searchSeqRef.current || shared.length === 0) return;
+        const seen = new Set(local.map(f => f.name.toLowerCase()));
+        const extra = shared.filter(f => !seen.has(f.name.toLowerCase()));
+        setDbResults([...local, ...extra].slice(0, 25));
+      });
     } else {
       setDbResults([]);
     }
@@ -206,6 +220,15 @@ export default function NutritionPage() {
   }, [baseFood, macrosEdited]);
 
   const today = todayLocal();
+  const age = (() => {
+    const dob = profile?.date_of_birth ? new Date(profile.date_of_birth) : null;
+    if (!dob || isNaN(dob)) return null;
+    const now = new Date();
+    let a = now.getFullYear() - dob.getFullYear();
+    if (now < new Date(now.getFullYear(), dob.getMonth(), dob.getDate())) a -= 1;
+    return a;
+  })();
+  const isMinor = age !== null && age < 18;
   const bodyWeight = Number([...weightLog].sort((a,b) => String(b.date).localeCompare(String(a.date)))[0]?.kg) || null;
 
   // TDEE estimate — Harris-Benedict simplificado sin altura/sexo
@@ -213,10 +236,22 @@ export default function NutritionPage() {
   const tdee = useMemo(() => {
     if (!bodyWeight) return null;
     // RMR aproximado: 22 kcal/kg (promedio hombre+mujer sin datos de composición)
-    const rmr = bodyWeight * 22;
+    const h = Number(profile?.height_cm);
+    const sx = profile?.sex;
+    // Mifflin-St Jeor si tenemos altura, edad y sexo; si no, estimación simple
+    const rmr = (h > 0 && age !== null && (sx === "M" || sx === "F"))
+      ? 10 * bodyWeight + 6.25 * h - 5 * age + (sx === "M" ? 5 : -161)
+      : bodyWeight * 22;
     const multipliers = { mantenimiento:1.55, volumen:1.65, definicion:1.50, rendimiento:1.70 };
-    return Math.round(rmr * (multipliers[userGoal] ?? 1.55));
-  }, [bodyWeight, userGoal]);
+    const safeGoal = isMinor && userGoal === "definicion" ? "mantenimiento" : userGoal;
+    const tdeeRaw = Math.round(rmr * (multipliers[safeGoal] ?? 1.55));
+    // Déficit máximo 25 % (20 % si es menor de 21) y nunca bajo el piso de calorías
+    const maintenance = Math.round(rmr * 1.55);
+    const maxDeficit = (age !== null && age < 21) ? 0.8 : 0.75;
+    const floor = sx === "M" ? 1500 : 1200;
+    const t = safeGoal === "definicion" ? Math.max(tdeeRaw, Math.round(maintenance * maxDeficit)) : tdeeRaw;
+    return Math.max(t, floor);
+  }, [bodyWeight, userGoal, profile, age, isMinor]);
 
   // Macro targets — consenso deportivo para gym-goers
   // Proteína: 1.6g/kg mant, 2.0g/kg volumen, 2.2g/kg definición, 1.8g/kg rendimiento
@@ -230,7 +265,7 @@ export default function NutritionPage() {
       rendimiento:   { proteinFactor:1.8, carbFactor:5.0, fatFactor:1.0 },  // Volumen + alto rendimiento aeróbico
     };
     const g = goalMap[userGoal] ?? goalMap.mantenimiento;
-    const protein = Math.round(bw * g.proteinFactor);
+    const protein = Math.round(bw * (isMinor ? Math.min(g.proteinFactor, 1.6) : g.proteinFactor));
     const fat     = Math.round(bw * g.fatFactor);
     // Carbs se calculan para cerrar las calorías desde el TDEE
     const kcalBase = tdee || Math.round(bw * 22 * 1.55);
@@ -238,19 +273,23 @@ export default function NutritionPage() {
     const carbs = Math.max(Math.round(carbsKcal / 4), Math.round(bw * g.carbFactor));
     const kcal  = protein*4 + carbs*4 + fat*9;
     return { kcal, protein, carbs, fat, proteinPerKg: g.proteinFactor };
-  }, [bodyWeight, userGoal, tdee]);
+  }, [bodyWeight, userGoal, tdee, isMinor]);
 
-  const effectiveKcal = customKcal ? Number(customKcal) : targets.kcal;
+  const kcalFloor = profile?.sex === "M" ? 1500 : 1200;
+  const customKcalNum = Number(customKcal) || 0;
+  const customKcalOut = customKcalNum > 0 && (customKcalNum < kcalFloor || customKcalNum > 5000);
+  // Una meta fuera de rango seguro no se aplica: se usa la calculada
+  const effectiveKcal = customKcalNum > 0 && !customKcalOut ? customKcalNum : targets.kcal;
 
   // Recalculate macros if using custom kcal
   const effectiveTargets = useMemo(() => {
-    if (!customKcal || !Number(customKcal)) return targets;
-    const kcal = Number(customKcal);
+    if (!customKcalNum || customKcalOut) return targets;
+    const kcal = customKcalNum;
     const protein = targets.protein;
     const fat = targets.fat;
     const carbs = Math.max(0, Math.round((kcal - protein * 4 - fat * 9) / 4));
     return { ...targets, kcal, carbs };
-  }, [customKcal, targets]);
+  }, [customKcalNum, customKcalOut, targets]);
 
   const todayMeals = useMemo(() => {
     const uid = profile?.id;
@@ -282,6 +321,7 @@ export default function NutritionPage() {
   function resetForm() {
     setForm({ type:getMealType(), name:"", kcal:"", protein:"", carbs:"", fat:"", grams:"" });
     setShowForm(false);
+    setFoodMode("buscar");
     setShowQuick(false);
     setDbQuery("");
     setDbResults([]);
@@ -297,7 +337,7 @@ export default function NutritionPage() {
     // Save as custom food if not in DB and not already saved as custom
     const dbCheck = searchFoods(form.name, 5);
     const alreadyCustom = (storeCustomFoods || []).some(f => f.name.toLowerCase() === form.name.trim().toLowerCase());
-    if (!alreadyCustom && !dbCheck.some(f => f.name.toLowerCase() === form.name.toLowerCase())) {
+    if (foodMode === "crear" && !alreadyCustom && !dbCheck.some(f => f.name.toLowerCase() === form.name.toLowerCase())) {
       addCustomFood?.({
         id: `custom-${form.name.toLowerCase().replace(/\s+/g,"-")}-${Date.now()}`,
         name: form.name.trim(),
@@ -309,7 +349,8 @@ export default function NutritionPage() {
         carbs: r2(form.carbs),
         fat: r2(form.fat),
       });
-      window.__showToast?.("Guardada para futuros usos", "success");
+      window.__showToast?.("Alimento guardado. También lo van a poder usar los demás usuarios", "success");
+      publishSharedFood({ name: form.name, grams: form.grams, kcal: form.kcal, protein: form.protein, carbs: form.carbs, fat: form.fat });
     }
     resetForm();
     setSaving(false);
@@ -333,7 +374,7 @@ export default function NutritionPage() {
   if (isLocked) {
     return (
       <section className="page" style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", textAlign:"center", padding:"48px 24px" }}>
-        <h2 style={{ margin:"0 0 8px", fontSize:22 }}>Nutrición</h2>
+        <h2 style={{ margin:"0 0 8px", fontSize:22 }}>Comidas</h2>
         <p style={{ color:"var(--muted)", fontSize:14, marginBottom:28, maxWidth:280 }}>
           Registrá tus comidas, seguí tus macros y recibí recomendaciones adaptadas a tu objetivo.
         </p>
@@ -349,7 +390,7 @@ export default function NutritionPage() {
           }}>
           Suscribirme — $10.000/mes
         </button>
-        <p style={{ color:"var(--muted)", fontSize:11, marginTop:12 }}>Renovación automática · cancelá cuando quieras</p>
+        <p style={{ color:"var(--muted)", fontSize:11, marginTop:12 }}>Pago mensual de 30 días · te avisamos antes de que venza</p>
       </section>
     );
   }
@@ -359,12 +400,17 @@ export default function NutritionPage() {
       <div className="home-header">
         <div style={{ flex:1 }}>
           <p className="eyebrow">Seguimiento</p>
-          <h1 style={{ margin:0 }}>Nutrición</h1>
+          <h1 style={{ margin:0 }}>Comidas</h1>
         </div>
         <button className="primary" style={{ padding:"8px 14px", fontSize:13, borderRadius:12 }} onClick={() => { setShowForm(true); setShowQuick(false); }}>
           + Agregar
         </button>
       </div>
+
+      <p style={{ fontSize:11, color:"var(--muted)", margin:"-6px 0 12px" }}>
+        Los valores son orientativos y no reemplazan la consulta con un médico o nutricionista.
+        {isMinor && " Si sos menor de 18, consultá con un profesional antes de cambiar tu alimentación."}
+      </p>
 
       {/* Tabs */}
       <div style={{ display:"flex", gap:6, marginBottom:16, overflowX:"auto", scrollbarWidth:"none", WebkitOverflowScrolling:"touch" }}>
@@ -422,20 +468,45 @@ export default function NutritionPage() {
           ))}
         </div>}
 
-        {/* Quick combos */}
-        {savedCombos.length > 0 && (
-          <div style={{ marginBottom:14 }}>
-            <p className="section-label">Combos guardados</p>
-            <div style={{ display:"flex", gap:8, overflowX:"auto", scrollbarWidth:"none" }}>
-              {savedCombos.map(c => (
-                <button key={c.id} onClick={() => { logMealCombo(c.id); window.__showToast?.(`${c.name} registrado`, "success"); }}
-                  style={{ flexShrink:0, background:"var(--panel)", border:"1px solid var(--line)", borderRadius:12, padding:"8px 14px", fontSize:13, fontWeight:600, cursor:"pointer", color:"var(--text)", whiteSpace:"nowrap" }}>
-                  {c.name}
-                </button>
-              ))}
-            </div>
+        {/* Mis combinaciones: platos armados que se guardan y se cargan con un toque */}
+        <div style={{ marginBottom:16 }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+            <p className="section-label" style={{ margin:0 }}>Mis combinaciones</p>
+            <button type="button" onClick={() => setShowComboModal(true)}
+              style={{ background:"rgba(52,211,153,.12)", border:"1px solid rgba(52,211,153,.35)", color:"var(--green)", borderRadius:10, padding:"6px 12px", fontSize:12, fontWeight:700, cursor:"pointer" }}>
+              + Armar combinación
+            </button>
           </div>
-        )}
+          {savedCombos.length === 0 ? (
+            <div style={{ fontSize:12, color:"var(--muted)", background:"var(--panel)", border:"1px dashed var(--line)", borderRadius:12, padding:"12px 14px" }}>
+              Guardá platos que repetís, por ejemplo <b>patitas de pollo con arroz</b> o <b>sándwich de lomo con tomate</b>, y cargalos con un solo toque.
+            </div>
+          ) : (
+            <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+              {savedCombos.map(c => {
+                const tot = (c.meals || []).reduce((t, m) => ({ kcal:t.kcal + (Number(m.kcal)||0), protein:t.protein + (Number(m.protein)||0) }), { kcal:0, protein:0 });
+                return (
+                  <div key={c.id} style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:14, padding:"10px 12px", display:"flex", alignItems:"center", gap:10 }}>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontSize:14, fontWeight:700 }}>{c.name}</div>
+                      <div style={{ fontSize:11, color:"var(--muted)", marginTop:2, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                        {(c.meals || []).map(m => m.name).join(" + ")}
+                      </div>
+                      <div style={{ fontSize:12, color:"var(--green)", fontWeight:700, marginTop:2 }}>{Math.round(tot.kcal)} kcal · {Math.round(tot.protein)}g P</div>
+                    </div>
+                    <button type="button" className="primary" style={{ padding:"8px 12px", fontSize:12 }}
+                      onClick={() => { logMealCombo(c.id); window.__showToast?.(`${c.name} agregado a hoy`, "success"); }}>
+                      Agregar a hoy
+                    </button>
+                    <button type="button" aria-label={`Borrar ${c.name}`}
+                      onClick={() => { if (window.confirm(`¿Borrar la combinación "${c.name}"?`)) deleteMealCombo(c.id); }}
+                      style={{ background:"none", border:"none", cursor:"pointer", fontSize:20, color:"var(--muted)", padding:4, lineHeight:1 }}>×</button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
         {/* Meals list */}
         <p className="section-label">Comidas de hoy</p>
@@ -604,6 +675,7 @@ export default function NutritionPage() {
                   style={{ background:"var(--green)", color:"#000", border:"none", borderRadius:8, padding:"7px 14px", fontSize:12, fontWeight:700, cursor:"pointer" }}>
                   OK
                 </button>
+                {customKcalOut && <span style={{ fontSize:11, color:"#ef4444" }}>Usá entre {kcalFloor} y 5000 kcal</span>}
                 {customKcal && <button onClick={() => { setCustomKcal(""); setShowKcalEdit(false); }}
                   style={{ background:"none", border:"none", color:"var(--muted)", fontSize:18, cursor:"pointer" }}>×</button>}
               </div>
@@ -935,16 +1007,28 @@ export default function NutritionPage() {
           <div style={{ position:"absolute", top:"8vh", left:0, right:0, bottom:0, background:"var(--bg)", borderRadius:"20px 20px 0 0", display:"flex", flexDirection:"column" }}>
             <div style={{ padding:"20px 20px 0", flexShrink:0 }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
-              <h3 style={{ margin:0, fontSize:17 }}>Registrar comida</h3>
-              <button onClick={resetForm} style={{ background:"none", border:"none", cursor:"pointer", fontSize:22, color:"var(--muted)" }}>×</button>
+              <h3 style={{ margin:0, fontSize:17 }}>{foodMode === "buscar" ? "¿Qué comiste?" : "Crear alimento nuevo"}</h3>
+              <button onClick={resetForm} aria-label="Cerrar" style={{ background:"none", border:"none", cursor:"pointer", fontSize:22, color:"var(--muted)" }}>×</button>
+            </div>
+
+            {/* Dos modos claramente separados */}
+            <div role="tablist" style={{ display:"flex", gap:4, padding:4, background:"var(--panel2)", borderRadius:12, marginBottom:14 }}>
+              {[["buscar","Buscar alimento"],["crear","Crear alimento nuevo"]].map(([id,label]) => (
+                <button key={id} role="tab" aria-selected={foodMode===id} type="button"
+                  onClick={() => { setFoodMode(id); setDbQuery(""); setDbResults([]); if (id==="crear") setBaseFood(null); }}
+                  style={{ flex:1, padding:"9px 6px", border:"none", borderRadius:9, cursor:"pointer", fontSize:13, fontWeight:700,
+                    background: foodMode===id ? "var(--green)" : "transparent", color: foodMode===id ? "#fff" : "var(--muted)" }}>
+                  {label}
+                </button>
+              ))}
             </div>
 
             {/* ── BUSCADOR DE BASE DE DATOS ── */}
-            <div style={{ position:"relative", marginBottom:14 }}>
+            {foodMode === "buscar" && <div style={{ position:"relative", marginBottom:14 }}>
               <div style={{ display:"flex", gap:8 }}>
                 <input
                   className="input"
-                  placeholder="Buscar alimento (ej: pollo, manzana, arroz…)"
+                  placeholder="Buscá un alimento (pollo, manzana, arroz…)"
                   value={dbQuery}
                   onChange={e => handleDbSearch(e.target.value)}
                   style={{ flex:1, boxSizing:"border-box" }}
@@ -976,17 +1060,18 @@ export default function NutritionPage() {
                   ))}
                 </div>
               )}
-            </div>
+            </div>}
 
             {/* "No results" hint — pre-fills form.name so the user can enter macros manually */}
-            {dbQuery.trim().length >= 2 && dbResults.length === 0 && (
-              <div style={{ marginTop:8, padding:"10px 12px", background:"rgba(255,255,255,.04)", border:"1px solid var(--line)", borderRadius:10, display:"flex", alignItems:"center", justifyContent:"space-between", gap:8 }}>
-                <span style={{ fontSize:12, color:"var(--muted)" }}>Sin resultados para "{dbQuery}"</span>
-                <button type="button"
-                  onClick={() => { setForm(f => ({...f, name: dbQuery.trim()})); setDbQuery(""); setDbResults([]); }}
-                  style={{ fontSize:12, fontWeight:700, color:"var(--green)", background:"none", border:"none", cursor:"pointer", padding:0, whiteSpace:"nowrap", flexShrink:0 }}>
-                  Cargar manualmente →
+            {foodMode === "buscar" && dbQuery.trim().length >= 2 && dbResults.length === 0 && (
+              <div style={{ marginTop:8, padding:"12px", background:"rgba(52,211,153,.06)", border:"1px dashed var(--green)", borderRadius:12, display:"flex", flexDirection:"column", gap:8 }}>
+                <span style={{ fontSize:13, color:"var(--text)" }}>No encontramos <b>"{dbQuery.trim()}"</b> en la lista.</span>
+                <button type="button" className="primary"
+                  onClick={() => { setFoodMode("crear"); setBaseFood(null); setMacrosEdited(false); setForm(f => ({...f, name: dbQuery.trim(), grams:"100", kcal:"", protein:"", carbs:"", fat:""})); setDbQuery(""); setDbResults([]); }}
+                  style={{ width:"100%" }}>
+                  + Crear "{dbQuery.trim()}" como alimento nuevo
                 </button>
+                <span style={{ fontSize:11, color:"var(--muted)" }}>Lo cargás una vez con sus valores y queda disponible para todos.</span>
               </div>
             )}
 
@@ -996,11 +1081,11 @@ export default function NutritionPage() {
             <div style={{ flex:1, overflowY:"auto", padding:"0 20px 20px" }}>
 
             {/* Quick foods toggle */}
-            <button onClick={() => setShowQuick(p => !p)} style={{ width:"100%", background:"rgba(34,211,120,.08)", border:"1px solid rgba(34,211,120,.2)", borderRadius:12, padding:"10px", fontSize:13, fontWeight:600, cursor:"pointer", color:"var(--green)", marginBottom:14 }}>
+            {foodMode === "buscar" && <button onClick={() => setShowQuick(p => !p)} style={{ width:"100%", background:"rgba(34,211,120,.08)", border:"1px solid rgba(34,211,120,.2)", borderRadius:12, padding:"10px", fontSize:13, fontWeight:600, cursor:"pointer", color:"var(--green)", marginBottom:14 }}>
               {showQuick ? <><Icon name="ChevronUp" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> Ocultar alimentos rápidos</> : <><Icon name="Zap" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> Alimentos frecuentes</>}
-            </button>
+            </button>}
 
-            {showQuick && (
+            {foodMode === "buscar" && showQuick && (
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:16 }}>
                 {QUICK_FOODS.map(food => (
                   <button key={food.name} onClick={() => { addQuickFood(food); window.__showToast?.(food.name+" agregado","success"); }}
@@ -1013,10 +1098,17 @@ export default function NutritionPage() {
               </div>
             )}
 
+            {foodMode === "buscar" && !baseFood && !form.name && (
+              <div style={{ textAlign:"center", padding:"28px 12px", color:"var(--muted)", fontSize:13 }}>
+                Escribí arriba lo que comiste y elegí una opción de la lista.<br />
+                ¿No está? Te vamos a ofrecer crearlo.
+              </div>
+            )}
+            {(foodMode === "crear" || baseFood || form.name) && (
             <form onSubmit={handleAdd} style={{ display:"flex", flexDirection:"column", gap:10 }}>
               {/* Tipo de comida según horario */}
               <div>
-                <div style={{ fontSize:11, color:"var(--muted)", marginBottom:6, fontWeight:600 }}>Tipo de comida</div>
+                <div style={{ fontSize:12, color:"var(--muted)", marginBottom:6, fontWeight:600 }}>¿En qué momento del día?</div>
                 <div style={{ display:"flex", gap:5, flexWrap:"wrap" }}>
                   {MEAL_TYPES.map(t => (
                     <button key={t} type="button" onClick={() => setForm(f => ({...f, type:t}))}
@@ -1029,13 +1121,24 @@ export default function NutritionPage() {
                   ))}
                 </div>
               </div>
-              <input className="input" placeholder="Nombre del alimento *" value={form.name} onChange={e => { setForm(f => ({...f,name:e.target.value})); setBaseFood(null); setMacrosEdited(false); }} required />
+              {foodMode === "crear" ? (<>
+                <div style={{ fontSize:12, color:"var(--muted)", background:"rgba(255,255,255,.04)", border:"1px solid var(--line)", borderRadius:10, padding:"8px 10px" }}>
+                  Cargá el alimento una sola vez con los valores del envase. Después aparece en el buscador, para vos y para todos los usuarios.
+                </div>
+                <label style={{ fontSize:12, color:"var(--muted)", fontWeight:600, marginBottom:-4 }}>Nombre del alimento</label>
+                <input className="input" placeholder="Ej: Milanesa de pollo" value={form.name} onChange={e => { setForm(f => ({...f,name:e.target.value})); setBaseFood(null); setMacrosEdited(false); }} required />
+              </>) : (
+                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:8 }}>
+                  <div style={{ fontSize:15, fontWeight:800 }}>{form.name}</div>
+                  {String(baseFood?.id || "").startsWith("shared-") && <ReportFoodButton foodId={baseFood.id} />}
+                </div>
+              )}
               {/* Gramaje */}
               <div>
-                <label style={{ fontSize:11, color:"var(--muted)", display:"block", marginBottom:4 }}>Cantidad (g)</label>
+                <label style={{ fontSize:12, color:"var(--muted)", fontWeight:600, display:"block", marginBottom:4 }}>{foodMode === "crear" ? "¿Para cuántos gramos son estos valores?" : "¿Cuántos gramos comiste?"}</label>
                 <input inputMode="decimal" value={form.grams}
                   onChange={e => handleGramsChange(e.target.value.replace(",","."))}
-                  placeholder="ej: 150"
+                  placeholder="Ej: 150"
                   style={{ width:"100%", background:"var(--panel2)", border:"1px solid var(--line)", borderRadius:10, padding:"9px 12px", color:"var(--text)", fontSize:14, boxSizing:"border-box" }} />
                 {/* Macro preview — shown when a DB food is selected and grams is filled */}
                 {baseFood && form.grams && Number(form.grams) > 0 && !macrosEdited && (
@@ -1044,19 +1147,34 @@ export default function NutritionPage() {
                   </div>
                 )}
               </div>
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
-                <input className="input" inputMode="decimal" placeholder="Calorías *" value={form.kcal} onChange={e => { setForm(f => ({...f,kcal:e.target.value.replace(",",".")})); setMacrosEdited(true); }} required />
-                <input className="input" inputMode="decimal" placeholder="Proteína (g)" value={form.protein} onChange={e => { setForm(f => ({...f,protein:e.target.value.replace(",",".")})); setMacrosEdited(true); }} />
-                <input className="input" inputMode="decimal" placeholder="Carbs (g)" value={form.carbs} onChange={e => { setForm(f => ({...f,carbs:e.target.value.replace(",",".")})); setMacrosEdited(true); }} />
-                <input className="input" inputMode="decimal" placeholder="Grasas (g)" value={form.fat} onChange={e => { setForm(f => ({...f,fat:e.target.value.replace(",",".")})); setMacrosEdited(true); }} />
+              {foodMode === "crear" && <>
+              <div style={{ fontSize:12, color:"var(--muted)", fontWeight:600, marginBottom:-2 }}>
+                Valores nutricionales de esa cantidad <span style={{ fontWeight:400 }}>(figuran en el envase)</span>
               </div>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
+                {[
+                  ["kcal","Calorías (kcal)","Ej: 250"],
+                  ["protein","Proteínas (g)","Ej: 20"],
+                  ["carbs","Carbohidratos (g)","Ej: 30"],
+                  ["fat","Grasas (g)","Ej: 8"],
+                ].map(([key,label,ph]) => (
+                  <label key={key} style={{ display:"flex", flexDirection:"column", gap:4, fontSize:11, color:"var(--muted)" }}>
+                    {label}
+                    <input className="input" inputMode="decimal" placeholder={ph} value={form[key]}
+                      onChange={e => { setForm(f => ({...f,[key]:e.target.value.replace(",",".")})); setMacrosEdited(true); }}
+                      required={key==="kcal"} />
+                  </label>
+                ))}
+              </div>
+              </>}
               {/* Botón sticky al fondo del scroll — funciona en todos los navegadores incluyendo iOS Safari */}
               <div style={{ position:"sticky", bottom:0, background:"var(--bg)", paddingTop:10, paddingBottom:"max(16px, env(safe-area-inset-bottom, 16px))", marginTop:4, borderTop:"1px solid var(--line)" }}>
                 <button type="submit" className="primary" style={{ width:"100%" }} disabled={saving || !form.name.trim() || !form.kcal}>
-                  {saving ? "Guardando…" : "Guardar comida"}
+                  {saving ? "Guardando…" : foodMode === "crear" ? "Crear alimento y agregarlo a mi día" : "Agregar a mi día"}
                 </button>
               </div>
             </form>
+            )}
             </div>{/* end scrollable body */}
           </div>
         </div>
@@ -1082,14 +1200,14 @@ export default function NutritionPage() {
             {/* Header fijo */}
             <div style={{ padding:"20px 20px 0", flexShrink:0 }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
-                <h3 style={{ margin:0, fontSize:17 }}>Nueva combinación</h3>
+                <h3 style={{ margin:0, fontSize:17 }}>Armar combinación</h3>
                 <button onClick={() => setShowComboModal(false)} style={{ background:"none", border:"none", cursor:"pointer", fontSize:22, color:"var(--muted)" }}>×</button>
               </div>
 
               {/* Nombre de la combinación */}
               <input
                 className="input"
-                placeholder="Nombre (ej: Desayuno pre-entreno)"
+                placeholder="Nombre del plato (ej: Patitas de pollo con arroz)"
                 value={comboName}
                 onChange={e => setComboName(e.target.value)}
                 style={{ width:"100%", boxSizing:"border-box", marginBottom:12 }}
@@ -1099,7 +1217,7 @@ export default function NutritionPage() {
               <div style={{ position:"relative", marginBottom:4 }}>
                 <input
                   className="input"
-                  placeholder="Buscar y agregar alimento…"
+                  placeholder="Buscá cada ingrediente y agregalo…"
                   value={comboDbQuery}
                   onChange={e => {
                     const q = e.target.value;
@@ -1108,7 +1226,14 @@ export default function NutritionPage() {
                       const matches = searchFoods(q, 12);
                       const lq = q.toLowerCase();
                       const customMatches = (storeCustomFoods || []).filter(cf => cf.name.toLowerCase().includes(lq));
-                      setComboDbResults([...customMatches, ...matches].slice(0, 15));
+                      const local = [...customMatches, ...matches];
+                      setComboDbResults(local.slice(0, 15));
+                      const seq = ++searchSeqRef.current;
+                      searchSharedFoods(q, 8).then(shared => {
+                        if (seq !== searchSeqRef.current || shared.length === 0) return;
+                        const seen = new Set(local.map(f => f.name.toLowerCase()));
+                        setComboDbResults([...local, ...shared.filter(f => !seen.has(f.name.toLowerCase()))].slice(0, 20));
+                      });
                     } else {
                       setComboDbResults([]);
                     }
@@ -1123,11 +1248,14 @@ export default function NutritionPage() {
                         key={food.id}
                         type="button"
                         onClick={() => {
+                          const g0 = food.grams || 100;
+                          const per100 = (v) => (Number(v) || 0) / g0 * 100;
                           setComboFoods(prev => [...prev, {
                             id: `cf-${Date.now()}-${Math.random().toString(16).slice(2)}`,
                             foodId: food.id,
                             name: food.name,
-                            grams: food.grams || 100,
+                            grams: g0,
+                            base: { kcal: per100(food.kcal), protein: per100(food.protein), carbs: per100(food.carbs), fat: per100(food.fat) },
                             kcal: r2(food.kcal),
                             protein: r2(food.protein),
                             carbs: r2(food.carbs),
@@ -1176,7 +1304,8 @@ export default function NutritionPage() {
               {/* Lista de alimentos agregados */}
               {comboFoods.length === 0 ? (
                 <div style={{ textAlign:"center", padding:"32px 16px", color:"var(--muted)", fontSize:13 }}>
-                  Buscá y agregá alimentos arriba para armar tu combinación
+                  Buscá cada ingrediente arriba (por ejemplo "patitas de pollo" y "arroz") y agregalo. Después ajustá los gramos de cada uno.<br />
+                  Si no encontrás uno, creálo desde «+ Agregar» → «Crear alimento nuevo» y volvé acá.
                 </div>
               ) : (
                 <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:12 }}>
@@ -1185,9 +1314,23 @@ export default function NutritionPage() {
                       <div style={{ flex:1 }}>
                         <div style={{ fontSize:13, fontWeight:700 }}>{cf.name}</div>
                         <div style={{ fontSize:11, color:"var(--muted)", marginTop:2 }}>
-                          {cf.grams}g · {r2(cf.kcal)} kcal · {r2(cf.protein)}g P · {r2(cf.carbs)}g C · {r2(cf.fat)}g G
+                          {r2(cf.kcal)} kcal · {r2(cf.protein)}g P · {r2(cf.carbs)}g C · {r2(cf.fat)}g G
                         </div>
                       </div>
+                      <label style={{ display:"flex", alignItems:"center", gap:4, fontSize:11, color:"var(--muted)" }}>
+                        <input inputMode="decimal" aria-label={`Gramos de ${cf.name}`} value={cf.grams}
+                          onChange={e => {
+                            const g = e.target.value.replace(",", ".");
+                            const f = (Number(g) || 0) / 100;
+                            setComboFoods(prev => prev.map((x, i) => i !== idx ? x : {
+                              ...x, grams: g,
+                              kcal: r2((x.base?.kcal ?? 0) * f), protein: r2((x.base?.protein ?? 0) * f),
+                              carbs: r2((x.base?.carbs ?? 0) * f), fat: r2((x.base?.fat ?? 0) * f),
+                            }));
+                          }}
+                          style={{ width:58, textAlign:"center", background:"var(--panel2)", border:"1px solid var(--line)", borderRadius:8, padding:"6px 4px", color:"var(--text)", fontSize:14 }} />
+                        g
+                      </label>
                       <button onClick={() => setComboFoods(prev => prev.filter((_, i) => i !== idx))}
                         style={{ background:"none", border:"none", cursor:"pointer", fontSize:20, color:"var(--muted)", padding:4, lineHeight:1 }}>×</button>
                     </div>
@@ -1208,7 +1351,7 @@ export default function NutritionPage() {
                     }
                     const meals = comboFoods.map(cf => ({
                       type: "Combinación",
-                      name: cf.name,
+                      name: `${cf.name} (${cf.grams}g)`,
                       kcal: r2(cf.kcal),
                       protein: r2(cf.protein),
                       carbs: r2(cf.carbs),
@@ -1219,8 +1362,8 @@ export default function NutritionPage() {
                     setShowComboModal(false);
                     setComboName("");
                     setComboFoods([]);
-                    setTab("miscomidas");
-                    window.__showToast?.(`"${savedName}" guardada en Mis comidas`, "success");
+                    setTab("hoy");
+                    window.__showToast?.(`"${savedName}" guardada en Mis combinaciones`, "success");
                   }}>
                   Guardar combinación
                 </button>

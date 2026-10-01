@@ -67,7 +67,7 @@ export default function WorkoutSetCard({
           <span className={`set-num-sm${done ? " done" : ""}`}>
             {done ? <Icon name="Check" size={10} /> : index}
           </span>
-          <span className="set-ant-sm">
+          <span className="set-ant-sm" title="Sesión anterior (peso × reps)">
             {beyondLastSession
               ? <span style={{ color: "var(--muted)", opacity: 0.3 }}>—</span>
               : hasPrev
@@ -149,9 +149,6 @@ export default function WorkoutSetCard({
           {isNewPR && (
             <span style={{ background: "var(--green)", color: "#fff", fontSize: 8, fontWeight: 900, padding: "2px 5px", borderRadius: 5, flexShrink: 0 }}>PR</span>
           )}
-          {orm && hasData && (
-            <span style={{ fontSize: 9, color: "var(--muted)", fontWeight: 700, flexShrink: 0, lineHeight: 1 }}>{Math.round(orm)}</span>
-          )}
           <button
             className="set-delete-btn"
             style={{ color: note ? "var(--green)" : "var(--muted)" }}
@@ -221,11 +218,12 @@ export default function WorkoutSetCard({
           )}
           {showPRPanel && (
             <div style={{ background: "var(--panel2)", borderRadius: 12, padding: "10px 12px" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                 {[
+                  { label: "1RM estimado (esta serie)", value: orm && hasData ? `${Math.round(orm)}kg` : "—" },
                   { label: "Mejor peso", value: prData?.bestWeight ? `${prData.bestWeight}kg` : "—" },
                   { label: "Mejor vol.", value: prData?.bestVolume ? `${prData.bestVolume}kg` : "—" },
-                  { label: "Mas reps", value: prData?.bestReps ? `${prData.bestReps}×${prData.bestRepsWeight}` : "—" },
+                  { label: "Más reps", value: prData?.bestReps ? `${prData.bestReps}×${prData.bestRepsWeight}` : "—" },
                 ].map(({ label, value }) => (
                   <div key={label} style={{ textAlign: "center" }}>
                     <div style={{ fontSize: 13, fontWeight: 800, color: "var(--green)" }}>{value}</div>

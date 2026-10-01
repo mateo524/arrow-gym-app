@@ -2,19 +2,17 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.jsx";
 import "./styles.css";
-import posthog from 'posthog-js'
-const PH_KEY = import.meta.env.VITE_POSTHOG_KEY;
-if (PH_KEY) {
-  posthog.init(PH_KEY, {
-    api_host: 'https://app.posthog.com',
-    autocapture: false,
-    capture_pageview: false,
-  });
-}
+import { initAnalyticsIfConsented } from "./lib/telemetry.js";
+// PostHog solo arranca si el usuario ya aceptó el banner de analítica.
+initAnalyticsIfConsented();
 
 // Si un chunk lazy falla al cargar (SW desactualizado, cache rota), recarga una vez.
 // Evita el "pantalla negra" en esos casos usando sessionStorage para no entrar en loop.
+window.addEventListener('error', (e) => {
+  try { import('./lib/telemetry.js').then(({ track }) => track('window_error', { message: String(e.message || '').slice(0, 300), source: e.filename, line: e.lineno })); } catch {}
+});
 window.addEventListener('unhandledrejection', (e) => {
+  try { import('./lib/telemetry.js').then(({ track }) => track('unhandled_rejection', { message: String(e.reason?.message || e.reason || '').slice(0, 300) })); } catch {}
   const msg = String(e.reason?.message || '');
   const isChunkFail =
     msg.includes('Failed to fetch dynamically imported module') ||

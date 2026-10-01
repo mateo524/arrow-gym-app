@@ -2,10 +2,20 @@
 import useStore from "../store/useStore.js";
 import useAuthStore from "../store/useAuthStore.js";
 import { supabase } from "../lib/supabase.js";
+import { T } from "../lib/telemetry.js";
+import HelpTip from "./HelpTip.jsx";
+import { BRAND } from "../config/brand.js";
+
+const CheckIcon = ({ color = "var(--accent)", size = 18 }) => (
+  <svg className="check-ico" width={size} height={size} viewBox="0 0 20 20" fill="none" aria-hidden="true" style={{ marginLeft: "auto" }}>
+    <circle cx="10" cy="10" r="9" fill={color} opacity=".18" />
+    <path d="M5.5 10.5l3 3 6-7" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
 
 const GOALS = [
-  { id: "volumen",       label: "Ganar másculo",  icon: "", desc: "Aumentar masa muscular y fuerza" },
-  { id: "definicion",    label: "Definición",     icon: "", desc: "Bajar grasa manteniendo másculo" },
+  { id: "volumen",       label: "Ganar músculo",  icon: "", desc: "Aumentar masa muscular y fuerza" },
+  { id: "definicion",    label: "Definición",     icon: "", desc: "Bajar grasa manteniendo músculo" },
   { id: "mantenimiento", label: "Salud general",  icon: "", desc: "Mantener el físico y bienestar general" },
   { id: "rendimiento",   label: "Fuerza",         icon: "", desc: "Desarrollar fuerza máxima" },
 ];
@@ -17,9 +27,9 @@ const LEVELS = [
 ];
 
 const FEATURES = [
-  { icon: "", title: "Coach IA en vivo",       desc: "Te sugiere peso, detecta fatiga y sobreentrenamiento en tiempo real durante el entreno." },
+  { icon: "", title: "Coach IA en vivo",       desc: "Te sugiere peso, detecta fatiga y sobreentrenamiento en tiempo real durante el entreno.", tips: ["RIR", "RPE"] },
   { icon: "", title: "Mediciones corporales",  desc: "Registrá peso, % grasa, cintura y más. Encontralo en el tab Medidas del menú." },
-  { icon: "", title: "Calculadora de macros",  desc: "Calculá tus calorías y macros diarios segón tu objetivo. Está en la sección Coach → Macros." },
+  { icon: "", title: "Calculadora de macros",  desc: "Calculá tus calorías y macros diarios según tu objetivo y tu gasto diario. Está en la sección Coach → Macros.", tips: ["TDEE"] },
   { icon: "", title: "Rutinas y plantillas",   desc: "Creá rutinas o usá plantillas populares (PPL, 5x5, Full Body). En Inicio → Accesos rápidos." },
   { icon: "", title: "Rachas y logros",        desc: "Ganás logros por consistencia y PRs. Mirá tus badges en Inicio → Logros." },
 ];
@@ -37,7 +47,8 @@ export default function OnboardingModal() {
   const [sex, setSex] = useState("");
   const [goal, setGoal] = useState("mantenimiento");
   const [level, setLevel] = useState("intermedio");
-  const [uiMode, setUiMode] = useState("");
+  const [uiMode, setUiMode] = useState("standard");
+  const [skipNote, setSkipNote] = useState(false);
   const [saving, setSaving] = useState(false);
   const [inviteCode, setInviteCode] = useState("");
   const [inviteMsg, setInviteMsg] = useState("");
@@ -48,17 +59,21 @@ export default function OnboardingModal() {
     setConnectingTrainer(true);
     setInviteMsg("");
     try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, name")
-        .eq("invite_code", inviteCode.trim().toUpperCase())
-        .eq("role", "trainer")
-        .single();
-      if (error || !data) { setInviteMsg("Código no válido. Pedíselo a tu entrenador."); setConnectingTrainer(false); return; }
-      await supabase.from("trainer_clients").upsert({ trainer_id: data.id, client_id: profile.id }, { onConflict: "trainer_id,client_id" });
-      await supabase.from("profiles").update({ trainer_id: data.id }).eq("id", profile.id);
+      let { data, error } = await supabase.rpc("connect_to_trainer", { p_invite_code: inviteCode.trim() });
+      if (error && (error.code === "PGRST202" || error.code === "42883")) {
+        // La función todavía no existe en la base (migración pendiente): método anterior
+        const { data: t, error: e2 } = await supabase.from("profiles").select("id, name")
+          .eq("invite_code", inviteCode.trim().toUpperCase()).eq("role", "trainer").single();
+        if (!e2 && t) {
+          await supabase.from("trainer_clients").upsert({ trainer_id: t.id, client_id: profile.id }, { onConflict: "trainer_id,client_id" });
+          await supabase.from("profiles").update({ trainer_id: t.id }).eq("id", profile.id);
+          data = { ok: true, trainer_name: t.name };
+          error = null;
+        }
+      }
+      if (error || !data?.ok) { setInviteMsg("Código no válido. Pedíselo a tu entrenador."); setConnectingTrainer(false); return; }
       refreshProfile?.();
-      setInviteMsg(`Conectado con ${data.name}`);
+      setInviteMsg(`Conectado con ${data.trainer_name}`);
     } catch {
       setInviteMsg("Error de conexión. Intentá de nuevo.");
     }
@@ -66,6 +81,7 @@ export default function OnboardingModal() {
   }
 
   async function finish() {
+    setSkipNote(false);
     setSaving(true);
     const payload = { goal, fitness_level: level, ui_mode: uiMode || "standard" };
     if (weight) payload.weight_kg    = parseFloat(weight);
@@ -78,6 +94,7 @@ export default function OnboardingModal() {
       refreshProfile?.();
     }
     setUserGoal(goal);
+    T.onboardingCompleted({ goal, level });
     markOnboardingSeen();
     useStore.getState().setPage("home");
     setSaving(false);
@@ -101,19 +118,34 @@ export default function OnboardingModal() {
               }} />
             ))}
           </div>
-          <button onClick={finish} disabled={saving} style={{ background: "none", border: "none", color: "var(--muted)", fontSize: 13, cursor: "pointer", padding: "4px 8px", flexShrink: 0 }}>
+          <button onClick={() => (step >= 5 ? finish() : setSkipNote(true))} disabled={saving} style={{ background: "none", border: "none", color: "var(--muted)", fontSize: 13, cursor: "pointer", padding: "4px 8px", flexShrink: 0 }}>
             Saltar
           </button>
         </div>
+
+        {skipNote && (
+          <div role="alert" style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 12, padding: "12px 14px", marginBottom: 16 }}>
+            <p style={{ margin: "0 0 10px", fontSize: 13, lineHeight: 1.5 }}>
+              Si saltás ahora se guarda lo que ya cargaste{weight || height || dob || sex ? " (medidas)" : ""}, tu nivel <b>{LEVELS.find(l => l.id === level)?.label}</b>, tu objetivo <b>{GOALS.find(g => g.id === goal)?.label}</b> y el modo <b>{{ simple: "Simple", standard: "Estándar", advanced: "Avanzado" }[uiMode]}</b>. Todo se cambia después en Perfil.
+            </p>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button className="ghost" style={{ flex: 1 }} onClick={() => setSkipNote(false)}>Seguir configurando</button>
+              <button className="primary" style={{ flex: 1 }} disabled={saving} onClick={finish}>{saving ? "Guardando…" : "Saltar y guardar"}</button>
+            </div>
+          </div>
+        )}
 
         {/* Step 1: Welcome + modo de uso */}
         {step === 1 && (
           <>
             <div style={{ textAlign: "center", marginBottom: 24 }}>
-              <div style={{ fontSize: 18, marginBottom: 12, fontWeight: 800 }}>Loop Gym</div>
+              <div style={{ fontSize: 18, marginBottom: 12, fontWeight: 800 }}>{BRAND}</div>
               <h2 style={{ margin: "0 0 8px", fontSize: 24 }}>Bienvenido a Loop</h2>
+              <div style={{ background: "rgba(168,85,247,.08)", border: "1px solid rgba(168,85,247,.25)", borderRadius: 10, padding: "8px 12px", margin: "0 0 12px", fontSize: 13, fontWeight: 600 }}>
+                Tenés 30 días de prueba gratis, sin pagar nada.
+              </div>
               <p style={{ color: "var(--muted)", fontSize: 14, margin: 0, lineHeight: 1.5 }}>
-                ¿Cómo querés usar la app?
+                ¿Cómo querés usar la app? Ya te dejamos elegido el modo Estándar; lo cambiás cuando quieras en Perfil.
               </p>
             </div>
 
@@ -121,7 +153,7 @@ export default function OnboardingModal() {
               {[
                 { id: "simple",   icon: "", label: "Solo quiero registrar lo que hago",    sub: "Sin sugerencias ni análisis extra" },
                 { id: "standard", icon: "", label: "Registrar y recibir sugerencias",       sub: "El coach te avisa si algo no avanza" },
-                { id: "advanced", icon: "", label: "Control total",                         sub: "Volumen, cargas, semanas de descarga" },
+                { id: "advanced", icon: "", label: "Control total",                         sub: "Series por semana, cargas, semanas de descarga" },
               ].map(({ id, icon, label, sub }) => (
                 <button
                   key={id}
@@ -138,7 +170,7 @@ export default function OnboardingModal() {
                     <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text)", marginBottom: 2 }}>{label}</div>
                     <div style={{ fontSize: 12, color: "var(--muted)" }}>{sub}</div>
                   </div>
-                  {uiMode === id && <span style={{ marginLeft: "auto", color: "var(--accent)", fontSize: 14, fontWeight: 700 }}>Sel.</span>}
+                  {uiMode === id && <CheckIcon />}
                 </button>
               ))}
             </div>
@@ -194,7 +226,7 @@ export default function OnboardingModal() {
 
             <div style={{ background: "rgba(96,165,250,.06)", border: "1px solid rgba(96,165,250,.2)", borderRadius: 10, padding: "10px 14px", marginBottom: 20 }}>
               <p style={{ margin: 0, fontSize: 12, color: "#60a5fa", lineHeight: 1.5 }}>
-                Para % grasa corporal, perímetros y seguimiento avanzado → <b>Medidas</b> en el mená inferior.
+                Para % grasa corporal, perímetros y seguimiento avanzado → <b>Medidas</b> en el menú inferior.
               </p>
             </div>
 
@@ -225,7 +257,7 @@ export default function OnboardingModal() {
                     <div style={{ fontSize: 14, fontWeight: 800, color: level === l.id ? "var(--green)" : "var(--text)" }}>{l.label}</div>
                     <div style={{ fontSize: 12, color: "var(--muted)" }}>{l.desc}</div>
                   </div>
-                  {level === l.id && <span style={{ marginLeft: "auto", color: "var(--green)" }}></span>}
+                  {level === l.id && <CheckIcon color="var(--green)" />}
                 </button>
               ))}
             </div>
@@ -244,7 +276,7 @@ export default function OnboardingModal() {
                     <div style={{ fontSize: 14, fontWeight: 800, color: goal === g.id ? "var(--green)" : "var(--text)" }}>{g.label}</div>
                     <div style={{ fontSize: 12, color: "var(--muted)" }}>{g.desc}</div>
                   </div>
-                  {goal === g.id && <span style={{ marginLeft: "auto", color: "var(--green)" }}></span>}
+                  {goal === g.id && <CheckIcon color="var(--green)" />}
                 </button>
               ))}
             </div>
@@ -268,7 +300,7 @@ export default function OnboardingModal() {
                   <span style={{ fontSize: 28, lineHeight: 1, flexShrink: 0 }}>{f.icon}</span>
                   <div>
                     <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 3 }}>{f.title}</div>
-                    <div style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.5 }}>{f.desc}</div>
+                    <div style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.5 }}>{f.desc}{(f.tips || []).map(t => <HelpTip key={t} term={t} />)}</div>
                   </div>
                 </div>
               ))}
@@ -317,12 +349,12 @@ export default function OnboardingModal() {
                   </p>
                 )}
                 <p style={{ margin: "10px 0 0", fontSize: 12, color: "var(--muted)", lineHeight: 1.5 }}>
-                  ¡No tenés código? Podés empezar solo y conectarte después desde <b>Perfil</b>.
+                  ¿No tenés código? Podés empezar solo y conectarte después desde <b>Perfil</b>.
                 </p>
               </div>
             ) : (
               <div style={{ background: "rgba(52,211,153,.08)", border: "1px solid rgba(52,211,153,.2)", borderRadius: 12, padding: "14px 16px", marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 14, fontWeight: 700, color: "var(--green)" }}>OK</span>
+                <CheckIcon color="var(--green)" size={22} />
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: "var(--green)" }}>Entrenador conectado</div>
                   <div style={{ fontSize: 12, color: "var(--muted)" }}>Tu entrenador puede ver tu progreso y asignarte rutinas.</div>

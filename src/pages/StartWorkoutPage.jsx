@@ -51,6 +51,7 @@ export default function StartWorkoutPage() {
   const [restDayDone, setRestDayDone] = useState(false);
   const [loadingRoutines, setLoadingRoutines] = useState(false);
   const [savedMsg, setSavedMsg] = useState("");
+  const [routinesError, setRoutinesError] = useState(false);
   const [saveTemplateModal, setSaveTemplateModal] = useState(null); // { name, exercises }
   const [saveTemplateName, setSaveTemplateName] = useState("");
   const [deleteTemplateTarget, setDeleteTemplateTarget] = useState(null); // { id, name }
@@ -74,6 +75,7 @@ export default function StartWorkoutPage() {
   const fetchRoutines = useCallback(() => {
     if (!profile?.id) return;
     setLoadingRoutines(true);
+    setRoutinesError(false);
     import("../lib/supabase.js").then(({ supabase }) => supabase
       .from("routines")
       .select("*")
@@ -81,8 +83,7 @@ export default function StartWorkoutPage() {
       .order("day_index", { ascending: true, nullsFirst: false })
       .then(({ data, error }) => {
         if (error) {
-          setSavedMsg("Error al cargar las rutinas. Intentá de nuevo.");
-          setTimeout(() => setSavedMsg(""), 3000);
+          setRoutinesError(true);
           setLoadingRoutines(false);
           return;
         }
@@ -95,8 +96,7 @@ export default function StartWorkoutPage() {
         setLoadingRoutines(false);
       })
       .catch(() => {
-        setSavedMsg("Error al cargar las rutinas. Intentá de nuevo.");
-        setTimeout(() => setSavedMsg(""), 3000);
+        setRoutinesError(true);
         setLoadingRoutines(false);
       }));
   }, [profile?.id, profile?.trainer_id]);
@@ -428,6 +428,11 @@ export default function StartWorkoutPage() {
 
         {loadingRoutines ? (
           <div className="loading-state small"><Icon name="Loader" size={18} className="spin" /><span>Cargando…</span></div>
+        ) : routinesError ? (
+          <div role="alert" className="card" style={{ textAlign:"center" }}>
+            <p style={{ margin:"0 0 10px", fontSize:13 }}>No pudimos cargar tus rutinas.</p>
+            <button className="primary" onClick={fetchRoutines}>Reintentar</button>
+          </div>
         ) : assignedRoutines.length === 0 ? (
           /* No routines yet — big create CTA */
           <button
@@ -459,7 +464,7 @@ export default function StartWorkoutPage() {
                       </div>
                     </div>
                     <div style={{ background:"var(--green)", borderRadius:10, padding:"10px 16px", display:"flex", alignItems:"center", gap:6, color:"#000", fontWeight:700, fontSize:13, flexShrink:0 }}>
-                      <Icon name="Play" size={13} /> Iniciar
+                      <Icon name="Play" size={13} /> {todayRoutine?.id === r.id ? `Empezar ${r.name}` : "Iniciar"}
                     </div>
                   </button>
                   {/* Action row — edit + delete */}

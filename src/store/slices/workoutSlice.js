@@ -2,7 +2,7 @@ import { ROUTINES } from "../../data/seedData.js";
 import { T } from "../../lib/telemetry.js";
 import { buildCoachReport, hydrateSet, calcEffective1RM, getPersonalizedChallenge } from "../../lib/analytics.js";
 import { loadInitialWorkouts, normalizeSet } from "../../lib/storageMigration.js";
-import { syncWorkoutUp, syncAllWorkoutsUp, fetchWorkoutsFromDB, mergeWorkouts } from "../../lib/workoutSync.js";
+import { syncWorkoutUp, syncWorkoutDelete, syncAllWorkoutsUp, fetchWorkoutsFromDB, mergeWorkouts } from "../../lib/workoutSync.js";
 import { supabase } from "../../lib/supabase.js";
 import { getAuthUserId, getAuthProfile } from "../../lib/authBridge.js";
 import { EXERCISE_DATABASE, findExerciseMeta, resolveExerciseGroup, resolveExerciseMuscle } from "../../data/exerciseDatabase.js";
@@ -221,9 +221,23 @@ export const createWorkoutSlice = (set, get) => ({
         });
         return Array.from(map.values());
       }
-      // prs and achievements lack a reliable unique id — fall back to longest array
-      const mergedPrs = (local.prs?.length || 0) >= (gd.prs?.length || 0) ? local.prs : gd.prs;
-      const mergedAchievements = (gd.achievements?.length || 0) > (local.achievements?.length || 0) ? gd.achievements : local.achievements;
+      // prs: merge by key (exercise|date|weight|reps); achievements: by id (newest unlockedAt wins)
+      function mergeByKey(localArr = [], remoteArr = [], keyFn, pick) {
+        const map = new Map();
+        [...(remoteArr || []), ...(localArr || [])].forEach((item) => {
+          if (!item) return;
+          const k = keyFn(item);
+          const ex = map.get(k);
+          map.set(k, ex && pick ? pick(ex, item) : item);
+        });
+        return Array.from(map.values());
+      }
+      const mergedPrs = mergeByKey(local.prs, gd.prs,
+        (p) => `${String(p.exercise || "").trim().toLowerCase()}|${p.date || ""}|${p.weight}|${p.reps}`)
+        .sort((x, y) => String(y.date || "").localeCompare(String(x.date || ""))).slice(0, 200);
+      const mergedAchievements = mergeByKey(local.achievements, gd.achievements,
+        (a) => a.id,
+        (ex, it) => ((it.level || 0) > (ex.level || 0) || ((it.level || 0) === (ex.level || 0) && String(it.unlockedAt || "") >= String(ex.unlockedAt || ""))) ? it : ex);
       const mergedCoachReports = (gd.coachReports?.length || 0) > (local.coachReports?.length || 0)
         ? gd.coachReports : local.coachReports;
 
@@ -312,7 +326,7 @@ export const createWorkoutSlice = (set, get) => ({
     if (!active) return;
     const workouts = get().workouts || [];
     const newSets = active.sets.map((s) => {
-      if (s.exercise !== oldName) return s;
+      if (!sameExercise(s.exercise, oldName)) return s;
       return { ...makeSet(newName, s.weight, s.reps, workouts), id: s.id };
     });
     set({ activeWorkout: { ...active, sets: newSets } });
@@ -345,7 +359,7 @@ export const createWorkoutSlice = (set, get) => ({
   updateActiveSet: (id, patch) => {
     if (patch.done === true) {
       const setItem = (get().activeWorkout?.sets || []).find(s => s.id === id);
-      T.setLogged({ exercise: setItem?.exercise, weight: patch.weight ?? setItem?.weight, reps: patch.reps ?? setItem?.reps });
+      T.setLogged({ exercise: setItem?.exercise });
     }
     set((s) => ({
       activeWorkout: s.activeWorkout
@@ -445,17 +459,18 @@ export const createWorkoutSlice = (set, get) => ({
         ? (Number(s.weight) || 0) + (Number(s.extraWeight) || 0)
         : Number(s.weight) || 0;
       const w = effectiveWeight, r = Number(s.reps) || 0;
-      if (!w || !r || prByExercise.has(s.exercise)) return;
+      const exKey = String(s.exercise || "").trim().toLowerCase();
+      if (!w || !r || prByExercise.has(exKey)) return;
       const rir = Number(s.rir) || 0;
       const currentORM = calcEffective1RM(w, r, rir);
       if (currentORM <= 0) return;
-      const prev = history.flatMap((wk) => wk.sets || []).filter((ps) => ps.exercise === s.exercise);
+      const prev = history.flatMap((wk) => wk.sets || []).filter((ps) => sameExercise(ps.exercise, s.exercise));
       const maxWeight = Math.max(...prev.map((ps) => Number(ps.weight) || 0), 0);
       const prevBestORM = prev.reduce((best, ps) => {
         return Math.max(best, calcEffective1RM(Number(ps.weight) || 0, Number(ps.reps) || 0, Number(ps.rir) || 0));
       }, 0);
       if (currentORM > prevBestORM) {
-        prByExercise.add(s.exercise);
+        prByExercise.add(exKey);
         newPrsList.push({ exercise: s.exercise, weight: w, reps: r, orm: Math.round(currentORM), type: w > maxWeight ? "weight" : "orm", date: clean.date, group: s.group, muscle: s.muscle });
       }
     });
@@ -471,8 +486,8 @@ export const createWorkoutSlice = (set, get) => ({
       ];
     }
     set((state) => ({
-      workouts: [clean, ...state.workouts.filter((item) => item.id !== clean.id)],
-      coachReports: [report, ...state.coachReports.filter((item) => item.workoutId !== clean.id)],
+      workouts: [clean, ...(state.workouts || []).filter((item) => item.id !== clean.id)],
+      coachReports: [report, ...(state.coachReports || []).filter((item) => item.workoutId !== clean.id)],
       selectedWorkoutId: clean.id,
       activeWorkout: null,
       currentPage: "coach",
@@ -481,6 +496,7 @@ export const createWorkoutSlice = (set, get) => ({
       ...planUpdate,
     }));
     // Telemetría: workout terminado + hitos de activación
+    newPrsList.forEach((pr) => T.prHit(pr.exercise, { pr_type: pr.type }));
     const totalWorkouts = get().workouts.length; // ya incluye el actual
     T.workoutFinished({
       duration_mins: Math.round(clean.durationMin || 0),
@@ -496,7 +512,7 @@ export const createWorkoutSlice = (set, get) => ({
     if (newPrsList.length > 0) {
       const firstPR = newPrsList[0];
       // Find previous best weight for this exercise from history
-      const prevSetsForEx = history.flatMap((wk) => wk.sets || []).filter((ps) => ps.exercise === firstPR.exercise);
+      const prevSetsForEx = history.flatMap((wk) => wk.sets || []).filter((ps) => sameExercise(ps.exercise, firstPR.exercise));
       const previousWeight = prevSetsForEx.length > 0
         ? Math.max(...prevSetsForEx.map((ps) => Number(ps.weight) || 0))
         : 0;
@@ -776,6 +792,8 @@ export const createWorkoutSlice = (set, get) => ({
   },
 
   deleteWorkout: (id) => {
+    const uid_ = getAuthUserId();
+    if (uid_) syncWorkoutDelete(id, uid_);
     set(s => ({
       workouts: (s.workouts || []).filter(w => w.id !== id),
       coachReports: (s.coachReports || []).filter(r => r.workoutId !== id),

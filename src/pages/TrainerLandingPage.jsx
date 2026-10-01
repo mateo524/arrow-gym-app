@@ -8,6 +8,7 @@ export default function TrainerLandingPage({ inviteCode, onJoin, onBack }) {
   const [studentCount, setStudentCount] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [accepted, setAccepted] = useState(false);
 
   useEffect(() => {
     if (!inviteCode) { setError("Link inválido."); setLoading(false); return; }
@@ -135,11 +136,23 @@ export default function TrainerLandingPage({ inviteCode, onJoin, onBack }) {
           </p>
         </div>
 
+        <label style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 12, lineHeight: 1.5, color: "var(--muted)", cursor: "pointer", marginBottom: 12 }}>
+          <input type="checkbox" checked={accepted} onChange={(e) => setAccepted(e.target.checked)} style={{ marginTop: 3, flexShrink: 0 }} />
+          <span>
+            Acepto los{" "}
+            <a href="#/legal/terminos" target="_blank" rel="noopener noreferrer" style={{ color: "var(--green)" }}>Términos y Condiciones</a>
+            {" "}y la{" "}
+            <a href="#/legal/privacidad" target="_blank" rel="noopener noreferrer" style={{ color: "var(--green)" }}>Política de Privacidad</a>
+            , incluido el tratamiento de mis datos de salud.
+          </span>
+        </label>
+
         {/* CTA */}
         <button
           className="primary"
           style={{ width: "100%", padding: "16px", fontSize: 16, fontWeight: 800, borderRadius: 14, marginBottom: 12 }}
           onClick={onJoin}
+          disabled={!accepted}
         >
           Unirme con {trainerName.split(" ")[0]}
         </button>
@@ -148,7 +161,7 @@ export default function TrainerLandingPage({ inviteCode, onJoin, onBack }) {
         </button>
 
         <p style={{ fontSize: 11, color: "var(--muted)", textAlign: "center", margin: "16px 0 0", lineHeight: 1.5 }}>
-          Al unirte aceptás los términos de uso. Cancelá cuando quieras.
+          Cancelá cuando quieras. Derecho de arrepentimiento de 10 días.
         </p>
       </div>
     </div>

@@ -17,13 +17,9 @@ registerRoute(
   )
 );
 
-// Call skipWaiting() unconditionally on install so the new SW activates
-// immediately without requiring a button click from the user.
-// Vercel keeps all deployed assets at their content-hashed URLs so there is
-// no risk of 404-ing old chunks even if a page was open during the update.
-// A global controllerchange listener in App.jsx triggers a page reload so
-// the user gets the new version seamlessly.
-self.addEventListener('install', () => self.skipWaiting());
+// No skipWaiting() on install: a new SW stays "waiting" until the page sends
+// SKIP_WAITING (App.jsx only does that when there is no active workout), so an
+// update never swaps code or reloads the page mid-workout.
 self.addEventListener('activate', e => e.waitUntil(clients.claim()));
 
 // ── Rest Timer ──────────────────────────────────────────────────────────────
@@ -90,19 +86,29 @@ self.addEventListener('push', event => {
   );
 });
 
-self.addEventListener('pushsubscriptionchange', async (event) => {
+function urlBase64ToUint8Array(b64) {
+  const padding = '='.repeat((4 - b64.length % 4) % 4);
+  const raw = atob((b64 + padding).replace(/-/g, '+').replace(/_/g, '/'));
+  return Uint8Array.from(raw, c => c.charCodeAt(0));
+}
+
+self.addEventListener('pushsubscriptionchange', (event) => {
   event.waitUntil((async () => {
     try {
-      const reg = await self.registration;
-      const vapidKey = self.VAPID_PUBLIC_KEY || '';
-      // Re-subscribe with same key
-      const newSub = await reg.pushManager.subscribe({
+      // Prefer the key of the expired subscription; fall back to the build-time VAPID key.
+      let key = event.oldSubscription?.options?.applicationServerKey;
+      if (!key) {
+        const pub = import.meta.env?.VITE_VAPID_PUBLIC_KEY;
+        if (!pub) throw new Error('VAPID public key no disponible en el SW');
+        key = urlBase64ToUint8Array(pub);
+      }
+      const newSub = await self.registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: vapidKey,
+        applicationServerKey: key,
       });
       // Notify the client so it can update Supabase
-      const clients = await self.clients.matchAll({ type: 'window' });
-      clients.forEach(c => c.postMessage({ type: 'PUSH_SUBSCRIPTION_CHANGED', subscription: JSON.stringify(newSub) }));
+      const cs = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      cs.forEach(c => c.postMessage({ type: 'PUSH_SUBSCRIPTION_CHANGED', subscription: JSON.stringify(newSub) }));
     } catch (e) {
       console.warn('pushsubscriptionchange resubscribe failed:', e);
     }

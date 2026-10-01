@@ -8,7 +8,7 @@ const USER_TABS = [
   { id: "home",      label: "Inicio",    icon: "Home" },
   { id: "start",     label: "Entreno",   icon: "Dumbbell", badgeKey: "activeWorkout" },
   { id: "coach",     label: "Coach",     icon: "BrainCircuit", badgeKey: "coachBadge" },
-  { id: "nutrition", label: "Nutrición", icon: "Apple" },
+  { id: "nutrition", label: "Comidas", icon: "Apple" },
   { id: "profile",   label: "Perfil",    icon: "User" },
 ];
 
@@ -51,7 +51,7 @@ export default function Nav({ role }) {
   if (role === "admin" || role === "superadmin")   tabs = [...tabs, ADMIN_EXTRA];
 
   return (
-    <nav className="bottom-nav" aria-label="Main navigation">
+    <nav className="bottom-nav" aria-label="Navegación principal">
       {tabs.map((tab) => {
         const showBadge = tab.badgeKey ? badges[tab.badgeKey] : false;
         const isActive  = currentPage === tab.id || (tab.id === "workout" && currentPage === "workout");
@@ -66,7 +66,7 @@ export default function Nav({ role }) {
           >
             <span className="nav-icon-wrap">
               <Icon name={tab.icon} aria-hidden="true" />
-              {showBadge && <span className="nav-badge" aria-label="Notification" />}
+              {showBadge && <span className="nav-badge" role="img" aria-label={tab.badgeKey === "notifBadge" ? "Notificaciones sin leer" : tab.badgeKey === "coachBadge" ? "Novedades del coach" : "Entrenamiento en curso"} />}
             </span>
             <small>{tab.label}</small>
           </button>

@@ -37,28 +37,41 @@ function buildHealthPayload(state) {
   };
 }
 
-async function syncHealthToDB(state) {
-  if (healthSyncRunning) return;
+// Guard against concurrent in-flight health syncs (navigator.onLine can lie on
+// dead gym WiFi — the request hangs indefinitely).
+let healthSyncRunning = false;
+let healthSyncRetry = false;
+const withTimeout = (promise, ms = 8000) => {
+  let timer;
+  const t = new Promise((_, reject) => { timer = setTimeout(() => reject(new Error("timeout")), ms); });
+  return Promise.race([promise, t]).finally(() => clearTimeout(timer));
+};
+
+// Returns true only when the update really reached the DB.
+async function syncHealthToDB(get) {
+  if (healthSyncRunning) {
+    healthSyncRetry = true; // re-run with the latest state once the in-flight one ends
+    return false;
+  }
   healthSyncRunning = true;
+  let ok = false;
   try {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user?.id) return;
-    const { error: healthError } = await withTimeout(supabase.from("profiles").update({ health_data: buildHealthPayload(state) }).eq("id", session.user.id));
+    if (!session?.user?.id) return false;
+    const { error: healthError } = await withTimeout(supabase.from("profiles").update({ health_data: buildHealthPayload(get()) }).eq("id", session.user.id));
     if (healthError) throw healthError;
+    ok = true;
   } catch (e) {
     // Silently fail — table or column may not exist yet (includes timeout on dead WiFi)
   } finally {
     healthSyncRunning = false;
   }
+  if (healthSyncRetry) {
+    healthSyncRetry = false;
+    return syncHealthToDB(get);
+  }
+  return ok;
 }
-
-// Guard against concurrent in-flight health syncs (navigator.onLine can lie on
-// dead gym WiFi — the request hangs indefinitely).
-let healthSyncRunning = false;
-const withTimeout = (promise, ms = 8000) => {
-  const t = new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), ms));
-  return Promise.race([promise, t]);
-};
 
 let healthSyncQueued = false;
 function queueHealthSync(get) {
@@ -70,7 +83,7 @@ function queueHealthSync(get) {
     if (!navigator.onLine) {
       state.queueSync("health", buildHealthPayload(state));
     } else {
-      syncHealthToDB(state);
+      syncHealthToDB(get);
     }
   }, 200);
 }
@@ -103,7 +116,8 @@ export const createHealthSlice = (set, get) => ({
 
   queueSync: (type, payload) => {
     set(s => ({
-      pendingSyncs: [...(s.pendingSyncs || []), { type, payload, timestamp: Date.now() }].slice(-50),
+      // Keep only the latest payload per type: each one is a full snapshot
+      pendingSyncs: [...(s.pendingSyncs || []).filter((p) => p.type !== type), { type, payload, timestamp: Date.now() }].slice(-50),
     }));
   },
 
@@ -133,8 +147,8 @@ export const createHealthSlice = (set, get) => ({
   syncHealthToDB: async () => {
     get().setSyncStatus?.("saving");
     try {
-      await syncHealthToDB(get());
-      get().setSyncStatus?.("saved");
+      const ok = await syncHealthToDB(get);
+      get().setSyncStatus?.(ok ? "saved" : "error");
     } catch {
       get().setSyncStatus?.("error");
     }
@@ -149,11 +163,13 @@ export const createHealthSlice = (set, get) => ({
         const hd = data.health_data;
         // Merge arrays by id — never discard locally-stored entries.
         // Remote wins for scalar fields; for arrays we take the union.
+        // Entries without id (weight/sleep/water logs, rest days) are keyed by date.
+        const keyOf = (x) => (x?.id != null ? `id:${x.id}` : x?.date != null ? `date:${x.date}` : null);
         const mergeById = (local, remote) => {
           if (!remote?.length) return local || [];
           if (!local?.length) return remote;
-          const seen = new Set(local.map(x => x.id));
-          return [...local, ...remote.filter(x => !seen.has(x.id))];
+          const seen = new Set(local.map(keyOf).filter(Boolean));
+          return [...local, ...remote.filter(x => { const k = keyOf(x); return !k || !seen.has(k); })];
         };
         const local = get();
         set({
@@ -168,7 +184,7 @@ export const createHealthSlice = (set, get) => ({
           activeChallenges:mergeById(local.activeChallenges,hd.active_challenges),
           progressPhotos:  mergeById(local.progressPhotos,  hd.progress_photos),
           // Scalars: local wins if it's non-default; otherwise fall back to remote
-          waterGoal:       local.waterGoal       ?? hd.water_goal       ?? 8,
+          waterGoal:       (local.waterGoal && local.waterGoal !== 8) ? local.waterGoal : (hd.water_goal || local.waterGoal || 8),
           nutritionPlan:   local.nutritionPlan   ?? hd.nutrition_plan   ?? null,
           competitionDate: local.competitionDate ?? hd.competition_date ?? null,
           competitionName: local.competitionName ?? hd.competition_name ?? "",

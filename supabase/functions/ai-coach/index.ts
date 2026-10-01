@@ -3,13 +3,22 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+const MAX_QUESTION = 500;
+const MAX_NAME = 80;
+const clip = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 
 serve(async (req) => {
+  const corsHeaders = {
+    "Access-Control-Allow-Origin": Deno.env.get("ALLOWED_ORIGIN") ?? "",
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Vary": "Origin",
+  };
+  const json = (obj: unknown, status = 200) =>
+    new Response(JSON.stringify(obj), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
   // Read secrets inside handler — module-level reads cache empty on cold start
   const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY") ?? "";
@@ -17,16 +26,42 @@ serve(async (req) => {
   const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
   if (!GEMINI_KEY) {
-    return new Response(JSON.stringify({ error: "no_api_key" }), { status: 200, headers: corsHeaders });
+    return json({ error: "no_api_key" }, 503);
   }
 
   try {
-    const body = await req.json();
-    const { mode = "chat" } = body;
+    // ── AUTH: validar el JWT; la identidad sale del token, nunca del body ──
+    const token = (req.headers.get("Authorization") ?? "").replace(/^Bearers+/i, "");
+    if (!token) return json({ error: "unauthorized" }, 401);
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+    if (authErr || !user) return json({ error: "unauthorized" }, 401);
+
+    let body: any;
+    try { body = await req.json(); } catch { return json({ error: "invalid_json" }, 400); }
+    const mode = body?.mode === "nudge" || body?.mode === "insights" ? body.mode : "chat";
+
+    const { data: caller } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+    const callerRole = caller?.role ?? "user";
+    const isStaff = ["trainer", "admin", "superadmin"].includes(callerRole);
+    const isAdmin = ["admin", "superadmin"].includes(callerRole);
+
+    // Verifica que el caller sea entrenador del alumno (o admin)
+    const canActOn = async (studentId: string) => {
+      if (studentId === user.id || isAdmin) return true;
+      if (callerRole !== "trainer") return false;
+      const { data } = await supabase.from("profiles").select("id").eq("id", studentId).eq("trainer_id", user.id).maybeSingle();
+      return !!data;
+    };
 
     // ── NUDGE MODE: generate WhatsApp message for trainer → student ──────────
     if (mode === "nudge") {
-      const { student_name, days_since_last, trainer_name, adherence_level } = body;
+      if (!isStaff) return json({ error: "forbidden" }, 403);
+      if (body.student_id && !(await canActOn(String(body.student_id)))) return json({ error: "forbidden" }, 403);
+      const student_name = clip(body.student_name, MAX_NAME);
+      const trainer_name = clip(body.trainer_name, MAX_NAME);
+      const adherence_level = clip(body.adherence_level, 10);
+      const days_since_last = Number.isFinite(Number(body.days_since_last)) ? Math.min(Math.max(0, Math.trunc(Number(body.days_since_last))), 3650) : null;
 
       const levelDesc = adherence_level === "red"
         ? `no entrena hace ${days_since_last ?? "varios"} días (inactivo/a)`
@@ -57,21 +92,20 @@ Devolvé SOLO el mensaje, sin comillas ni texto adicional.`;
       });
 
       if (!geminiRes.ok) {
-        return new Response(JSON.stringify({ error: "ai_unavailable" }), { status: 200, headers: corsHeaders });
+        return json({ error: "ai_unavailable" }, 502);
       }
 
       const geminiData = await geminiRes.json();
       const message = geminiData.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? "";
-      return new Response(JSON.stringify({ message }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json({ message });
     }
 
     // ── INSIGHTS / CHAT MODES: need user_id ──────────────────────────────────
-    const { user_id, question } = body;
-    if (!user_id) return new Response(JSON.stringify({ error: "user_id required" }), { status: 400, headers: corsHeaders });
-
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    const question = clip(body.question, MAX_QUESTION);
+    if (mode === "chat" && !question) return json({ error: "question required" }, 400);
+    // Por defecto el propio usuario; un entrenador/admin puede pedir por un alumno suyo
+    const user_id = body.user_id ? String(body.user_id) : user.id;
+    if (user_id !== user.id && !(await canActOn(user_id))) return json({ error: "forbidden" }, 403);
 
     const sixWeeksAgo = new Date(Date.now() - 42 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
@@ -206,7 +240,7 @@ Tus respuestas son concisas (max 150 palabras) salvo que pidan algo detallado.`;
     if (!geminiRes.ok) {
       const err = await geminiRes.text();
       console.error("Gemini error:", err);
-      return new Response(JSON.stringify({ error: "ai_unavailable", fallback: true }), { status: 200, headers: corsHeaders });
+      return json({ error: "ai_unavailable", fallback: true }, 502);
     }
 
     const geminiData = await geminiRes.json();
@@ -216,22 +250,16 @@ Tus respuestas son concisas (max 150 palabras) salvo que pidan algo detallado.`;
       try {
         const cleaned = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
         const parsed = JSON.parse(cleaned);
-        return new Response(JSON.stringify({ insights: parsed, context: { workoutsLast7, workoutsLast30, daysSinceLast, stagnant } }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return json({ insights: parsed, context: { workoutsLast7, workoutsLast30, daysSinceLast, stagnant } });
       } catch {
-        return new Response(JSON.stringify({ insights: { summary: text, alerts: [], predictions: [], recommendation: "", nextSession: "" } }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return json({ insights: { summary: text, alerts: [], predictions: [], recommendation: "", nextSession: "" } });
       }
     }
 
-    return new Response(JSON.stringify({ reply: text, context: { workoutsLast7, daysSinceLast } }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json({ reply: text, context: { workoutsLast7, daysSinceLast } });
 
   } catch (err) {
     console.error(err);
-    return new Response(JSON.stringify({ error: "internal_error" }), { status: 500, headers: corsHeaders });
+    return json({ error: "internal_error" }, 500);
   }
 });

@@ -30,12 +30,15 @@ export default defineConfig({
             if (id.includes('@supabase')) return 'vendor-supabase';
             if (id.includes('react-dom') || id.includes('react/')) return 'vendor-react';
             if (id.includes('zustand')) return 'vendor-zustand';
-            if (id.includes('recharts') || id.includes('d3-')) return 'vendor-charts';
             if (id.includes('lucide-react')) return 'vendor-icons';
           }
         },
       },
     },
+  },
+  test: {
+    environment: "node",
+    include: ["src/**/*.test.js"],
   },
   server: {
     host: "0.0.0.0",

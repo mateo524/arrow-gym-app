@@ -4,10 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const GEMINI_EMBED_URL = "https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent";
 const GEMINI_CHAT_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+const MAX_QUESTION = 500;
 
 // Cosine similarity between two vectors
 function cosineSim(a: number[], b: number[]): number {
@@ -28,7 +25,17 @@ async function embed(text: string, geminiKey: string): Promise<number[]> {
 }
 
 serve(async (req) => {
+  const corsHeaders = {
+    "Access-Control-Allow-Origin": Deno.env.get("ALLOWED_ORIGIN") ?? "",
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Vary": "Origin",
+  };
+  const json = (obj: unknown, status = 200) =>
+    new Response(JSON.stringify(obj), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
   // Read env vars inside handler (cold-start safety)
   const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY") ?? "";
@@ -36,12 +43,32 @@ serve(async (req) => {
   const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
   try {
-    const { trainer_id, student_id, question } = await req.json();
-    if (!trainer_id || !question) {
-      return new Response(JSON.stringify({ error: "trainer_id and question required" }), { status: 400, headers: corsHeaders });
-    }
-
+    const token = (req.headers.get("Authorization") ?? "").replace(/^Bearers+/i, "");
+    if (!token) return json({ error: "unauthorized" }, 401);
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+    if (authErr || !user) return json({ error: "unauthorized" }, 401);
+
+    let body: any;
+    try { body = await req.json(); } catch { return json({ error: "invalid_json" }, 400); }
+    const trainer_id = typeof body?.trainer_id === "string" ? body.trainer_id : "";
+    const question = typeof body?.question === "string" ? body.question.trim().slice(0, MAX_QUESTION) : "";
+    if (!trainer_id || !question) return json({ error: "trainer_id and question required" }, 400);
+    if (!GEMINI_KEY) return json({ error: "no_api_key" }, 503);
+
+    // Relación entrenador-alumno: el caller es el alumno de ese entrenador,
+    // o es el propio entrenador (vista previa) sobre un alumno suyo.
+    let student_id = user.id;
+    if (trainer_id === user.id) {
+      if (body.student_id && body.student_id !== user.id) {
+        const { data: st } = await supabase.from("profiles").select("id").eq("id", String(body.student_id)).eq("trainer_id", user.id).maybeSingle();
+        if (!st) return json({ error: "forbidden" }, 403);
+        student_id = st.id;
+      }
+    } else {
+      const { data: me } = await supabase.from("profiles").select("trainer_id").eq("id", user.id).maybeSingle();
+      if (!me || me.trainer_id !== trainer_id) return json({ error: "forbidden" }, 403);
+    }
 
     // Fetch trainer's recorded responses
     const { data: responses } = await supabase
@@ -51,10 +78,10 @@ serve(async (req) => {
       .limit(100);
 
     if (!responses || responses.length === 0) {
-      return new Response(JSON.stringify({
+      return json({
         reply: "Tu entrenador aún no configuró el Modo Testamento. Contactalo directamente.",
         source: "fallback",
-      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      });
     }
 
     // Embed the question
@@ -82,11 +109,11 @@ serve(async (req) => {
 
     // If best match is too dissimilar, escalate to human
     if (bestScore < 0.55 || !bestMatch) {
-      return new Response(JSON.stringify({
+      return json({
         reply: "No tengo una respuesta grabada para esto. Te recomiendo hablar directamente con tu entrenador cuando vuelva.",
         source: "no_match",
         score: bestScore,
-      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      });
     }
 
     // Fetch trainer info for persona
@@ -129,15 +156,15 @@ Respondé en máximo 100 palabras, en español rioplatense.`;
     const geminiData = await geminiRes.json();
     const reply = geminiData.candidates?.[0]?.content?.parts?.[0]?.text ?? bestMatch.response_text;
 
-    return new Response(JSON.stringify({
+    return json({
       reply,
       source: "testamento",
       similarity: bestScore,
       trainer_name: trainer?.name ?? "Tu entrenador",
-    }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    });
 
   } catch (err) {
     console.error(err);
-    return new Response(JSON.stringify({ error: "internal_error" }), { status: 500, headers: corsHeaders });
+    return json({ error: "internal_error" }, 500);
   }
 });

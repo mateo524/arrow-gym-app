@@ -1,5 +1,6 @@
 ﻿import { useMemo, useState } from "react";
 import useStore from "../store/useStore.js";
+import Modal from "../components/Modal.jsx";
 import Icon from "../components/Icon.jsx";
 
 export default function ExerciseHistoryPage({ exerciseName, onClose }) {
@@ -42,16 +43,15 @@ export default function ExerciseHistoryPage({ exerciseName, onClose }) {
     ? Math.round(((last.bestWeight - first.bestWeight) / first.bestWeight) * 100) : 0;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card" onClick={e => e.stopPropagation()} style={{ maxWidth: 380, maxHeight: "82vh", overflowY: "auto", padding: "20px 18px" }}>
+    <Modal onClose={onClose} titleId="exercise-history-title" style={{ maxWidth: 380, maxHeight: "82vh", overflowY: "auto", padding: "20px 18px" }}>
 
         {/* Header */}
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:16 }}>
           <div>
-            <h2 style={{ margin:"0 0 2px", fontSize:18 }}>{exerciseName}</h2>
+            <h2 id="exercise-history-title" style={{ margin:"0 0 2px", fontSize:18 }}>{exerciseName}</h2>
             <span style={{ fontSize:12, color:"var(--muted)" }}>{history.length} sesiones registradas</span>
           </div>
-          <button className="ghost" onClick={onClose} style={{ padding:"6px 10px", fontSize:16 }}><Icon name="X" size={16} style={{display:'inline-block',verticalAlign:'middle'}} /></button>
+          <button type="button" className="ghost icon-btn" aria-label="Cerrar" onClick={onClose} style={{ padding:"6px 10px", fontSize:16 }}><Icon name="X" size={16} style={{display:'inline-block',verticalAlign:'middle'}} /></button>
         </div>
 
         {history.length === 0 ? (
@@ -67,7 +67,7 @@ export default function ExerciseHistoryPage({ exerciseName, onClose }) {
               ].map(({ label, value, color }) => (
                 <div key={label} style={{ background:"var(--panel2)", borderRadius:12, padding:"10px 8px", textAlign:"center" }}>
                   <div style={{ fontSize:18, fontWeight:900, color }}>{value}</div>
-                  <div style={{ fontSize:10, color:"var(--muted)", marginTop:2 }}>{label}</div>
+                  <div style={{ fontSize:12, color:"var(--muted)", marginTop:2 }}>{label}</div>
                 </div>
               ))}
             </div>
@@ -75,8 +75,8 @@ export default function ExerciseHistoryPage({ exerciseName, onClose }) {
             {/* Tab selector */}
             <div style={{ display:"flex", gap:6, marginBottom:10 }}>
               {[["peso","Peso máx."],["volumen","Volumen"],["orm","1RM est."]].map(([key,label]) => (
-                <button key={key} onClick={() => setTab(key)} style={{
-                  flex:1, padding:"5px 0", borderRadius:20, fontSize:11, fontWeight:700, cursor:"pointer",
+                <button key={key} type="button" aria-pressed={tab===key} onClick={() => setTab(key)} style={{
+                  flex:1, padding:"5px 0", minHeight:44, borderRadius:20, fontSize:12, fontWeight:700, cursor:"pointer",
                   background: tab===key ? "var(--green)" : "var(--panel2)",
                   color: tab===key ? "#fff" : "var(--muted)", border:"none"
                 }}>{label}</button>
@@ -154,8 +154,7 @@ export default function ExerciseHistoryPage({ exerciseName, onClose }) {
             ))}
           </>
         )}
-      </div>
-    </div>
+    </Modal>
   );
 }
 

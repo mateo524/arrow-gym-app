@@ -14,7 +14,7 @@ export default function WorkoutSharePage({ data }) {
       <div style={{ minHeight: "100dvh", background: "#050408", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24, textAlign: "center" }}>
         <div style={{ fontSize: 16, marginBottom: 16, fontWeight: 700 }}>Enlace inválido</div>
         <p style={{ color: "rgba(255,255,255,.5)", fontSize: 14 }}>Link de entreno inválido o expirado.</p>
-        <a href="https://loop-gym.vercel.app" style={{ marginTop: 16, color: "#a855f7", fontWeight: 700, fontSize: 14, textDecoration: "none" }}>Abrir Loop Gym →</a>
+        <a href="https://arrow-gym-project.vercel.app" style={{ marginTop: 16, color: "#a855f7", fontWeight: 700, fontSize: 14, textDecoration: "none" }}>Abrir Loop Gym →</a>
       </div>
     );
   }
@@ -97,7 +97,7 @@ export default function WorkoutSharePage({ data }) {
         )}
 
         {/* CTA */}
-        <a href="https://loop-gym.vercel.app" style={{ display: "block", marginTop: 20, padding: "14px", borderRadius: 14, background: "rgba(168,85,247,.2)", border: "1px solid rgba(168,85,247,.4)", color: "#a78bfa", fontWeight: 800, fontSize: 14, textAlign: "center", textDecoration: "none", letterSpacing: "0.3px" }}>
+        <a href="https://arrow-gym-project.vercel.app" style={{ display: "block", marginTop: 20, padding: "14px", borderRadius: 14, background: "rgba(168,85,247,.2)", border: "1px solid rgba(168,85,247,.4)", color: "#a78bfa", fontWeight: 800, fontSize: 14, textAlign: "center", textDecoration: "none", letterSpacing: "0.3px" }}>
           Empezar a entrenar con Loop →
         </a>
       </div>

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabase.js";
 import useAuthStore from "../store/useAuthStore.js";
 import Icon from "./Icon.jsx";
+import { BRAND, APP_URL } from "../config/brand.js";
 
 // Renders an HTML5 Canvas card for a PR achievement ("El Grito")
 // and optionally notifies the trainer.
@@ -18,9 +19,6 @@ export default function PRCard({ pr, totalWorkouts, onClose }) {
   const reps = pr?.reps ?? 0;
   const unit = pr?.unit || "kg";
 
-  // Production app URL used for referral / attribution links.
-  const APP_URL = "https://arrow-gym-app.vercel.app";
-
   // Referral link with the trainer's code embedded so shares are attributable.
   const referralUrl = profile?.trainer_id
     ? `${APP_URL}?ref=${profile.trainer_id}`
@@ -30,7 +28,7 @@ export default function PRCard({ pr, totalWorkouts, onClose }) {
   const trainerTag = trainerName ? ` Entrenando con ${trainerName}.` : "";
   const shareText =
     `Rompí mi récord en ${exerciseName}: ${weight}${unit} x ${reps} reps.` +
-    `${trainerTag} Arrow Gym ${referralUrl}`;
+    `${trainerTag} ${BRAND} ${referralUrl}`;
 
   // Invite message copied to clipboard for the second CTA.
   const inviteMessage =

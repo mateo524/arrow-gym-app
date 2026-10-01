@@ -2,6 +2,7 @@
 import { supabase } from "../lib/supabase.js";
 import useAuthStore from "../store/useAuthStore.js";
 import Icon from "./Icon.jsx";
+import Modal from "./Modal.jsx";
 
 export default function AssignRoutineModal({ targetUser, onClose, onDone }) {
   const { profile } = useAuthStore();
@@ -69,11 +70,10 @@ export default function AssignRoutineModal({ targetUser, onClose, onDone }) {
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card" onClick={e => e.stopPropagation()}>
+    <Modal onClose={onClose} titleId="assign-routine-title">
         <div className="modal-header">
-          <h2>Asignar rutina a {targetUser.name}</h2>
-          <button className="ghost icon-btn" onClick={onClose}><Icon name="X" size={20} /></button>
+          <h2 id="assign-routine-title">Asignar rutina a {targetUser.name}</h2>
+          <button type="button" className="ghost icon-btn" aria-label="Cerrar" onClick={onClose}><Icon name="X" size={20} /></button>
         </div>
 
         {routines.length === 0 ? (
@@ -84,10 +84,10 @@ export default function AssignRoutineModal({ targetUser, onClose, onDone }) {
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
             {routines.map(r => (
-              <button key={r.id} type="button"
+              <button key={r.id} type="button" aria-pressed={selected?.id === r.id}
                 onClick={() => setSelected(r)}
                 style={{
-                  display: "flex", alignItems: "center", gap: 12, padding: "12px 14px",
+                  display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", minHeight: 44,
                   background: selected?.id === r.id ? "rgba(168,85,247,.1)" : "var(--panel2)",
                   border: `2px solid ${selected?.id === r.id ? "var(--green)" : "var(--line)"}`,
                   borderRadius: 12, cursor: "pointer", textAlign: "left",
@@ -105,8 +105,8 @@ export default function AssignRoutineModal({ targetUser, onClose, onDone }) {
         {routines.length > 0 && (
           <>
             <div className="field-group" style={{ marginBottom: 16 }}>
-              <label>Nota para el usuario (opcional)</label>
-              <input type="text" value={note} onChange={e => setNote(e.target.value)}
+              <label htmlFor="assign-note">Nota para el usuario (opcional)</label>
+              <input id="assign-note" type="text" value={note} onChange={e => setNote(e.target.value)}
                 placeholder="ej: Empezá con pesos moderados" />
             </div>
 
@@ -120,8 +120,7 @@ export default function AssignRoutineModal({ targetUser, onClose, onDone }) {
             </div>
           </>
         )}
-      </div>
-    </div>
+    </Modal>
   );
 }
 

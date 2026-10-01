@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import Icon from "./Icon.jsx";
+import Modal from "./Modal.jsx";
 
 const BAR_WEIGHTS = [
   { label:"Barra olímpica 20kg", value:20 },
@@ -30,24 +31,23 @@ export default function PlateCalculator({ target, onSelect, onClose }) {
   const plates = useMemo(() => calcPlates(weight, bar), [weight, bar]);
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="plate-calc" onClick={(e) => e.stopPropagation()}>
+    <Modal onClose={onClose} titleId="plate-calc-title" className="plate-calc">
         <div className="plate-calc-head">
-          <b>Calculadora de discos</b>
-          <button className="ghost" onClick={onClose} aria-label="Close"><Icon name="X" size={16} style={{display:'inline-block',verticalAlign:'middle'}} /></button>
+          <b id="plate-calc-title">Calculadora de discos</b>
+          <button type="button" className="ghost icon-btn" onClick={onClose} aria-label="Cerrar"><Icon name="X" size={16} style={{display:'inline-block',verticalAlign:'middle'}} /></button>
         </div>
 
         <div className="plate-calc-body">
           <div className="plate-bar-select">
             {BAR_WEIGHTS.map((bw) => (
-              <button key={bw.value} className={`chip ${bar === bw.value ? "chip-active" : ""}`} onClick={() => setBar(bw.value)}>
+              <button key={bw.value} type="button" aria-pressed={bar === bw.value} className={`chip ${bar === bw.value ? "chip-active" : ""}`} onClick={() => setBar(bw.value)}>
                 {bw.label}
               </button>
             ))}
           </div>
 
           <label className="plate-weight-input">
-            Peso total
+            Peso total (kg)
             <input inputMode="decimal" value={customWeight} placeholder="ej: 60" onChange={(e) => setCustomWeight(e.target.value)} />
           </label>
 
@@ -70,12 +70,11 @@ export default function PlateCalculator({ target, onSelect, onClose }) {
           )}
 
           {target && (
-            <button className="primary" style={{ marginTop:12 }} onClick={() => { onSelect(weight); onClose(); }}>
+            <button type="button" className="primary" style={{ marginTop:12 }} onClick={() => { onSelect(weight); onClose(); }}>
               Usar {weight}kg
             </button>
           )}
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

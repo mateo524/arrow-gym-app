@@ -10,7 +10,7 @@ const TIER_COLORS = {
   3: { bg: "rgba(255,215,0,.15)",   border: "rgba(255,215,0,.5)",  text: "#ffd700", label: "Oro" },
 };
 
-const CATS = ["Todos","Consistencia","Fuerza","Volumen","Variedad","Tiempo","Progresión","Nutrición","Especial"];
+const CATS = ["Todos","Consistencia","Fuerza","Volumen","Variedad","Tiempo","Progresión","Comidas","Especial"];
 
 export default function BadgesPage() {
   const workouts   = useStore(s => s.workouts || []);

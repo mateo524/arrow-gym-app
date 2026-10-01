@@ -27,6 +27,8 @@ const LeaguePage         = lazy(() => import("./pages/LeaguePage.jsx"));
 const TrainerLandingPage = lazy(() => import("./pages/TrainerLandingPage.jsx"))
 const WorkoutSharePage   = lazy(() => import("./pages/WorkoutSharePage.jsx"));
 const NutritionPage      = lazy(() => import("./pages/NutritionPage.jsx"));
+const LegalPage          = lazy(() => import("./pages/LegalPage.jsx"));
+import ConsentBanner from "./components/ConsentBanner.jsx";
 import Nav from "./components/Nav.jsx";
 import SyncChip from "./components/SyncChip.jsx";
 import Icon from "./components/Icon.jsx";
@@ -36,6 +38,7 @@ import useStore from "./store/useStore.js";
 import useAuthStore from "./store/useAuthStore.js";
 import { supabase } from "./lib/supabase.js";
 import { subscribeToPush, requestPushPermission, isPushSupported } from "./lib/pushNotifications.js";
+import { PRICE_ARS, getTrialInfo, isSubscribed } from "./config/pricing.js";
 
 const APP_VERSION = "54";
 
@@ -135,6 +138,7 @@ healthsync: HealthSyncPage,
   testamento: TestamentoPage,
   league: LeaguePage,
   nutrition: NutritionPage,
+  legal: LegalPage,
 };
 
 function AppContent() {
@@ -167,6 +171,13 @@ function AppContent() {
     if (h.startsWith("share/")) return h.replace("share/", "").trim();
     return null;
   });
+  // Páginas legales públicas: #/legal/terminos | privacidad | reembolso | salud
+  const [legalOpen, setLegalOpen] = useState(() => /^#\/?legal(\/|$)/.test(window.location.hash));
+  useEffect(() => {
+    const onHash = () => setLegalOpen(/^#\/?legal(\/|$)/.test(window.location.hash));
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
 
   async function startSubscription() {
     T.checkoutStarted();
@@ -193,7 +204,7 @@ function AppContent() {
 
   // Telemetría: sincronizar perfil y registrar session_start
   useEffect(() => {
-    if (!profile) return;
+    if (!profile) { telemetrySetProfile(null); return; }
     telemetrySetProfile(profile);
     T.sessionStart();
   }, [profile?.id]);
@@ -288,7 +299,11 @@ function AppContent() {
   // skipWaiting in sw.js and the manual SKIP_WAITING message path.
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
-    const handleControllerChange = () => window.location.reload();
+    // Never reload under an in-progress workout; the new SW is picked up on next load.
+    const handleControllerChange = () => {
+      if (useStore.getState().activeWorkout) return;
+      window.location.reload();
+    };
     navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
     return () => navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
   }, []);
@@ -312,8 +327,17 @@ function AppContent() {
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
     const handler = (event) => {
+      if (event.data?.type === 'PUSH_SUBSCRIPTION_CHANGED' && event.data.subscription) {
+        const uid = useAuthStore.getState().user?.id;
+        if (uid) {
+          supabase.from('push_subscriptions')
+            .upsert({ user_id: uid, subscription: event.data.subscription, updated_at: new Date().toISOString() })
+            .then(() => {}, () => {});
+        }
+      }
       if (event.data?.type === 'BACKGROUND_SYNC_REQUESTED') {
         useStore.getState().syncGymStateToDB?.();
+        import("./lib/workoutSync.js").then(({ flushPending }) => flushPending({ force: true })).catch(() => {});
       }
     };
     navigator.serviceWorker.addEventListener('message', handler);
@@ -323,24 +347,9 @@ function AppContent() {
   // Flush offline queue when connectivity is restored
   useEffect(() => {
     const handleOnline = () => {
-      import("./lib/offlineQueue.js").then(({ flush }) => {
-        const withTimeout = (promise, ms = 8000) => {
-          const t = new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), ms));
-          return Promise.race([promise, t]);
-        };
-        flush(async (item) => {
-          if (item.type === "upsert_workout") {
-            // Call supabase directly here rather than via syncWorkoutUp to avoid
-            // recursive flush (syncWorkoutUp calls flush internally).
-            await withTimeout(supabase.from("user_workouts").upsert(item.row));
-          } else {
-            // Unknown type: throw so flush keeps the item in the queue instead of
-            // silently discarding it — data loss prevention.
-            console.error(`[offlineQueue] tipo no reconocido: "${item.type}" — dejando en cola para reintentar`);
-            throw new Error(`tipo no reconocido: ${item.type}`);
-          }
-        }).catch(() => {});
-      }).catch(() => {});
+      import("./lib/workoutSync.js")
+        .then(({ flushPending }) => flushPending({ force: true }))
+        .catch((e) => console.warn("[offlineQueue] flush online falló:", e));
     };
     window.addEventListener("online", handleOnline);
     return () => window.removeEventListener("online", handleOnline);
@@ -365,9 +374,6 @@ function AppContent() {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") setShowPasswordModal(true);
-      if (event === "SIGNED_IN") {
-        T.sessionStart({ trigger: "auth_state_change" });
-      }
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -591,15 +597,10 @@ function AppContent() {
   const isTrainer = role === "trainer";
   const isAdminRole = ["superadmin", "admin", "trainer"].includes(role);
   // Trainers always have full access — no paywall, no trial expiry
-  const accountAgeMs = profile?.created_at ? Date.now() - new Date(profile.created_at).getTime() : 0;
-  const TRIAL_MS = 30 * 24 * 60 * 60 * 1000;
-  // subscription_expires_at: if set and in the future, treat as active even if status wasn't updated yet
-  const subExpiresAt = profile?.subscription_expires_at ? new Date(profile.subscription_expires_at) : null;
-  const subNotExpired = subExpiresAt && subExpiresAt > new Date();
-  // Trial is active when account is < 30 days old (regardless of subStatus)
-  const hasAccess = isAdminRole || subStatus === "active" || subStatus === "trialing" || subNotExpired || accountAgeMs <= TRIAL_MS;
-  // Trial expired when > 30 days old AND not active/trialing AND sub not paid (includes null subStatus after trial ends)
-  const trialExpired = !isAdminRole && accountAgeMs > TRIAL_MS && subStatus !== "active" && subStatus !== "trialing" && !subNotExpired;
+  // Reglas de trial/suscripción centralizadas en src/config/pricing.js
+  const { ageMs: accountAgeMs } = getTrialInfo(profile);
+  const hasAccess = isAdminRole || isSubscribed(profile);
+  const trialExpired = !isAdminRole && !isSubscribed(profile);
 
   const PAGE_ROLE_GUARDS = {
     admin: ["admin", "superadmin"],
@@ -613,7 +614,13 @@ function AppContent() {
   const showOnboarding = user && profile && !hasSeenOnboarding && !isReturningUser && !showPasswordModal;
 
   let inner;
-  if (shareData) {
+  if (legalOpen) {
+    inner = (
+      <Suspense fallback={<div style={{ minHeight:"100dvh", background:"var(--bg)" }} />}>
+        <LegalPage onBack={() => { window.location.hash = "#/"; }} />
+      </Suspense>
+    );
+  } else if (shareData) {
     inner = (
       <Suspense fallback={<div style={{ minHeight:"100dvh", background:"#050408", display:"flex", alignItems:"center", justifyContent:"center", color:"rgba(255,255,255,.4)", fontSize:14 }}>Cargando…</div>}>
         <WorkoutSharePage data={shareData} />
@@ -671,7 +678,7 @@ function AppContent() {
         <h2 style={{ margin:"0 0 8px" }}>Hola {profile?.name || profile?.email?.split("@")[0] || ""},</h2>
         <p style={{ color:"var(--muted)", fontSize:15, marginBottom:8 }}>Tu período de prueba terminó.</p>
         <p style={{ color:"var(--muted)", fontSize:14, marginBottom:24, lineHeight:1.6 }}>
-          Activá tu suscripción para seguir entrenando con tu coach por <b style={{ color:"var(--text)" }}>$10.000 ARS/mes</b>.
+          Activá tu suscripción para seguir entrenando con tu coach por <b style={{ color:"var(--text)" }}>${PRICE_ARS.toLocaleString("es-AR")} ARS/mes</b>.
         </p>
         <button className="primary" style={{ marginBottom:12, padding:"14px 28px", fontSize:15 }}
           disabled={subscribing} onClick={startSubscription}>
@@ -689,7 +696,7 @@ function AppContent() {
         {(() => {
           if (isAdminRole || trialBannerDismissed) return null;
           if (subStatus === "active") return null;
-          const daysLeft = 30 - Math.floor(accountAgeMs / (24 * 60 * 60 * 1000));
+          const daysLeft = getTrialInfo(profile).daysLeft;
           if (daysLeft > 7 || daysLeft <= 0) return null;
           const urgent = daysLeft <= 3;
           return (
@@ -761,6 +768,7 @@ function AppContent() {
         </div>
       )}
       {inner}
+      <ConsentBanner />
       {user && hasAccess && <Nav role={role} />}
       {currentPRCard && (
         <PRCard

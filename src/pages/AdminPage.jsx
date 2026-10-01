@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase.js";
 import Icon from "../components/Icon.jsx";
+import Modal from "../components/Modal.jsx";
 import useAuthStore from "../store/useAuthStore.js";
 
 const EMPTY_FORM = { name: "", email: "", password: "", trainer_id: "", weight_kg: "", height_cm: "", age: "", shoulder_alert: false };
@@ -12,6 +13,12 @@ export default function AdminPage() {
   const [clients, setClients] = useState([]);
   const [trainerRequests, setTrainerRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [reports, setReports] = useState([]);
+  const [tickets, setTickets] = useState([]);
+  const [auditLog, setAuditLog] = useState([]);
+  const [search, setSearch] = useState("");
+  const [rejectTarget, setRejectTarget] = useState(null); // { id, userId, name }
+  const [rejectReason, setRejectReason] = useState("");
 
   const [showCreate, setShowCreate] = useState(false);
   const [createRole, setCreateRole] = useState("user");
@@ -35,13 +42,46 @@ export default function AdminPage() {
     setTrainers(t || []);
     setClients(c || []);
     setTrainerRequests(r || []);
+    // Moderación / soporte / auditoría: si las tablas aún no existen, quedan vacías
+    const [fr, tk, al] = await Promise.all([
+      supabase.from("food_reports").select("id, food_id, reason, resolved, created_at, food:food_id(id, name, kcal, protein, carbs, fat, hidden)").order("created_at", { ascending: false }).limit(200),
+      supabase.from("support_tickets").select("*, user:user_id(name, email)").order("created_at", { ascending: false }).limit(200),
+      supabase.from("admin_audit_log").select("*, actor:actor_id(name, email)").order("created_at", { ascending: false }).limit(200),
+    ]);
+    setReports(fr.data || []);
+    setTickets(tk.data || []);
+    setAuditLog(al.data || []);
     setLoading(false);
+  }
+
+  async function logAudit(action, targetType, targetId, details = {}) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      await supabase.from("admin_audit_log").insert({ actor_id: user?.id, action, target_type: targetType, target_id: String(targetId), details });
+    } catch { /* la auditoría no debe bloquear la acción */ }
+  }
+
+  async function handleHideFood(foodId, hidden) {
+    const reason = hidden ? window.prompt("Motivo para ocultar (opcional):") : null;
+    if (hidden && reason === null) return;
+    const { error } = await supabase.rpc("admin_set_shared_food_hidden", { p_food_id: foodId, p_hidden: hidden, p_reason: reason || null });
+    if (error) { window.__showToast?.(error.message, "error"); return; }
+    window.__showToast?.(hidden ? "Alimento oculto." : "Alimento restaurado.", "success");
+    await loadData();
+  }
+
+  async function handleCloseTicket(id, close) {
+    const { error } = await supabase.from("support_tickets").update({ status: close ? "closed" : "open", closed_at: close ? new Date().toISOString() : null }).eq("id", id);
+    if (error) { window.__showToast?.(error.message, "error"); return; }
+    await logAudit(close ? "ticket_close" : "ticket_reopen", "support_ticket", id);
+    await loadData();
   }
 
   async function handleApproveTrainer(userId) {
     try {
       const { error } = await supabase.rpc("approve_trainer_role", { p_user_id: userId });
       if (error) throw error;
+      await logAudit("trainer_approve", "user", userId);
       window.__showToast?.("Rol de entrenador activado.", "success");
       await loadData();
     } catch (e) {
@@ -49,9 +89,10 @@ export default function AdminPage() {
     }
   }
 
-  async function handleRejectTrainer(requestId) {
+  async function handleRejectTrainer(requestId, userId, reason) {
     const { error } = await supabase.from("trainer_role_requests").update({ status: "rejected", reviewed_at: new Date().toISOString() }).eq("id", requestId);
     if (error) { window.__showToast?.(error.message, "error"); return; }
+    await logAudit("trainer_reject", "user", userId, { reason: reason || null });
     window.__showToast?.("Solicitud rechazada.", "success");
     await loadData();
   }
@@ -131,11 +172,18 @@ export default function AdminPage() {
       setDeleteError("Perfil eliminado, pero ocurrió un error al contactar el servidor de Auth.");
     }
 
+    await logAudit(deleteUserTarget?.role === "trainer" ? "trainer_delete" : "user_delete", "user", id, { label: deleteUserTarget?.email });
     setDeleteUserTarget(null);
     await loadData();
   }
 
-  const displayList = tab === "trainers" ? trainers : clients; // "requests" handled separately
+  const q = search.trim().toLowerCase();
+  const matches = (u) => !q || `${u.name || ""} ${u.email || ""}`.toLowerCase().includes(q);
+  const displayList = (tab === "trainers" ? trainers : clients).filter(matches); // otras pestañas se manejan aparte
+  const userTab = tab === "clients" || tab === "trainers";
+  const openTickets = tickets.filter((t) => t.status === "open").length;
+  const pendingReports = reports.filter((r) => !r.resolved).length;
+  const fmt = (d) => new Date(d).toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" });
 
   if (!["admin", "superadmin"].includes(profile?.role)) return null;
 
@@ -157,9 +205,20 @@ export default function AdminPage() {
           Solicitudes
           {trainerRequests.length > 0 && <span className="tab-count" style={{ background: "var(--red, #e05252)" }}>{trainerRequests.length}</span>}
         </button>
+        <button className={`tab-btn${tab === "food" ? " active" : ""}`} onClick={() => setTab("food")}>
+          Moderación de alimentos {pendingReports > 0 && <span className="tab-count">{pendingReports}</span>}
+        </button>
+        <button className={`tab-btn${tab === "support" ? " active" : ""}`} onClick={() => setTab("support")}>
+          Soporte {openTickets > 0 && <span className="tab-count">{openTickets}</span>}
+        </button>
+        <button className={`tab-btn${tab === "audit" ? " active" : ""}`} onClick={() => setTab("audit")}>Auditoría</button>
       </div>
 
-      {tab !== "requests" && (
+      {userTab && (
+        <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por nombre o email…" aria-label="Buscar usuarios" style={{ width: "100%", marginBottom: 12 }} />
+      )}
+
+      {userTab && (
         <button className="primary" style={{ width: "100%", marginBottom: 16 }} onClick={() => {
           setShowCreate(true);
           setCreateRole(tab === "trainers" ? "trainer" : "user");
@@ -172,11 +231,10 @@ export default function AdminPage() {
       )}
 
       {showCreate && (
-        <div className="modal-overlay" onClick={() => setShowCreate(false)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+        <Modal onClose={() => setShowCreate(false)} titleId="admin-create-title">
             <div className="modal-header">
-              <h2>Crear {createRole === "trainer" ? "entrenador" : "cliente"}</h2>
-              <button className="ghost icon-btn" onClick={() => setShowCreate(false)}>
+              <h2 id="admin-create-title">Crear {createRole === "trainer" ? "entrenador" : "cliente"}</h2>
+              <button type="button" className="ghost icon-btn" aria-label="Cerrar" onClick={() => setShowCreate(false)}>
                 <Icon name="X" size={20} />
               </button>
             </div>
@@ -232,13 +290,14 @@ export default function AdminPage() {
                   <div className="settings-row" style={{ padding: "10px 0", borderBottom: 0 }}>
                     <div>
                       <label style={{ fontSize: 13, fontWeight: 600 }}>Alerta hombro post-op</label>
-                      <small style={{ color: "var(--muted)", fontSize: 11, display: "block" }}>Activar solo si el cliente está en rehabilitación de hombro</small>
+                      <small style={{ color: "var(--muted)", fontSize: 12, display: "block" }}>Activar solo si el cliente está en rehabilitación de hombro</small>
                     </div>
                     <button
                       type="button"
                       className={`toggle${form.shoulder_alert ? " on" : ""}`}
                       onClick={() => setForm({ ...form, shoulder_alert: !form.shoulder_alert })}
                       aria-pressed={form.shoulder_alert}
+                      aria-label="Alerta hombro post-op"
                     />
                   </div>
                 </>
@@ -251,12 +310,69 @@ export default function AdminPage() {
                 {creating ? "Creando…" : "Crear cuenta"}
               </button>
             </form>
-          </div>
-        </div>
+        </Modal>
       )}
 
       {loading ? (
         <div className="loading-state"><Icon name="Loader" size={24} className="spin" /><p>Cargando…</p></div>
+      ) : tab === "food" ? (
+        reports.length === 0 ? (
+          <div className="empty-state"><Icon name="CheckCircle" size={40} /><p>No hay alimentos reportados.</p></div>
+        ) : (
+          <div className="user-list">
+            {reports.map((r) => (
+              <div key={r.id} className="user-row" style={{ alignItems: "flex-start", gap: 10, opacity: r.resolved ? 0.6 : 1 }}>
+                <div className="user-info" style={{ flex: 1 }}>
+                  <strong>{r.food?.name || "(alimento eliminado)"}{r.food?.hidden && " · oculto"}</strong>
+                  {r.food && <small>{r.food.kcal} kcal · P {r.food.protein} · C {r.food.carbs} · G {r.food.fat} (por 100 g)</small>}
+                  <small style={{ color: "var(--muted)" }}>Motivo: {r.reason} · {fmt(r.created_at)}</small>
+                </div>
+                {r.food && (
+                  <button className={r.food.hidden ? "primary" : "ghost"} style={{ fontSize: 12, padding: "6px 12px", flexShrink: 0 }} onClick={() => handleHideFood(r.food.id, !r.food.hidden)}>
+                    {r.food.hidden ? "Restaurar" : "Ocultar"}
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )
+      ) : tab === "support" ? (
+        tickets.length === 0 ? (
+          <div className="empty-state"><Icon name="Inbox" size={40} /><p>No hay tickets de soporte.</p></div>
+        ) : (
+          <div className="user-list">
+            {tickets.map((t) => (
+              <div key={t.id} className="user-row" style={{ alignItems: "flex-start", gap: 10, opacity: t.status === "closed" ? 0.6 : 1 }}>
+                <div className="user-info" style={{ flex: 1 }}>
+                  <strong>{t.subject}</strong>
+                  <small>{t.user?.name || "—"} · {t.user?.email}</small>
+                  <small style={{ whiteSpace: "pre-wrap" }}>{t.message}</small>
+                  <small style={{ color: "var(--muted)" }}>{fmt(t.created_at)}</small>
+                </div>
+                <button className="ghost" style={{ fontSize: 12, padding: "6px 12px", flexShrink: 0 }} onClick={() => handleCloseTicket(t.id, t.status === "open")}>
+                  {t.status === "open" ? "Cerrar" : "Reabrir"}
+                </button>
+              </div>
+            ))}
+          </div>
+        )
+      ) : tab === "audit" ? (
+        auditLog.length === 0 ? (
+          <div className="empty-state"><Icon name="FileText" size={40} /><p>Sin acciones registradas.</p></div>
+        ) : (
+          <div className="user-list">
+            {auditLog.map((a) => (
+              <div key={a.id} className="user-row">
+                <div className="user-info">
+                  <strong>{a.action}</strong>
+                  <small>{a.actor?.name || a.actor?.email || "—"} · {a.target_type} {String(a.target_id || "").slice(0, 8)}</small>
+                  {(a.details?.reason || a.details?.label) && <small style={{ color: "var(--muted)" }}>{a.details.reason || a.details.label}</small>}
+                  <small style={{ color: "var(--muted)" }}>{fmt(a.created_at)}</small>
+                </div>
+              </div>
+            ))}
+          </div>
+        )
       ) : tab === "requests" ? (
         trainerRequests.length === 0 ? (
           <div className="empty-state">
@@ -277,7 +393,7 @@ export default function AdminPage() {
                   <button className="primary" style={{ fontSize: 12, padding: "6px 12px" }} onClick={() => handleApproveTrainer(req.user_id)}>
                     Aprobar
                   </button>
-                  <button className="ghost" style={{ fontSize: 12, padding: "6px 12px" }} onClick={() => handleRejectTrainer(req.id)}>
+                  <button className="ghost" style={{ fontSize: 12, padding: "6px 12px" }} onClick={() => { setRejectReason(""); setRejectTarget({ id: req.id, userId: req.user_id, name: req.user?.name || req.user?.email }); }}>
                     Rechazar
                   </button>
                 </div>
@@ -306,7 +422,7 @@ export default function AdminPage() {
                   </div>
                 )}
               </div>
-              <button className="ghost icon-btn danger-hover" onClick={() => { setDeleteError(""); setDeleteUserTarget({ id: u.id, email: u.name || u.email }); }}>
+              <button type="button" className="ghost icon-btn danger-hover" aria-label={`Eliminar a ${u.name || u.email}`} onClick={() => { setDeleteError(""); setDeleteUserTarget({ id: u.id, email: u.name || u.email, role: u.role }); }}>
                 <Icon name="Trash2" size={16} />
               </button>
             </div>
@@ -314,12 +430,28 @@ export default function AdminPage() {
         </div>
       )}
 
-      {deleteUserTarget && (
-        <div className="modal-overlay" onClick={() => setDeleteUserTarget(null)}>
+      {rejectTarget && (
+        <div className="modal-overlay" onClick={() => setRejectTarget(null)}>
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>Eliminar usuario</h2>
-              <button className="ghost icon-btn" onClick={() => setDeleteUserTarget(null)}>
+              <h2>Rechazar solicitud</h2>
+              <button className="ghost icon-btn" onClick={() => setRejectTarget(null)}><Icon name="X" size={20} /></button>
+            </div>
+            <p style={{ marginBottom: 10 }}>Solicitud de <strong>{rejectTarget.name}</strong>.</p>
+            <textarea value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder="Motivo del rechazo" rows={3} maxLength={300} aria-label="Motivo del rechazo" style={{ width: "100%", marginBottom: 12 }} />
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              <button className="ghost" onClick={() => setRejectTarget(null)}>Cancelar</button>
+              <button className="danger" disabled={rejectReason.trim().length < 3} onClick={async () => { const t = rejectTarget; setRejectTarget(null); await handleRejectTrainer(t.id, t.userId, rejectReason.trim()); }}>Rechazar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteUserTarget && (
+        <Modal onClose={() => setDeleteUserTarget(null)} titleId="admin-delete-title">
+            <div className="modal-header">
+              <h2 id="admin-delete-title">Eliminar usuario</h2>
+              <button type="button" className="ghost icon-btn" aria-label="Cerrar" onClick={() => setDeleteUserTarget(null)}>
                 <Icon name="X" size={20} />
               </button>
             </div>
@@ -337,8 +469,7 @@ export default function AdminPage() {
                 <Icon name="Trash2" size={14} /> Eliminar
               </button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
     </section>
   );

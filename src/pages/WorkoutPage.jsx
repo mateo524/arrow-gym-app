@@ -283,6 +283,37 @@ function countNewPRs(sets, workouts) {
   return count;
 }
 
+const EMPTY_ARR = [];
+const EMPTY_OBJ = {};
+
+// Isolated 1 s clock: only this component re-renders every second, not the whole page.
+function ElapsedClock({ startedAt, elapsedMs, elapsedRef }) {
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    const start = startedAt || (Date.now() - (elapsedMs || 0));
+    const tick = () => {
+      const v = Math.floor((Date.now() - start) / 1000);
+      elapsedRef.current = v;
+      setElapsed(v);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    const onVisible = () => { if (!document.hidden) tick(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [startedAt, elapsedMs, elapsedRef]);
+  const mins = Math.floor(elapsed / 60);
+  const color = mins < 30 ? "var(--green)" : mins < 60 ? "#f59e0b" : "var(--danger)";
+  return (
+    <div style={{ fontSize: 20, fontWeight: 900, color, letterSpacing: "0.04em", fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>
+      {formatDuration(elapsed)}
+    </div>
+  );
+}
+
 export default function WorkoutPage() {
   const active = useStore((state) => state.activeWorkout);
   const workouts = useStore((state) => state.workouts);
@@ -297,12 +328,12 @@ export default function WorkoutPage() {
   const finish = useStore((state) => state.finishWorkout);
   const cancel = useStore((state) => state.cancelWorkout);
   const reorderActiveExercise = useStore(s => s.reorderActiveExercise);
-  const exerciseRestTimes = useStore(s => s.exerciseRestTimes) || {};
+  const exerciseRestTimes = useStore(s => s.exerciseRestTimes) || EMPTY_OBJ;
   const setExerciseRestTime = useStore(s => s.setExerciseRestTime);
   const setPage = useStore((state) => state.setPage);
   const soundEnabled = useStore((state) => state.soundEnabled);
   const userGoal = useStore((state) => state.userGoal);
-  const weightLog = useStore((state) => state.weightLog) || [];
+  const weightLog = useStore((state) => state.weightLog) || EMPTY_ARR;
   const latestBodyWeight = useMemo(() => {
     if (!weightLog.length) return 0;
     const sorted = [...weightLog].sort((a,b) => (b.date||"") > (a.date||"") ? 1 : -1);
@@ -311,16 +342,16 @@ export default function WorkoutPage() {
   const profile = useAuthStore((state) => state.profile);
   const f = features(profile);
   const goal = (userGoal || profile?.goal || "volumen").toLowerCase();
-  const prs = useStore(s => s.prs) || [];
+  const prs = useStore(s => s.prs) || EMPTY_ARR;
   const saveWorkoutDraft = useStore(s => s.saveWorkoutDraft);
   const clearWorkoutDraft = useStore(s => s.clearWorkoutDraft);
-  const cardioHistory = useStore(s => s.cardioHistory) || [];
+  const cardioHistory = useStore(s => s.cardioHistory) || EMPTY_ARR;
   const activePlanAdjustment = useStore(s => s.activePlanAdjustment);
 
   // Coach state
   const readiness = useStore(s => s.readiness);
-  const hintFeedback = useStore(s => s.hintFeedback) || {};
-  const progressionTargets = useStore(s => s.progressionTargets) || {};
+  const hintFeedback = useStore(s => s.hintFeedback) || EMPTY_OBJ;
+  const progressionTargets = useStore(s => s.progressionTargets) || EMPTY_OBJ;
   const setReadiness = useStore(s => s.setReadiness);
   const dismissHint = useStore(s => s.dismissHint);
   const recordSuggestion = useStore(s => s.recordSuggestion);
@@ -346,7 +377,7 @@ export default function WorkoutPage() {
   const [checkinMood, setCheckinMood] = useState(null); // "tired"|"good"|"great"
   const [flippedExercise, setFlippedExercise] = useState(null);
   const [tipExercise, setTipExercise] = useState(null);
-  const [elapsed, setElapsed] = useState(0);
+  const elapsedRef = useRef(0);
   const [sessionNotes, setSessionNotes] = useState("");
   const [workoutRPE, setWorkoutRPE] = useState(null);
   const [historyExercise, setHistoryExercise] = useState(null);
@@ -423,24 +454,6 @@ export default function WorkoutPage() {
     });
     return cache;
   }, [groupedExercises, workouts]);
-
-  const elapsedMinutes = Math.floor(elapsed / 60);
-  const timerColor = elapsedMinutes < 30 ? "var(--green)" : elapsedMinutes < 60 ? "#f59e0b" : "var(--danger)";
-
-  // Elapsed timer — anchored to wall-clock startedAt so it survives backgrounding and navigation
-  useEffect(() => {
-    if (!active) return;
-    const start = active.startedAt || (Date.now() - (active.elapsedMs || 0));
-    const tick = () => setElapsed(Math.floor((Date.now() - start) / 1000));
-    tick();
-    const id = setInterval(tick, 1000);
-    const onVisible = () => { if (!document.hidden) tick(); };
-    document.addEventListener("visibilitychange", onVisible);
-    return () => {
-      clearInterval(id);
-      document.removeEventListener("visibilitychange", onVisible);
-    };
-  }, [active?.id]);
 
   // Show readiness modal after the first set is completed and readiness for today isn't set
   useEffect(() => {
@@ -527,7 +540,7 @@ export default function WorkoutPage() {
       }
     }
     prevExCountRef.current = groupedExercises.length;
-  }, [groupedExercises.length]);
+  }, [groupedExercises.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Slider
   function handleSliderScroll() {
@@ -789,9 +802,7 @@ export default function WorkoutPage() {
           </h2>
         </div>
         {/* Timer */}
-        <div style={{ fontSize: 20, fontWeight: 900, color: timerColor, letterSpacing: "0.04em", fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>
-          {formatDuration(elapsed)}
-        </div>
+        <ElapsedClock startedAt={active.startedAt} elapsedMs={active.elapsedMs} elapsedRef={elapsedRef} />
         {/* Volume */}
         {(() => {
           const totalVol = (active?.sets || []).reduce((sum, s) => {
@@ -1490,7 +1501,7 @@ export default function WorkoutPage() {
           )}
           {(() => {
             const kcal = calcWorkoutCalories(
-              { ...active, durationMin: Math.round(elapsed / 60) },
+              { ...active, durationMin: Math.round(elapsedRef.current / 60) },
               latestBodyWeight
             );
             if (!kcal) return null;
@@ -1786,7 +1797,7 @@ export default function WorkoutPage() {
               {summaryData.newPRs > 0 ? `¡${summaryData.newPRs} récord${summaryData.newPRs > 1 ? "s" : ""}!` : "¡Entreno completado!"}
             </h2>
             <p style={{ margin: 0, fontSize: 13, color: "var(--muted)" }}>
-              {String(Math.floor(elapsed/60)).padStart(2,"0")}:{String(elapsed%60).padStart(2,"0")} · {summaryData.exercises} ejercicio{summaryData.exercises !== 1 ? "s" : ""}
+              {String(Math.floor(elapsedRef.current/60)).padStart(2,"0")}:{String(elapsedRef.current%60).padStart(2,"0")} · {summaryData.exercises} ejercicio{summaryData.exercises !== 1 ? "s" : ""}
             </p>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
@@ -1813,10 +1824,10 @@ export default function WorkoutPage() {
           )}
           <button className="ghost" style={{ width: "100%", marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
             onClick={() => {
-              const mins = String(Math.floor(elapsed/60)).padStart(2,"0");
-              const secs = String(elapsed%60).padStart(2,"0");
+              const mins = String(Math.floor(elapsedRef.current/60)).padStart(2,"0");
+              const secs = String(elapsedRef.current%60).padStart(2,"0");
               const vol  = summaryData.totalVolume;
-              const text = `Entreno completado en Loop\n${mins}:${secs} · ${vol}kg · ${summaryData.totalSets} series${summaryData.newPRs > 0 ? ` · ${summaryData.newPRs} PR${summaryData.newPRs > 1 ? "s" : ""}!` : ""}\n\nhttps://loop-gym.vercel.app`;
+              const text = `Entreno completado en Loop\n${mins}:${secs} · ${vol}kg · ${summaryData.totalSets} series${summaryData.newPRs > 0 ? ` · ${summaryData.newPRs} PR${summaryData.newPRs > 1 ? "s" : ""}!` : ""}\n\nhttps://arrow-gym-project.vercel.app`;
               if (navigator.share) navigator.share({ title: "Mi entrenamiento", text });
               else { navigator.clipboard?.writeText(text); setShareMsg("¡Copiado!"); setTimeout(() => setShareMsg(""), 2000); }
             }}>

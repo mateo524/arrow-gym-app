@@ -1,6 +1,7 @@
 ﻿import { useState, useEffect, useRef } from "react";
 import { VOLUME_LANDMARKS } from "../lib/analytics.js";
 import useStore from "../store/useStore.js";
+import HelpTip from "./HelpTip.jsx";
 
 // Inline SVG icons — no emoji
 const IcoTrophy  = () => <svg width={13} height={13} viewBox="0 0 16 16" fill="none"><path d="M5 1h6v5a3 3 0 0 1-6 0V1z" fill="#a855f7"/><path d="M2 2h2v3a1 1 0 0 1-2 0V2zM12 2h2v3a1 1 0 0 1-2 0V2z" fill="#a855f7" opacity=".6"/><rect x="6.5" y="9" width="3" height="3" rx=".5" fill="#a855f7"/><rect x="4" y="12" width="8" height="2" rx="1" fill="#a855f7"/></svg>;
@@ -24,7 +25,7 @@ const TYPE_META = {
   high_volume: { Icon: IcoBar,     color: "#f59e0b", bg: "rgba(245,158,11,.08)",  label: "Volumen" },
   balance:     { Icon: IcoScale,   color: "#a78bfa", bg: "rgba(167,139,250,.1)",  label: "Balance" },
   recovery:    { Icon: IcoMoon,    color: "#60a5fa", bg: "rgba(96,165,250,.1)",   label: "Recovery" },
-  deload:      { Icon: IcoBed,     color: "#94a3b8", bg: "rgba(148,163,184,.1)",  label: "Deload" },
+  deload:      { Icon: IcoBed,     color: "#94a3b8", bg: "rgba(148,163,184,.1)",  label: "Descarga" },
 };
 
 const STATUS_COLOR = {
@@ -160,7 +161,7 @@ export default function LiveCoachPanel({ hints: allHints, volStatus }) {
                 Volumen semanal por grupo
               </p>
               <p style={{ fontSize: 9, color: "var(--muted)", margin: "0 0 8px" }}>
-                Series totales esta semana (MEV–MAV–MRV son rangos semanales, no por sesión)
+                Series totales esta semana (mínimas, ideales y máximas son rangos semanales, no por sesión)
               </p>
               {volGroups.map(([group, data]) => {
                 const pct = Math.min(100, (data.weekTotal / data.landmark.mrv) * 100);
@@ -188,9 +189,9 @@ export default function LiveCoachPanel({ hints: allHints, volStatus }) {
                       <div style={{ position: "absolute", top: -2, left: `${mavPct}%`, width: 1, height: 10, background: "rgba(255,255,255,.7)" }} />
                     </div>
                     <div style={{ display: "flex", gap: 10, marginTop: 3, fontSize: 9, color: "var(--muted)" }}>
-                      <span>MEV {data.landmark.mev}s</span>
-                      <span>MAV {data.landmark.mav}s</span>
-                      <span>MRV {data.landmark.mrv}s</span>
+                      <span>Mín. {data.landmark.mev}s<HelpTip term="MEV" /></span>
+                      <span>Ideal {data.landmark.mav}s<HelpTip term="MAV" /></span>
+                      <span>Máx. {data.landmark.mrv}s<HelpTip term="MRV" /></span>
                       {data.sessionSets > 0 && <span style={{ marginLeft: "auto", color }}>(+{data.sessionSets} esta sesión)</span>}
                     </div>
                   </div>

@@ -6,6 +6,7 @@ import { EXERCISE_DATABASE } from "../data/exerciseDatabase.js";
 import Icon from "../components/Icon.jsx";
 import AssignRoutineModal from "../components/AssignRoutineModal.jsx";
 import { getGroupTotals, filterCurrentWeek } from "../lib/analytics.js";
+import { PRICE_ARS, TRIAL_DAYS, INACTIVITY_DAYS } from "../config/pricing.js";
 
 /*
   SQL para crear la tabla invite_codes (ejecutar en Supabase SQL editor):
@@ -258,7 +259,7 @@ export default function TrainerPage() {
     return Math.floor((new Date() - new Date(last + "T12:00:00")) / (1000 * 60 * 60 * 24));
   }
 
-  // Semáforo de adherencia: verde ≤3d, amarillo 4-5d, rojo >5d (o nunca entrenó)
+  // Semáforo de adherencia: verde ≤3d, amarillo 4-INACTIVITY_DAYS (5d), rojo >5d (o nunca entrenó)
   function adherenceStatus(userId) {
     const days = daysSinceLast(userId);
     if (days === null) {
@@ -267,7 +268,7 @@ export default function TrainerPage() {
     if (days <= 3) {
       return { level: "green", chip: "Activo", color: "#4ade80", bg: "rgba(34,197,94,.18)", days };
     }
-    if (days <= 5) {
+    if (days <= INACTIVITY_DAYS) {
       return { level: "yellow", chip: "En riesgo", color: "#fbbf24", bg: "rgba(234,179,8,.18)", days };
     }
     return { level: "red", chip: "Inactivo", color: "#f87171", bg: "rgba(220,38,38,.18)", days };
@@ -277,7 +278,7 @@ export default function TrainerPage() {
   function clientPaymentStatus(client) {
     const sub = client.subscription_status;
     const createdMs = client.created_at ? Date.now() - new Date(client.created_at).getTime() : 0;
-    const trialDaysLeft = Math.max(0, 30 - Math.floor(createdMs / (1000 * 60 * 60 * 24)));
+    const trialDaysLeft = Math.max(0, TRIAL_DAYS - Math.floor(createdMs / (1000 * 60 * 60 * 24)));
     if (sub === "active") return { label: "Al día", color: "#4ade80", bg: "rgba(34,197,94,.15)", urgent: false, trialDaysLeft: null };
     if (!sub || sub === "trialing") {
       if (trialDaysLeft <= 3) return { label: `Trial: ${trialDaysLeft}d`, color: "#f87171", bg: "rgba(220,38,38,.15)", urgent: true, trialDaysLeft };
@@ -295,6 +296,24 @@ export default function TrainerPage() {
     return `Hola ${name}! Recordatorio de Loop: tu suscripción vence pronto. Renovala acá: ${window.location.origin}/#/home`;
   }
 
+  // Escribir al alumno inactivo: inserta una notificación con plantilla (mismo patrón que applyProgram)
+  async function writeToInactiveClient(client) {
+    const name = client.name?.split(" ")[0] || "";
+    const days = daysSinceLast(client.id);
+    const body = days === null
+      ? `Hola ${name}! Soy tu entrenador. Todavía no registraste ningún entrenamiento, ¿te ayudo a arrancar? Contame cómo viene tu semana.`
+      : `Hola ${name}! Hace ${days} días que no te veo entrenar. ¿Pasó algo? Avisame y ajustamos tu rutina para que vuelvas con ganas.`;
+    const { error } = await supabase.from("notifications").insert({
+      user_id: client.id,
+      type: "coach_insight",
+      title: "Tu entrenador te escribió",
+      body,
+      read: false,
+    });
+    setSaveMsg(error ? "Error al enviar el mensaje" : `Mensaje enviado a ${client.name || client.email}`);
+    setTimeout(() => setSaveMsg(""), 2500);
+  }
+
   // Etiqueta humana de tiempo desde último entrenamiento
   function lastWorkoutLabel(userId) {
     const days = daysSinceLast(userId);
@@ -308,15 +327,13 @@ export default function TrainerPage() {
   }
 
   // Métricas de negocio agregadas
-  const MONTHLY_FEE_ARS = 10000;
+  const MONTHLY_FEE_ARS = PRICE_ARS;
   function businessMetrics() {
     const total = clients.length;
     const trainedThisWeek = clients.filter((c) => (adherenceMap[c.id]?.size || 0) > 0).length;
     const adherencePct = total > 0 ? Math.round((trainedThisWeek / total) * 100) : 0;
-    const atRisk = clients.filter((c) => {
-      const s = adherenceStatus(c.id);
-      return s.level === "red" || s.level === "yellow";
-    }).length;
+    // Inactivo = más de INACTIVITY_DAYS días sin entrenar (o nunca): mismo umbral que el semáforo rojo
+    const atRisk = clients.filter((c) => adherenceStatus(c.id).level === "red").length;
     const activePaying = clients.filter((c) => c.subscription_status === "active").length;
     const revenue = activePaying * MONTHLY_FEE_ARS;
     const paymentUrgent = clients.filter((c) => clientPaymentStatus(c).urgent).length;
@@ -642,7 +659,7 @@ export default function TrainerPage() {
                   }}>
                     <Icon name="AlertTriangle" size={20} style={{ flexShrink: 0, display: 'inline-block', verticalAlign: 'middle' }} />
                     <span style={{ flex: 1, minWidth: 160, fontSize: 13, color: "#fca5a5", fontWeight: 600 }}>
-                      {m.atRisk} {m.atRisk === 1 ? "alumno" : "alumnos"} sin entrenar hace más de 4 días
+                      {m.atRisk} {m.atRisk === 1 ? "alumno" : "alumnos"} sin entrenar hace más de {INACTIVITY_DAYS} días
                     </span>
                     <button className="ghost" onClick={() => setShowChurnOnly((v) => !v)}
                       style={{ fontSize: 12, flexShrink: 0, borderColor: "rgba(220,38,38,.45)", color: "#fca5a5" }}>
@@ -860,7 +877,7 @@ export default function TrainerPage() {
           ) : (
             <div className="user-list">
               {clients
-                .filter((c) => !showChurnOnly || ["red","yellow"].includes(adherenceStatus(c.id).level))
+                .filter((c) => !showChurnOnly || adherenceStatus(c.id).level === "red")
                 .map((c) => {
                 const last7 = getLast7Days();
                 const trained = adherenceMap[c.id];
@@ -1026,7 +1043,16 @@ export default function TrainerPage() {
               <h2>{selectedClient.name}</h2>
               <small>{selectedClient.email}</small>
             </div>
+            {adherenceStatus(selectedClient.id).level === "red" && (
+              <button className="ghost" style={{ marginLeft: "auto", fontSize: 12 }}
+                onClick={() => writeToInactiveClient(selectedClient)}>
+                <Icon name="Bell" size={14} /> Escribir
+              </button>
+            )}
           </div>
+          {!editingRoutine && saveMsg.startsWith("Mensaje") && (
+            <p style={{ fontSize: 12, color: "var(--green)", margin: "0 0 8px" }}>{saveMsg}</p>
+          )}
 
           {editingRoutine ? (
             <div className="routine-editor card">
@@ -1353,7 +1379,7 @@ export default function TrainerPage() {
         <div style={{ fontWeight:700, fontSize:16, marginBottom:4 }}>Registrar cobro</div>
         <div style={{ fontSize:13, color:"var(--muted)", marginBottom:16 }}>{payModal.name || payModal.email}</div>
         <div style={{ fontSize:13, marginBottom:8 }}>Monto cobrado (ARS)</div>
-        <input id="pay-amount" type="number" defaultValue={10000} style={{ width:"100%", padding:"8px 12px", borderRadius:8, border:"1px solid var(--line)", background:"var(--bg)", color:"var(--text)", fontSize:14, marginBottom:16, boxSizing:"border-box" }} />
+        <input id="pay-amount" type="number" defaultValue={PRICE_ARS} style={{ width:"100%", padding:"8px 12px", borderRadius:8, border:"1px solid var(--line)", background:"var(--bg)", color:"var(--text)", fontSize:14, marginBottom:16, boxSizing:"border-box" }} />
         <button onClick={async () => {
           const amount = document.getElementById("pay-amount").value;
           const today = new Date().toISOString().split("T")[0];

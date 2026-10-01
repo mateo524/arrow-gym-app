@@ -14,7 +14,4 @@ android/
 ios/
 
 .claude/
-.github/
-capacitor.config.ts
 generate-icons.mjs
-package-lock.json

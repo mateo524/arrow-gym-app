@@ -18,7 +18,7 @@ export default function SyncChip() {
     display: "inline-flex",
     alignItems: "center",
     gap: 5,
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: 700,
     padding: "3px 8px",
     borderRadius: 20,
@@ -28,7 +28,7 @@ export default function SyncChip() {
   };
 
   return (
-    <span style={styles}>
+    <span style={styles} role="status" aria-live="polite">
       {syncStatus === "saving" && (
         <>
           <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", border: "2px solid currentColor", borderTopColor: "transparent", animation: "spin .7s linear infinite" }} />

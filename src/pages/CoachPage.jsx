@@ -47,7 +47,7 @@ export default function CoachPage() {
         >
           Suscribirme — $10.000/mes
         </button>
-        <p style={{ color: "var(--muted)", fontSize: 11, marginTop: 12 }}>Renovación automática — cancelá cuando quieras</p>
+        <p style={{ color: "var(--muted)", fontSize: 11, marginTop: 12 }}>Pago mensual de 30 días, sin débito automático — te avisamos antes de vencer</p>
       </section>
     );
   }

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import useAuthStore from "../store/useAuthStore.js";
 import { supabase } from "../lib/supabase.js";
 import Icon from "../components/Icon.jsx";
+import { T } from "../lib/telemetry.js";
 
 const MAX_ATTEMPTS = 5;
 const COOLDOWN_MS = 30_000;
@@ -20,6 +21,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [fullName, setFullName] = useState("");
+  const [accepted, setAccepted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [msg, setMsg] = useState("");
   const [cooldownSecs, setCooldownSecs] = useState(0);
@@ -77,12 +79,13 @@ export default function LoginPage() {
 
   async function handleRegister(e) {
     e.preventDefault();
+    if (!accepted) { setMsg("Error: tenés que aceptar los Términos y la Política de Privacidad."); return; }
     setSubmitting(true);
     setMsg("");
     const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
-      options: { data: { name: fullName.trim() } },
+      options: { data: { name: fullName.trim(), terms_accepted_at: new Date().toISOString() } },
     });
     setSubmitting(false);
     if (error) {
@@ -147,13 +150,23 @@ export default function LoginPage() {
                   </button>
                 </div>
               </div>
+              <label style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 12, lineHeight: 1.5, color: "var(--muted)", cursor: "pointer" }}>
+                <input type="checkbox" checked={accepted} onChange={(e) => setAccepted(e.target.checked)} style={{ marginTop: 3, flexShrink: 0 }} />
+                <span>
+                  Leí y acepto los{" "}
+                  <a href="#/legal/terminos" target="_blank" rel="noopener noreferrer" style={{ color: "var(--green)" }}>Términos y Condiciones</a>
+                  {" "}y la{" "}
+                  <a href="#/legal/privacidad" target="_blank" rel="noopener noreferrer" style={{ color: "var(--green)" }}>Política de Privacidad</a>
+                  , y doy mi consentimiento expreso para el tratamiento de mis datos de salud (peso, medidas, fotos de progreso, comidas) y su transferencia a proveedores en el exterior.
+                </span>
+              </label>
               {msg && (
                 <div className={msg.startsWith("✓") ? "success-msg" : "login-error"}>
                   <Icon name={msg.startsWith("✓") ? "CheckCircle" : "AlertCircle"} size={14} />
                   <span>{msg}</span>
                 </div>
               )}
-              <button type="submit" className="primary big login-btn" disabled={submitting || !email || !password || !fullName}>
+              <button type="submit" className="primary big login-btn" disabled={submitting || !email || !password || !fullName || !accepted}>
                 {submitting ? "Creando cuenta…" : "Crear cuenta"}
               </button>
               <button type="button" className="ghost" style={{ width:"100%", fontSize:13, color:"var(--muted)" }}
@@ -242,6 +255,14 @@ export default function LoginPage() {
             </form>
           </>
         )}
+
+        <p style={{ textAlign: "center", fontSize: 11, color: "var(--muted)", margin: "12px 0 0" }}>
+          <a href="#/legal/terminos" target="_blank" rel="noopener noreferrer" style={{ color: "var(--muted)" }}>Términos</a>
+          {" · "}
+          <a href="#/legal/privacidad" target="_blank" rel="noopener noreferrer" style={{ color: "var(--muted)" }}>Privacidad</a>
+          {" · "}
+          <a href="#/legal/reembolso" target="_blank" rel="noopener noreferrer" style={{ color: "var(--muted)" }}>Reembolsos</a>
+        </p>
 
         {mode === "login" && (
           <p className="login-footer">
