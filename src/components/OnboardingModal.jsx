@@ -59,21 +59,10 @@ export default function OnboardingModal() {
     setConnectingTrainer(true);
     setInviteMsg("");
     try {
-      let { data, error } = await supabase.rpc("connect_to_trainer", { p_invite_code: inviteCode.trim() });
-      if (error && (error.code === "PGRST202" || error.code === "42883")) {
-        // La función todavía no existe en la base (migración pendiente): método anterior
-        const { data: t, error: e2 } = await supabase.from("profiles").select("id, name")
-          .eq("invite_code", inviteCode.trim().toUpperCase()).eq("role", "trainer").single();
-        if (!e2 && t) {
-          await supabase.from("trainer_clients").upsert({ trainer_id: t.id, client_id: profile.id }, { onConflict: "trainer_id,client_id" });
-          await supabase.from("profiles").update({ trainer_id: t.id }).eq("id", profile.id);
-          data = { ok: true, trainer_name: t.name };
-          error = null;
-        }
-      }
+      // Flujo real: el alumno envía la solicitud con el código y el entrenador la acepta
+      const { data, error } = await supabase.rpc("request_trainer_from_invite", { p_invite_code: inviteCode.trim() });
       if (error || !data?.ok) { setInviteMsg("Código no válido. Pedíselo a tu entrenador."); setConnectingTrainer(false); return; }
-      refreshProfile?.();
-      setInviteMsg(`Conectado con ${data.trainer_name}`);
+      setInviteMsg(`Solicitud enviada a ${data.trainer_name || "tu entrenador"}. Quedan conectados cuando la acepte.`);
     } catch {
       setInviteMsg("Error de conexión. Intentá de nuevo.");
     }
