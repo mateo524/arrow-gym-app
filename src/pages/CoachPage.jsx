@@ -1,3 +1,4 @@
+import { formatDMY, formatDM } from "../lib/dates.js";
 ﻿import { useMemo, useState, useEffect } from "react";
 import MuscleRadarChart from "../components/MuscleRadarChart.jsx";
 import useStore from "../store/useStore.js";
@@ -1068,7 +1069,7 @@ export default function CoachPage() {
                     </div>
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
                       <span style={{ fontSize:13, fontWeight:700, color:"var(--text)" }}>{best.type || "Entrenamiento"}</span>
-                      <span style={{ fontSize:11, color:"var(--muted)" }}>{best.date?.slice(5).replace("-","/")||""}</span>
+                      <span style={{ fontSize:11, color:"var(--muted)" }}>{formatDM(best.date)}</span>
                     </div>
                     <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:6, marginBottom:8 }}>
                       {[
@@ -1517,8 +1518,8 @@ export default function CoachPage() {
                       ))}
                     </svg>
                     <div style={{ display:"flex", justifyContent:"space-between", marginTop:6, fontSize:10, color:"var(--muted)" }}>
-                      <span>{pts[0].date}</span>
-                      <span>{pts[pts.length-1].date}</span>
+                      <span>{formatDMY(pts[0].date)}</span>
+                      <span>{formatDMY(pts[pts.length-1].date)}</span>
                     </div>
                   </div>
                 );

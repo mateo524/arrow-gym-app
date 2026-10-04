@@ -1,3 +1,4 @@
+import { formatDMY } from "../lib/dates.js";
 ﻿import { useState, useEffect, useMemo, useCallback } from "react";
 import useStore, { ROUTINES } from "../store/useStore.js";
 import { todayLocal } from "../lib/dates.js";
@@ -550,7 +551,7 @@ export default function StartWorkoutPage() {
           <span style={{ fontSize: 16 }}>↩</span>
           <span>Repetir último entrenamiento</span>
           <span style={{ fontSize: 12, color: "var(--muted)", marginLeft: 4 }}>
-            {lastWorkout.type} · {lastWorkout.date}
+            {lastWorkout.type} · {formatDMY(lastWorkout.date)}
           </span>
         </button>
       )}

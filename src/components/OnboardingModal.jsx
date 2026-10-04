@@ -1,3 +1,4 @@
+import DateInput from "./DateInput.jsx";
 ﻿import { useState } from "react";
 import useStore from "../store/useStore.js";
 import useAuthStore from "../store/useAuthStore.js";
@@ -194,7 +195,7 @@ export default function OnboardingModal() {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
                   <label style={labelStyle}>Fecha de nacimiento</label>
-                  <input type="date" value={dob} onChange={e => setDob(e.target.value)} style={{ ...inputStyle, fontSize: 14 }} />
+                  <DateInput value={dob} onChange={setDob} ariaLabel="Fecha de nacimiento" inputStyle={{ ...inputStyle, fontSize: 14 }} />
                 </div>
                 <div>
                   <label style={labelStyle}>Sexo biológico</label>

@@ -1,3 +1,4 @@
+import { formatDMY, formatDM } from "../lib/dates.js";
 ﻿import { useMemo, useState } from "react";
 import useStore from "../store/useStore.js";
 import Modal from "../components/Modal.jsx";
@@ -133,8 +134,8 @@ export default function ExerciseHistoryPage({ exerciseName, onClose }) {
                 </svg>
                 {/* Date labels */}
                 <div style={{ display:"flex", justifyContent:"space-between", marginTop:2 }}>
-                  <span style={{ fontSize:9, color:"var(--muted)" }}>{first.date?.slice(5)}</span>
-                  <span style={{ fontSize:9, color:"var(--muted)" }}>{last.date?.slice(5)}</span>
+                  <span style={{ fontSize:9, color:"var(--muted)" }}>{formatDM(first.date)}</span>
+                  <span style={{ fontSize:9, color:"var(--muted)" }}>{formatDM(last.date)}</span>
                 </div>
               </div>
             ) : (
@@ -145,7 +146,7 @@ export default function ExerciseHistoryPage({ exerciseName, onClose }) {
             <p style={{ fontSize:11, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:8 }}>Historial</p>
             {[...history].reverse().slice(0, 12).map((h, i) => (
               <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"9px 0", borderBottom:"1px solid rgba(255,255,255,.06)" }}>
-                <span style={{ fontSize:12, color:"var(--muted)" }}>{h.date?.slice(5)}/{h.date?.slice(0,4)}</span>
+                <span style={{ fontSize:12, color:"var(--muted)" }}>{formatDMY(h.date)}</span>
                 <div style={{ display:"flex", gap:12 }}>
                   <span style={{ fontSize:12, color:"var(--text)", fontWeight:700 }}>{h.bestWeight}kg × {h.bestReps}</span>
                   <span style={{ fontSize:11, color:"var(--muted)" }}>{h.sets} series</span>

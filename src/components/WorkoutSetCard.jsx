@@ -13,7 +13,7 @@ function haptic(type = "tap") {
 export default function WorkoutSetCard({
   setItem, index, onUpdate, onApplyToNext, onRepeat, onRemove, onStartRest,
   prData, coachSuggestion, isBodyweight = false, bodyWeight = 0,
-  prevSet = null, beyondLastSession = false
+  prevSet = null, beyondLastSession = false, isNewPR = false
 }) {
   const [done, setDone] = useState(false);
   const [showPRPanel, setShowPRPanel] = useState(false);
@@ -44,7 +44,6 @@ export default function WorkoutSetCard({
   const antR = beyondLastSession ? null : (prevSet?.reps || setItem.lastReps);
   const hasPrev = !beyondLastSession && (antW || antR);
 
-  const isNewPR = Number(setItem.weight) > 0 && prData?.bestWeight && Number(setItem.weight) > prData.bestWeight;
 
   const orm = (() => {
     if (Number(setItem.reps) <= 0 || Number(setItem.reps) > 10) return null;

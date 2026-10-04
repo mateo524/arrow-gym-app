@@ -1,3 +1,5 @@
+import { formatDMY } from "../lib/dates.js";
+import DateInput from "../components/DateInput.jsx";
 ﻿import { useState, useRef, useEffect } from "react";
 import useStore from "../store/useStore.js";
 import useAuthStore from "../store/useAuthStore.js";
@@ -533,7 +535,7 @@ export default function ProfilePage() {
 
           {bodyMetrics.length > 0 && (
             <div style={{ fontSize:12, color:"var(--muted)", marginTop:6 }}>
-              último registro: {bodyMetrics[bodyMetrics.length-1].weight}kg el {bodyMetrics[bodyMetrics.length-1].date}
+              último registro: {bodyMetrics[bodyMetrics.length-1].weight}kg el {formatDMY(bodyMetrics[bodyMetrics.length-1].date)}
             </div>
           )}
         </div>
@@ -622,7 +624,7 @@ export default function ProfilePage() {
               { GOALS.map(g => (
                 <button key={g.id} onClick={() => {
                   setUserGoal(g.id);
-                  if (profile?.id) { supabase.from("profiles").update({ goal: g.id }).eq("id", profile.id).catch(() => {}); }
+                  if (profile?.id) { supabase.from("profiles").update({ goal: g.id }).eq("id", profile.id).then(() => {}, () => {}); }
                 }}
                   style={{
                     padding:"6px 12px", borderRadius:8, border:"none", cursor:"pointer", fontWeight:600, fontSize:12,
@@ -774,7 +776,7 @@ export default function ProfilePage() {
             ) : showCompForm ? (
               <div style={{ display:"flex", flexDirection:"column", gap:8, width:"100%" }}>
                 <input value={compName} onChange={e=>setCompName(e.target.value)} placeholder="Nombre (ej: Torneo, Viaje)" style={{ background:"var(--panel2)", border:"1px solid var(--line)", borderRadius:10, padding:"8px 12px", color:"var(--text)", fontSize:13 }} />
-                <input type="date" value={compDate} onChange={e=>setCompDate(e.target.value)} style={{ background:"var(--panel2)", border:"1px solid var(--line)", borderRadius:10, padding:"8px 12px", color:"var(--text)", fontSize:13 }} />
+                <DateInput value={compDate} onChange={setCompDate} ariaLabel="Fecha de la competencia" inputStyle={{ background:"var(--panel2)", border:"1px solid var(--line)", borderRadius:10, padding:"8px 12px", color:"var(--text)", fontSize:13 }} />
                 <div style={{ display:"flex", gap:8 }}>
                   <button className="primary" style={{ flex:1 }} disabled={!compDate} onClick={() => { setCompetitionMode(compDate, compName); setShowCompForm(false); }}>Guardar</button>
                   <button className="ghost" onClick={() => setShowCompForm(false)}>Cancelar</button>

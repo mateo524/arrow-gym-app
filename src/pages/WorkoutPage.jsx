@@ -1,3 +1,4 @@
+import { formatDMY } from "../lib/dates.js";
 ﻿import { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import useStore from "../store/useStore.js";
 import useAuthStore from "../store/useAuthStore.js";
@@ -165,7 +166,7 @@ function formatShortDate(dateStr) {
   if (!dateStr) return "";
   const d = new Date(dateStr + "T00:00:00");
   const days = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
-  return `${days[d.getDay()]} ${d.getDate()}`;
+  return `${days[d.getDay()]} ${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
 function getExercisePR(workouts, exercise) {
@@ -1032,7 +1033,7 @@ export default function WorkoutPage() {
                     ) : (
                       getExerciseSessionHistory(workouts, exercise).map((session, si) => (
                         <div key={si} style={{ marginBottom: 8, padding: "8px 10px", background: "var(--panel2)", borderRadius: 10 }}>
-                          <div style={{ fontSize: 11, color: "var(--green)", fontWeight: 700, marginBottom: 4 }}>{session.date}</div>
+                          <div style={{ fontSize: 11, color: "var(--green)", fontWeight: 700, marginBottom: 4 }}>{formatDMY(session.date)}</div>
                           {session.sets.map((s, idx) => (
                             <div key={idx} style={{ fontSize: 12, color: "var(--text)" }}>
                               Serie {idx+1}: <b>{s.weight||"—"}kg</b> × <b>{s.reps||"—"}</b> reps
@@ -1056,8 +1057,10 @@ export default function WorkoutPage() {
                     )}
                     {!isTimeBasedExercise(exercise) && sets.map((setItem, index) => {
                       // PR badge only on the FIRST set in this session that beats the historical best
-                      const isNewPR = Number(setItem.weight) > 0 && Number(setItem.weight) > bestPR
-                        && !sets.slice(0, index).some(s => Number(s.weight) > bestPR);
+                      // Récord global: supera tu mejor peso histórico en este ejercicio y también
+                      // el de las series anteriores de esta sesión (una serie igual o menor no es PR)
+                      const priorBest = Math.max(bestPR || 0, ...sets.slice(0, index).map(s => Number(s.weight) || 0));
+                      const isNewPR = Number(setItem.weight) > 0 && Number(setItem.weight) > priorBest;
                       return (
                         <div key={setItem.id} style={{ position: "relative" }}>
                           {setItem.isDropset && (
@@ -1096,6 +1099,7 @@ export default function WorkoutPage() {
                             isBodyweight={first?.equipment === "Peso corporal"}
                             bodyWeight={latestBodyWeight}
                             prData={prData}
+                            isNewPR={isNewPR}
                             coachSuggestion={coachSuggestionsBySetId[setItem.id]}
                           />
                         </div>
@@ -1147,7 +1151,7 @@ export default function WorkoutPage() {
                 flexShrink: 0,
               }}>
                 {/* Left actions */}
-                <div style={{ display: "flex", gap: 4 }}>
+                <div style={{ display: "flex", gap: 8 }}>
                   {/* Illustration flip button */}
                   <button onClick={() => setIllustrationExercise(exercise)}
                     style={{ background: "var(--panel2)", border: "none", borderRadius: 10, width: 38, height: 38, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)" }}
@@ -1157,7 +1161,7 @@ export default function WorkoutPage() {
 
                   {/* Tip */}
                   <button onClick={() => setTipExercise(tipExercise === exercise ? null : exercise)}
-                    style={{ background: "var(--panel2)", border: "none", borderRadius: 10, width: 38, height: 38, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)" }}>
+                    style={{ marginRight: 8, background: "var(--panel2)", border: "none", borderRadius: 10, width: 38, height: 38, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)" }}>
                     <Icon name="Lightbulb" size={17} strokeWidth={1.8} />
                   </button>
 

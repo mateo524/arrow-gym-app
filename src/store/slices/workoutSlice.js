@@ -543,7 +543,7 @@ export const createWorkoutSlice = (set, get) => ({
             title: 'Nuevo récord de alumno',
             body: `${profile.name || 'Tu alumno'} logró un nuevo récord: ${firstPR.exercise} ${firstPR.weight}kg`,
             read: false,
-          }).then(() => {}).catch(() => {});
+          }).then(() => {}).then(() => {}, () => {});
         }
       } catch {}
     }
@@ -638,7 +638,7 @@ export const createWorkoutSlice = (set, get) => ({
     const userId = getAuthUserId();
     if (userId) {
       import("../../lib/supabase.js").then(({ supabase }) => {
-        supabase.from("profiles").update({ plan_adjustment: JSON.stringify(planAdjustment) }).eq("id", userId).catch(() => {});
+        supabase.from("profiles").update({ plan_adjustment: JSON.stringify(planAdjustment) }).eq("id", userId).then(() => {}, () => {});
       });
     }
   },
@@ -649,7 +649,7 @@ export const createWorkoutSlice = (set, get) => ({
     const userId = getAuthUserId();
     if (userId) {
       import("../../lib/supabase.js").then(({ supabase }) => {
-        supabase.from("profiles").update({ plan_adjustment: JSON.stringify(planAdjustment) }).eq("id", userId).catch(() => {});
+        supabase.from("profiles").update({ plan_adjustment: JSON.stringify(planAdjustment) }).eq("id", userId).then(() => {}, () => {});
       });
     }
   },
@@ -675,7 +675,7 @@ export const createWorkoutSlice = (set, get) => ({
     const userId = getAuthUserId();
     if (userId) {
       import("../../lib/supabase.js").then(({ supabase }) => {
-        supabase.from("profiles").update({ plan_adjustment: null }).eq("id", userId).catch(() => {});
+        supabase.from("profiles").update({ plan_adjustment: null }).eq("id", userId).then(() => {}, () => {});
       });
     }
   },

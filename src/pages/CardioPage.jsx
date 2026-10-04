@@ -1,3 +1,4 @@
+import { formatDMY } from "../lib/dates.js";
 ﻿import { useState, useEffect, useRef } from "react";
 import useStore from "../store/useStore.js";
 import Icon from "../components/Icon.jsx";
@@ -175,7 +176,7 @@ export default function CardioPage() {
                 <div style={{ flex: 1 }}>
                   <p style={{ fontWeight: 700, fontSize: 13, margin: 0 }}>{c.sportName}</p>
                   <p style={{ fontSize: 11, color: "var(--muted)", margin: 0 }}>
-                    {fmt(c.duration)} · ~{Math.round((c.calories||0)*10)/10} kcal · {c.date}
+                    {fmt(c.duration)} · ~{Math.round((c.calories||0)*10)/10} kcal · {formatDMY(c.date)}
                     {c.distance ? ` · ${c.distance} km` : ""}
                     {c.rounds ? ` · ${c.rounds} rondas` : ""}
                   </p>
@@ -397,7 +398,7 @@ export default function CardioPage() {
       <div className="page-wrap" style={{ textAlign: "center" }}>
         <div style={{ fontSize: 64, marginTop: 32 }}>{sport.icon}</div>
         <h2 style={{ marginTop: 8, marginBottom: 4 }}>{sport.name}</h2>
-        <p style={{ color: "var(--muted)", fontSize: 13, marginBottom: 28 }}>{saved.date}</p>
+        <p style={{ color: "var(--muted)", fontSize: 13, marginBottom: 28 }}>{formatDMY(saved.date)}</p>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 24 }}>
           {[

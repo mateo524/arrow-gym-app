@@ -1,3 +1,5 @@
+import { formatDMY, formatDM } from "../lib/dates.js";
+import DateInput from "../components/DateInput.jsx";
 ﻿import { useState, useMemo } from "react";
 import useStore from "../store/useStore.js";
 import useAuthStore from "../store/useAuthStore.js";
@@ -110,7 +112,7 @@ function WeightChart({ data }) {
 
   const yTicks = [min, min + Math.round(range/2), max];
   const xLabels = [0, Math.floor((pts.length-1)/2), pts.length-1].map(i => ({
-    x: cx(i), label: pts[i]?.date?.slice(5) || "",
+    x: cx(i), label: formatDM(pts[i]?.date),
   }));
 
   const latest = vals[vals.length - 1];
@@ -176,7 +178,9 @@ export default function MeasurementsPage() {
   const [weightSaved, setWeightSaved] = useState(false);
   const [sleepSaved, setSleepSaved] = useState(false);
   const [waterFlash, setWaterFlash] = useState(false);
-  const latestWeightEntry = weightLog[0];
+  const latestWeightEntry = [...weightLog].sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")))[0];
+  // El peso actual es el último registrado; el del perfil es solo respaldo
+  const currentWeight = latestWeightEntry?.kg ?? profile?.weight_kg;
 
   function flashSave(setter) {
     setter(true);
@@ -263,7 +267,7 @@ export default function MeasurementsPage() {
   }, [profile]);
 
   function openBasico() {
-    setMeasWeight(String(profile?.weight_kg || ""));
+    setMeasWeight(String(currentWeight || ""));
     setMeasHeight(String(profile?.height_cm || ""));
     setMeasDob(profile?.date_of_birth || "");
     setBasicoMsg("");
@@ -289,6 +293,8 @@ export default function MeasurementsPage() {
       const updated = { ...(useAuthStore.getState().profile || { id: uid }), ...payload };
       useAuthStore.setState({ profile: updated });
       try { useAuthStore.getState().cacheProfile(updated); } catch { /* localStorage lleno — guardado en servidor OK */ }
+      // Si cambió el peso, también queda en el historial de peso
+      if (payload.weight_kg) logWeight(payload.weight_kg);
       setBasicoMsg("✓ Guardado");
       setTimeout(() => { setEditBasico(false); setBasicoMsg(""); }, 1400);
     } catch (err) {
@@ -354,7 +360,7 @@ export default function MeasurementsPage() {
       const logEntry = { user_id: uid, date: todayLocal(), ...payload };
       if (bf !== null) logEntry.body_fat_pct = bf;
       if (updated.weight_kg) logEntry.weight_kg = Number(updated.weight_kg);
-      supabase.from("measurements_log").upsert(logEntry, { onConflict: "user_id,date" }).catch(() => {});
+      supabase.from("measurements_log").upsert(logEntry, { onConflict: "user_id,date" }).then(() => {}, () => {});
       useStore.getState().saveMeasHistoryEntry(logEntry);
       setPlieguesMsg("✓ Pliegues guardados");
       setTimeout(() => { setEditPliegues(false); setPlieguesMsg(""); }, 1400);
@@ -404,7 +410,7 @@ export default function MeasurementsPage() {
       // localStorage lleno — el perfil ya se actualizó en Supabase; continuamos para guardar measurements_log
     }
     // Guardar en measurements_log (historial en Supabase)
-    supabase.from("measurements_log").upsert({ user_id: uid, date: todayLocal(), ...payload }, { onConflict: "user_id,date" }).catch(() => {});
+    supabase.from("measurements_log").upsert({ user_id: uid, date: todayLocal(), ...payload }, { onConflict: "user_id,date" }).then(() => {}, () => {});
     // Guardar historial local de circunferencias via Zustand (safeSetItem quota guard)
     useStore.getState().saveMeasHistoryEntry({ user_id: uid, date: todayLocal(), ...payload });
     setPerimetrosMsg("✓ Guardado");
@@ -476,7 +482,7 @@ export default function MeasurementsPage() {
                   const updated = { ...(useAuthStore.getState().profile || { id: uid }), weight_kg: newWeight };
                   useAuthStore.setState({ profile: updated });
                   try { useAuthStore.getState().cacheProfile(updated); } catch { /* localStorage lleno — Supabase sync continúa igual */ }
-                  supabase.from("profiles").update({ weight_kg: newWeight }).eq("id", uid).catch(() => {});
+                  supabase.from("profiles").update({ weight_kg: newWeight }).eq("id", uid).then(() => {}, () => {});
                 }
               }}>
               Guardar
@@ -579,7 +585,7 @@ export default function MeasurementsPage() {
             <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
               {!editBasico && (
                 <button className="ghost" style={{ padding: "8px 14px", fontSize: 13 }} onClick={openBasico}>
-                  {profile?.weight_kg ? "Editar" : "Agregar"}
+                  {currentWeight ? "Editar" : "Agregar"}
                 </button>
               )}
             </div>
@@ -605,9 +611,9 @@ export default function MeasurementsPage() {
                   </div>
                 )}
 
-                {(profile?.weight_kg || profile?.height_cm) ? (
+                {(currentWeight || profile?.height_cm) ? (
                   <div className="stats-grid" style={{ marginTop: 4 }}>
-                    {profile.weight_kg && <div><b>{profile.weight_kg}</b><span>kg</span></div>}
+                    {currentWeight && <div><b>{currentWeight}</b><span>kg</span></div>}
                     {profile.height_cm && <div><b>{profile.height_cm}</b><span>cm</span></div>}
                   </div>
                 ) : (
@@ -633,12 +639,7 @@ export default function MeasurementsPage() {
 
                 <label style={fieldGroupStyle}>
                   Fecha de nacimiento
-                  <input
-                    type="date"
-                    value={measDob}
-                    onChange={(e) => setMeasDob(e.target.value)}
-                    style={inputStyle}
-                  />
+                  <DateInput value={measDob} onChange={setMeasDob} inputStyle={inputStyle} ariaLabel="Fecha de nacimiento" />
                 </label>
 
                 {liveAge !== null && (
@@ -969,7 +970,7 @@ export default function MeasurementsPage() {
                         </div>
                       )}
                       <div style={{ padding:"6px 8px" }}>
-                        <div style={{ fontSize:11, color:"var(--green)", fontWeight:700 }}>{photo.date}</div>
+                        <div style={{ fontSize:11, color:"var(--green)", fontWeight:700 }}>{formatDMY(photo.date)}</div>
                         {photo.note && <div style={{ fontSize:11, color:"var(--muted)", marginTop:2 }}>{photo.note}</div>}
                       </div>
                       {!compareMode && (
@@ -1002,7 +1003,7 @@ export default function MeasurementsPage() {
                   <img src={photo.dataUrl || photo.url} alt={photo.date} style={{ maxWidth:"100%", maxHeight:"100%", objectFit:"contain", borderRadius:8 }} />
                 </div>
                 <div style={{ flexShrink:0, padding:"8px 4px", textAlign:"center" }}>
-                  <div style={{ fontSize:12, color:"#22d37a", fontWeight:700 }}>{photo.date}</div>
+                  <div style={{ fontSize:12, color:"#22d37a", fontWeight:700 }}>{formatDMY(photo.date)}</div>
                   {photo.note && <div style={{ fontSize:11, color:"rgba(255,255,255,.5)", marginTop:2 }}>{photo.note}</div>}
                 </div>
               </div>
@@ -1034,7 +1035,7 @@ export default function MeasurementsPage() {
             </div>
             <div style={{ flexShrink:0, padding:"12px 16px", paddingBottom:"max(20px, env(safe-area-inset-bottom, 20px))", textAlign:"center" }}>
               <div style={{ fontSize:11, color:"rgba(255,255,255,.35)", marginBottom:4 }}>{idx + 1} / {sorted.length}</div>
-              <div style={{ fontSize:13, color:"#22d37a", fontWeight:700 }}>{fullscreenPhoto.date}</div>
+              <div style={{ fontSize:13, color:"#22d37a", fontWeight:700 }}>{formatDMY(fullscreenPhoto.date)}</div>
               {fullscreenPhoto.note && <div style={{ fontSize:12, color:"rgba(255,255,255,.6)", marginTop:4 }}>{fullscreenPhoto.note}</div>}
             </div>
           </div>

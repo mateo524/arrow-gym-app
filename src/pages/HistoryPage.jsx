@@ -1,3 +1,4 @@
+import { formatDMY } from "../lib/dates.js";
 ﻿import { useState, useMemo } from "react";
 import useStore from "../store/useStore.js";
 import { todayLocal } from "../lib/dates.js";
@@ -501,14 +502,14 @@ export default function HistoryPage() {
               <div style={{ display:"grid", gridTemplateColumns:"1fr auto 1fr", gap:8, alignItems:"start" }}>
                 <div style={{ textAlign:"left" }}>
                   <div style={{ fontSize:12, fontWeight:700, color:"var(--green)" }}>{a.type}</div>
-                  <div style={{ fontSize:11, color:"var(--muted)" }}>{a.date}</div>
+                  <div style={{ fontSize:11, color:"var(--muted)" }}>{formatDMY(a.date)}</div>
                   <div style={{ fontSize:20, fontWeight:800, marginTop:4 }}>{volA}<span style={{ fontSize:11, fontWeight:400 }}>kg</span></div>
                   <div style={{ fontSize:11, color:"var(--muted)" }}>{a.sets?.length} series</div>
                 </div>
                 <div style={{ textAlign:"center", color:"var(--muted)", fontSize:12, paddingTop:16 }}>VS</div>
                 <div style={{ textAlign:"right" }}>
                   <div style={{ fontSize:12, fontWeight:700, color:"var(--cyan)" }}>{b.type}</div>
-                  <div style={{ fontSize:11, color:"var(--muted)" }}>{b.date}</div>
+                  <div style={{ fontSize:11, color:"var(--muted)" }}>{formatDMY(b.date)}</div>
                   <div style={{ fontSize:20, fontWeight:800, marginTop:4 }}>{volB}<span style={{ fontSize:11, fontWeight:400 }}>kg</span></div>
                   <div style={{ fontSize:11, color:"var(--muted)" }}>{b.sets?.length} series</div>
                 </div>

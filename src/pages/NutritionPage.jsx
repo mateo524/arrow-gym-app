@@ -1,3 +1,4 @@
+import { formatDMY } from "../lib/dates.js";
 import { useState, useMemo, useCallback, useRef } from "react";
 import useStore from "../store/useStore.js";
 import useAuthStore from "../store/useAuthStore.js";
@@ -599,7 +600,7 @@ export default function NutritionPage() {
               return (
                 <div key={date} style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:18, padding:"14px 16px", marginBottom:12 }}>
                   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
-                    <span style={{ fontSize:14, fontWeight:800 }}>{date}</span>
+                    <span style={{ fontSize:14, fontWeight:800 }}>{formatDMY(date)}</span>
                     <span style={{ fontSize:14, fontWeight:900, color:"var(--green)" }}>{Math.round(totals.kcal)} kcal</span>
                   </div>
                   {[
