@@ -1060,11 +1060,6 @@ export default function WorkoutPage() {
                         && !sets.slice(0, index).some(s => Number(s.weight) > bestPR);
                       return (
                         <div key={setItem.id} style={{ position: "relative" }}>
-                          {isNewPR && (
-                            <span style={{ position: "absolute", top: 8, left: 8, zIndex: 2, background: "var(--green)", color: "#fff", fontSize: 9, fontWeight: 800, padding: "2px 6px", borderRadius: 6 }}>
-                              PR <Icon name="Flame" size={9} style={{display:'inline-block',verticalAlign:'middle'}} />
-                            </span>
-                          )}
                           {setItem.isDropset && (
                             <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 12px 2px", color: "#f59e0b", fontSize: 11, fontWeight: 700 }}>
                               <Icon name="Droplet" size={14} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> DROP SET — bajá el peso
@@ -1163,7 +1158,7 @@ export default function WorkoutPage() {
                   {/* Tip */}
                   <button onClick={() => setTipExercise(tipExercise === exercise ? null : exercise)}
                     style={{ background: "var(--panel2)", border: "none", borderRadius: 10, width: 38, height: 38, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)" }}>
-                    <Icon name="HelpCircle" size={17} strokeWidth={1.8} />
+                    <Icon name="Lightbulb" size={17} strokeWidth={1.8} />
                   </button>
 
                   {/* Swap exercise */}

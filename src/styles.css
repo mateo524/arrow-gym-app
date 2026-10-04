@@ -3451,3 +3451,6 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   .cal-grid { gap: 1px; }
   .nav-item small { font-size: 12px; }
 }
+
+/* Serie con récord de peso: se resalta el borde, sin elementos encima de las reps */
+.set-row-pr { border-color: rgba(52,211,153,.7) !important; box-shadow: 0 0 0 1px rgba(52,211,153,.35); }

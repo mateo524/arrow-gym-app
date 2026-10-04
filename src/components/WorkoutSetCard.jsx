@@ -60,7 +60,7 @@ export default function WorkoutSetCard({
   return (
     <div style={{ marginBottom: 4 }}>
       {/* ── Compact row ── */}
-      <div className={`set-row${done ? " set-row-done" : ""}${beyondLastSession ? " set-row-new" : ""}`}>
+      <div className={`set-row${done ? " set-row-done" : ""}${beyondLastSession ? " set-row-new" : ""}${isNewPR ? " set-row-pr" : ""}`}>
 
         {/* Left: set number + ant info */}
         <div className="set-row-meta">
@@ -146,9 +146,6 @@ export default function WorkoutSetCard({
 
         {/* Right: actions */}
         <div className="set-row-actions">
-          {isNewPR && (
-            <span style={{ background: "var(--green)", color: "#fff", fontSize: 8, fontWeight: 900, padding: "2px 5px", borderRadius: 5, flexShrink: 0 }}>PR</span>
-          )}
           <button
             className="set-delete-btn"
             style={{ color: note ? "var(--green)" : "var(--muted)" }}
@@ -218,6 +215,11 @@ export default function WorkoutSetCard({
           )}
           {showPRPanel && (
             <div style={{ background: "var(--panel2)", borderRadius: 12, padding: "10px 12px" }}>
+              {isNewPR && (
+                <p style={{ margin: "0 0 8px", fontSize: 12, fontWeight: 800, color: "var(--green)", textAlign: "center" }}>
+                  ¡Nuevo récord de peso!
+                </p>
+              )}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                 {[
                   { label: "1RM estimado (esta serie)", value: orm && hasData ? `${Math.round(orm)}kg` : "—" },

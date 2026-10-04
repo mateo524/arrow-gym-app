@@ -3,7 +3,6 @@ import useStore from "../store/useStore.js";
 import useAuthStore from "../store/useAuthStore.js";
 import { supabase } from "../lib/supabase.js";
 import { T } from "../lib/telemetry.js";
-import HelpTip from "./HelpTip.jsx";
 import { BRAND } from "../config/brand.js";
 
 const CheckIcon = ({ color = "var(--accent)", size = 18 }) => (
@@ -289,7 +288,7 @@ export default function OnboardingModal() {
                   <span style={{ fontSize: 28, lineHeight: 1, flexShrink: 0 }}>{f.icon}</span>
                   <div>
                     <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 3 }}>{f.title}</div>
-                    <div style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.5 }}>{f.desc}{(f.tips || []).map(t => <HelpTip key={t} term={t} />)}</div>
+                    <div style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.5 }}>{f.desc}</div>
                   </div>
                 </div>
               ))}
