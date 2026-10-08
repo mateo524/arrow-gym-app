@@ -289,7 +289,7 @@ export default function HomePage() {
       )}
 
       {/* ── Health quick-access ── */}
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:14 }} onClick={() => setPage("measurements")}>
+      <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)", gap:8, marginBottom:14 }} onClick={() => setPage("measurements")}>
         {[
           { label:"Peso", value: lastWeight2 ? `${lastWeight2.kg}` : "—", unit:"kg", color:"var(--green)", iconName:"Scale" },
           { label:"Agua", value: todayWater2 > 0 ? String(todayWater2) : "—", unit: todayWater2 > 0 ? `/${waterGoalV}` : "", color:"#60a5fa", iconName:"Droplet" },
@@ -460,7 +460,7 @@ export default function HomePage() {
             const maxWeekVol = 50000;
             const pctVol = Math.min(100, (weekVolume/maxWeekVol)*100);
             return (
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:14 }}>
+              <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr)", gap:10, marginBottom:14 }}>
                 {/* Weekly volume */}
                 <div className="home-stat-card" style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:16, padding:"14px 14px 12px" }}>
                   <div style={{ fontSize:10, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:6 }}>Vol. semanal</div>
@@ -535,7 +535,7 @@ export default function HomePage() {
           {recentAch.length > 0 && (
             <div style={{ marginBottom:14 }}>
               <p className="section-label">Logros recientes</p>
-              <div style={{ display:"flex", gap:8, overflowX:"auto", scrollbarWidth:"none" }}>
+              <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
                 {recentAch.map(a => {
                   const def = achMap.get(a.id);
                   if (!def) return null;
@@ -640,7 +640,7 @@ export default function HomePage() {
       {/* Quick access grid */}
       <div style={{ marginTop: 14, marginBottom: 4 }}>
         <p className="section-label">Accesos rápidos</p>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0,1fr))", gap: 8 }}>
           {[
             { id: "history",      icon: "BarChart2",     label: "Historial",  color: "var(--accent)" },
             { id: "routines",     icon: "ClipboardList", label: "Rutinas",    color: "#a78bfa" },

@@ -896,7 +896,7 @@ export default function ProfilePage() {
                 <p style={{ margin: "0 0 4px", fontSize: 12, fontWeight: 700, color: "var(--green)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                   Vista previa — {importPreview.format === "strong" ? "Strong" : "Hevy"}
                 </p>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, margin: "8px 0 12px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)", gap: 6, margin: "8px 0 12px" }}>
                   {[
                     { label: "Entrenamientos", value: importPreview.totalWorkouts },
                     { label: "Series", value: importPreview.totalSets },

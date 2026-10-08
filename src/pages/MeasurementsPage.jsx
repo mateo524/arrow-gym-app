@@ -684,7 +684,7 @@ export default function MeasurementsPage() {
             </div>
             {!editPliegues ? (
               profile?.triceps_mm || profile?.subscapular_mm || profile?.biceps_mm ? (
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 8 }}>
                   {[
                     { label: "Tríceps", val: profile?.triceps_mm },
                     { label: "Subescapular", val: profile?.subscapular_mm },
@@ -709,7 +709,7 @@ export default function MeasurementsPage() {
               )
             ) : (
               <form onSubmit={savePliegues} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 10 }}>
                   {[
                     { label: "Tríceps (mm)", k: "triceps" },
                     { label: "Subescapular (mm)", k: "subscapular" },
@@ -759,7 +759,7 @@ export default function MeasurementsPage() {
                 {profile?.arm_relaxed_cm || profile?.waist_cm || profile?.hip_cm ? (
                   <>
                     <p style={{ fontSize: 11, color: "var(--muted)", margin: "0 0 6px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Perímetros</p>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 8, marginBottom: 12 }}>
                       {[
                         { label: "Brazo relajado", val: profile?.arm_relaxed_cm },
                         { label: "Brazo contraído", val: profile?.arm_flexed_cm },
@@ -777,7 +777,7 @@ export default function MeasurementsPage() {
                     {(profile?.humerus_cm || profile?.femur_cm) && (
                       <>
                         <p style={{ fontSize: 11, color: "var(--muted)", margin: "0 0 6px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Diámetros</p>
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 8 }}>
                           {[
                             { label: "Húmero", val: profile?.humerus_cm },
                             { label: "Fémur", val: profile?.femur_cm },
@@ -841,7 +841,7 @@ export default function MeasurementsPage() {
             ) : (
               <form onSubmit={savePerimetros} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 <p style={{ fontSize: 11, color: "var(--muted)", margin: 0, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Perímetros</p>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 10 }}>
                   {[
                     { label: "Brazo relajado (cm)", k: "armRelaxed" },
                     { label: "Brazo contraído (cm)", k: "armFlexed" },
@@ -856,7 +856,7 @@ export default function MeasurementsPage() {
                   ))}
                 </div>
                 <p style={{ fontSize: 11, color: "var(--muted)", margin: "4px 0 0", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Diámetros</p>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 10 }}>
                   {[
                     { label: "Húmero (cm)", k: "humerus" },
                     { label: "Fémur (cm)", k: "femur" },
@@ -943,7 +943,7 @@ export default function MeasurementsPage() {
             {progressPhotos.length === 0 ? (
               <p style={{ fontSize:13, color:"var(--muted)", textAlign:"center", padding:"20px 0" }}>Sin fotos aún.</p>
             ) : (
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+              <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr)", gap:10 }}>
                 {progressPhotos.map(photo => {
                   const isSelected = compareSelected.some(p => p.id === photo.id);
                   return (

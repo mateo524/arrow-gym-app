@@ -171,7 +171,7 @@ export default function WorkoutSetCard({
               }}
               className="set-done-action"
             >
-              <Icon name="Check" size={12} /> Hecho
+              <Icon name="Check" size={12} /><span className="set-done-label-txt"> Hecho</span>
             </button>
           ) : done ? (
             <span className="set-done-label">
@@ -219,7 +219,7 @@ export default function WorkoutSetCard({
                   ¡Nuevo récord de peso!
                 </p>
               )}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 8 }}>
                 {[
                   { label: "1RM estimado (esta serie)", value: orm && hasData ? `${Math.round(orm)}kg` : "—" },
                   { label: "Mejor peso", value: prData?.bestWeight ? `${prData.bestWeight}kg` : "—" },

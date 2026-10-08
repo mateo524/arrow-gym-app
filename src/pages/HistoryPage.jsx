@@ -499,7 +499,7 @@ export default function HistoryPage() {
                 <b style={{ fontSize:14 }}>Comparación</b>
                 <button className="ghost" style={{ padding:"4px 10px", fontSize:12 }} onClick={() => setCompareIds([])}><Icon name="X" size={14} /></button>
               </div>
-              <div style={{ display:"grid", gridTemplateColumns:"1fr auto 1fr", gap:8, alignItems:"start" }}>
+              <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) auto minmax(0,1fr)", gap:8, alignItems:"start" }}>
                 <div style={{ textAlign:"left" }}>
                   <div style={{ fontSize:12, fontWeight:700, color:"var(--green)" }}>{a.type}</div>
                   <div style={{ fontSize:11, color:"var(--muted)" }}>{formatDMY(a.date)}</div>

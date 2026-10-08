@@ -24,7 +24,7 @@ export default function WeekCompareCard({ thisWeek, lastWeek, countDiff, volumeD
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "1fr 1fr 1fr",
+          gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)",
           color: "#9ca3af",
           fontWeight: 600,
           fontSize: "0.75rem",
@@ -42,7 +42,7 @@ export default function WeekCompareCard({ thisWeek, lastWeek, countDiff, volumeD
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "1fr 1fr 1fr",
+          gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)",
           alignItems: "center",
           marginBottom: "0.25rem",
         }}
@@ -59,7 +59,7 @@ export default function WeekCompareCard({ thisWeek, lastWeek, countDiff, volumeD
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "1fr 1fr 1fr",
+          gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)",
           alignItems: "center",
         }}
       >

@@ -202,7 +202,7 @@ export default function PRPage() {
       </div>
 
       {/* ── Metric strip ─────────────────────────────────── */}
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:4, marginBottom:10 }}>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(4, minmax(0,1fr))", gap:4, marginBottom:10 }}>
         {METRICS.map(m => (
           <div key={m.label} style={{ background:"var(--panel)", borderRadius:9, padding:"5px 3px", textAlign:"center" }}>
             <div style={{ fontSize:8, color:"var(--muted)", fontWeight:700, textTransform:"uppercase", marginBottom:1 }}>{m.label}</div>
@@ -255,7 +255,7 @@ export default function PRPage() {
         <>
           {/* Group filter chips */}
           {groups.length > 1 && (
-            <div style={{ display:"flex", gap:4, overflowX:"auto", marginBottom:8, paddingBottom:2, scrollbarWidth:"none" }}>
+            <div style={{ display:"flex", gap:4, flexWrap:"wrap", marginBottom:8, paddingBottom:2 }}>
               {["", ...groups].map(g => (
                 <button key={g || "all"} onClick={() => { setGroupFilter(g); setSearch(""); }}
                   style={{ flexShrink:0, padding:"3px 10px", borderRadius:16, border:"none", cursor:"pointer", fontSize:10, fontWeight:700, whiteSpace:"nowrap",

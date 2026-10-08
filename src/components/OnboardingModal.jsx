@@ -192,7 +192,7 @@ export default function OnboardingModal() {
                 <label style={labelStyle}>Altura (cm)</label>
                 <input type="number" inputMode="numeric" value={height} onChange={e => setHeight(e.target.value)} placeholder="ej: 175" style={inputStyle} />
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 12 }}>
                 <div>
                   <label style={labelStyle}>Fecha de nacimiento</label>
                   <DateInput value={dob} onChange={setDob} ariaLabel="Fecha de nacimiento" inputStyle={{ ...inputStyle, fontSize: 14 }} />

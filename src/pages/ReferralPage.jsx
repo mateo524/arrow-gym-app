@@ -166,7 +166,7 @@ export default function ReferralPage() {
             </div>
 
             {/* Stats */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 10, marginBottom: 16 }}>
               <div className="card" style={{ textAlign: "center" }}>
                 <div style={{ fontSize: 28, fontWeight: 900, color: "var(--text)" }}>{totalStudents}</div>
                 <div style={{ fontSize: 11, color: "var(--muted)" }}>alumnos vinculados</div>

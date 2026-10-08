@@ -613,7 +613,7 @@ export default function CoachPage() {
           {/* Muscle freshness tracker */}
           <div className="card" style={{ marginBottom: 14 }}>
             <h2 style={{ margin: "0 0 12px", fontSize: 14 }}>Frescura muscular</h2>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)", gap: 8 }}>
               {muscleRecovery.map(({ name, daysSince, recDays, status }) => {
                 const color = status === "listo" ? "#22c55e" : status === "recuperando" ? "#f59e0b" : status === "pronto" ? "#ef4444" : "rgba(255,255,255,.25)";
                 const iconName  = status === "listo" ? "CheckCircle" : status === "recuperando" ? null : status === "pronto" ? null : null;
@@ -685,7 +685,7 @@ export default function CoachPage() {
             <div style={{ display:"flex", justifyContent:"center" }}>
               <MuscleRadarChart data={muscleData} />
             </div>
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginTop:8 }}>
+            <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)", gap:8, marginTop:8 }}>
               {muscleData.filter(d => d.value > 0).map((d,i) => (
                 <div key={d.name} style={{ textAlign:"center", background:"var(--panel2)", borderRadius:10, padding:"8px 4px" }}>
                   <div style={{ fontSize:14, fontWeight:800, color:"var(--green)" }}>{d.pct}%</div>
@@ -764,7 +764,7 @@ export default function CoachPage() {
                     {wrappedShared ? "Copiado" : "Compartir"}
                   </button>
                 </div>
-                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
+                <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr)", gap:8 }}>
                   {[
                     { label:"Entrenamientos", val: yearWorkouts.length, unit:"" },
                     { label:"Volumen total", val: totalVol >= 1000000 ? (totalVol/1000000).toFixed(1)+"M" : totalVol >= 1000 ? (totalVol/1000).toFixed(0)+"k" : totalVol, unit:"kg" },
@@ -930,7 +930,7 @@ export default function CoachPage() {
                       {fatigueScore.pctChange > 0 ? "↑" : fatigueScore.pctChange < 0 ? "↓" : "="} {Math.abs(fatigueScore.pctChange || 0)}%
                     </span>
                   </div>
-                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
+                  <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr)", gap:8 }}>
                     <div style={{ background:"var(--panel2)", borderRadius:12, padding:"8px 10px" }}>
                       <p style={{ margin:"0 0 2px", fontSize:10, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em" }}>Esta semana</p>
                       <b style={{ fontSize:14 }}>{fatigueScore.thisWeek >= 1000 ? (fatigueScore.thisWeek/1000).toFixed(1) + "k" : fatigueScore.thisWeek} kg</b>
@@ -1000,7 +1000,7 @@ export default function CoachPage() {
                       <p style={{ margin:0, fontSize:14, fontWeight:800 }}><Icon name="Target" size={14} style={{display:'inline-block',verticalAlign:'middle',marginRight:4}} /> Adherencia al plan</p>
                       <span style={{ fontSize:20, fontWeight:900, color }}>{avgAdherence}%</span>
                     </div>
-                    <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:6 }}>
+                    <div style={{ display:"grid", gridTemplateColumns:"repeat(4,minmax(0,1fr))", gap:6 }}>
                       {weeks.map(w => {
                         const pct = Math.min(1, w.count / goal);
                         const wColor = pct >= 1 ? "var(--green)" : pct >= 0.5 ? "#f59e0b" : pct > 0 ? "#ef4444" : "var(--panel2)";
@@ -1071,7 +1071,7 @@ export default function CoachPage() {
                       <span style={{ fontSize:13, fontWeight:700, color:"var(--text)" }}>{best.type || "Entrenamiento"}</span>
                       <span style={{ fontSize:11, color:"var(--muted)" }}>{formatDM(best.date)}</span>
                     </div>
-                    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:6, marginBottom:8 }}>
+                    <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)", gap:6, marginBottom:8 }}>
                       {[
                         { label:"Volumen", val: totalVol >= 1000 ? (totalVol/1000).toFixed(1)+"k" : totalVol+"", unit:"kg" },
                         { label:"Series", val: String(totalSets), unit:"sets" },
@@ -1111,7 +1111,7 @@ export default function CoachPage() {
                 return (
                   <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:18, padding:"14px 16px", marginBottom:12 }}>
                     <p style={{ margin:"0 0 12px", fontSize:14, fontWeight:800 }}><Icon name="Calendar" size={14} style={{display:'inline-block',verticalAlign:'middle',marginRight:4}} /> últimas 4 semanas</p>
-                    <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:6 }}>
+                    <div style={{ display:"grid", gridTemplateColumns:"repeat(4,minmax(0,1fr))", gap:6 }}>
                       {weeks.map(w => (
                         <div key={w.label} style={{ background:"var(--panel2)", borderRadius:12, padding:"10px 8px", textAlign:"center" }}>
                           <div style={{ fontSize:11, color:"var(--muted)", marginBottom:4 }}>{w.label}</div>
@@ -1390,7 +1390,7 @@ export default function CoachPage() {
                 return (
                   <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:18, padding:"14px 16px", marginBottom:12 }}>
                     <p style={{ margin:"0 0 12px", fontSize:14, fontWeight:800 }}><Icon name="Calendar" size={14} style={{display:'inline-block',verticalAlign:'middle',marginRight:4}} /> Consistencia</p>
-                    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
+                    <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr)", gap:8 }}>
                       <div style={{ background:"var(--panel2)", borderRadius:12, padding:"12px", textAlign:"center" }}>
                         <div style={{ fontSize:11, color:"var(--muted)", marginBottom:4 }}>Racha semanal</div>
                         <div style={{ fontSize:28, fontWeight:900, color: streak >= 4 ? "var(--green)" : streak >= 2 ? "#f59e0b" : "var(--muted)" }}>{streak}</div>
@@ -2365,12 +2365,12 @@ function HolisticSummary({ workouts, prs, userAge, bodyWeight, bodyFatPct, lbm, 
             </svg>
           );
         })()}
-        <div style={{ flex:1 }}>
+        <div style={{ flex:1, minWidth:0 }}>
           <p style={{ margin:"0 0 4px", fontSize:15, fontWeight:800, color:"var(--text)" }}>Score de consistencia</p>
           <p style={{ margin:"0 0 8px", fontSize:12, color:"var(--muted)" }}>
             {consistency >= 80 ? "Excelente — seguí así." : consistency >= 50 ? "Buena base — intentá sumar un día más/semana." : "Falta constancia — la clave es la frecuencia."}
           </p>
-          <div style={{ display:"flex", gap:14 }}>
+          <div style={{ display:"flex", gap:"4px 14px", flexWrap:"wrap" }}>
             <div><span style={{ fontSize:11, color:"var(--muted)" }}>Promedio/semana</span><b style={{ display:"block", fontSize:16, color:"var(--green)" }}>{avgPerWeek}x</b></div>
             <div><span style={{ fontSize:11, color:"var(--muted)" }}>Total entrenos</span><b style={{ display:"block", fontSize:16, color:"var(--green)" }}>{workouts.length}</b></div>
             <div><span style={{ fontSize:11, color:"var(--muted)" }}>PRs totales</span><b style={{ display:"block", fontSize:16, color:"var(--green)" }}>{prs.length}</b></div>
@@ -2427,7 +2427,7 @@ function HolisticSummary({ workouts, prs, userAge, bodyWeight, bodyFatPct, lbm, 
       )}
 
       {/* Resumen total */}
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:4 }}>
+      <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr)", gap:8, marginBottom:4 }}>
         <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:12, padding:"12px 14px" }}>
           <span style={{ fontSize:11, color:"var(--muted)", fontWeight:700, textTransform:"uppercase" }}>Volumen total</span>
           <b style={{ display:"block", fontSize:22, color:"var(--green)", marginTop:2 }}>{(totalVolume/1000).toFixed(1)}t</b>

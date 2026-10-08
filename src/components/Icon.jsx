@@ -13,6 +13,7 @@ import {
   ArrowUp, ArrowDown, BookOpen, Layers, Copy, ExternalLink,
   Camera, Leaf, DollarSign, CreditCard, Hash, Scale, MapPin, Droplet, Sun,
   Smartphone, Key, Sparkles, Heart, Gauge, Package, Repeat, Link2, Rocket, HeartPulse,
+  BookmarkPlus, FileText, Inbox, Link, Upload, UserCheck, UserPlus, XCircle,
 } from "lucide-react";
 
 const MAP = {
@@ -30,6 +31,7 @@ const MAP = {
   ArrowUp, ArrowDown, BookOpen, Layers, Copy, ExternalLink,
   Camera, Leaf, DollarSign, CreditCard, Hash, Scale, MapPin, Droplet, Sun,
   Smartphone, Key, Sparkles, Heart, Gauge, Package, Repeat, Link2, Rocket, HeartPulse,
+  BookmarkPlus, FileText, Inbox, Link, Upload, UserCheck, UserPlus, XCircle,
 };
 
 export default function Icon({ name, size = 24, strokeWidth = 1.5, ...props }) {

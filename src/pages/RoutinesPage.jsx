@@ -421,7 +421,7 @@ export default function RoutinesPage() {
                         onClick={() => removeExercise(exIdx)}><Icon name="X" size={14} /></button>
                     </div>
                     {ex.sets.map((s, sIdx) => (
-                      <div key={sIdx} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 6 }}>
+                      <div key={sIdx} style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 8, marginBottom: 6 }}>
                         <input type="number" placeholder="Reps" value={s.reps}
                           onChange={e => updateSet(exIdx, sIdx, "reps", e.target.value)}
                           style={{ background: "var(--bg)", border: "1px solid var(--line)", borderRadius: 8, padding: "6px 10px", color: "var(--text)", fontSize: 13 }} />

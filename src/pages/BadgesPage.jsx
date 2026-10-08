@@ -77,7 +77,7 @@ export default function BadgesPage() {
       </div>
 
       {/* Category filter */}
-      <div style={{ display: "flex", gap: 8, padding: "0 20px 16px", overflowX: "auto" }}>
+      <div style={{ display: "flex", gap: 8, padding: "0 20px 16px", flexWrap: "wrap" }}>
         {CATS.map(c => (
           <button key={c} onClick={() => setCat(c)} style={{
             flexShrink: 0, padding: "6px 14px", borderRadius: 20, fontSize: 12, fontWeight: 700, cursor: "pointer",

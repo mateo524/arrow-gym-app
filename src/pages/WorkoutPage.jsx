@@ -1010,7 +1010,7 @@ export default function WorkoutPage() {
                   /* PR STATS VIEW */
                   <div>
                     <p style={{ fontSize: 12, fontWeight: 700, color: workoutTypeTheme.accent, textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 10px" }}>Récords — {exercise}</p>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 12 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)", gap: 8, marginBottom: 12 }}>
                       {[
                         { label:"Mejor peso",  value: prData?.bestWeight  ? `${prData.bestWeight}kg` : "—" },
                         { label:"Mejor vol.",  value: prData?.bestVolume  ? `${prData.bestVolume}kg` : "—" },
@@ -1799,7 +1799,7 @@ export default function WorkoutPage() {
               {String(Math.floor(elapsedRef.current/60)).padStart(2,"0")}:{String(elapsedRef.current%60).padStart(2,"0")} · {summaryData.exercises} ejercicio{summaryData.exercises !== 1 ? "s" : ""}
             </p>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 8, marginBottom: 16 }}>
             {[
               { label: "Series",     value: summaryData.totalSets,   color: "var(--green)" },
               { label: "Volumen",    value: `${summaryData.totalVolume} kg`, color: "var(--green)" },

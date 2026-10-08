@@ -147,7 +147,7 @@ export default function CardioPage() {
         {cats.map(cat => (
           <div key={cat} style={{ marginBottom: 20 }}>
             <p style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>{cat}</p>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 8 }}>
               {SPORTS.filter(s => s.cat === cat).map(s => (
                 <button key={s.id} onClick={() => selectSport(s)}
                   style={{
@@ -270,7 +270,7 @@ export default function CardioPage() {
         ) : (
         <div style={{ background: "var(--panel)", borderRadius: 14, padding: "16px 16px", marginBottom: 16 }}>
           <p style={{ margin: "0 0 12px", fontSize: 12, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Duración total</p>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 12 }}>
             <div>
               <label style={{ fontSize: 11, color: "var(--muted)", display: "block", marginBottom: 4 }}>Horas</label>
               <input type="number" inputMode="numeric" min="0" max="24"
@@ -338,7 +338,7 @@ export default function CardioPage() {
             <label style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 10 }}>
               Intensidad
             </label>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)", gap: 6 }}>
               {INTENSITY_OPTS.map(o => (
                 <button key={o.id} onClick={() => setIntensity(o.id)}
                   style={{
@@ -400,7 +400,7 @@ export default function CardioPage() {
         <h2 style={{ marginTop: 8, marginBottom: 4 }}>{sport.name}</h2>
         <p style={{ color: "var(--muted)", fontSize: 13, marginBottom: 28 }}>{formatDMY(saved.date)}</p>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 24 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 10, marginBottom: 24 }}>
           {[
             { label: "Tiempo", value: fmt(saved.duration) },
             { label: "Calorías (aprox.)", value: `${Math.round((saved.calories||0)*10)/10} kcal` },

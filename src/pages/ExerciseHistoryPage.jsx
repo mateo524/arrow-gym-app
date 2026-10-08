@@ -60,7 +60,7 @@ export default function ExerciseHistoryPage({ exerciseName, onClose }) {
         ) : (
           <>
             {/* KPI cards */}
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:16 }}>
+            <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)", gap:8, marginBottom:16 }}>
               {[
                 { label:"Mejor peso", value: `${Math.max(...history.map(h=>h.bestWeight))}kg`, color:"var(--green)" },
                 { label:"Último",     value: `${last.bestWeight}kg`, color:"var(--text)" },

@@ -53,7 +53,7 @@ export default function WorkoutSharePage({ data }) {
         </div>
 
         {/* Stats grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 10, marginBottom: 20 }}>
           {stats.map(({ label, value }) => (
             <div key={label} style={{ background: "rgba(255,255,255,.05)", borderRadius: 14, padding: "14px 12px", textAlign: "center" }}>
               <div style={{ fontSize: 24, fontWeight: 900, color: "#fff", lineHeight: 1 }}>{value}</div>

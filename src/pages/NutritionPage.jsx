@@ -414,7 +414,7 @@ export default function NutritionPage() {
       </p>
 
       {/* Tabs */}
-      <div style={{ display:"flex", gap:6, marginBottom:16, overflowX:"auto", scrollbarWidth:"none", WebkitOverflowScrolling:"touch" }}>
+      <div style={{ display:"flex", gap:6, marginBottom:16, flexWrap:"wrap" }}>
         {[["hoy","Hoy"],["semana","Semana"],...(f.coach_insights ? [["plan","Plan"]] : []),["historial","Historial"]].map(([id,label]) => (
           <button key={id} onClick={() => setTab(id)} style={{
             padding:"6px 14px", borderRadius:20, border:"none", cursor:"pointer", fontSize:13, fontWeight:600,
@@ -454,7 +454,7 @@ export default function NutritionPage() {
         )}
 
         {/* Macros — hidden in simple mode */}
-        {f.coach_insights && <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:14 }}>
+        {f.coach_insights && <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)", gap:8, marginBottom:14 }}>
           {[
             { label:"Proteína", val:todayTotals.protein, target:effectiveTargets.protein, unit:"g", color:"#60a5fa" },
             { label:"Carbs",    val:todayTotals.carbs,   target:effectiveTargets.carbs,   unit:"g", color:"#f59e0b" },
@@ -641,7 +641,7 @@ export default function NutritionPage() {
               <button onClick={() => setPage("measurements")} style={{ background:"none", border:"none", cursor:"pointer", color:"var(--green)", fontWeight:700, fontSize:12, marginLeft:6 }}>Ir →</button>
             </div>
           )}
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:10 }}>
+          <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr)", gap:8, marginBottom:10 }}>
             {[
               { label:"Calorías",      val:`${effectiveKcal}`, unit:"kcal", color:"var(--green)" },
               { label:"Proteína",      val:`${effectiveTargets.protein}`, unit:`g · ${effectiveTargets.proteinPerKg}g/kg`, color:"#60a5fa" },
@@ -876,7 +876,7 @@ export default function NutritionPage() {
               </div>
 
               {/* Day selector */}
-              <div style={{ display:"flex", gap:6, overflowX:"auto", paddingBottom:8, marginBottom:12 }}>
+              <div style={{ display:"flex", gap:6, flexWrap:"wrap", paddingBottom:8, marginBottom:12 }}>
                 {nutritionPlan.days?.map((day, i) => (
                   <button key={i} onClick={() => setExpandedPlanDay(i)}
                     style={{ flexShrink:0, padding:"6px 12px", borderRadius:10,
@@ -1087,7 +1087,7 @@ export default function NutritionPage() {
             </button>}
 
             {foodMode === "buscar" && showQuick && (
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:16 }}>
+              <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr)", gap:8, marginBottom:16 }}>
                 {QUICK_FOODS.map(food => (
                   <button key={food.name} onClick={() => { addQuickFood(food); window.__showToast?.(food.name+" agregado","success"); }}
                     style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:10, padding:"8px 10px", fontSize:12, fontWeight:600, cursor:"pointer", textAlign:"left", color:"var(--text)" }}>
@@ -1137,10 +1137,9 @@ export default function NutritionPage() {
               {/* Gramaje */}
               <div>
                 <label style={{ fontSize:12, color:"var(--muted)", fontWeight:600, display:"block", marginBottom:4 }}>{foodMode === "crear" ? "¿Para cuántos gramos son estos valores?" : "¿Cuántos gramos comiste?"}</label>
-                <input inputMode="decimal" value={form.grams}
+                <input className="input" inputMode="decimal" value={form.grams}
                   onChange={e => handleGramsChange(e.target.value.replace(",","."))}
-                  placeholder="Ej: 150"
-                  style={{ width:"100%", background:"var(--panel2)", border:"1px solid var(--line)", borderRadius:10, padding:"9px 12px", color:"var(--text)", fontSize:14, boxSizing:"border-box" }} />
+                  placeholder="Ej: 150" />
                 {/* Macro preview — shown when a DB food is selected and grams is filled */}
                 {baseFood && form.grams && Number(form.grams) > 0 && !macrosEdited && (
                   <div style={{ marginTop:6, fontSize:12, color:"var(--green)", fontWeight:600, padding:"6px 10px", background:"rgba(52,211,153,.07)", borderRadius:8, border:"1px solid rgba(52,211,153,.15)" }}>
@@ -1152,7 +1151,7 @@ export default function NutritionPage() {
               <div style={{ fontSize:12, color:"var(--muted)", fontWeight:600, marginBottom:-2 }}>
                 Valores nutricionales de esa cantidad <span style={{ fontWeight:400 }}>(figuran en el envase)</span>
               </div>
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
+              <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr)", gap:8 }}>
                 {[
                   ["kcal","Calorías (kcal)","Ej: 250"],
                   ["protein","Proteínas (g)","Ej: 20"],

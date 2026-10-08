@@ -608,7 +608,7 @@ export default function TrainerPage() {
 
   return (<>
   <section className="page">
-      <div className="page-header" style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
+      <div className="page-header" style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
         <div>
           <p className="eyebrow">{isAdmin ? "Admin" : "Entrenador"}</p>
           <h1>Mis clientes</h1>

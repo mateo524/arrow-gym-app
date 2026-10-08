@@ -357,7 +357,7 @@ export default function StartWorkoutPage() {
       {/* ── Volumen semanal por grupo muscular ───────────────── */}
       <div style={{ marginBottom:18 }}>
         <p className="section-label" style={{ marginBottom:8 }}>Volumen esta semana</p>
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(3, 1fr)", gap:6 }}>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(3, minmax(0,1fr))", gap:6 }}>
           {weeklyMuscleVolume.map(({ name, sets, rec, pct }) => {
             const color = pct >= 80 ? "#22c55e" : pct >= 40 ? "#f59e0b" : "rgba(168,85,247,.8)";
             return (
@@ -752,7 +752,7 @@ export default function StartWorkoutPage() {
                 {!coachSplit && (
                   <div style={{ marginBottom:12 }}>
                     <p style={{ fontSize:11, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em", margin:"0 0 8px" }}>Elegí el tipo de rutina</p>
-                    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
+                    <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr)", gap:8 }}>
                       {COACH_SPLITS.map(s => (
                         <button key={s.id} onClick={() => { setCoachSplit(s.id); setNewRoutineName(s.label); setNewRoutineExercises(EXERCISES_BY_SPLIT[s.id] || []); }}
                           style={{ background:"var(--panel2)", border:"1px solid var(--line)", borderRadius:14, padding:"14px 12px", cursor:"pointer", textAlign:"center" }}>

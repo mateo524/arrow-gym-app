@@ -134,7 +134,7 @@ export default function ExercisePicker({ onPick, compact = false, query: queryPr
         ))}
       </div>
 
-      <div style={{ display: "flex", gap: 6, paddingBottom: 6, overflowX: "auto" }}>
+      <div style={{ display: "flex", gap: 6, paddingBottom: 6, flexWrap: "wrap" }}>
         <button
           onClick={() => setShowFavoritesOnly(prev => !prev)}
           style={{
