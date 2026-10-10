@@ -627,10 +627,6 @@ export default function TrainerPage() {
               style={{ fontSize: 13, gap: 6, display: "flex", alignItems: "center" }}>
               <Icon name="TrendingUp" size={14} /> Comisiones
             </button>
-            <button className="ghost" onClick={() => setPage("testamento")}
-              style={{ fontSize: 13, gap: 6, display: "flex", alignItems: "center" }}>
-              <Icon name="BookOpen" size={14} /> Testamento
-            </button>
           </div>
         )}
       </div>

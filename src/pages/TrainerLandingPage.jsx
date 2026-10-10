@@ -91,7 +91,7 @@ export default function TrainerLandingPage({ inviteCode, onJoin, onBack }) {
           {[
             { icon: "Dumbbell", text: "Rutinas personalizadas según tus objetivos" },
             { icon: "BarChart2", text: "Seguimiento de progreso y cargas en tiempo real" },
-            { icon: "BrainCircuit", text: "Coach con IA que sugiere pesos y descansos" },
+            { icon: "BrainCircuit", text: "Coach que sugiere pesos y descansos" },
             { icon: "Bell", text: "Recordatorios y empuje para mantener la racha" },
           ].map(({ icon, text }) => (
             <div key={text} style={{ display: "flex", alignItems: "center", gap: 12, background: "var(--panel)", borderRadius: 12, padding: "10px 14px" }}>

@@ -402,7 +402,7 @@ export default function ProfilePage() {
                       ? hasPreapproval
                         ? `No se renueva solo, te avisamos antes de vencer${daysUntilRenewal !== null ? ` — vence en ${daysUntilRenewal} día${daysUntilRenewal !== 1 ? "s" : ""}` : ""}`
                         : `Plan mensual $10.000 ARS${daysUntilRenewal !== null ? ` — vence en ${daysUntilRenewal} día${daysUntilRenewal !== 1 ? "s" : ""}` : ""}`
-                      : "Accedá al Coach IA y Comidas — $10.000/mes"}
+                      : "Accedá al Coach y Comidas — $10.000/mes"}
                   </div>
                 </div>
               </div>

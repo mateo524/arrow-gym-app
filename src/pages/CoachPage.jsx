@@ -30,9 +30,9 @@ export default function CoachPage() {
     return (
       <section className="page" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "48px 24px" }}>
         <Icon name="Lock" size={48} style={{ display:'block', margin:'0 auto 16px' }} />
-        <h2 style={{ margin: "0 0 8px", fontSize: 22 }}>Coach con IA</h2>
+        <h2 style={{ margin: "0 0 8px", fontSize: 22 }}>Coach</h2>
         <p style={{ color: "var(--muted)", fontSize: 14, marginBottom: 28, maxWidth: 280 }}>
-          Analizá tu progreso, recibí recomendaciones personalizadas y optimizá tu entrenamiento con inteligencia artificial.
+          Analizá tu progreso, recibí recomendaciones personalizadas y optimizá tu entrenamiento.
         </p>
         <button
           className="primary"
@@ -832,7 +832,7 @@ export default function CoachPage() {
               <Icon name="BrainCircuit" size={20} style={{flexShrink:0, marginTop:1}} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ margin: "0 0 2px", fontWeight: 700, fontSize: 13, color: "var(--accent, #a855f7)" }}>
-                  {coachNotif.title || "Coach con IA"}
+                  {coachNotif.title || "Coach"}
                 </p>
                 <p style={{ margin: 0, fontSize: 13, color: "var(--text)", lineHeight: 1.5 }}>
                   {coachNotif.body}

@@ -284,7 +284,7 @@ export default function HomePage() {
         >
           <span style={{ fontSize: 14, flexShrink: 0, fontWeight: 700, color: "var(--accent)" }}>Premium</span>
           <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 700, fontSize: 13, color: "var(--text)" }}>Desbloqueá el Coach IA y Comidas</div>
+            <div style={{ fontWeight: 700, fontSize: 13, color: "var(--text)" }}>Desbloqueá el Coach y Comidas</div>
             <div style={{ fontSize: 12, color: "var(--muted)" }}>$10.000 por 30 días — pago mensual, sin débito automático; te avisamos antes de vencer</div>
           </div>
           <span style={{ fontSize: 18, color: "var(--muted)" }}>›</span>

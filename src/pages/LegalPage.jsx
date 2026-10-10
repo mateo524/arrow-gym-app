@@ -37,7 +37,7 @@ function Terminos() {
       <p style={p}>Tenés que ser mayor de 18 años y tener capacidad legal para contratar. Si sos menor, solo podés usarla con autorización y supervisión de tu madre, padre o tutor.</p>
 
       <h2 style={h2}>3. Qué ofrece la App</h2>
-      <p style={p}>Registro de entrenamientos, rutinas, mediciones corporales, registro de comidas, fotos de progreso, coach con inteligencia artificial y vinculación con entrenadores. Algunas funciones requieren suscripción paga.</p>
+      <p style={p}>Registro de entrenamientos, rutinas, mediciones corporales, registro de comidas, fotos de progreso, coach y vinculación con entrenadores. Algunas funciones requieren suscripción paga.</p>
 
       <h2 style={h2}>4. Cuenta y seguridad</h2>
       <p style={p}>Sos responsable de la confidencialidad de tu contraseña y de la actividad de tu cuenta. Los datos que cargues tienen que ser veraces. Avisanos ante cualquier uso no autorizado.</p>
@@ -97,7 +97,7 @@ function Privacidad() {
       <h2 style={h2}>4. Para qué los usamos</h2>
       <ul style={ul}>
         <li>Prestar el servicio: registrar tu progreso, generar estadísticas y rutinas.</li>
-        <li>Coach y funciones con IA.</li>
+        <li>Coach y recomendaciones de entrenamiento.</li>
         <li>Cobrar la suscripción y dar soporte.</li>
         <li>Mejorar la App mediante analítica, solo con tu consentimiento.</li>
         <li>Cumplir obligaciones legales.</li>
@@ -107,7 +107,6 @@ function Privacidad() {
       <ul style={ul}>
         <li><b>Tu entrenador</b>, si te vinculás con uno: ve tus entrenamientos, mediciones y lo que compartas.</li>
         <li><b>Supabase</b> (base de datos, autenticación y almacenamiento de fotos).</li>
-        <li><b>Google (Gemini)</b>: cuando usás el coach de IA o el análisis de comidas, enviamos el texto o la imagen y el contexto necesario (por ejemplo objetivos, nivel y entrenamientos recientes) para generar la respuesta. No lo uses con datos de terceros.</li>
         <li><b>PostHog</b> (analítica de producto): solo si aceptás el banner de analítica. Registramos eventos de uso (por ejemplo "entrenamiento terminado"), sin enviar pesos, repeticiones ni medidas, y asociados a un identificador interno, no a tu nombre ni email.</li>
         <li><b>Mercado Pago</b> (cobros).</li>
         <li>Servicios de notificaciones push de tu navegador o sistema operativo.</li>
@@ -162,11 +161,11 @@ function Salud() {
   return (
     <>
       <h1 style={{ fontSize: 22, fontWeight: 900 }}>Aviso de salud y nutrición</h1>
-      <p style={p}>Loop Gym es una herramienta de registro y orientación general. <b>No brinda atención médica ni nutricional, no diagnostica ni trata enfermedades</b>, y su contenido (incluido el coach con IA y las estimaciones de calorías y macronutrientes) no reemplaza el consejo de un/a profesional de la salud matriculado/a.</p>
+      <p style={p}>Loop Gym es una herramienta de registro y orientación general. <b>No brinda atención médica ni nutricional, no diagnostica ni trata enfermedades</b>, y su contenido (incluido el coach y las estimaciones de calorías y macronutrientes) no reemplaza el consejo de un/a profesional de la salud matriculado/a.</p>
       <ul style={ul}>
         <li>Antes de empezar o cambiar un plan de entrenamiento o alimentación, consultá a tu médico/a, sobre todo si tenés una condición de salud, lesión, embarazo, medicación o antecedentes cardíacos.</li>
         <li>Frená el ejercicio y consultá ante dolor, mareos, falta de aire u otros síntomas.</li>
-        <li>Las sugerencias de IA pueden ser incorrectas o incompletas; las estimaciones de comidas son aproximadas, y pueden no ser adecuadas si tenés alergias, diabetes, trastornos de la conducta alimentaria u otras condiciones.</li>
+        <li>Las sugerencias del coach pueden ser incorrectas o incompletas; las estimaciones de comidas son aproximadas, y pueden no ser adecuadas si tenés alergias, diabetes, trastornos de la conducta alimentaria u otras condiciones.</li>
         <li>Entrenás bajo tu propia responsabilidad. Usá técnica y cargas acordes a tu nivel.</li>
         <li>Si estás en una situación de emergencia, llamá al 107 (SAME) o al servicio de emergencias de tu zona.</li>
       </ul>

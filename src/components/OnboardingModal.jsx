@@ -27,7 +27,7 @@ const LEVELS = [
 ];
 
 const FEATURES = [
-  { icon: "", title: "Coach IA en vivo",       desc: "Te sugiere peso, detecta fatiga y sobreentrenamiento en tiempo real durante el entreno.", tips: ["RIR", "RPE"] },
+  { icon: "", title: "Coach en vivo",       desc: "Te sugiere peso, detecta fatiga y sobreentrenamiento en tiempo real durante el entreno.", tips: ["RIR", "RPE"] },
   { icon: "", title: "Mediciones corporales",  desc: "Registrá peso, % grasa, cintura y más. Encontralo en el tab Medidas del menú." },
   { icon: "", title: "Calculadora de macros",  desc: "Calculá tus calorías y macros diarios según tu objetivo y tu gasto diario. Está en la sección Coach → Macros.", tips: ["TDEE"] },
   { icon: "", title: "Rutinas y plantillas",   desc: "Creá rutinas o usá plantillas populares (PPL, 5x5, Full Body). En Inicio → Accesos rápidos." },
