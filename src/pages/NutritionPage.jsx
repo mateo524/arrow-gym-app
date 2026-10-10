@@ -630,6 +630,11 @@ export default function NutritionPage() {
         {todayMeals.length === 0 ? (
           <div style={{ textAlign:"center", padding:"28px 16px", color:"var(--muted)", fontSize:13 }}>
             Todavía no registraste nada hoy
+            <div style={{ marginTop:12 }}>
+              <button type="button" className="primary" onClick={() => { setShowForm(true); setShowQuick(false); }}>
+                + Agregá tu primera comida
+              </button>
+            </div>
           </div>
         ) : (
           <div style={{ display:"flex", flexDirection:"column", gap:8 }}>

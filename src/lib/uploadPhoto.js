@@ -1,13 +1,14 @@
 import { supabase } from "./supabase.js";
+import { storedPhotoRef } from "./photoUrl.js";
 
 /**
- * Uploads a progress photo to Supabase Storage and returns the public URL.
+ * Uploads a progress photo to Supabase Storage and returns a stored reference (storage:progress-photos/<path>).
  * The bucket "progress-photos" must exist in your Supabase project —
- * create it via the Supabase dashboard (Storage > New bucket, set to public).
+ * create it via the Supabase dashboard (Storage > New bucket, set to PRIVATE (see supabase/APLICAR_AHORA_3.sql)).
  *
  * @param {string} dataUrl - base64 data URL from FileReader
  * @param {string} userId  - authenticated user's id
- * @returns {Promise<string>} public URL of the uploaded file
+ * @returns {Promise<string>} reference of the uploaded file
  */
 function dataUrlToBlob(dataUrl) {
   const [header, data] = dataUrl.split(",");
@@ -29,6 +30,6 @@ export async function uploadProgressPhoto(dataUrl, userId) {
 
   if (error) throw error;
 
-  const { data } = supabase.storage.from("progress-photos").getPublicUrl(path);
-  return data.publicUrl;
+  // El bucket es privado: se guarda una referencia y se muestra con URL firmada (ver PhotoImg)
+  return storedPhotoRef(path);
 }

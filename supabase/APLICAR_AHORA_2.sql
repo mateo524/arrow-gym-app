@@ -115,6 +115,32 @@ grant select (id, name, kcal, protein, carbs, fat, created_at) on public.shared_
 -- (AdminPage: food_reports -> food:food_id(... hidden)) la lee por la API: sin este grant se rompería.
 grant select (hidden) on public.shared_foods to authenticated;
 
+-- 2a') Alta robusta: created_by y hidden los fija un trigger (SECURITY DEFINER) y la policy de INSERT
+--      ya no lee columnas con permiso revocado (evita "permission denied for column created_by").
+create or replace function public.shared_foods_set_defaults()
+returns trigger
+language plpgsql security definer set search_path = ''
+as $$
+begin
+  if current_user in ('authenticated', 'anon') then
+    new.created_by := auth.uid();
+    new.hidden := false;
+  end if;
+  return new;
+end;
+$$;
+revoke all on function public.shared_foods_set_defaults() from public, anon, authenticated;
+
+drop trigger if exists shared_foods_set_defaults on public.shared_foods;
+create trigger shared_foods_set_defaults
+  before insert on public.shared_foods
+  for each row execute function public.shared_foods_set_defaults();
+
+drop policy if exists "Users add shared foods as themselves" on public.shared_foods;
+create policy "Users add shared foods as themselves" on public.shared_foods
+  for insert to authenticated
+  with check (auth.uid() is not null);
+
 -- Para el panel admin: autor y estado de un alimento (created_by/hidden ya no se leen por la API).
 create or replace function public.admin_shared_food_meta(p_food_id uuid)
 returns table (created_by uuid, hidden boolean)

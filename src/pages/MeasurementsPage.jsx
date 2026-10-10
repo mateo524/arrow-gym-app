@@ -1,3 +1,4 @@
+import PhotoImg from "../components/PhotoImg.jsx";
 import { formatDMY, formatDM } from "../lib/dates.js";
 import DateInput from "../components/DateInput.jsx";
 ﻿import { useState, useMemo } from "react";
@@ -948,8 +949,8 @@ export default function MeasurementsPage() {
                   const isSelected = compareSelected.some(p => p.id === photo.id);
                   return (
                     <div key={photo.id} style={{ position:"relative", borderRadius:12, overflow:"hidden", background:"var(--panel2)", border:`1.5px solid ${isSelected ? "var(--green)" : "var(--line)"}` }}>
-                      <img
-                        src={photo.dataUrl || photo.url}
+                      <PhotoImg
+                        photo={photo}
                         alt={photo.date}
                         onClick={() => {
                           if (compareMode) {
@@ -1000,7 +1001,7 @@ export default function MeasurementsPage() {
             {compareSelected.map((photo, i) => (
               <div key={photo.id} style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
                 <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden" }}>
-                  <img src={photo.dataUrl || photo.url} alt={photo.date} style={{ maxWidth:"100%", maxHeight:"100%", objectFit:"contain", borderRadius:8 }} />
+                  <PhotoImg photo={photo} alt={photo.date} style={{ maxWidth:"100%", maxHeight:"100%", objectFit:"contain", borderRadius:8 }} />
                 </div>
                 <div style={{ flexShrink:0, padding:"8px 4px", textAlign:"center" }}>
                   <div style={{ fontSize:12, color:"#22d37a", fontWeight:700 }}>{formatDMY(photo.date)}</div>
@@ -1027,7 +1028,7 @@ export default function MeasurementsPage() {
                 <button onClick={() => setFullscreenPhoto(sorted[idx - 1])}
                   style={{ position:"absolute", left:4, background:"rgba(255,255,255,.18)", border:"none", borderRadius:12, width:44, height:44, cursor:"pointer", color:"#fff", fontSize:22, display:"flex", alignItems:"center", justifyContent:"center", zIndex:1 }}>‹</button>
               )}
-              <img src={fullscreenPhoto.dataUrl || fullscreenPhoto.url} alt={fullscreenPhoto.date} style={{ maxWidth:"100%", maxHeight:"100%", objectFit:"contain", borderRadius:8 }} />
+              <PhotoImg photo={fullscreenPhoto} alt={fullscreenPhoto.date} style={{ maxWidth:"100%", maxHeight:"100%", objectFit:"contain", borderRadius:8 }} />
               {idx < sorted.length - 1 && (
                 <button onClick={() => setFullscreenPhoto(sorted[idx + 1])}
                   style={{ position:"absolute", right:4, background:"rgba(255,255,255,.18)", border:"none", borderRadius:12, width:44, height:44, cursor:"pointer", color:"#fff", fontSize:22, display:"flex", alignItems:"center", justifyContent:"center", zIndex:1 }}>›</button>
