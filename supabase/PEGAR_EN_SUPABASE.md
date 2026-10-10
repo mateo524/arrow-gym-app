@@ -14,13 +14,13 @@ Proyecto: `wesexsgrtkhimpxnwysf` · Panel: https://supabase.com/dashboard/projec
 - Pegá TODO `supabase/APLICAR_AHORA_3.sql` → **Run**. (El sitio ya muestra las fotos con URL firmada.)
 - Verificar: Mediciones > Fotos sigue mostrando tus fotos.
 
-## 3) Función `create-user` (hueco: un entrenador podía crear un superadmin)
+## 3) Función `create-user` (YA DESPLEGADA: v9, Verify JWT activo)
 - https://supabase.com/dashboard/project/wesexsgrtkhimpxnwysf/functions → **create-user** → pestaña de código.
 - Reemplazá todo por el contenido de `supabase/functions/create-user/index.ts` → **Deploy**.
 - Dejá "Verify JWT" activado.
 - Verificar: desde el panel de admin crear un alumno y un entrenador; tienen que seguir funcionando.
 
-## 4) Funciones de IA: BORRARLAS (decisión: la app no usa IA)
+## 4) Funciones de IA (YA BORRADAS: ai-coach y testamento-coach; secreto Gemini API Key borrado)
 `ai-coach` y `testamento-coach` aceptaban el `user_id` / `trainer_id` del pedido y usaban la clave de servicio sin verificar
 quién llama: cualquiera con la clave pública de la app podía leer datos de otro usuario. Verificado (solo lectura):
 ninguna otra función ni tarea programada las llama, así que se pueden borrar sin romper nada.
