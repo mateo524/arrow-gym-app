@@ -1,3 +1,4 @@
+import { openCheckout } from "../lib/checkout.js";
 import { formatDMY } from "../lib/dates.js";
 import DateInput from "../components/DateInput.jsx";
 ﻿import { useState, useRef, useEffect } from "react";
@@ -367,7 +368,7 @@ export default function ProfilePage() {
                 return;
               }
               if (!error && data?.init_point) {
-                window.location.href = data.init_point;
+                openCheckout(data.init_point);
               } else {
                 window.__showToast?.("No se pudo iniciar el pago. Intentá de nuevo.", "error");
               }
@@ -775,7 +776,7 @@ export default function ProfilePage() {
               </div>
             ) : showCompForm ? (
               <div style={{ display:"flex", flexDirection:"column", gap:8, width:"100%" }}>
-                <input value={compName} onChange={e=>setCompName(e.target.value)} placeholder="Nombre (ej: Torneo, Viaje)" style={{ background:"var(--panel2)", border:"1px solid var(--line)", borderRadius:10, padding:"8px 12px", color:"var(--text)", fontSize:13 }} />
+                <input id="comp-name" aria-label="Nombre de la competencia" autoComplete="off" value={compName} onChange={e=>setCompName(e.target.value)} placeholder="Nombre (ej: Torneo, Viaje)" style={{ background:"var(--panel2)", border:"1px solid var(--line)", borderRadius:10, padding:"8px 12px", color:"var(--text)", fontSize:13 }} />
                 <DateInput value={compDate} onChange={setCompDate} ariaLabel="Fecha de la competencia" inputStyle={{ background:"var(--panel2)", border:"1px solid var(--line)", borderRadius:10, padding:"8px 12px", color:"var(--text)", fontSize:13 }} />
                 <div style={{ display:"flex", gap:8 }}>
                   <button className="primary" style={{ flex:1 }} disabled={!compDate} onClick={() => { setCompetitionMode(compDate, compName); setShowCompForm(false); }}>Guardar</button>
@@ -805,13 +806,13 @@ export default function ProfilePage() {
           {showChangePwd && (
             <form onSubmit={handleChangePwd} style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 10 }}>
               <div className="field-group">
-                <label>Nueva contraseña</label>
-                <input type="password" value={newPwd} onChange={(e) => setNewPwd(e.target.value)}
+                <label htmlFor="new-pwd">Nueva contraseña</label>
+                <input id="new-pwd" type="password" value={newPwd} onChange={(e) => setNewPwd(e.target.value)}
                   placeholder="Mínimo 8 caracteres" autoComplete="new-password" required minLength={8} />
               </div>
               <div className="field-group">
-                <label>Confirmar contraseña</label>
-                <input type="password" value={confirmPwd} onChange={(e) => setConfirmPwd(e.target.value)}
+                <label htmlFor="confirm-pwd">Confirmar contraseña</label>
+                <input id="confirm-pwd" type="password" value={confirmPwd} onChange={(e) => setConfirmPwd(e.target.value)}
                   placeholder="Repetá la contraseña" autoComplete="new-password" required />
               </div>
               {pwdMsg && (

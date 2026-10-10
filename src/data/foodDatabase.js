@@ -2,6 +2,7 @@
 // Campos: name, kcal, protein, carbs, fat, serving (texto), grams (peso de la porción en g)
 // Fuentes: USDA, ANMAT, tablas argentinas de composición nutricional
 
+import { filterFoodsByQuery } from "../lib/nutrition.js";
 export const FOOD_DB = [
   // ── HUEVOS ──────────────────────────────────────────────────────────
   { id:"e1",  cat:"Huevos",    name:"Huevo entero",           serving:"1 unidad",    grams:50,  kcal:72,  protein:6,  carbs:0,  fat:5 },
@@ -192,7 +193,6 @@ export const FOOD_DB = [
   { id:"bv28", cat:"Bebidas",  name:"Limonada (con azúcar)",       serving:"1 vaso 300ml",   grams:300,  kcal:100, protein:0,  carbs:25, fat:0 },
   { id:"bv29", cat:"Bebidas",  name:"Limonada (sin azúcar)",       serving:"1 vaso 300ml",   grams:300,  kcal:15,  protein:0,  carbs:4,  fat:0 },
   { id:"bv30", cat:"Bebidas",  name:"Agua de coco",                serving:"1 vaso 330ml",   grams:330,  kcal:60,  protein:1,  carbs:14, fat:0 },
-  { id:"bv31", cat:"Bebidas",  name:"Leche chocolatada",           serving:"1 vaso 250ml",   grams:250,  kcal:190, protein:7,  carbs:30, fat:5 },
   { id:"bv32", cat:"Bebidas",  name:"Licuado de banana",           serving:"1 vaso 300ml",   grams:300,  kcal:220, protein:8,  carbs:38, fat:3 },
   { id:"bv33", cat:"Bebidas",  name:"Licuado de frutilla",         serving:"1 vaso 300ml",   grams:300,  kcal:130, protein:5,  carbs:24, fat:2 },
   { id:"bv34", cat:"Bebidas",  name:"Smoothie verde",              serving:"1 vaso 350ml",   grams:350,  kcal:140, protein:4,  carbs:28, fat:2 },
@@ -210,12 +210,12 @@ export const FOOD_DB = [
   { id:"bv44", cat:"Bebidas",  name:"Bebida energizante (Red Bull)",serving:"1 lata 250ml",  grams:250,  kcal:110, protein:1,  carbs:27, fat:0 },
   { id:"bv45", cat:"Bebidas",  name:"Agua tónica",                 serving:"1 lata 354ml",   grams:354,  kcal:130, protein:0,  carbs:34, fat:0 },
   // Alcohólicas
-  { id:"bv46", cat:"Bebidas",  name:"Cerveza",                     serving:"1 lata 354ml",   grams:354,  kcal:153, protein:2,  carbs:13, fat:0 },
+  { id:"bv46", cat:"Bebidas",  name:"Cerveza",                     serving:"1 lata 354ml",   grams:354,  kcal:153, protein:2,  carbs:13, fat:0, alcohol:true },
   { id:"bv47", cat:"Bebidas",  name:"Cerveza sin alcohol",         serving:"1 lata 354ml",   grams:354,  kcal:70,  protein:1,  carbs:14, fat:0 },
-  { id:"bv48", cat:"Bebidas",  name:"Vino tinto",                  serving:"1 copa 150ml",   grams:150,  kcal:125, protein:0,  carbs:4,  fat:0 },
-  { id:"bv49", cat:"Bebidas",  name:"Vino blanco",                 serving:"1 copa 150ml",   grams:150,  kcal:120, protein:0,  carbs:4,  fat:0 },
-  { id:"bv50", cat:"Bebidas",  name:"Fernet con Coca",             serving:"1 trago 250ml",  grams:250,  kcal:200, protein:0,  carbs:26, fat:0 },
-  { id:"bv51", cat:"Bebidas",  name:"Clericó",                     serving:"1 copa 200ml",   grams:200,  kcal:140, protein:0,  carbs:14, fat:0 },
+  { id:"bv48", cat:"Bebidas",  name:"Vino tinto",                  serving:"1 copa 150ml",   grams:150,  kcal:125, protein:0,  carbs:4,  fat:0, alcohol:true },
+  { id:"bv49", cat:"Bebidas",  name:"Vino blanco",                 serving:"1 copa 150ml",   grams:150,  kcal:120, protein:0,  carbs:4,  fat:0, alcohol:true },
+  { id:"bv50", cat:"Bebidas",  name:"Fernet con Coca",             serving:"1 trago 250ml",  grams:250,  kcal:200, protein:0,  carbs:26, fat:0, alcohol:true },
+  { id:"bv51", cat:"Bebidas",  name:"Clericó",                     serving:"1 copa 200ml",   grams:200,  kcal:140, protein:0,  carbs:14, fat:0, alcohol:true },
 
   // ── COMIDAS ARGENTINAS / PREPARACIONES ──────────────────────────────
   { id:"a1",  cat:"Comidas ARG", name:"Empanada de carne",    serving:"1 unidad",    grams:100, kcal:250, protein:12, carbs:24, fat:12 },
@@ -262,12 +262,8 @@ export const FOOD_DB = [
   { id:"cn5", cat:"Condimentos",name:"Salsa chimichurri",     serving:"1 cda 15g",   grams:15,  kcal:40,  protein:0,  carbs:1,  fat:4 },
 
   // ── VERDURAS ────────────────────────────────────────────────────────
-  { id:"verd-zanahoria",   cat:"Verduras", name:"Zanahoria",              serving:"100g", grams:100, kcal:41,  protein:0.9, carbs:9.6, fat:0.2 },
   { id:"verd-brocoli",     cat:"Verduras", name:"Brócoli",                serving:"100g", grams:100, kcal:34,  protein:2.8, carbs:6.6, fat:0.4 },
   { id:"verd-espinaca",    cat:"Verduras", name:"Espinaca",               serving:"100g", grams:100, kcal:23,  protein:2.9, carbs:3.6, fat:0.4 },
-  { id:"verd-lechuga",     cat:"Verduras", name:"Lechuga",                serving:"100g", grams:100, kcal:15,  protein:1.4, carbs:2.9, fat:0.2 },
-  { id:"verd-tomate",      cat:"Verduras", name:"Tomate",                 serving:"100g", grams:100, kcal:18,  protein:0.9, carbs:3.9, fat:0.2 },
-  { id:"verd-cebolla",     cat:"Verduras", name:"Cebolla",                serving:"100g", grams:100, kcal:40,  protein:1.1, carbs:9.3, fat:0.1 },
   { id:"verd-ajo",         cat:"Verduras", name:"Ajo",                    serving:"100g", grams:100, kcal:149, protein:6.4, carbs:33,  fat:0.5 },
   { id:"verd-zapallo",     cat:"Verduras", name:"Zapallo",                serving:"100g", grams:100, kcal:26,  protein:1.0, carbs:6.5, fat:0.1 },
   { id:"verd-zucchini",    cat:"Verduras", name:"Zucchini / Calabacín",   serving:"100g", grams:100, kcal:17,  protein:1.2, carbs:3.1, fat:0.3 },
@@ -276,11 +272,8 @@ export const FOOD_DB = [
   { id:"verd-berenjena",   cat:"Verduras", name:"Berenjena",              serving:"100g", grams:100, kcal:25,  protein:1.0, carbs:5.9, fat:0.2 },
   { id:"verd-coliflor",    cat:"Verduras", name:"Coliflor",               serving:"100g", grams:100, kcal:25,  protein:1.9, carbs:5.0, fat:0.3 },
   { id:"verd-repollo",     cat:"Verduras", name:"Repollo",                serving:"100g", grams:100, kcal:25,  protein:1.3, carbs:5.8, fat:0.1 },
-  { id:"verd-apio",        cat:"Verduras", name:"Apio",                   serving:"100g", grams:100, kcal:16,  protein:0.7, carbs:3.0, fat:0.2 },
-  { id:"verd-pepino",      cat:"Verduras", name:"Pepino",                 serving:"100g", grams:100, kcal:15,  protein:0.7, carbs:3.6, fat:0.1 },
   { id:"verd-remolacha",   cat:"Verduras", name:"Remolacha",              serving:"100g", grams:100, kcal:43,  protein:1.6, carbs:9.6, fat:0.2 },
   { id:"verd-esparragos",  cat:"Verduras", name:"Espárragos",             serving:"100g", grams:100, kcal:20,  protein:2.2, carbs:3.9, fat:0.1 },
-  { id:"verd-choclo",      cat:"Verduras", name:"Choclo / Maíz",          serving:"100g", grams:100, kcal:86,  protein:3.3, carbs:19,  fat:1.4 },
   { id:"verd-arvejas",     cat:"Verduras", name:"Arvejas frescas",        serving:"100g", grams:100, kcal:81,  protein:5.4, carbs:14,  fat:0.4 },
   { id:"verd-batata",      cat:"Verduras", name:"Batata / Boniato",       serving:"100g", grams:100, kcal:86,  protein:1.6, carbs:20,  fat:0.1 },
   { id:"verd-acelga",      cat:"Verduras", name:"Acelga",                 serving:"100g", grams:100, kcal:19,  protein:1.8, carbs:3.7, fat:0.2 },
@@ -301,42 +294,21 @@ export const FOOD_DB = [
   { id:"verd-ajoporro",   cat:"Verduras", name:"Cebollín / Cebolla de verdeo", serving:"100g", grams:100, kcal:32, protein:1.8, carbs:7.3, fat:0.2 },
 
   // ── FRUTAS ──────────────────────────────────────────────────────────
-  { id:"frut-banana",   cat:"Frutas", name:"Banana",                    serving:"100g", grams:100, kcal:89,  protein:1.1, carbs:23,  fat:0.3 },
-  { id:"frut-manzana",  cat:"Frutas", name:"Manzana",                   serving:"100g", grams:100, kcal:52,  protein:0.3, carbs:14,  fat:0.2 },
-  { id:"frut-naranja",  cat:"Frutas", name:"Naranja",                   serving:"100g", grams:100, kcal:47,  protein:0.9, carbs:12,  fat:0.1 },
-  { id:"frut-pera",     cat:"Frutas", name:"Pera",                      serving:"100g", grams:100, kcal:57,  protein:0.4, carbs:15,  fat:0.1 },
-  { id:"frut-durazno",  cat:"Frutas", name:"Durazno / Melocotón",       serving:"100g", grams:100, kcal:39,  protein:0.9, carbs:10,  fat:0.3 },
   { id:"frut-uva",      cat:"Frutas", name:"Uva",                       serving:"100g", grams:100, kcal:69,  protein:0.7, carbs:18,  fat:0.2 },
   { id:"frut-frutilla", cat:"Frutas", name:"Frutilla / Fresa",          serving:"100g", grams:100, kcal:32,  protein:0.7, carbs:7.7, fat:0.3 },
-  { id:"frut-sandia",   cat:"Frutas", name:"Sandía",                    serving:"100g", grams:100, kcal:30,  protein:0.6, carbs:7.6, fat:0.2 },
-  { id:"frut-melon",    cat:"Frutas", name:"Melón",                     serving:"100g", grams:100, kcal:34,  protein:0.8, carbs:8.2, fat:0.2 },
-  { id:"frut-palta",    cat:"Frutas", name:"Palta / Aguacate",          serving:"100g", grams:100, kcal:160, protein:2.0, carbs:8.5, fat:15  },
-  { id:"frut-kiwi",     cat:"Frutas", name:"Kiwi",                      serving:"100g", grams:100, kcal:61,  protein:1.1, carbs:15,  fat:0.5 },
-  { id:"frut-mango",    cat:"Frutas", name:"Mango",                     serving:"100g", grams:100, kcal:60,  protein:0.8, carbs:15,  fat:0.4 },
-  { id:"frut-anana",    cat:"Frutas", name:"Ananá / Piña",              serving:"100g", grams:100, kcal:50,  protein:0.5, carbs:13,  fat:0.1 },
-  { id:"frut-ciruela",  cat:"Frutas", name:"Ciruela",                   serving:"100g", grams:100, kcal:46,  protein:0.7, carbs:11,  fat:0.3 },
   { id:"frut-cereza",   cat:"Frutas", name:"Cerezas",                   serving:"100g", grams:100, kcal:63,  protein:1.1, carbs:16,  fat:0.2 },
-  { id:"frut-pomelo",   cat:"Frutas", name:"Pomelo",                    serving:"100g", grams:100, kcal:42,  protein:0.8, carbs:11,  fat:0.1 },
-  { id:"frut-limon",    cat:"Frutas", name:"Limón",                     serving:"100g", grams:100, kcal:29,  protein:1.1, carbs:9.3, fat:0.3 },
-  { id:"frut-arandano", cat:"Frutas", name:"Arándanos / Blueberries",   serving:"100g", grams:100, kcal:57,  protein:0.7, carbs:14,  fat:0.3 },
 
   // ── CARNES ADICIONALES ───────────────────────────────────────────────
   { id:"carne-vac-lomo",      cat:"Carnes", name:"Lomo (ternera)",              serving:"100g", grams:100, kcal:143, protein:22, carbs:0, fat:5.5 },
-  { id:"carne-vac-asado",     cat:"Carnes", name:"Asado (costillas)",           serving:"100g", grams:100, kcal:294, protein:19, carbs:0, fat:24  },
   { id:"carne-vac-hamburguesa",cat:"Carnes",name:"Hamburguesa vacuna",          serving:"100g", grams:100, kcal:245, protein:17, carbs:0, fat:19  },
-  { id:"carne-cerdo-bondiola", cat:"Carnes",name:"Bondiola de cerdo",           serving:"100g", grams:100, kcal:280, protein:18, carbs:0, fat:23  },
   { id:"carne-cordero",        cat:"Carnes",name:"Cordero (pierna)",            serving:"100g", grams:100, kcal:258, protein:18, carbs:0, fat:20  },
-  { id:"carne-pollo-suprema",  cat:"Carnes",name:"Suprema de pollo",            serving:"100g", grams:100, kcal:165, protein:31, carbs:0, fat:3.6 },
   { id:"carne-pollo-muslo",    cat:"Carnes",name:"Muslo de pollo con piel",     serving:"100g", grams:100, kcal:209, protein:18, carbs:0, fat:15  },
   { id:"carne-pollo-muslo-s",  cat:"Carnes",name:"Muslo de pollo sin piel",     serving:"100g", grams:100, kcal:157, protein:21, carbs:0, fat:8.0 },
   { id:"carne-pavo",           cat:"Carnes",name:"Pechuga de pavo",             serving:"100g", grams:100, kcal:135, protein:30, carbs:0, fat:1.0 },
 
   // ── PESCADOS ADICIONALES ─────────────────────────────────────────────
-  { id:"pesc-salmon",      cat:"Pescados", name:"Salmón (filete)",              serving:"100g", grams:100, kcal:208, protein:20, carbs:0,   fat:13  },
   { id:"pesc-atun-agua",   cat:"Pescados", name:"Atún en lata (agua)",          serving:"100g", grams:100, kcal:116, protein:26, carbs:0,   fat:1.0 },
   { id:"pesc-atun-aceite", cat:"Pescados", name:"Atún en lata (aceite, escurrido)", serving:"100g", grams:100, kcal:198, protein:25, carbs:0, fat:10 },
-  { id:"pesc-merluza",     cat:"Pescados", name:"Merluza",                      serving:"100g", grams:100, kcal:86,  protein:17, carbs:0,   fat:1.7 },
-  { id:"pesc-sardina",     cat:"Pescados", name:"Sardinas en lata",             serving:"100g", grams:100, kcal:208, protein:25, carbs:0,   fat:12  },
   { id:"pesc-bacalao",     cat:"Pescados", name:"Bacalao",                      serving:"100g", grams:100, kcal:82,  protein:18, carbs:0,   fat:0.7 },
   { id:"pesc-caballa",     cat:"Pescados", name:"Caballa",                      serving:"100g", grams:100, kcal:205, protein:19, carbs:0,   fat:14  },
   { id:"pesc-langostinos", cat:"Pescados", name:"Langostinos",                  serving:"100g", grams:100, kcal:106, protein:20, carbs:1.5, fat:1.7 },
@@ -345,45 +317,27 @@ export const FOOD_DB = [
   { id:"pesc-calamar",     cat:"Pescados", name:"Calamar",                      serving:"100g", grams:100, kcal:92,  protein:16, carbs:3.1, fat:1.4 },
 
   // ── LEGUMBRES ────────────────────────────────────────────────────────
-  { id:"leg-lentejas",     cat:"Legumbres", name:"Lentejas cocidas",            serving:"100g", grams:100, kcal:116, protein:9.0, carbs:20, fat:0.4 },
-  { id:"leg-garbanzos",    cat:"Legumbres", name:"Garbanzos cocidos",           serving:"100g", grams:100, kcal:164, protein:8.9, carbs:27, fat:2.6 },
-  { id:"leg-porotos-neg",  cat:"Legumbres", name:"Porotos negros cocidos",      serving:"100g", grams:100, kcal:132, protein:8.9, carbs:24, fat:0.5 },
   { id:"leg-porotos-col",  cat:"Legumbres", name:"Porotos colorados cocidos",   serving:"100g", grams:100, kcal:127, protein:8.7, carbs:23, fat:0.5 },
-  { id:"leg-porotos-bla",  cat:"Legumbres", name:"Porotos blancos cocidos",     serving:"100g", grams:100, kcal:139, protein:9.7, carbs:25, fat:0.4 },
-  { id:"leg-edamame",      cat:"Legumbres", name:"Edamame / Soja verde",        serving:"100g", grams:100, kcal:122, protein:11,  carbs:9.9,fat:5.2 },
 
   // ── LÁCTEOS ADICIONALES ──────────────────────────────────────────────
   { id:"lact-yogur-nat",   cat:"Lácteos", name:"Yogur natural entero",          serving:"100g", grams:100, kcal:61,  protein:3.5, carbs:4.7, fat:3.3 },
-  { id:"lact-yogur-desc",  cat:"Lácteos", name:"Yogur descremado",              serving:"100g", grams:100, kcal:40,  protein:4.3, carbs:5.1, fat:0.4 },
   { id:"lact-qblanco",     cat:"Lácteos", name:"Queso blanco descremado",       serving:"100g", grams:100, kcal:72,  protein:11,  carbs:4.0, fat:0.8 },
   { id:"lact-qcheddar",    cat:"Lácteos", name:"Queso cheddar",                 serving:"100g", grams:100, kcal:403, protein:25,  carbs:1.3, fat:33  },
-  { id:"lact-crema",       cat:"Lácteos", name:"Crema de leche",                serving:"100g", grams:100, kcal:340, protein:2.8, carbs:2.8, fat:36  },
 
   // ── HIDRATOS ADICIONALES ─────────────────────────────────────────────
   { id:"hidr-pan-int",     cat:"Harinas", name:"Pan integral",                  serving:"100g", grams:100, kcal:247, protein:8.5, carbs:48, fat:3.4 },
   { id:"hidr-pan-blanco",  cat:"Harinas", name:"Pan blanco / lactal",           serving:"100g", grams:100, kcal:265, protein:8.9, carbs:51, fat:3.2 },
   { id:"hidr-pasta-coc",   cat:"Harinas", name:"Pasta cocida (fideos)",         serving:"100g", grams:100, kcal:158, protein:5.8, carbs:31, fat:0.9 },
   { id:"hidr-pasta-int",   cat:"Harinas", name:"Pasta integral cocida",         serving:"100g", grams:100, kcal:174, protein:7.5, carbs:35, fat:0.8 },
-  { id:"hidr-quinoa-coc",  cat:"Harinas", name:"Quinoa cocida",                 serving:"100g", grams:100, kcal:120, protein:4.4, carbs:22, fat:1.9 },
-  { id:"hidr-avena",       cat:"Harinas", name:"Avena (seca)",                  serving:"100g", grams:100, kcal:389, protein:17,  carbs:66, fat:7.0 },
   { id:"hidr-avena-coc",   cat:"Harinas", name:"Avena cocida (porridge)",       serving:"100g", grams:100, kcal:71,  protein:2.5, carbs:12, fat:1.5 },
   { id:"hidr-tortilla",    cat:"Harinas", name:"Tortilla de harina",            serving:"100g", grams:100, kcal:306, protein:7.8, carbs:51, fat:8.1 },
   { id:"hidr-pan-arabe",   cat:"Harinas", name:"Pan de pita / árabe",           serving:"100g", grams:100, kcal:275, protein:9.1, carbs:56, fat:1.2 },
-  { id:"hidr-polenta-coc", cat:"Harinas", name:"Polenta cocida",                serving:"100g", grams:100, kcal:70,  protein:1.7, carbs:15, fat:0.3 },
-  { id:"hidr-granola",     cat:"Harinas", name:"Granola",                       serving:"100g", grams:100, kcal:471, protein:10,  carbs:64, fat:20  },
 
   // ── FRUTOS SECOS Y ACEITES ───────────────────────────────────────────
-  { id:"frns-almendras",   cat:"Frutos Secos", name:"Almendras",                serving:"100g", grams:100, kcal:579, protein:21, carbs:22, fat:50  },
-  { id:"frns-nueces",      cat:"Frutos Secos", name:"Nueces",                   serving:"100g", grams:100, kcal:654, protein:15, carbs:14, fat:65  },
   { id:"frns-mani",        cat:"Frutos Secos", name:"Maní / Cacahuetes",        serving:"100g", grams:100, kcal:567, protein:26, carbs:16, fat:49  },
-  { id:"frns-mantmani",    cat:"Frutos Secos", name:"Mantequilla de maní",      serving:"100g", grams:100, kcal:588, protein:25, carbs:20, fat:50  },
-  { id:"frns-semchia",     cat:"Frutos Secos", name:"Semillas de chía",         serving:"100g", grams:100, kcal:486, protein:17, carbs:42, fat:31  },
-  { id:"frns-semlino",     cat:"Frutos Secos", name:"Semillas de lino",         serving:"100g", grams:100, kcal:534, protein:18, carbs:29, fat:42  },
-  { id:"frns-aceite-oliva",cat:"Aceites",      name:"Aceite de oliva",          serving:"100ml",grams:100, kcal:884, protein:0,  carbs:0,  fat:100 },
   { id:"frns-aceite-coco", cat:"Aceites",      name:"Aceite de coco",           serving:"100ml",grams:100, kcal:862, protein:0,  carbs:0,  fat:100 },
 
   // ── PROTEÍNAS NUEVAS ────────────────────────────────────────────────────
-  { id:"new-p1",  cat:"Carnes",      name:"Asado de tira",              serving:"100g", grams:100, kcal:250, protein:26, carbs:0,  fat:16 },
   { id:"new-p2",  cat:"Carnes",      name:"Milanesa de res",             serving:"100g", grams:100, kcal:245, protein:22, carbs:12, fat:11 },
   { id:"new-p3",  cat:"Carnes",      name:"Carne de cerdo",              serving:"100g", grams:100, kcal:242, protein:27, carbs:0,  fat:14 },
   { id:"new-p4",  cat:"Lácteos",     name:"Queso fresco",                serving:"100g", grams:100, kcal:115, protein:10, carbs:3,  fat:7  },
@@ -425,7 +379,6 @@ export const FOOD_DB = [
   { id:"new-d1",  cat:"Lácteos",     name:"Queso pategrás",              serving:"100g", grams:100, kcal:370, protein:26, carbs:1,  fat:29 },
   { id:"new-d2",  cat:"Lácteos",     name:"Queso fontina",               serving:"100g", grams:100, kcal:389, protein:26, carbs:1,  fat:31 },
   { id:"new-d3",  cat:"Lácteos",     name:"Arroz con leche",             serving:"1 taza 200g",   grams:200, kcal:200, protein:5,  carbs:38, fat:4  },
-  { id:"new-d4",  cat:"Lácteos",     name:"Crema de leche (100g)",       serving:"100g", grams:100, kcal:340, protein:3,  carbs:3,  fat:36 },
 
   // ── PESCADOS Y MARISCOS ──────────────────────────────────────────────────
   { id:"new-f1",  cat:"Pescados",    name:"Pejerrey",                    serving:"100g", grams:100, kcal:105, protein:21, carbs:0,  fat:2  },
@@ -449,37 +402,19 @@ export const FOOD_DB = [
 
   // ── ALIMENTOS AGREGADOS ──────────────────────────────────────────────────
   // Proteínas
-  { id:"add-p1",  cat:"Carnes",      name:"Milanesa de pollo",           serving:"100g",          grams:100, kcal:220, protein:24, carbs:10, fat:9  },
-  { id:"add-p2",  cat:"Carnes",      name:"Hamburguesa casera",          serving:"100g",          grams:100, kcal:250, protein:20, carbs:0,  fat:18 },
-  { id:"add-p3",  cat:"Fiambres",    name:"Jamón cocido",                serving:"100g",          grams:100, kcal:115, protein:17, carbs:1,  fat:4  },
   // Carbohidratos
-  { id:"add-c1",  cat:"Cereales",    name:"Fideos cocidos",              serving:"100g",          grams:100, kcal:131, protein:5,  carbs:25, fat:1  },
-  { id:"add-c2",  cat:"Pan",         name:"Pan francés",                 serving:"1 unidad 50g",  grams:50,  kcal:135, protein:4,  carbs:26, fat:1  },
   // Frutas (porciones específicas)
-  { id:"add-fr1", cat:"Frutas",      name:"Naranja",                     serving:"1 grande 200g", grams:200, kcal:94,  protein:2,  carbs:24, fat:0  },
-  { id:"add-fr2", cat:"Frutas",      name:"Mango",                       serving:"1/2 unidad 150g",grams:150,kcal:96,  protein:1,  carbs:25, fat:0  },
   // Lácteos
-  { id:"add-d1",  cat:"Lácteos",     name:"Leche descremada",            serving:"1 vaso 250ml",  grams:250, kcal:88,  protein:9,  carbs:12, fat:0  },
   { id:"add-d2",  cat:"Lácteos",     name:"Yogur natural",               serving:"1 pote 150g",   grams:150, kcal:92,  protein:5,  carbs:12, fat:2  },
-  { id:"add-d3",  cat:"Lácteos",     name:"Queso mozzarella",            serving:"100g",          grams:100, kcal:280, protein:22, carbs:2,  fat:20 },
-  { id:"add-d4",  cat:"Lácteos",     name:"Dulce de leche",              serving:"1 cda 30g",     grams:30,  kcal:105, protein:2,  carbs:20, fat:2  },
   // Varios
-  { id:"add-v1",  cat:"Frutos secos",name:"Maní tostado",                serving:"30g",           grams:30,  kcal:174, protein:7,  carbs:6,  fat:15 },
-  { id:"add-v2",  cat:"Frutos secos",name:"Mantequilla de maní",         serving:"1 cda 30g",     grams:30,  kcal:188, protein:8,  carbs:6,  fat:16 },
-  { id:"add-v3",  cat:"Aceites",     name:"Aceite de oliva",             serving:"1 cda 10ml",    grams:10,  kcal:90,  protein:0,  carbs:0,  fat:10 },
-  { id:"add-v4",  cat:"Comidas ARG", name:"Empanada de carne",           serving:"1 unidad",      grams:100, kcal:250, protein:12, carbs:28, fat:10 },
-  { id:"add-v5",  cat:"Pan",         name:"Facturas",                    serving:"1 unidad 60g",  grams:60,  kcal:220, protein:4,  carbs:28, fat:11 },
 
   // ── DESAYUNOS/MERIENDAS ARGENTINAS ──────────────────────────────────────────
   { id:"des-tostadas-manteca",  cat:"Desayuno ARG",  name:"Tostadas con manteca (2 tostadas)", serving:"2 tostadas 60g",         grams:60,  kcal:220, protein:5,  carbs:32, fat:8  },
   { id:"des-te-azucar-250",     cat:"Bebidas",        name:"Té con azúcar (250ml)",             serving:"1 taza 250ml",           grams:250, kcal:30,  protein:0,  carbs:8,  fat:0  },
-  { id:"des-cafe-leche-200",    cat:"Bebidas",        name:"Café con leche (200ml)",            serving:"1 taza 200ml",           grams:200, kcal:60,  protein:3,  carbs:7,  fat:2  },
   { id:"des-cereales-leche",    cat:"Desayuno ARG",  name:"Cereales con leche",                serving:"50g cereal + 150ml leche",grams:200, kcal:280, protein:9,  carbs:50, fat:5  },
 
   // ── ALMUERZOS/CENAS ARGENTINAS ──────────────────────────────────────────────
-  { id:"alm-guiso-lentejas-250",cat:"Comidas ARG",   name:"Guiso de lentejas (250g)",          serving:"1 plato 250g",           grams:250, kcal:290, protein:14, carbs:42, fat:7  },
   { id:"alm-cazuela-pollo",     cat:"Comidas ARG",   name:"Cazuela de pollo",                  serving:"1 plato 250g",           grams:250, kcal:310, protein:28, carbs:18, fat:12 },
-  { id:"alm-locro-250",         cat:"Comidas ARG",   name:"Locro (250g)",                      serving:"1 plato 250g",           grams:250, kcal:380, protein:18, carbs:45, fat:14 },
   { id:"alm-tallarines-tuco",   cat:"Comidas ARG",   name:"Tallarines con tuco (250g)",        serving:"1 plato 250g",           grams:250, kcal:380, protein:14, carbs:65, fat:7  },
   { id:"alm-puchero-250",       cat:"Comidas ARG",   name:"Puchero (250g)",                    serving:"1 plato 250g",           grams:250, kcal:340, protein:25, carbs:22, fat:16 },
   { id:"alm-tortilla-papa",     cat:"Comidas ARG",   name:"Tortilla de papa",                  serving:"1 porción 150g",         grams:150, kcal:280, protein:12, carbs:22, fat:15 },
@@ -490,7 +425,6 @@ export const FOOD_DB = [
 
   // ── PROTEÍNAS ADICIONALES ────────────────────────────────────────────────────
   { id:"prot-pollo-horno-piel", cat:"Carnes",        name:"Pollo al horno con piel",           serving:"100g",                   grams:100, kcal:239, protein:27, carbs:0,  fat:14 },
-  { id:"prot-morcilla-250",     cat:"Carnes",        name:"Morcilla (porción)",                serving:"100g",                   grams:100, kcal:300, protein:13, carbs:1,  fat:26 },
   { id:"prot-chorizo-250",      cat:"Carnes",        name:"Chorizo (100g)",                    serving:"100g",                   grams:100, kcal:350, protein:15, carbs:2,  fat:31 },
   { id:"prot-vacio-magro",      cat:"Carnes",        name:"Vacío (corte magro)",               serving:"100g",                   grams:100, kcal:195, protein:28, carbs:0,  fat:9  },
 
@@ -509,7 +443,6 @@ export const FOOD_DB = [
 
   // ── VERDURAS NUEVAS ─────────────────────────────────────────────────────────
   { id:"verd-espinaca-coc",    cat:"Verduras",      name:"Espinaca cocida",                   serving:"100g",                    grams:100, kcal:23,  protein:3,  carbs:4,  fat:0  },
-  { id:"verd-papa-horno-100",  cat:"Verduras",      name:"Papa al horno",                     serving:"100g",                    grams:100, kcal:93,  protein:2,  carbs:21, fat:1  },
   { id:"verd-chaucha",         cat:"Verduras",      name:"Chaucha",                           serving:"100g",                    grams:100, kcal:31,  protein:2,  carbs:7,  fat:0  },
   { id:"verd-arvejas-lata",    cat:"Verduras",      name:"Arvejas en lata",                   serving:"100g",                    grams:100, kcal:77,  protein:5,  carbs:14, fat:0  },
   { id:"verd-tomate-perita",   cat:"Verduras",      name:"Tomate perita",                     serving:"100g",                    grams:100, kcal:18,  protein:1,  carbs:4,  fat:0  },
@@ -541,7 +474,6 @@ export const FOOD_DB = [
   { id:"bas-pan-manteca", cat:"Comidas básicas", name:"Pan con manteca", serving:"1 pan 60g", grams:70, kcal:200, protein:5, carbs:28, fat:8 },
   { id:"bas-sand-jq", cat:"Comidas básicas", name:"Sándwich de jamón y queso", serving:"1 sándwich", grams:130, kcal:340, protein:17, carbs:32, fat:15 },
   { id:"bas-sand-miga", cat:"Comidas básicas", name:"Sándwich de miga (jamón y queso)", serving:"1 sándwich", grams:60, kcal:150, protein:7, carbs:16, fat:6 },
-  { id:"bas-sand-milanesa", cat:"Comidas básicas", name:"Sándwich de milanesa", serving:"1 sándwich", grams:250, kcal:520, protein:28, carbs:48, fat:23 },
   { id:"bas-sand-pollo", cat:"Comidas básicas", name:"Sándwich de pollo y lechuga", serving:"1 sándwich", grams:220, kcal:380, protein:28, carbs:38, fat:12 },
   { id:"bas-hamb-pan", cat:"Comidas básicas", name:"Hamburguesa con pan y queso", serving:"1 hamburguesa", grams:200, kcal:480, protein:26, carbs:34, fat:26 },
   { id:"bas-arroz-pollo", cat:"Comidas básicas", name:"Arroz con pollo", serving:"1 plato 300g", grams:300, kcal:430, protein:30, carbs:50, fat:11 },
@@ -562,7 +494,6 @@ export const FOOD_DB = [
   { id:"bas-ens-lentejas", cat:"Comidas básicas", name:"Ensalada de lentejas", serving:"1 plato 250g", grams:250, kcal:280, protein:15, carbs:40, fat:6 },
   { id:"bas-yogur-granola", cat:"Comidas básicas", name:"Yogur con granola", serving:"1 pote 200g", grams:200, kcal:280, protein:9, carbs:40, fat:9 },
   { id:"bas-yogur-fruta", cat:"Comidas básicas", name:"Yogur con frutas", serving:"1 pote 200g", grams:200, kcal:170, protein:7, carbs:30, fat:3 },
-  { id:"bas-cereal-leche", cat:"Comidas básicas", name:"Cereales con leche", serving:"1 bowl 250g", grams:250, kcal:270, protein:9, carbs:46, fat:6 },
   { id:"bas-panqueque-dl", cat:"Comidas básicas", name:"Panqueque con dulce de leche", serving:"1 panqueque", grams:90, kcal:200, protein:5, carbs:30, fat:7 },
   { id:"bas-flan", cat:"Comidas básicas", name:"Flan con dulce de leche", serving:"1 porción", grams:150, kcal:260, protein:6, carbs:40, fat:8 },
   { id:"bas-gelatina", cat:"Comidas básicas", name:"Gelatina", serving:"1 pote 120g", grams:120, kcal:70, protein:2, carbs:16, fat:0 },
@@ -678,24 +609,7 @@ export const FOOD_DB = [
 
 // ── Búsqueda con score de relevancia ────────────────────────────────────────
 export function searchFoods(query, limit = 20) {
-  if (!query || query.trim().length < 2) return [];
-  const q = query.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-  return FOOD_DB
-    .map(food => {
-      const name = food.name.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-      const cat  = food.cat.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-      let score = 0;
-      if (name.startsWith(q))        score += 10;
-      else if (name.includes(q))     score += 6;
-      else if (cat.includes(q))      score += 2;
-      // word-level match
-      const words = q.split(" ");
-      words.forEach(w => { if (w && name.includes(w)) score += 3; });
-      return { ...food, _score: score };
-    })
-    .filter(f => f._score > 0)
-    .sort((a, b) => b._score - a._score)
-    .slice(0, limit);
+  return filterFoodsByQuery(FOOD_DB, query, limit);
 }
 
 export const FOOD_CATEGORIES = [...new Set(FOOD_DB.map(f => f.cat))];

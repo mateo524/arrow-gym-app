@@ -8,7 +8,7 @@ export default function RadarChart({ data }) {
   const polygon = points.map((p) => `${p.x},${p.y}`).join(" ");
   return (
     <div className="radar-card">
-      <svg viewBox={`0 0 ${size} ${size}`} className="radar-svg">
+      <svg role="img" aria-label={`Series por grupo: ${data.map(d => `${d.group} ${d.sets} series`).join(", ")}`} viewBox={`0 0 ${size} ${size}`} className="radar-svg">
         {[0.25, 0.5, 0.75, 1].map((scale) => <circle key={scale} cx={center} cy={center} r={radius * scale} className="radar-ring" />)}
         {points.map((p) => <line key={p.group} x1={center} y1={center} x2={p.ax} y2={p.ay} className="radar-axis" />)}
         <polygon points={polygon} className="radar-fill" />

@@ -18,8 +18,9 @@ function toIso({ d, m, y }) {
   return `${y}-${String(mm).padStart(2, "0")}-${String(dd).padStart(2, "0")}`;
 }
 
-export default function DateInput({ value, onChange, inputStyle, ariaLabel = "Fecha" }) {
+export default function DateInput({ value, onChange, inputStyle, ariaLabel = "Fecha", autoComplete }) {
   const [parts, setParts] = useState(() => parse(value));
+  const dayRef = useRef(null);
   const monthRef = useRef(null);
   const yearRef = useRef(null);
 
@@ -38,17 +39,38 @@ export default function DateInput({ value, onChange, inputStyle, ariaLabel = "Fe
     if (digits.length === max && nextRef?.current) nextRef.current.focus();
   }
 
-  const base = { textAlign: "center", boxSizing: "border-box", ...inputStyle, width: undefined };
+  // Backspace en una casilla vacía vuelve a la anterior
+  function onKeyDown(e, prevRef, current) {
+    if (e.key === "Backspace" && !parts[current] && prevRef?.current) {
+      e.preventDefault();
+      prevRef.current.focus();
+    }
+  }
+
+  const complete = parts.d && parts.m && parts.y.length === 4;
+  const invalid = Boolean(complete && !toIso(parts));
+  const base = { textAlign: "center", boxSizing: "border-box", ...inputStyle, width: undefined, fontSize: 16 };
+  const err = invalid ? { borderColor: "var(--danger, #ef4444)" } : null;
+  const ac = (part) => (autoComplete === "bday" ? `bday-${part}` : "off");
   return (
-    <div role="group" aria-label={ariaLabel} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-      <input inputMode="numeric" aria-label="Día" placeholder="DD" maxLength={2} value={parts.d}
-        onChange={(e) => update("d", e.target.value, 2, monthRef)} style={{ ...base, width: 56 }} />
-      <span style={{ color: "var(--muted)" }}>/</span>
-      <input ref={monthRef} inputMode="numeric" aria-label="Mes" placeholder="MM" maxLength={2} value={parts.m}
-        onChange={(e) => update("m", e.target.value, 2, yearRef)} style={{ ...base, width: 56 }} />
-      <span style={{ color: "var(--muted)" }}>/</span>
-      <input ref={yearRef} inputMode="numeric" aria-label="Año" placeholder="AAAA" maxLength={4} value={parts.y}
-        onChange={(e) => update("y", e.target.value, 4, null)} style={{ ...base, width: 78 }} />
+    <div>
+      <div role="group" aria-label={ariaLabel} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <input ref={dayRef} inputMode="numeric" aria-label="Día" aria-invalid={invalid} autoComplete={ac("day")} placeholder="DD" maxLength={2} value={parts.d}
+          onChange={(e) => update("d", e.target.value, 2, monthRef)} style={{ ...base, ...err, width: 56 }} />
+        <span style={{ color: "var(--muted)" }} aria-hidden="true">/</span>
+        <input ref={monthRef} inputMode="numeric" aria-label="Mes" aria-invalid={invalid} autoComplete={ac("month")} placeholder="MM" maxLength={2} value={parts.m}
+          onKeyDown={(e) => onKeyDown(e, dayRef, "m")}
+          onChange={(e) => update("m", e.target.value, 2, yearRef)} style={{ ...base, ...err, width: 56 }} />
+        <span style={{ color: "var(--muted)" }} aria-hidden="true">/</span>
+        <input ref={yearRef} inputMode="numeric" aria-label="Año" aria-invalid={invalid} autoComplete={ac("year")} placeholder="AAAA" maxLength={4} value={parts.y}
+          onKeyDown={(e) => onKeyDown(e, monthRef, "y")}
+          onChange={(e) => update("y", e.target.value, 4, null)} style={{ ...base, ...err, width: 78 }} />
+      </div>
+      {invalid && (
+        <div role="alert" style={{ color: "var(--danger, #ef4444)", fontSize: 12, marginTop: 4 }}>
+          Esa fecha no existe. Revisá el día y el mes.
+        </div>
+      )}
     </div>
   );
 }

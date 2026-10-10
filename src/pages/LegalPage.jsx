@@ -43,7 +43,7 @@ function Terminos() {
       <p style={p}>Sos responsable de la confidencialidad de tu contraseña y de la actividad de tu cuenta. Los datos que cargues tienen que ser veraces. Avisanos ante cualquier uso no autorizado.</p>
 
       <h2 style={h2}>5. Prueba gratuita, precio y suscripción</h2>
-      <p style={p}>Hay una prueba gratuita de 30 días. Después, el plan mensual cuesta $10.000 ARS (IVA incluido si corresponde), que se abona por Mercado Pago por períodos de 30 días, sin débito automático [COMPLETAR: confirmar si hay renovación automática]. Si no renovás, el acceso paga termina al vencer el período ya pagado. Podemos modificar el precio con aviso previo de al menos 30 días; si no estás de acuerdo, podés cancelar antes de la próxima renovación.</p>
+      <p style={p}>Hay una prueba gratuita de 30 días. Después, el plan mensual cuesta $10.000 ARS (IVA incluido si corresponde), que se abona por Mercado Pago por períodos de 30 días, sin débito automático [COMPLETAR: confirmar si hay renovación automática]. Si no renovás, el acceso pago termina al vencer el período ya pagado. Podemos modificar el precio con aviso previo de al menos 30 días; si no estás de acuerdo, podés cancelar antes de la próxima renovación.</p>
 
       <h2 style={h2}>6. Uso aceptable</h2>
       <ul style={ul}>

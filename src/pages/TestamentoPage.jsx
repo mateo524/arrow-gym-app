@@ -1,8 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import useAuthStore from "../store/useAuthStore.js";
 import useStore from "../store/useStore.js";
-import { supabase } from "../lib/supabase.js";
+import { supabase, sb } from "../lib/supabase.js";
 import Icon from "../components/Icon.jsx";
+
+// src/lib/errors.js (friendlyError) todavía no existe: mensajes fijos en español.
+const toastError = (msg) => window.__showToast?.(msg, "error");
 
 // Default question hints to guide trainers
 const HINT_TEMPLATES = [
@@ -47,36 +50,55 @@ export default function TestamentoPage() {
   useEffect(() => { load(); }, [load]);
 
   async function toggleActive() {
-    const next = !isActive;
+    const prev = isActive;
+    const next = !prev;
     setIsActive(next);
-    await supabase.from("profiles").update({ testamento_active: next }).eq("id", profile.id);
+    const { error } = await sb(
+      supabase.from("profiles").update({ testamento_active: next }).eq("id", profile.id),
+      { label: "testamento_toggle" }
+    );
+    if (error) {
+      setIsActive(prev);
+      toastError("No se pudo cambiar el modo Testamento. Intentá de nuevo.");
+    }
   }
 
   async function save() {
     if (!hint.trim() || !responseText.trim()) return;
     setSaving(true);
-    if (editingId) {
-      await supabase.from("testamento_responses").update({
-        question_hint: hint.trim(),
-        response_text: responseText.trim(),
-        embedding: null, // reset embedding so it gets recalculated
-        updated_at: new Date().toISOString(),
-      }).eq("id", editingId);
-    } else {
-      await supabase.from("testamento_responses").insert({
-        trainer_id: profile.id,
-        question_hint: hint.trim(),
-        response_text: responseText.trim(),
-      });
+    const { error } = editingId
+      ? await sb(supabase.from("testamento_responses").update({
+          question_hint: hint.trim(),
+          response_text: responseText.trim(),
+          embedding: null, // reset embedding so it gets recalculated
+          updated_at: new Date().toISOString(),
+        }).eq("id", editingId), { label: "testamento_update" })
+      : await sb(supabase.from("testamento_responses").insert({
+          trainer_id: profile.id,
+          question_hint: hint.trim(),
+          response_text: responseText.trim(),
+        }), { label: "testamento_insert" });
+    setSaving(false);
+    if (error) {
+      // Mantenemos el formulario abierto para no perder lo escrito
+      toastError("No se pudo guardar la respuesta. Intentá de nuevo.");
+      return;
     }
     setHint(""); setResponseText(""); setEditingId(null); setShowForm(false);
-    setSaving(false);
     load();
   }
 
   async function remove(id) {
-    await supabase.from("testamento_responses").delete().eq("id", id);
-    setResponses(r => r.filter(x => x.id !== id));
+    const snapshot = responses;
+    setResponses(r => r.filter(x => x.id !== id)); // optimista
+    const { error } = await sb(
+      supabase.from("testamento_responses").delete().eq("id", id),
+      { label: "testamento_delete" }
+    );
+    if (error) {
+      setResponses(snapshot); // rollback
+      toastError("No se pudo eliminar la respuesta. Intentá de nuevo.");
+    }
   }
 
   function edit(r) {

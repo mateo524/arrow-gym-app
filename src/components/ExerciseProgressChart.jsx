@@ -97,6 +97,8 @@ export default function ExerciseProgressChart({ workouts, exerciseName, height =
       }}
     >
       <svg
+        role="img"
+        aria-label={`Progreso de ${exerciseName}: primer registro ${weights[0]} kg, último ${weights[weights.length - 1]} kg, máximo ${maxW} kg`}
         viewBox={`0 0 ${width} ${height}`}
         width="100%"
         height={height}

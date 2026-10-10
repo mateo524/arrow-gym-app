@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Icon from "./Icon.jsx";
 import useStore from "../store/useStore.js";
 import { calc1RM } from "../lib/analytics.js";
@@ -13,15 +13,24 @@ function haptic(type = "tap") {
 export default function WorkoutSetCard({
   setItem, index, onUpdate, onApplyToNext, onRepeat, onRemove, onStartRest,
   prData, coachSuggestion, isBodyweight = false, bodyWeight = 0,
-  prevSet = null, beyondLastSession = false, isNewPR = false
+  prevSet = null, prevInSession = null, beyondLastSession = false, isNewPR = false
 }) {
-  const [done, setDone] = useState(false);
+  const done = !!setItem.done;
+  const setPage = useStore(s => s.setPage);
   const [showPRPanel, setShowPRPanel] = useState(false);
   const [editingNote, setEditingNote] = useState(false);
   const exerciseNotes = useStore(s => s.exerciseNotes) || {};
   const setExerciseNote = useStore(s => s.setExerciseNote);
   const note = exerciseNotes[setItem.exercise] || "";
   const [noteText, setNoteText] = useState(note);
+  const noteSavedRef = useRef(note);
+
+  // Guarda la nota ~600 ms después de dejar de escribir (además del onBlur)
+  useEffect(() => {
+    if (!editingNote || noteText === noteSavedRef.current) return;
+    const t = setTimeout(() => { noteSavedRef.current = noteText; setExerciseNote(setItem.exercise, noteText); }, 600);
+    return () => clearTimeout(t);
+  }, [noteText, editingNote, setItem.exercise, setExerciseNote]);
 
   function sanitizeWeight(v) {
     const cleaned = v.replace(/,/g, ".").replace(/[^0-9.]/g, "").replace(/^(\d{0,4})(\.\d{0,2})?.*/, "$1$2");
@@ -45,6 +54,18 @@ export default function WorkoutSetCard({
   const hasPrev = !beyondLastSession && (antW || antR);
 
 
+  // "Repetir anterior": peso y reps de la serie previa de la sesión, o de la sesión anterior
+  const repSrc = (() => {
+    const fromSession = prevInSession && Number(prevInSession.reps) > 0 && (Number(prevInSession.weight) > 0 || Number(prevInSession.extraWeight) > 0)
+      ? prevInSession : null;
+    if (fromSession) return { weight: fromSession.weight, extraWeight: fromSession.extraWeight, reps: fromSession.reps };
+    if (!beyondLastSession && Number(antR) > 0 && Number(antW) > 0) return { weight: antW, extraWeight: setItem.lastExtraWeight, reps: antR };
+    return null;
+  })();
+  const isEmpty = !hasData && !(Number(setItem.reps) > 0);
+  const showRepeatPrev = isEmpty && !done && !!repSrc;
+  const needsBodyWeight = isBodyweight && !(bodyWeight > 0);
+
   const orm = (() => {
     if (Number(setItem.reps) <= 0 || Number(setItem.reps) > 10) return null;
     const eff = isBodyweight
@@ -54,7 +75,7 @@ export default function WorkoutSetCard({
     return calc1RM(eff, Math.min(Number(setItem.reps) + rir, 30));
   })();
 
-  const hasExtras = editingNote || (note && !editingNote) || showPRPanel || (coachSuggestion !== null && coachSuggestion !== undefined);
+  const hasExtras = showRepeatPrev || needsBodyWeight || editingNote || (note && !editingNote) || showPRPanel || (coachSuggestion !== null && coachSuggestion !== undefined);
 
   return (
     <div style={{ marginBottom: 4 }}>
@@ -78,7 +99,7 @@ export default function WorkoutSetCard({
 
         {/* Middle: inputs */}
         {isBodyweight ? (
-          <div className="set-row-inputs">
+          <div className="set-row-inputs set-inputs-tight">
             <span className="set-bw-badge">{bodyWeight > 0 ? bodyWeight : "?"}</span>
             <span className="set-sep">+</span>
             <input
@@ -86,7 +107,7 @@ export default function WorkoutSetCard({
               inputMode="decimal"
               value={setItem.extraWeight === 0 || setItem.extraWeight === "0" ? "" : (setItem.extraWeight || "")}
               placeholder={setItem.lastExtraWeight && !beyondLastSession ? `${setItem.lastExtraWeight}` : "0"}
-              onChange={(e) => { haptic(); setDone(false); onUpdate({ extraWeight: sanitizeWeight(e.target.value) || 0 }); }}
+              onChange={(e) => { haptic(); onUpdate({ extraWeight: sanitizeWeight(e.target.value) || 0, ...(done ? { done: false } : {}) }); }}
               onFocus={(e) => {
                 if ((!setItem.extraWeight || setItem.extraWeight === 0) && setItem.lastExtraWeight && !beyondLastSession)
                   onUpdate({ extraWeight: Number(setItem.lastExtraWeight) });
@@ -100,7 +121,7 @@ export default function WorkoutSetCard({
               inputMode="numeric"
               value={setItem.reps}
               placeholder={!beyondLastSession ? (setItem.planReps || setItem.lastReps || "—") : "—"}
-              onChange={(e) => { haptic(); setDone(false); onUpdate({ reps: sanitizeReps(e.target.value) }); }}
+              onChange={(e) => { haptic(); onUpdate({ reps: sanitizeReps(e.target.value), ...(done ? { done: false } : {}) }); }}
               onFocus={(e) => {
                 if (!setItem.reps && setItem.lastReps && !beyondLastSession)
                   onUpdate({ reps: String(setItem.lastReps) });
@@ -110,7 +131,7 @@ export default function WorkoutSetCard({
             />
           </div>
         ) : (
-          <div className="set-row-inputs">
+          <div className="set-row-inputs set-inputs-tight">
             <input
               className="set-val-sm"
               inputMode="decimal"
@@ -118,7 +139,7 @@ export default function WorkoutSetCard({
               placeholder={!beyondLastSession
                 ? ((!setItem.weight && coachSuggestion?.weight != null) ? String(coachSuggestion.weight) : (setItem.lastWeight || ""))
                 : ""}
-              onChange={(e) => { haptic(); setDone(false); onUpdate({ weight: sanitizeWeight(e.target.value) }); }}
+              onChange={(e) => { haptic(); onUpdate({ weight: sanitizeWeight(e.target.value), ...(done ? { done: false } : {}) }); }}
               onFocus={(e) => {
                 if (!setItem.weight && setItem.lastWeight && !beyondLastSession)
                   onUpdate({ weight: String(setItem.lastWeight) });
@@ -132,7 +153,7 @@ export default function WorkoutSetCard({
               inputMode="numeric"
               value={setItem.reps}
               placeholder={!beyondLastSession ? (setItem.planReps || setItem.lastReps || "—") : "—"}
-              onChange={(e) => { haptic(); setDone(false); onUpdate({ reps: sanitizeReps(e.target.value) }); }}
+              onChange={(e) => { haptic(); onUpdate({ reps: sanitizeReps(e.target.value), ...(done ? { done: false } : {}) }); }}
               onFocus={(e) => {
                 if (!setItem.reps && setItem.lastReps && !beyondLastSession)
                   onUpdate({ reps: String(setItem.lastReps) });
@@ -144,9 +165,10 @@ export default function WorkoutSetCard({
         )}
 
         {/* Right: actions */}
-        <div className="set-row-actions">
+        <div className="set-row-actions set-actions-tight">
           <button
-            className="set-delete-btn"
+            className="set-delete-btn set-icon-32"
+            aria-label="Nota"
             style={{ color: note ? "var(--green)" : "var(--muted)" }}
             onClick={() => { setNoteText(note); setEditingNote(!editingNote); }}
             title="Nota"
@@ -154,7 +176,8 @@ export default function WorkoutSetCard({
             <Icon name="FileText" size={12} />
           </button>
           <button
-            className="set-delete-btn"
+            className="set-delete-btn set-icon-32"
+            aria-label="Récords"
             style={{ color: showPRPanel ? "var(--green)" : "var(--muted)" }}
             onClick={() => setShowPRPanel(!showPRPanel)}
             title="Récords"
@@ -165,9 +188,9 @@ export default function WorkoutSetCard({
           {hasData && !done ? (
             <button
               onClick={() => {
-                haptic("done"); setDone(true); onUpdate({ done: true });
+                haptic("done"); onUpdate({ done: true });
                 const rpe = setItem.rir !== undefined && setItem.rir !== "" ? Math.max(6, 10 - Number(setItem.rir)) : setItem.rpe;
-                onStartRest(rpe);
+                onStartRest(rpe, true);
               }}
               className="set-done-action"
             >
@@ -179,15 +202,16 @@ export default function WorkoutSetCard({
             </span>
           ) : (
             <button
-              onClick={() => { haptic(); setDone(true); onStartRest(setItem.rpe); }}
-              className="set-rest-action"
-              title="Descanso"
+              onClick={() => { haptic(); onStartRest(setItem.rpe, false); }}
+              className="set-rest-action set-icon-32"
+              title="Iniciar descanso (cargá peso y reps para marcar la serie como hecha)"
+              aria-label="Iniciar descanso"
             >
               <Icon name="Timer" size={13} />
             </button>
           )}
 
-          <button className="set-delete-btn set-delete-x" onClick={onRemove} aria-label="Borrar">
+          <button className="set-delete-btn set-delete-x set-icon-32" onClick={onRemove} aria-label="Borrar">
             <Icon name="X" size={14} />
           </button>
         </div>
@@ -196,11 +220,31 @@ export default function WorkoutSetCard({
       {/* ── Expandable extras ── */}
       {hasExtras && (
         <div style={{ padding: "2px 4px 2px", display: "flex", flexDirection: "column", gap: 4 }}>
+          {showRepeatPrev && (
+            <button
+              type="button"
+              className="ghost set-repeat-prev"
+              onClick={() => {
+                haptic();
+                const patch = { weight: String(repSrc.weight ?? ""), reps: String(repSrc.reps) };
+                if (isBodyweight) { patch.extraWeight = Number(repSrc.extraWeight) || Number(repSrc.weight) || 0; delete patch.weight; }
+                onUpdate(patch);
+              }}
+            >
+              Repetir anterior: {isBodyweight ? `+${Number(repSrc.extraWeight) || 0}` : `${repSrc.weight}`}kg × {repSrc.reps}
+            </button>
+          )}
+          {needsBodyWeight && (
+            <p style={{ margin: 0, fontSize: 12, color: "var(--muted)" }}>
+              Cargá tu peso en el perfil.{" "}
+              <button type="button" className="set-link-btn" onClick={() => setPage("measurements")}>Ir a Mediciones</button>
+            </p>
+          )}
           {editingNote && (
             <textarea
               value={noteText}
               onChange={e => setNoteText(e.target.value)}
-              onBlur={() => { setExerciseNote(setItem.exercise, noteText); setEditingNote(false); }}
+              onBlur={() => { noteSavedRef.current = noteText; setExerciseNote(setItem.exercise, noteText); setEditingNote(false); }}
               placeholder="Nota del ejercicio..."
               rows={2}
               style={{ width: "100%", background: "var(--panel2)", border: "1px solid var(--green)", borderRadius: 10, padding: "8px 10px", color: "var(--text)", fontSize: 12, resize: "none", boxSizing: "border-box" }}
@@ -221,9 +265,9 @@ export default function WorkoutSetCard({
               )}
               <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 8 }}>
                 {[
-                  { label: "1RM estimado (esta serie)", value: orm && hasData ? `${Math.round(orm)}kg` : "—" },
+                  { label: "Máximo estimado a 1 rep (esta serie)", value: orm && hasData ? `${Math.round(orm)}kg` : "—" },
                   { label: "Mejor peso", value: prData?.bestWeight ? `${prData.bestWeight}kg` : "—" },
-                  { label: "Mejor vol.", value: prData?.bestVolume ? `${prData.bestVolume}kg` : "—" },
+                  { label: "Mejor volumen (kg totales)", value: prData?.bestVolume ? `${prData.bestVolume}kg` : "—" },
                   { label: "Más reps", value: prData?.bestReps ? `${prData.bestReps}×${prData.bestRepsWeight}` : "—" },
                 ].map(({ label, value }) => (
                   <div key={label} style={{ textAlign: "center" }}>
@@ -234,7 +278,7 @@ export default function WorkoutSetCard({
               </div>
               {prData?.lastDate && (
                 <p style={{ fontSize: 10, color: "var(--muted)", margin: "6px 0 0", textAlign: "center" }}>
-                  Ultima sesion: {prData.lastDate}
+                  Última sesión: {prData.lastDate}
                 </p>
               )}
             </div>

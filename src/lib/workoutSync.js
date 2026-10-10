@@ -1,6 +1,7 @@
 import { supabase } from "./supabase.js";
 import { track } from "./telemetry.js";
-import { enqueue, flush, items } from "./offlineQueue.js";
+import { enqueue, flush, items, ownerOf } from "./offlineQueue.js";
+import { getAuthUserId } from "./authBridge.js";
 
 // Race a Supabase promise against a hard timeout so that dead-WiFi situations
 // (navigator.onLine returns true but there is no real connectivity) don't leave
@@ -26,6 +27,11 @@ const ROW_FIELDS = (w, userId) => ({
 
 // Single processor shared by every flush path (syncWorkoutUp, online handler, background sync).
 export async function processItem(item) {
+  // Item from another account (A -> B switch): discard it instead of throwing,
+  // so it can't be uploaded under the wrong session nor block the queue.
+  const uid = getAuthUserId();
+  const owner = ownerOf(item);
+  if (uid && owner && owner !== uid) return;
   if (item.type === "upsert_workout") {
     const { error } = await withTimeout(supabase.from("user_workouts").upsert(item.row));
     if (error) throw error;
@@ -127,11 +133,15 @@ export async function syncAllWorkoutsUp(workouts, userId) {
 export function mergeWorkouts(local, remote) {
   const map = new Map();
   // Ids with a delete still queued must not be resurrected by a stale remote row.
-  const pendingDeletes = new Set(items().filter((i) => i.type === "delete_workout").map((i) => i.id));
+  const queued = items();
+  const pendingDeletes = new Set(queued.filter((i) => i.type === "delete_workout").map((i) => i.id));
+  // Local edits whose upsert hasn't reached the DB yet: the remote copy is stale by definition.
+  const pendingUpserts = new Set(queued.filter((i) => i.type === "upsert_workout").map((i) => i.id));
   // Seed with local entries (have full transient fields)
   for (const w of local) map.set(w.id, w);
   // Remote: prefer whichever copy was updated most recently
   for (const w of remote) {
+    if (pendingUpserts.has(w.id) && map.has(w.id)) continue;
     if (w.deleted_at || pendingDeletes.has(w.id)) { map.delete(w.id); continue; }
     if (map.has(w.id)) {
       const local = map.get(w.id);

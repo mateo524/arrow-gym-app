@@ -192,7 +192,9 @@ function AppContent() {
         }
         return;
       }
-      window.open(data.init_point, "_blank");
+      const mpUrl = new URL(data.init_point);
+      if (mpUrl.protocol !== "https:" || !/(^|\.)mercadopago\.com(\.[a-z]{2})?$/.test(mpUrl.hostname)) throw new Error("bad_init_point");
+      window.open(mpUrl.href, "_blank", "noopener,noreferrer");
     } catch {
       alert("Error de conexión. Verificá tu red e intentá de nuevo.");
     } finally {
@@ -337,6 +339,7 @@ function AppContent() {
       }
       if (event.data?.type === 'BACKGROUND_SYNC_REQUESTED') {
         useStore.getState().syncGymStateToDB?.();
+        useStore.getState().flushPendingSyncs?.();
         import("./lib/workoutSync.js").then(({ flushPending }) => flushPending({ force: true })).catch(() => {});
       }
     };
@@ -347,12 +350,29 @@ function AppContent() {
   // Flush offline queue when connectivity is restored
   useEffect(() => {
     const handleOnline = () => {
+      useStore.getState().flushPendingSyncs?.();
       import("./lib/workoutSync.js")
         .then(({ flushPending }) => flushPending({ force: true }))
         .catch((e) => console.warn("[offlineQueue] flush online falló:", e));
     };
     window.addEventListener("online", handleOnline);
     return () => window.removeEventListener("online", handleOnline);
+  }, []);
+
+  // Back to foreground: retry pending syncs and look for a new service worker.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState !== "visible") return;
+      if (navigator.onLine) {
+        useStore.getState().flushPendingSyncs?.();
+        import("./lib/workoutSync.js").then(({ flushPending }) => flushPending()).catch(() => {});
+      }
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.getRegistration().then((reg) => reg?.update()).catch(() => {});
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
   }, []);
 
   // Online/offline banner state + flush pending Zustand syncs on reconnect
@@ -876,14 +896,16 @@ export default function App() {
   const fontScale = useStore(s => s.fontScale) || 1;
   const autoDarkMode = useStore(s => s.autoDarkMode) || false;
   const [toastMsg, setToastMsg] = useState("");
+  const [toastType, setToastType] = useState("info");
   const toastTimer = useRef(null);
 
   // Expose global toast function
   useEffect(() => {
-    window.__showToast = (msg) => {
+    window.__showToast = (msg, type = "info") => {
       if (toastTimer.current) clearTimeout(toastTimer.current);
       setToastMsg(msg);
-      toastTimer.current = setTimeout(() => { setToastMsg(""); toastTimer.current = null; }, 2200);
+      setToastType(type);
+      toastTimer.current = setTimeout(() => { setToastMsg(""); toastTimer.current = null; }, type === "error" ? 6000 : 3500);
     };
     return () => { window.__showToast = undefined; };
   }, []);
@@ -899,18 +921,22 @@ export default function App() {
     <Router hook={useHashLocation}>
       <AppContent />
       {/* Global toast */}
-      {toastMsg && (
-        <div style={{
+      <div
+        role={toastType === "error" && toastMsg ? "alert" : "status"}
+        aria-live={toastType === "error" ? "assertive" : "polite"}
+        aria-atomic="true"
+        style={toastMsg ? {
           position:"fixed", bottom:"calc(80px + env(safe-area-inset-bottom, 0px))",
           left:"50%", transform:"translateX(-50%)", zIndex:99999,
-          background:"var(--green)", color:"#050709",
+          background: toastType === "error" ? "#b91c1c" : "var(--green)",
+          color: toastType === "error" ? "#fff" : "#050709",
           padding:"10px 20px", borderRadius:12,
           fontSize:14, fontWeight:700,
           boxShadow:"0 4px 20px rgba(0,0,0,.4)",
           animation:"toast-in .25s ease",
-          whiteSpace:"nowrap",
-        }}>{toastMsg}</div>
-      )}
+          maxWidth:"calc(100vw - 32px)", textAlign:"center",
+        } : { position:"fixed", width:1, height:1, overflow:"hidden", clip:"rect(0 0 0 0)", whiteSpace:"nowrap" }}
+      >{toastMsg}</div>
     </Router>
   );
 }

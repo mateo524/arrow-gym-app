@@ -14,7 +14,7 @@ export default function MuscleRadarChart({ data }) {
   const polyline = [...dataPoints, dataPoints[0]].map(p => p.join(",")).join(" ");
 
   return (
-    <svg width={190} height={190} viewBox="0 0 190 190" style={{ display: "block", overflow: "hidden" }}>
+    <svg role="img" aria-label={`Series por grupo muscular: ${data.map(d => `${d.name} ${d.pct ?? 0}%`).join(", ")}`} width={190} height={190} viewBox="0 0 190 190" style={{ display: "block", overflow: "hidden" }}>
       {gridLevels.map(l => {
         const pts = data.map((_, i) => point(i, l).join(",")).join(" ");
         return <polygon key={l} points={pts} fill="none" stroke="rgba(255,255,255,.08)" strokeWidth={1} />;

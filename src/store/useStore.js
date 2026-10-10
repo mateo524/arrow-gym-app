@@ -89,6 +89,23 @@ if (typeof window !== "undefined") {
   });
 }
 
+// The in-progress workout lives in its own key, written SYNCHRONOUSLY on every change
+// (the main store is debounced 500 ms and could lose the last sets if the OS kills the PWA).
+const ACTIVE_WORKOUT_KEY = "loop-gym-active-workout";
+function writeActiveWorkout(aw) {
+  try {
+    if (aw) localStorage.setItem(ACTIVE_WORKOUT_KEY, JSON.stringify(aw));
+    else localStorage.removeItem(ACTIVE_WORKOUT_KEY);
+  } catch {}
+}
+function readActiveWorkout() {
+  try {
+    const raw = localStorage.getItem(ACTIVE_WORKOUT_KEY);
+    const aw = raw ? JSON.parse(raw) : null;
+    return aw && typeof aw === "object" && Array.isArray(aw.sets) ? aw : null;
+  } catch { return null; }
+}
+
 const quotaStorage = createJSONStorage(() => ({
   getItem: (key) => (pendingWrite && pendingWrite.key === key ? pendingWrite.value : localStorage.getItem(key)),
   setItem: debouncedSetItem,
@@ -117,11 +134,28 @@ const useStore = create(
         return rest;
       },
       onRehydrateStorage: () => (state) => {
-        if (state) state._rehydrated = true;
+        if (!state) return;
+        // The store did not bring an active workout: recover it from its own key.
+        if (!state.activeWorkout) {
+          const recovered = readActiveWorkout();
+          if (recovered) {
+            state.activeWorkout = recovered;
+            queueMicrotask(() => useStore.setState({ activeWorkout: recovered }));
+          }
+        }
+        state._rehydrated = true;
       },
     }
   )
 );
+
+// Mirror activeWorkout into its own key (only after hydration, so the initial null
+// never wipes a recoverable workout).
+useStore.subscribe((state, prev) => {
+  if (state.activeWorkout === prev.activeWorkout) return;
+  if (!useStore.persist.hasHydrated()) return;
+  writeActiveWorkout(state.activeWorkout);
+});
 
 export default useStore;
 export { ROUTINES };

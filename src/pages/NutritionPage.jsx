@@ -1,13 +1,16 @@
-import { formatDMY } from "../lib/dates.js";
-import { useState, useMemo, useCallback, useRef } from "react";
+import { openCheckout } from "../lib/checkout.js";
+import { formatDMY, dateToLocal } from "../lib/dates.js";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import useStore from "../store/useStore.js";
 import useAuthStore from "../store/useAuthStore.js";
 import Icon from "../components/Icon";
 import { todayLocal } from "../lib/dates.js";
 import { features, vocab } from "../config/features.js";
-import { searchFoods } from "../data/foodDatabase.js";
 import { searchSharedFoods, publishSharedFood } from "../lib/sharedFoods.js";
-import { generateNutritionPlan } from "../data/nutritionData.js";
+import {
+  calcTdee, scaleMacros, normalizePer100, normalizeText, filterFoodsByQuery,
+  mealGrams, mealPer100, rescaleMeal, recentMeals, mealCopy,
+} from "../lib/nutrition.js";
 import BarcodeScanner from "../components/BarcodeScanner.jsx";
 import ReportFoodButton from "../components/ReportFoodButton.jsx";
 import { isSubscribed as hasAccess } from "../config/pricing.js";
@@ -26,6 +29,46 @@ function getMealType() {
 
 // Round to max 1 decimal place, return as number (eliminates trailing zeros)
 const r2 = (n) => Math.round((Number(n) || 0) * 10) / 10;
+
+const UNDO_MS = 5000;
+const HISTORY_PAGE = 14;
+const PORTIONS = [[0.5, "×½"], [1, "×1"], [2, "×2"]];
+
+// Porción "por unidad" (1 unidad, 1 plato 250g, 1 lata…): se puede mostrar el selector ×½ ×1 ×2.
+// Las porciones de "100g" / "100ml" no lo necesitan: se escriben los gramos.
+function hasUnitServing(food) {
+  const g = Number(food?.grams);
+  if (!(g > 0) || !food?.serving) return false;
+  return !/^\s*100\s*(g|gr|ml)\s*$/i.test(String(food.serving));
+}
+
+// Últimos `n` días en fecha local (hoy primero), sin pasar por toISOString (UTC).
+function lastLocalDates(n) {
+  return Array.from({ length: n }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    return { date: dateToLocal(d), d, i };
+  });
+}
+
+const ALCOHOL_NOTE = "Incluye kcal del alcohol";
+
+// Candidatos locales: alimentos propios + base cargada, sin repetir nombre (normalizado).
+function localFoodMatches(q, lib, customFoods, limit) {
+  const custom = filterFoodsByQuery(customFoods || [], q, limit);
+  const base = lib ? lib.searchFoods(q, 12) : [];
+  const seen = new Set();
+  return [...custom, ...base].filter(f => {
+    const k = normalizeText(f.name);
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  }).slice(0, limit);
+}
+function mergeShared(local, shared, limit) {
+  const seen = new Set(local.map(f => normalizeText(f.name)));
+  return [...local, ...shared.filter(f => !seen.has(normalizeText(f.name)))].slice(0, limit);
+}
 
 const QUICK_FOODS = [
   { name: "Arroz (100g cocido)",    kcal: 130, protein: 3,  carbs: 28, fat: 0 },
@@ -108,7 +151,8 @@ export default function NutritionPage() {
   const savedCombos    = useStore(s => s.savedMealCombos) || [];
   const logMeal        = useStore(s => s.logMeal);
   const deleteMeal     = useStore(s => s.deleteMeal);
-  const saveMealCombo   = useStore(s => s.saveMealCombo);
+  const updateMeal     = useStore(s => s.updateMeal);
+  const saveMealCombo  = useStore(s => s.saveMealCombo);
   const logMealCombo    = useStore(s => s.logMealCombo);
   const deleteMealCombo = useStore(s => s.deleteMealCombo);
   const weightLog      = useStore(s => s.weightLog) || [];
@@ -126,6 +170,26 @@ export default function NutritionPage() {
   const [baseFood, setBaseFood] = useState(null);
   const [macrosEdited, setMacrosEdited] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
+  const [portion, setPortion] = useState(null);          // 0.5 | 1 | 2 | null (gramos escritos a mano)
+
+  // Base de alimentos y datos del plan: se cargan recién cuando hacen falta (son pesados)
+  const [foodsLib, setFoodsLib] = useState(null);
+  const [foodsError, setFoodsError] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    import("../data/foodDatabase.js")
+      .then(m => { if (alive) setFoodsLib({ searchFoods: m.searchFoods }); })
+      .catch(() => { if (alive) setFoodsError(true); });
+    return () => { alive = false; };
+  }, []);
+
+  // Editar un registro de hoy / borrar con deshacer
+  const [editMeal, setEditMeal] = useState(null);        // { id, grams, type, factor, meal }
+  const [pendingDel, setPendingDel] = useState({});      // id -> true (oculto hasta que pase el plazo)
+  const delTimers = useRef({});
+  const [undo, setUndo] = useState(null);                // { id, name } del último borrado
+  const undoTimer = useRef(null);
+  const [historyLimit, setHistoryLimit] = useState(HISTORY_PAGE);
 
   // ── MIS COMIDAS — combo modal state ──────────────────────────────────────
   const [showComboModal, setShowComboModal] = useState(false);
@@ -160,36 +224,23 @@ export default function NutritionPage() {
     setDbQuery(q);
     const seq = ++searchSeqRef.current;
     if (q.trim().length >= 2) {
-      const matches = searchFoods(q, 12);
-      const lq = q.toLowerCase();
-      const customMatches = (storeCustomFoods || []).filter(f =>
-        f.name.toLowerCase().includes(lq)
-      );
-      const local = [...customMatches, ...matches];
-      setDbResults(local.slice(0, 20));
+      const local = localFoodMatches(q, foodsLib, storeCustomFoods, 20);
+      setDbResults(local);
       // Alimentos creados por otros usuarios (catálogo compartido)
       searchSharedFoods(q, 10).then(shared => {
         if (seq !== searchSeqRef.current || shared.length === 0) return;
-        const seen = new Set(local.map(f => f.name.toLowerCase()));
-        const extra = shared.filter(f => !seen.has(f.name.toLowerCase()));
-        setDbResults([...local, ...extra].slice(0, 25));
+        setDbResults(mergeShared(local, shared, 25));
       });
     } else {
       setDbResults([]);
     }
-  }, [storeCustomFoods]);
+  }, [storeCustomFoods, foodsLib]);
 
   const selectDbFood = useCallback((food) => {
-    // Normalise to per-100g so handleGramsChange can scale correctly
-    const per100 = food.grams && food.grams !== 100
-      ? {
-          kcal:    Math.round(food.kcal    / food.grams * 100),
-          protein: Math.round(food.protein / food.grams * 100 * 10) / 10,
-          carbs:   Math.round(food.carbs   / food.grams * 100 * 10) / 10,
-          fat:     Math.round(food.fat     / food.grams * 100 * 10) / 10,
-        }
-      : { kcal: food.kcal, protein: food.protein, carbs: food.carbs, fat: food.fat };
+    // Se normaliza a valores por 100 g para que handleGramsChange escale bien
+    const per100 = normalizePer100(food);
     setBaseFood({ ...food, ...per100 });
+    setPortion(hasUnitServing(food) ? 1 : null);
     setMacrosEdited(false);
     setForm(f => ({
       ...f,
@@ -204,21 +255,21 @@ export default function NutritionPage() {
     setDbResults([]);
   }, []);
 
-  const handleGramsChange = useCallback((g) => {
+  const handleGramsChange = useCallback((g, fromPortion = null) => {
+    setPortion(fromPortion);
     setForm(f => {
-      // If user manually edited macro fields, don't overwrite them
+      // Si el usuario editó los macros a mano, no se pisan
       if (!baseFood || !g || macrosEdited) return { ...f, grams: g };
-      const factor = Number(g) / 100;
-      return {
-        ...f,
-        grams: g,
-        kcal:    String(r2(baseFood.kcal    * factor)),
-        protein: String(r2(baseFood.protein * factor)),
-        carbs:   String(r2(baseFood.carbs   * factor)),
-        fat:     String(r2(baseFood.fat     * factor)),
-      };
+      const m = scaleMacros(baseFood, g);
+      return { ...f, grams: g, kcal: String(m.kcal), protein: String(m.protein), carbs: String(m.carbs), fat: String(m.fat) };
     });
   }, [baseFood, macrosEdited]);
+
+  // ×½ ×1 ×2 sobre la porción por unidad del alimento elegido
+  const pickPortion = useCallback((factor) => {
+    if (!baseFood?.grams) return;
+    handleGramsChange(String(r2(baseFood.grams * factor)), factor);
+  }, [baseFood, handleGramsChange]);
 
   const today = todayLocal();
   const age = (() => {
@@ -234,25 +285,11 @@ export default function NutritionPage() {
 
   // TDEE estimate — Harris-Benedict simplificado sin altura/sexo
   // Multipliers: mantenimiento=sedentario-leve, volumen=moderado, definicion=moderado, rendimiento=activo
-  const tdee = useMemo(() => {
-    if (!bodyWeight) return null;
-    // RMR aproximado: 22 kcal/kg (promedio hombre+mujer sin datos de composición)
-    const h = Number(profile?.height_cm);
-    const sx = profile?.sex;
-    // Mifflin-St Jeor si tenemos altura, edad y sexo; si no, estimación simple
-    const rmr = (h > 0 && age !== null && (sx === "M" || sx === "F"))
-      ? 10 * bodyWeight + 6.25 * h - 5 * age + (sx === "M" ? 5 : -161)
-      : bodyWeight * 22;
-    const multipliers = { mantenimiento:1.55, volumen:1.65, definicion:1.50, rendimiento:1.70 };
-    const safeGoal = isMinor && userGoal === "definicion" ? "mantenimiento" : userGoal;
-    const tdeeRaw = Math.round(rmr * (multipliers[safeGoal] ?? 1.55));
-    // Déficit máximo 25 % (20 % si es menor de 21) y nunca bajo el piso de calorías
-    const maintenance = Math.round(rmr * 1.55);
-    const maxDeficit = (age !== null && age < 21) ? 0.8 : 0.75;
-    const floor = sx === "M" ? 1500 : 1200;
-    const t = safeGoal === "definicion" ? Math.max(tdeeRaw, Math.round(maintenance * maxDeficit)) : tdeeRaw;
-    return Math.max(t, floor);
-  }, [bodyWeight, userGoal, profile, age, isMinor]);
+  // Mifflin-St Jeor (fallback kg*22), pisos 1500 H / 1200 M, déficit máx. 25 % (20 % <21), sin déficit <18
+  const tdee = useMemo(
+    () => calcTdee({ bodyWeight, height: profile?.height_cm, sex: profile?.sex, age, goal: userGoal }),
+    [bodyWeight, userGoal, profile, age]
+  );
 
   // Macro targets — consenso deportivo para gym-goers
   // Proteína: 1.6g/kg mant, 2.0g/kg volumen, 2.2g/kg definición, 1.8g/kg rendimiento
@@ -292,10 +329,11 @@ export default function NutritionPage() {
     return { ...targets, kcal, carbs };
   }, [customKcalNum, customKcalOut, targets]);
 
+  // Los borrados pendientes (con "Deshacer") se ocultan enseguida pero se aplican a los 5 s
   const todayMeals = useMemo(() => {
     const uid = profile?.id;
-    return mealLog.filter(m => m.date === today && (!uid || m.user_id === uid));
-  }, [mealLog, today, profile]);
+    return mealLog.filter(m => m.date === today && (!uid || m.user_id === uid) && !pendingDel[m.id]);
+  }, [mealLog, today, profile, pendingDel]);
   const todayTotals = useMemo(() => {
     const raw = todayMeals.reduce((s,m) => ({
       kcal:    s.kcal    + (Number(m.kcal)    || 0),
@@ -309,15 +347,83 @@ export default function NutritionPage() {
   // Last 7 days avg
   const weekAvg = useMemo(() => {
     const uid = profile?.id;
-    const days = Array.from({length:7},(_,i) => {
-      const d = new Date(); d.setDate(d.getDate()-i);
-      const offset = d.getTimezoneOffset() * 60000;
-      return new Date(d - offset).toISOString().slice(0,10);
-    });
-    const dayTotals = days.map(d => mealLog.filter(m => m.date===d && (!uid || m.user_id === uid)).reduce((s,m) => s+(Number(m.kcal)||0), 0));
+    const days = lastLocalDates(7).map(x => x.date);
+    const dayTotals = days.map(d => mealLog.filter(m => m.date===d && (!uid || m.user_id === uid) && !pendingDel[m.id]).reduce((s,m) => s+(Number(m.kcal)||0), 0));
     const filled = dayTotals.filter(v => v > 0);
     return filled.length ? Math.round(filled.reduce((a,b) => a+b, 0) / filled.length) : 0;
-  }, [mealLog, profile]);
+  }, [mealLog, profile, pendingDel]);
+
+  // Recientes: las 8 últimas comidas distintas (un toque las repite)
+  const recents = useMemo(() => recentMeals(mealLog.filter(m => !pendingDel[m.id]), profile?.id, 8), [mealLog, profile, pendingDel]);
+
+  // ── Borrar con deshacer (5 s) ──
+  const flushDelete = useCallback((id) => {
+    if (!delTimers.current[id]) return;
+    clearTimeout(delTimers.current[id]);
+    delete delTimers.current[id];
+    deleteMeal(id);
+    setPendingDel(p => { const n = { ...p }; delete n[id]; return n; });
+  }, [deleteMeal]);
+  function requestDelete(m) {
+    setPendingDel(p => ({ ...p, [m.id]: true }));
+    delTimers.current[m.id] = setTimeout(() => flushDelete(m.id), UNDO_MS);
+    setUndo({ id: m.id, name: m.name });
+    clearTimeout(undoTimer.current);
+    undoTimer.current = setTimeout(() => setUndo(u => (u?.id === m.id ? null : u)), UNDO_MS);
+  }
+  function undoDelete() {
+    if (!undo) return;
+    clearTimeout(delTimers.current[undo.id]);
+    delete delTimers.current[undo.id];
+    setPendingDel(p => { const n = { ...p }; delete n[undo.id]; return n; });
+    clearTimeout(undoTimer.current);
+    setUndo(null);
+  }
+  // Si se sale de la pantalla con un borrado pendiente, se aplica igual
+  useEffect(() => () => {
+    Object.keys(delTimers.current).forEach(id => { clearTimeout(delTimers.current[id]); deleteMeal(id); });
+    delTimers.current = {};
+    clearTimeout(undoTimer.current);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Editar un registro de hoy ──
+  function openEdit(m) {
+    const g = mealGrams(m);
+    setEditMeal({ id: m.id, meal: m, type: m.type, grams: g ? String(g) : "", factor: 1, hasGrams: !!(g && mealPer100(m)) });
+  }
+  const editPreview = useMemo(() => {
+    if (!editMeal) return null;
+    const m = editMeal.meal;
+    if (editMeal.hasGrams) return rescaleMeal(m, { grams: editMeal.grams });
+    return rescaleMeal(m, { factor: editMeal.factor });
+  }, [editMeal]);
+  function saveEdit() {
+    if (!editMeal) return;
+    const patch = { type: editMeal.type };
+    if (editPreview) {
+      const { kcal, protein, carbs, fat, grams } = editPreview;
+      Object.assign(patch, { kcal, protein, carbs, fat });
+      if (grams) patch.grams = grams;
+      if (editMeal.hasGrams && !editMeal.meal.base) patch.base = mealPer100(editMeal.meal);
+    }
+    updateMeal(editMeal.id, patch);
+    setEditMeal(null);
+    window.__showToast?.("Registro actualizado", "success");
+  }
+
+  // ── Copiar a hoy / repetir un día / repetir reciente ──
+  function copyToToday(m, type) {
+    logMeal(mealCopy(m, type ? { type } : {}));
+  }
+  function repeatDay(entries) {
+    entries.forEach(m => copyToToday(m));
+    window.__showToast?.(`${entries.length} ${entries.length === 1 ? "comida copiada" : "comidas copiadas"} a hoy`, "success");
+  }
+  function repeatRecent(m) {
+    copyToToday(m, form.type);
+    window.__showToast?.(`${m.name} agregado a hoy`, "success");
+  }
 
   function resetForm() {
     setForm({ type:getMealType(), name:"", kcal:"", protein:"", carbs:"", fat:"", grams:"" });
@@ -334,11 +440,21 @@ export default function NutritionPage() {
     e.preventDefault();
     if (!form.name || !form.kcal) return;
     setSaving(true);
-    logMeal({ type: form.type, name: form.name.trim(), kcal: r2(form.kcal), protein: r2(form.protein), carbs: r2(form.carbs), fat: r2(form.fat) });
+    // Se guardan gramos y valores por 100 g para poder editar la cantidad después
+    const gramsNum = Number(form.grams) > 0 ? Number(form.grams) : null;
+    const entry = { type: form.type, name: form.name.trim(), kcal: r2(form.kcal), protein: r2(form.protein), carbs: r2(form.carbs), fat: r2(form.fat) };
+    if (gramsNum) {
+      entry.grams = gramsNum;
+      entry.base = macrosEdited || !baseFood
+        ? normalizePer100({ grams: gramsNum, kcal: entry.kcal, protein: entry.protein, carbs: entry.carbs, fat: entry.fat })
+        : { kcal: baseFood.kcal, protein: baseFood.protein, carbs: baseFood.carbs, fat: baseFood.fat };
+    }
+    if (baseFood?.alcohol) entry.alcohol = true;
+    logMeal(entry);
     // Save as custom food if not in DB and not already saved as custom
-    const dbCheck = searchFoods(form.name, 5);
-    const alreadyCustom = (storeCustomFoods || []).some(f => f.name.toLowerCase() === form.name.trim().toLowerCase());
-    if (foodMode === "crear" && !alreadyCustom && !dbCheck.some(f => f.name.toLowerCase() === form.name.toLowerCase())) {
+    const dbCheck = foodsLib ? foodsLib.searchFoods(form.name, 5) : [];
+    const alreadyCustom = (storeCustomFoods || []).some(f => normalizeText(f.name) === normalizeText(form.name));
+    if (foodMode === "crear" && !alreadyCustom && !dbCheck.some(f => normalizeText(f.name) === normalizeText(form.name))) {
       addCustomFood?.({
         id: `custom-${form.name.toLowerCase().replace(/\s+/g,"-")}-${Date.now()}`,
         name: form.name.trim(),
@@ -385,7 +501,7 @@ export default function NutritionPage() {
               const { supabase } = await import("../lib/supabase.js");
               const { data, error } = await supabase.functions.invoke("mp-create-subscription");
               if (data?.already_active) { window.__showToast?.("Ya tenés una suscripción activa.", "info"); return; }
-              if (!error && data?.init_point) window.location.href = data.init_point;
+              if (!error && data?.init_point) openCheckout(data.init_point);
               else window.__showToast?.("No se pudo iniciar el pago. Intentá de nuevo.", "error");
             } catch { window.__showToast?.("Error de conexión.", "error"); }
           }}>
@@ -414,9 +530,9 @@ export default function NutritionPage() {
       </p>
 
       {/* Tabs */}
-      <div style={{ display:"flex", gap:6, marginBottom:16, flexWrap:"wrap" }}>
+      <div role="tablist" aria-label="Secciones de comidas" style={{ display:"flex", gap:6, marginBottom:16, flexWrap:"wrap" }}>
         {[["hoy","Hoy"],["semana","Semana"],...(f.coach_insights ? [["plan","Plan"]] : []),["historial","Historial"]].map(([id,label]) => (
-          <button key={id} onClick={() => setTab(id)} style={{
+          <button key={id} role="tab" aria-selected={tab===id} onClick={() => setTab(id)} style={{
             padding:"6px 14px", borderRadius:20, border:"none", cursor:"pointer", fontSize:13, fontWeight:600,
             background: tab===id ? "var(--green)" : "var(--panel2)", color: tab===id ? "#fff" : "var(--muted)",
           }}>{label}</button>
@@ -518,8 +634,8 @@ export default function NutritionPage() {
         ) : (
           <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
             {todayMeals.map(m => (
-              <div key={m.id} style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:14, padding:"12px 14px", display:"flex", alignItems:"center", gap:10 }}>
-                <div style={{ flex:1 }}>
+              <div key={m.id} style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:14, display:"flex", alignItems:"center", gap:4 }}>
+                <button type="button" className="nut-meal-card" aria-label={`Editar ${m.name}`} onClick={() => openEdit(m)}>
                   <div style={{ fontSize:12, fontWeight:700, color:"var(--muted)", marginBottom:2 }}>{m.type}</div>
                   <div style={{ fontSize:14, fontWeight:700 }}>{m.name}</div>
                   <div style={{ fontSize:12, color:"var(--muted)", marginTop:3 }}>
@@ -528,8 +644,9 @@ export default function NutritionPage() {
                     {m.carbs > 0   && <span> · {r2(m.carbs)}g C</span>}
                     {m.fat > 0     && <span> · {r2(m.fat)}g G</span>}
                   </div>
-                </div>
-                <button onClick={() => deleteMeal(m.id)} style={{ background:"none", border:"none", cursor:"pointer", fontSize:18, color:"var(--muted)", padding:4, lineHeight:1 }}>×</button>
+                  {m.alcohol && <div className="nut-alcohol-note">{ALCOHOL_NOTE}</div>}
+                </button>
+                <button type="button" aria-label={`Borrar ${m.name}`} onClick={() => requestDelete(m)} style={{ background:"none", border:"none", cursor:"pointer", fontSize:20, color:"var(--muted)", padding:"8px 12px", lineHeight:1 }}>×</button>
               </div>
             ))}
           </div>
@@ -549,10 +666,9 @@ export default function NutritionPage() {
           </div>}
         </div>
         <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-          {Array.from({length:7},(_,i) => {
-            const d = new Date(); d.setDate(d.getDate()-i);
-            const dateStr = d.toISOString().slice(0,10);
-            const meals = mealLog.filter(m => m.date===dateStr);
+          {lastLocalDates(7).map(({ date: dateStr, d, i }) => {
+            const uid = profile?.id;
+            const meals = mealLog.filter(m => m.date===dateStr && (!uid || m.user_id === uid) && !pendingDel[m.id]);
             const kcal  = meals.reduce((s,m) => s+(Number(m.kcal)||0), 0);
             const pct   = Math.min(100, effectiveKcal > 0 ? (kcal/effectiveKcal)*100 : 0);
             const dayLabel = i===0?"Hoy":i===1?"Ayer":d.toLocaleDateString("es-AR",{weekday:"short",day:"numeric"});
@@ -573,12 +689,15 @@ export default function NutritionPage() {
       {/* ── HISTORIAL ── */}
       {tab === "historial" && (() => {
         const byDate = {};
+        const histUid = profile?.id;
         mealLog.forEach(entry => {
+          if ((histUid && entry.user_id !== histUid) || pendingDel[entry.id]) return;
           const d = entry.date || "sin fecha";
           if (!byDate[d]) byDate[d] = [];
           byDate[d].push(entry);
         });
-        const dates = Object.keys(byDate).sort((a,b) => b.localeCompare(a)).slice(0, 14);
+        const allDates = Object.keys(byDate).sort((a,b) => b.localeCompare(a));
+        const dates = allDates.slice(0, historyLimit);
 
         if (dates.length === 0) return (
           <div style={{ textAlign:"center", padding:40, color:"var(--muted)" }}>
@@ -603,6 +722,9 @@ export default function NutritionPage() {
                     <span style={{ fontSize:14, fontWeight:800 }}>{formatDMY(date)}</span>
                     <span style={{ fontSize:14, fontWeight:900, color:"var(--green)" }}>{Math.round(totals.kcal)} kcal</span>
                   </div>
+                  {date !== today && (
+                    <button type="button" className="nut-link-btn" onClick={() => repeatDay(entries)}>Repetir este día</button>
+                  )}
                   {[
                     { label:"P", val:totals.protein, color:"#60a5fa", target: effectiveTargets.protein },
                     { label:"C", val:totals.carbs, color:"#f59e0b", target: effectiveTargets.carbs },
@@ -618,15 +740,26 @@ export default function NutritionPage() {
                   ))}
                   <div style={{ marginTop:10, display:"flex", flexDirection:"column", gap:4 }}>
                     {entries.map((e,i) => (
-                      <div key={i} style={{ display:"flex", justifyContent:"space-between", fontSize:12, padding:"4px 0", borderTop:"1px solid rgba(255,255,255,.05)" }}>
-                        <span style={{ color:"var(--text)" }}>{e.name}</span>
+                      <div key={e.id || i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:8, fontSize:12, padding:"4px 0", borderTop:"1px solid rgba(255,255,255,.05)" }}>
+                        <span style={{ color:"var(--text)", flex:1, minWidth:0 }}>{e.name}{e.alcohol && <span className="nut-alcohol-note"> · {ALCOHOL_NOTE}</span>}</span>
                         <span style={{ color:"var(--muted)" }}>{Math.round(e.kcal||0)} kcal</span>
+                        {date !== today && (
+                          <button type="button" className="nut-link-btn" aria-label={`Copiar ${e.name} a hoy`}
+                            onClick={() => { copyToToday(e); window.__showToast?.(`${e.name} copiado a hoy`, "success"); }}>
+                            Copiar a hoy
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>
                 </div>
               );
             })}
+            {allDates.length > dates.length && (
+              <button type="button" className="nut-more-btn" onClick={() => setHistoryLimit(n => n + HISTORY_PAGE)}>
+                Ver más ({allDates.length - dates.length} {allDates.length - dates.length === 1 ? "día" : "días"} anteriores)
+              </button>
+            )}
           </div>
         );
       })()}
@@ -668,7 +801,7 @@ export default function NutritionPage() {
               </button>
             ) : (
               <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-                <input type="number" inputMode="numeric" value={customKcal}
+                <input type="number" inputMode="numeric" value={customKcal} aria-label="Meta de calorías personalizada (kcal)"
                   onChange={e => setCustomKcal(e.target.value)}
                   placeholder={`${targets.kcal} kcal (calculado)`}
                   style={{ flex:1, background:"var(--panel2)", border:"1px solid var(--line)", borderRadius:8, padding:"7px 10px", color:"var(--text)", fontSize:13 }} />
@@ -710,7 +843,7 @@ export default function NutritionPage() {
             ];
             const totalSteps = WIZARD_STEPS.length;
 
-            function finishWizard() {
+            async function finishWizard() {
               const config = {
                 days: wizDays,
                 mealsPerDay: wizMeals,
@@ -723,6 +856,13 @@ export default function NutritionPage() {
                 budget: wizBudget,
                 seed: wizSeedRef.current,
               };
+              let generateNutritionPlan;
+              try {
+                ({ generateNutritionPlan } = await import("../data/nutritionData.js"));
+              } catch {
+                window.__showToast?.("No se pudieron cargar los alimentos. Revisá tu conexión e intentá de nuevo.", "error");
+                return;
+              }
               const plan = generateNutritionPlan(
                 config,
                 effectiveKcal, effectiveKcal, effectiveTargets.protein, effectiveTargets.carbs, effectiveTargets.fat
@@ -1013,7 +1153,7 @@ export default function NutritionPage() {
             </div>
 
             {/* Dos modos claramente separados */}
-            <div role="tablist" style={{ display:"flex", gap:4, padding:4, background:"var(--panel2)", borderRadius:12, marginBottom:14 }}>
+            <div role="tablist" aria-label="Modo de carga del alimento" style={{ display:"flex", gap:4, padding:4, background:"var(--panel2)", borderRadius:12, marginBottom:14 }}>
               {[["buscar","Buscar alimento"],["crear","Crear alimento nuevo"]].map(([id,label]) => (
                 <button key={id} role="tab" aria-selected={foodMode===id} type="button"
                   onClick={() => { setFoodMode(id); setDbQuery(""); setDbResults([]); if (id==="crear") setBaseFood(null); }}
@@ -1025,17 +1165,36 @@ export default function NutritionPage() {
             </div>
 
             {/* ── BUSCADOR DE BASE DE DATOS ── */}
+            {/* Recientes: las últimas 8 comidas distintas, un toque las repite */}
+            {foodMode === "buscar" && recents.length > 0 && (
+              <div className="nut-recents">
+                <div className="nut-recents-title" id="nut-recents-label">Recientes</div>
+                <div className="nut-recents-row" role="group" aria-labelledby="nut-recents-label">
+                  {recents.map(m => (
+                    <button key={m.id} type="button" className="nut-recent-chip"
+                      aria-label={`Repetir ${m.name}, ${r2(m.kcal)} kilocalorías`}
+                      onClick={() => repeatRecent(m)}>
+                      <span className="nut-recent-name">{m.name}</span>
+                      <span className="nut-recent-kcal">{r2(m.kcal)} kcal</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {foodMode === "buscar" && <div style={{ position:"relative", marginBottom:14 }}>
               <div style={{ display:"flex", gap:8 }}>
                 <input
                   className="input"
-                  placeholder="Buscá un alimento (pollo, manzana, arroz…)"
+                  type="search"
+                  aria-label="Buscar alimento"
+                  placeholder={foodsLib ? "Buscá un alimento (pollo, manzana, arroz…)" : "Cargando alimentos…"}
                   value={dbQuery}
                   onChange={e => handleDbSearch(e.target.value)}
                   style={{ flex:1, boxSizing:"border-box" }}
                   autoComplete="off"
                 />
-                <button type="button" onClick={() => setShowScanner(true)}
+                <button type="button" aria-label="Escanear código de barras" onClick={() => setShowScanner(true)}
                   style={{ padding:"9px 12px", background:"var(--panel2)", border:"1px solid var(--line)", borderRadius:10, cursor:"pointer", color:"var(--text)", flexShrink:0 }}>
                   <Icon name="Camera" size={18} />
                 </button>
@@ -1051,7 +1210,7 @@ export default function NutritionPage() {
                     >
                       <div>
                         <div style={{ fontSize:13, fontWeight:700, color:"var(--text)" }}>{food.name}</div>
-                        <div style={{ fontSize:11, color:"var(--muted)" }}>{food.serving} · {food.cat}</div>
+                        <div style={{ fontSize:11, color:"var(--muted)" }}>{food.serving} · {food.cat}{food.alcohol && <span className="nut-alcohol-note"> · {ALCOHOL_NOTE}</span>}</div>
                       </div>
                       <div style={{ textAlign:"right", flexShrink:0 }}>
                         <div style={{ fontSize:13, fontWeight:800, color:"var(--green)" }}>{r2(food.kcal)} kcal</div>
@@ -1063,8 +1222,14 @@ export default function NutritionPage() {
               )}
             </div>}
 
+            {foodMode === "buscar" && !foodsLib && (
+              <div role="status" style={{ fontSize:12, color: foodsError ? "#ef4444" : "var(--muted)", margin:"-6px 0 10px" }}>
+                {foodsError ? "No se pudo cargar la lista de alimentos. Cerrá y volvé a abrir, o creá el alimento a mano." : "Cargando alimentos…"}
+              </div>
+            )}
+
             {/* "No results" hint — pre-fills form.name so the user can enter macros manually */}
-            {foodMode === "buscar" && dbQuery.trim().length >= 2 && dbResults.length === 0 && (
+            {foodMode === "buscar" && foodsLib && dbQuery.trim().length >= 2 && dbResults.length === 0 && (
               <div style={{ marginTop:8, padding:"12px", background:"rgba(52,211,153,.06)", border:"1px dashed var(--green)", borderRadius:12, display:"flex", flexDirection:"column", gap:8 }}>
                 <span style={{ fontSize:13, color:"var(--text)" }}>No encontramos <b>"{dbQuery.trim()}"</b> en la lista.</span>
                 <button type="button" className="primary"
@@ -1126,8 +1291,8 @@ export default function NutritionPage() {
                 <div style={{ fontSize:12, color:"var(--muted)", background:"rgba(255,255,255,.04)", border:"1px solid var(--line)", borderRadius:10, padding:"8px 10px" }}>
                   Cargá el alimento una sola vez con los valores del envase. Después aparece en el buscador, para vos y para todos los usuarios.
                 </div>
-                <label style={{ fontSize:12, color:"var(--muted)", fontWeight:600, marginBottom:-4 }}>Nombre del alimento</label>
-                <input className="input" placeholder="Ej: Milanesa de pollo" value={form.name} onChange={e => { setForm(f => ({...f,name:e.target.value})); setBaseFood(null); setMacrosEdited(false); }} required />
+                <label htmlFor="nut-food-name" style={{ fontSize:12, color:"var(--muted)", fontWeight:600, marginBottom:-4 }}>Nombre del alimento</label>
+                <input id="nut-food-name" className="input" placeholder="Ej: Milanesa de pollo" value={form.name} onChange={e => { setForm(f => ({...f,name:e.target.value})); setBaseFood(null); setMacrosEdited(false); }} required />
               </>) : (
                 <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:8 }}>
                   <div style={{ fontSize:15, fontWeight:800 }}>{form.name}</div>
@@ -1136,10 +1301,21 @@ export default function NutritionPage() {
               )}
               {/* Gramaje */}
               <div>
-                <label style={{ fontSize:12, color:"var(--muted)", fontWeight:600, display:"block", marginBottom:4 }}>{foodMode === "crear" ? "¿Para cuántos gramos son estos valores?" : "¿Cuántos gramos comiste?"}</label>
-                <input className="input" inputMode="decimal" value={form.grams}
+                <label htmlFor="nut-food-grams" style={{ fontSize:12, color:"var(--muted)", fontWeight:600, display:"block", marginBottom:4 }}>{foodMode === "crear" ? "¿Para cuántos gramos son estos valores?" : "¿Cuántos gramos comiste?"}</label>
+                <input id="nut-food-grams" className="input" inputMode="decimal" value={form.grams}
                   onChange={e => handleGramsChange(e.target.value.replace(",","."))}
                   placeholder="Ej: 150" />
+                {/* Porción por unidad: ×½ ×1 ×2 */}
+                {foodMode === "buscar" && baseFood && hasUnitServing(baseFood) && (
+                  <div className="nut-portion" role="group" aria-label={`Porción: ${baseFood.serving}`}>
+                    <span className="nut-portion-label">{baseFood.serving}</span>
+                    {PORTIONS.map(([fct, label]) => (
+                      <button key={fct} type="button" className={`nut-portion-btn${portion === fct ? " is-active" : ""}`}
+                        aria-pressed={portion === fct} onClick={() => pickPortion(fct)}>{label}</button>
+                    ))}
+                  </div>
+                )}
+                {foodMode === "buscar" && baseFood?.alcohol && <div className="nut-alcohol-note" role="note" style={{ marginTop:6 }}>{ALCOHOL_NOTE}</div>}
                 {/* Macro preview — shown when a DB food is selected and grams is filled */}
                 {baseFood && form.grams && Number(form.grams) > 0 && !macrosEdited && (
                   <div style={{ marginTop:6, fontSize:12, color:"var(--green)", fontWeight:600, padding:"6px 10px", background:"rgba(52,211,153,.07)", borderRadius:8, border:"1px solid rgba(52,211,153,.15)" }}>
@@ -1180,6 +1356,74 @@ export default function NutritionPage() {
         </div>
       )}
 
+      {/* ── DESHACER BORRADO ── */}
+      {undo && (
+        <div className="nut-undo" role="status" aria-live="polite">
+          <span className="nut-undo-text">Se borró «{undo.name}»</span>
+          <button type="button" className="nut-undo-btn" onClick={undoDelete}>Deshacer</button>
+        </div>
+      )}
+
+      {/* ── EDITAR REGISTRO DE HOY ── */}
+      {editMeal && (
+        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.7)", zIndex:350, display:"flex", alignItems:"flex-end" }}
+          onClick={e => { if (e.target === e.currentTarget) setEditMeal(null); }}>
+          <div role="dialog" aria-modal="true" aria-labelledby="nut-edit-title"
+            style={{ width:"100%", background:"var(--bg)", borderRadius:"20px 20px 0 0", padding:"20px 20px max(20px, env(safe-area-inset-bottom, 20px))", maxHeight:"85vh", overflowY:"auto" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+              <h3 id="nut-edit-title" style={{ margin:0, fontSize:17 }}>{editMeal.meal.name}</h3>
+              <button type="button" aria-label="Cerrar" onClick={() => setEditMeal(null)} style={{ background:"none", border:"none", cursor:"pointer", fontSize:22, color:"var(--muted)" }}>×</button>
+            </div>
+
+            <div style={{ fontSize:12, color:"var(--muted)", marginBottom:6, fontWeight:600 }}>¿En qué momento del día?</div>
+            <div style={{ display:"flex", gap:5, flexWrap:"wrap", marginBottom:14 }}>
+              {MEAL_TYPES.map(t => (
+                <button key={t} type="button" aria-pressed={editMeal.type === t} onClick={() => setEditMeal(e => ({ ...e, type: t }))}
+                  style={{ padding:"5px 12px", borderRadius:20, border:"1.5px solid", fontSize:12, fontWeight:600, cursor:"pointer",
+                    borderColor: editMeal.type === t ? "var(--green)" : "var(--line)",
+                    background: editMeal.type === t ? "rgba(52,211,153,.12)" : "transparent",
+                    color: editMeal.type === t ? "var(--green)" : "var(--muted)" }}>
+                  {t}
+                </button>
+              ))}
+            </div>
+
+            {editMeal.hasGrams ? (
+              <div style={{ marginBottom:12 }}>
+                <label htmlFor="nut-edit-grams" style={{ fontSize:12, color:"var(--muted)", fontWeight:600, display:"block", marginBottom:4 }}>Cantidad (gramos)</label>
+                <input id="nut-edit-grams" className="input" inputMode="decimal" value={editMeal.grams}
+                  onChange={e => setEditMeal(m => ({ ...m, grams: e.target.value.replace(",", ".") }))} />
+              </div>
+            ) : (
+              <div className="nut-portion" role="group" aria-label="Cantidad" style={{ marginBottom:12 }}>
+                <span className="nut-portion-label">Cantidad</span>
+                {PORTIONS.map(([fct, label]) => (
+                  <button key={fct} type="button" className={`nut-portion-btn${editMeal.factor === fct ? " is-active" : ""}`}
+                    aria-pressed={editMeal.factor === fct} onClick={() => setEditMeal(m => ({ ...m, factor: fct }))}>{label}</button>
+                ))}
+              </div>
+            )}
+
+            {(() => {
+              const p = editPreview || editMeal.meal;
+              return (
+                <div style={{ fontSize:12, color:"var(--green)", fontWeight:600, padding:"8px 10px", background:"rgba(52,211,153,.07)", borderRadius:8, border:"1px solid rgba(52,211,153,.15)", marginBottom:12 }}>
+                  {r2(p.kcal)} kcal · {r2(p.protein)}g P · {r2(p.carbs)}g C · {r2(p.fat)}g G
+                </div>
+              );
+            })()}
+            {editMeal.meal.alcohol && <div className="nut-alcohol-note" role="note" style={{ marginBottom:10 }}>{ALCOHOL_NOTE}</div>}
+
+            <div style={{ display:"flex", gap:8 }}>
+              <button type="button" onClick={() => setEditMeal(null)}
+                style={{ flex:1, padding:"11px", border:"1px solid var(--line)", borderRadius:10, background:"var(--panel2)", color:"var(--text)", fontSize:13, cursor:"pointer" }}>Cancelar</button>
+              <button type="button" className="primary" style={{ flex:2 }}
+                disabled={editMeal.hasGrams && !(Number(editMeal.grams) > 0)} onClick={saveEdit}>Guardar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showScanner && (
         <BarcodeScanner
           onDetect={food => {
@@ -1201,12 +1445,13 @@ export default function NutritionPage() {
             <div style={{ padding:"20px 20px 0", flexShrink:0 }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
                 <h3 style={{ margin:0, fontSize:17 }}>Armar combinación</h3>
-                <button onClick={() => setShowComboModal(false)} style={{ background:"none", border:"none", cursor:"pointer", fontSize:22, color:"var(--muted)" }}>×</button>
+                <button type="button" aria-label="Cerrar" onClick={() => setShowComboModal(false)} style={{ background:"none", border:"none", cursor:"pointer", fontSize:22, color:"var(--muted)" }}>×</button>
               </div>
 
               {/* Nombre de la combinación */}
               <input
                 className="input"
+                aria-label="Nombre del plato"
                 placeholder="Nombre del plato (ej: Patitas de pollo con arroz)"
                 value={comboName}
                 onChange={e => setComboName(e.target.value)}
@@ -1217,22 +1462,20 @@ export default function NutritionPage() {
               <div style={{ position:"relative", marginBottom:4 }}>
                 <input
                   className="input"
-                  placeholder="Buscá cada ingrediente y agregalo…"
+                  type="search"
+                  aria-label="Buscar ingrediente"
+                  placeholder={foodsLib ? "Buscá cada ingrediente y agregalo…" : "Cargando alimentos…"}
                   value={comboDbQuery}
                   onChange={e => {
                     const q = e.target.value;
                     setComboDbQuery(q);
                     if (q.trim().length >= 2) {
-                      const matches = searchFoods(q, 12);
-                      const lq = q.toLowerCase();
-                      const customMatches = (storeCustomFoods || []).filter(cf => cf.name.toLowerCase().includes(lq));
-                      const local = [...customMatches, ...matches];
-                      setComboDbResults(local.slice(0, 15));
+                      const local = localFoodMatches(q, foodsLib, storeCustomFoods, 15);
+                      setComboDbResults(local);
                       const seq = ++searchSeqRef.current;
                       searchSharedFoods(q, 8).then(shared => {
                         if (seq !== searchSeqRef.current || shared.length === 0) return;
-                        const seen = new Set(local.map(f => f.name.toLowerCase()));
-                        setComboDbResults([...local, ...shared.filter(f => !seen.has(f.name.toLowerCase()))].slice(0, 20));
+                        setComboDbResults(mergeShared(local, shared, 20));
                       });
                     } else {
                       setComboDbResults([]);
@@ -1253,6 +1496,7 @@ export default function NutritionPage() {
                           setComboFoods(prev => [...prev, {
                             id: `cf-${Date.now()}-${Math.random().toString(16).slice(2)}`,
                             foodId: food.id,
+                            alcohol: !!food.alcohol,
                             name: food.name,
                             grams: g0,
                             base: { kcal: per100(food.kcal), protein: per100(food.protein), carbs: per100(food.carbs), fat: per100(food.fat) },
@@ -1331,7 +1575,7 @@ export default function NutritionPage() {
                           style={{ width:58, textAlign:"center", background:"var(--panel2)", border:"1px solid var(--line)", borderRadius:8, padding:"6px 4px", color:"var(--text)", fontSize:14 }} />
                         g
                       </label>
-                      <button onClick={() => setComboFoods(prev => prev.filter((_, i) => i !== idx))}
+                      <button type="button" aria-label={`Quitar ${cf.name}`} onClick={() => setComboFoods(prev => prev.filter((_, i) => i !== idx))}
                         style={{ background:"none", border:"none", cursor:"pointer", fontSize:20, color:"var(--muted)", padding:4, lineHeight:1 }}>×</button>
                     </div>
                   ))}
@@ -1356,6 +1600,8 @@ export default function NutritionPage() {
                       protein: r2(cf.protein),
                       carbs: r2(cf.carbs),
                       fat: r2(cf.fat),
+                      ...(Number(cf.grams) > 0 ? { grams: Number(cf.grams), base: cf.base } : {}),
+                      ...(cf.alcohol ? { alcohol: true } : {}),
                     }));
                     saveMealCombo(comboName.trim(), meals);
                     const savedName = comboName.trim();

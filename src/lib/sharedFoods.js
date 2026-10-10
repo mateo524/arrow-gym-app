@@ -1,4 +1,5 @@
 import { supabase } from "./supabase.js";
+import { serverTerms, filterFoodsByQuery } from "./nutrition.js";
 
 // Catálogo compartido: los alimentos que crea un usuario quedan disponibles para todos.
 // Todo se guarda por 100 g. Si la tabla no existe o no hay red, falla en silencio
@@ -24,14 +25,19 @@ export async function searchSharedFoods(query, limit = 10) {
   const q = String(query || "").trim().replace(/[%_,()]/g, " ");
   if (q.length < 2) return [];
   try {
-    const { data, error } = await supabase
+    // El servidor no normaliza acentos ni alias: pide candidatos por prefijo (frutilla -> "fru"/"fre")
+    // y el orden fino se hace acá con la misma lógica que la base local.
+    const terms = serverTerms(q);
+    let req = supabase
       .from("shared_foods")
-      .select("id,name,kcal,protein,carbs,fat")
-      .ilike("name", `%${q}%`)
-      .order("name")
-      .limit(limit);
+      .select("id,name,kcal,protein,carbs,fat");
+    req = terms.length > 1
+      ? req.or(terms.map((t) => `name.ilike.%${t}%`).join(","))
+      : req.ilike("name", `%${terms[0] || q}%`);
+    const { data, error } = await req.order("name").limit(terms.length ? limit * 3 : limit);
     if (error || !data) return [];
-    return data.map(toFood);
+    const foods = data.map(toFood);
+    return terms.length ? filterFoodsByQuery(foods, q, limit) : foods;
   } catch {
     return [];
   }
@@ -48,14 +54,15 @@ export async function publishSharedFood({ name, grams, kcal, protein, carbs, fat
     carbs: per100(carbs),
     fat: per100(fat),
   };
-  if (row.name.length < 2 || row.name.length > 80 || row.kcal <= 0 || row.kcal > 900) return false;
-  if (row.protein + row.carbs + row.fat > 100) return false;
+  if (row.name.length < 2 || row.name.length > 80 || row.kcal <= 0 || row.kcal > 900) return { ok: false, duplicate: false };
+  if (row.protein + row.carbs + row.fat > 100) return { ok: false, duplicate: false };
   try {
     const { error } = await supabase.from("shared_foods").insert(row);
-    // 23505 = ya existe con ese nombre: está bien, ya está disponible para todos
-    return !error || error.code === "23505";
+    // 23505 = ya existe con ese nombre: ya está disponible para todos (no es un alta nueva)
+    if (error?.code === "23505") return { ok: true, duplicate: true };
+    return { ok: !error, duplicate: false };
   } catch {
-    return false;
+    return { ok: false, duplicate: false };
   }
 }
 

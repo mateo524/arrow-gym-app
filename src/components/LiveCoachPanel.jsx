@@ -17,7 +17,7 @@ const IcoRobot   = () => <svg width={15} height={15} viewBox="0 0 16 16" fill="n
 const TYPE_META = {
   pr:          { Icon: IcoTrophy,  color: "#a855f7", bg: "rgba(168,85,247,.1)",   label: "Record" },
   ready:       { Icon: IcoArrowUp, color: "#a855f7", bg: "rgba(168,85,247,.08)",  label: "Progresión" },
-  plateau:     { Icon: IcoWarn,    color: "#f59e0b", bg: "rgba(245,158,11,.1)",   label: "Plateau" },
+  plateau:     { Icon: IcoWarn,    color: "#f59e0b", bg: "rgba(245,158,11,.1)",   label: "Estancado" },
   fatigue:     { Icon: IcoZap,     color: "#f59e0b", bg: "rgba(245,158,11,.1)",   label: "Fatiga" },
   form:        { Icon: IcoAlert,   color: "#f87171", bg: "rgba(248,113,113,.1)",  label: "Técnica" },
   overreach:   { Icon: IcoAlert,   color: "#f87171", bg: "rgba(248,113,113,.1)",  label: "Exceso" },
@@ -119,7 +119,7 @@ export default function LiveCoachPanel({ hints: allHints, volStatus }) {
             {newHintCount > 0 && !expanded && (
               <span style={{
                 background: "var(--green)", color: "#fff",
-                fontSize: 10, fontWeight: 900, borderRadius: 10,
+                fontSize: 12, fontWeight: 900, borderRadius: 10,
                 padding: "1px 6px", animation: "pulse 1s ease-in-out 3",
               }}>
                 +{newHintCount}
@@ -127,22 +127,22 @@ export default function LiveCoachPanel({ hints: allHints, volStatus }) {
             )}
           </div>
           {!expanded && topHint && (
-            <p style={{ margin: 0, fontSize: 11, color: (topHint.type === 'pr' || topHint.type === 'loop') ? "var(--green)" : "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "flex", alignItems: "center" }}>
+            <p style={{ margin: 0, fontSize: 12, color: (topHint.type === 'pr' || topHint.type === 'loop') ? "var(--green)" : "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "flex", alignItems: "center" }}>
               {hints.length > 0 && (
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: dotColor, display: 'inline-block', marginRight: 6, flexShrink: 0 }} />
+                <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: '50%', background: dotColor, display: 'inline-block', marginRight: 6, flexShrink: 0 }} />
               )}
-              {topHint.msg}
+              {TYPE_META[topHint.type]?.label ? <b style={{ marginRight: 4 }}>{TYPE_META[topHint.type].label}:</b> : null}{topHint.msg}
             </p>
           )}
           {!expanded && !topHint && (
-            <p style={{ margin: 0, fontSize: 11, color: "var(--muted)" }}>
+            <p style={{ margin: 0, fontSize: 12, color: "var(--muted)" }}>
               Completá series para recibir análisis
             </p>
           )}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           {hints.length > 0 && (
-            <span style={{ fontSize: 11, color: "var(--muted)", fontWeight: 700 }}>
+            <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 700 }}>
               {hints.length}
             </span>
           )}
@@ -156,10 +156,10 @@ export default function LiveCoachPanel({ hints: allHints, volStatus }) {
           {/* Volume status per group */}
           {volGroups.length > 0 && (
             <div style={{ marginBottom: 14 }}>
-              <p style={{ fontSize: 10, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>
+              <p style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>
                 Volumen semanal por grupo
               </p>
-              <p style={{ fontSize: 9, color: "var(--muted)", margin: "0 0 8px" }}>
+              <p style={{ fontSize: 12, color: "var(--muted)", margin: "0 0 8px" }}>
                 Series totales esta semana (mínimas, ideales y máximas son rangos semanales, no por sesión)
               </p>
               {volGroups.map(([group, data]) => {
@@ -170,8 +170,8 @@ export default function LiveCoachPanel({ hints: allHints, volStatus }) {
                 return (
                   <div key={group} style={{ marginBottom: 10 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text)" }}>{group}</span>
-                      <span style={{ fontSize: 11, color }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text)" }}>{group}</span>
+                      <span style={{ fontSize: 12, color }}>
                         <b>{data.weekTotal}</b>/{data.landmark.mrv} series · <span style={{ fontWeight: 700 }}>{STATUS_LABEL[data.status]}</span>
                       </span>
                     </div>
@@ -187,7 +187,7 @@ export default function LiveCoachPanel({ hints: allHints, volStatus }) {
                       {/* MAV marker */}
                       <div style={{ position: "absolute", top: -2, left: `${mavPct}%`, width: 1, height: 10, background: "rgba(255,255,255,.7)" }} />
                     </div>
-                    <div style={{ display: "flex", gap: 10, marginTop: 3, fontSize: 9, color: "var(--muted)" }}>
+                    <div style={{ display: "flex", gap: 10, marginTop: 3, fontSize: 12, color: "var(--muted)" }}>
                       <span>Mín. {data.landmark.mev}s</span>
                       <span>Ideal {data.landmark.mav}s</span>
                       <span>Máx. {data.landmark.mrv}s</span>
@@ -200,7 +200,7 @@ export default function LiveCoachPanel({ hints: allHints, volStatus }) {
           )}
 
           {/* Disclaimer */}
-          <p style={{ fontSize: 9, color: 'var(--muted)', margin: '0 0 8px', opacity: 0.7 }}>
+          <p style={{ fontSize: 12, color: 'var(--muted)', margin: '0 0 8px' }}>
             Las sugerencias son orientativas. Consultá un profesional de salud ante cualquier dolor o lesión.
           </p>
 
@@ -219,18 +219,18 @@ export default function LiveCoachPanel({ hints: allHints, volStatus }) {
                   }}>
                     <span style={{ display:"flex", alignItems:"center", marginTop: 2, flexShrink:0 }}><meta.Icon/></span>
                     <div style={{ flex: 1 }}>
-                      <span style={{ fontSize: 9, fontWeight: 800, color: meta.color, textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 1 }}>{meta.label}</span>
+                      <span style={{ fontSize: 12, fontWeight: 800, color: meta.color, textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 1 }}>{meta.label}</span>
                       <p style={{ margin: 0, fontSize: 12, color: "var(--text)", lineHeight: 1.4 }}>{h.msg}</p>
                     </div>
                     <div style={{ display:"flex", flexDirection:"column", gap:4, alignItems:"flex-end", flexShrink:0 }}>
                       <button
                         onClick={() => setDismissed(d => new Set([...d, h.msg]))}
                         style={{ background:"none", border:"none", cursor:"pointer", color:"var(--muted)", fontSize:14, padding:"0 2px", lineHeight:1 }}
-                        title="Descartar"
+                        title="Descartar" aria-label="Descartar sugerencia"
                       >×</button>
                       <button
                         onClick={() => toggleMutedHintType(h.type)}
-                        style={{ background:"none", border:"none", cursor:"pointer", color:"var(--muted)", fontSize:9, padding:0, lineHeight:1.2, textDecoration:"underline", whiteSpace:"nowrap" }}
+                        style={{ background:"none", border:"none", cursor:"pointer", color:"var(--muted)", fontSize:12, padding:0, lineHeight:1.2, textDecoration:"underline", whiteSpace:"nowrap" }}
                         title="No mostrar este tipo"
                       >No mostrar más</button>
                     </div>

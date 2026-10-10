@@ -3,6 +3,8 @@ import useAuthStore from "../store/useAuthStore.js";
 import { supabase } from "../lib/supabase.js";
 import Icon from "../components/Icon.jsx";
 import { T } from "../lib/telemetry.js";
+import { friendlyError } from "../lib/errors.js";
+import { BRAND } from "../config/brand.js";
 
 const MAX_ATTEMPTS = 5;
 const COOLDOWN_MS = 30_000;
@@ -89,11 +91,11 @@ export default function LoginPage() {
     });
     setSubmitting(false);
     if (error) {
-      setMsg("Error: " + error.message);
+      setMsg("Error: " + friendlyError(error));
     } else if (data?.session) {
       // Email confirmation desactivada — sesión activa inmediata
       // El onAuthStateChange de App.jsx la va a capturar automáticamente
-      setMsg("✓ ¡Bienvenido/a a Loop Gym!");
+      setMsg(`✓ ¡Bienvenido a ${BRAND}!`);
     } else {
       setMsg("✓ ¡Cuenta creada! Revisá tu email para confirmar.");
     }
@@ -108,7 +110,7 @@ export default function LoginPage() {
     });
     setSubmitting(false);
     if (error) {
-      setMsg("Error: " + error.message);
+      setMsg("Error: " + friendlyError(error));
     } else {
       setMsg("✓ Te mandamos un email para restablecer tu contraseña.");
     }
@@ -201,13 +203,7 @@ export default function LoginPage() {
               {authError && (
                 <div className="login-error">
                   <Icon name="AlertCircle" size={14} />
-                  <span>{authError.includes("Invalid login") || authError.includes("invalid_credentials")
-                    ? "Email o contraseña incorrectos"
-                    : authError.includes("Email not confirmed") || authError.includes("email_not_confirmed")
-                    ? "Confirmá tu email antes de ingresar. Revisá tu casilla."
-                    : authError.includes("Failed to fetch") || authError.includes("NetworkError")
-                    ? "Error de conexión — revisá tu internet o intentá más tarde"
-                    : authError}</span>
+                  <span>{friendlyError(authError)}</span>
                 </div>
               )}
 

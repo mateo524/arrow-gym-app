@@ -193,8 +193,12 @@ export const createWorkoutSlice = (set, get) => ({
         if (!session?.user?.id) return;
         const { error: gymError } = await withTimeout(supabase.from("profiles").update({ gym_data: payload }).eq("id", session.user.id));
         if (gymError) throw gymError;
+        // Reached the DB: a queued gym snapshot is now stale.
+        set((st) => ({ pendingSyncs: (st.pendingSyncs || []).filter((p) => p.type !== "gym") }));
         get().setSyncStatus?.("saved");
       } catch {
+        // Upload failed / timed out: keep the snapshot for the next flush.
+        s.queueSync?.("gym", payload);
         get().setSyncStatus?.("error");
       }
     } finally {

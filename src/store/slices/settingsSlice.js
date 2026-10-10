@@ -1,3 +1,4 @@
+import { dropForeign } from "../../lib/offlineQueue.js";
 // Debounce for syncing settings to Supabase via healthSlice.syncHealthToDB
 let settingsSyncTimer = null;
 function queueSettingsSync(get) {
@@ -74,7 +75,10 @@ export const createSettingsSlice = (set, get) => ({
     try { get().syncGymStateToDB(); } catch {}
   },
 
-  resetUserData: (userId) => set({
+  resetUserData: (userId) => {
+    // Account switch: offline-queue items owned by another user must not be uploaded under this session.
+    try { dropForeign(userId); } catch {}
+    set({
     lastUserId: userId,
     workouts: [],
     prs: [],
@@ -111,5 +115,9 @@ export const createSettingsSlice = (set, get) => ({
     userGoal: "mantenimiento",
     customFoods: [],
     exerciseRestTimes: {},
-  }),
+    healthTombstones: {},
+    nutritionPlanUpdatedAt: 0,
+    competitionUpdatedAt: 0,
+    });
+  },
 });

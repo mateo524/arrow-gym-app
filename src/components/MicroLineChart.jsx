@@ -17,8 +17,11 @@ export default function MicroLineChart({ data, width = 200, height = 60, color =
 
   const gradId = `mlc-${Math.random().toString(36).slice(2, 6)}`;
 
+  const fmt = (n) => Math.round(n * 10) / 10;
+  const label = `Gráfico de tendencia: primero ${fmt(vals[0])}, último ${fmt(vals[vals.length - 1])}, máximo ${fmt(max)}, mínimo ${fmt(min)}`;
+
   return (
-    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ overflow: "visible", display: "block" }}>
+    <svg role="img" aria-label={label} width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ overflow: "visible", display: "block" }}>
       <defs>
         <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={color} stopOpacity="0.25" />

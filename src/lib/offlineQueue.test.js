@@ -161,3 +161,18 @@ describe("flush", () => {
     expect(q.items().map((i) => i.v)).toEqual([2]);
   });
 });
+
+describe("cambio de cuenta (dropForeign)", () => {
+  it("descarta items de otro usuario y conserva propios y sin dueño", () => {
+    q.enqueue({ type: "upsert_workout", id: "1", row: { user_id: "A" } });
+    q.enqueue({ type: "upsert_workout", id: "2", userId: "B", row: {} });
+    q.enqueue({ type: "delete_workout", id: "3" });
+    expect(q.dropForeign("B")).toBe(1);
+    expect(q.items().map((i) => i.id)).toEqual(["2", "3"]);
+  });
+  it("sin userId no descarta nada", () => {
+    q.enqueue({ type: "x", id: "1", userId: "A" });
+    expect(q.dropForeign(null)).toBe(0);
+    expect(q.size()).toBe(1);
+  });
+});

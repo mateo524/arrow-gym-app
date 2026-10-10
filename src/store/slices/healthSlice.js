@@ -1,6 +1,7 @@
 import { todayLocal } from "../../lib/dates.js";
 import { supabase } from "../../lib/supabase.js";
 import { getAuthUserId } from "../../lib/authBridge.js";
+import { addTombstone, mergeHealthData, entryKey } from "../healthMerge.js";
 
 function uid(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -29,6 +30,10 @@ function buildHealthPayload(state) {
       .map(({ id, date, url, note }) => ({ id, date, url, note })),
     competition_date: state.competitionDate,
     competition_name: state.competitionName,
+    // Merge metadata: tombstones (deleted entries) and clear-timestamps for scalar groups
+    tombstones: state.healthTombstones || {},
+    nutrition_plan_updated_at: state.nutritionPlanUpdatedAt || 0,
+    competition_updated_at: state.competitionUpdatedAt || 0,
     // Settings that live in settingsSlice — included so they survive localStorage wipes
     user_goal: state.userGoal || "mantenimiento",
     custom_kcal: state.customKcal || "",
@@ -48,7 +53,7 @@ const withTimeout = (promise, ms = 8000) => {
 };
 
 // Returns true only when the update really reached the DB.
-async function syncHealthToDB(get) {
+async function syncHealthToDB(get, set) {
   if (healthSyncRunning) {
     healthSyncRetry = true; // re-run with the latest state once the in-flight one ends
     return false;
@@ -61,6 +66,10 @@ async function syncHealthToDB(get) {
     const { error: healthError } = await withTimeout(supabase.from("profiles").update({ health_data: buildHealthPayload(get()) }).eq("id", session.user.id));
     if (healthError) throw healthError;
     ok = true;
+    // The snapshot reached the DB: any queued health snapshot is now stale.
+    if ((get().pendingSyncs || []).some((p) => p.type === "health")) {
+      set?.((s) => ({ pendingSyncs: (s.pendingSyncs || []).filter((p) => p.type !== "health") }));
+    }
   } catch (e) {
     // Silently fail — table or column may not exist yet (includes timeout on dead WiFi)
   } finally {
@@ -68,24 +77,32 @@ async function syncHealthToDB(get) {
   }
   if (healthSyncRetry) {
     healthSyncRetry = false;
-    return syncHealthToDB(get);
+    return syncHealthToDB(get, set);
   }
   return ok;
 }
 
 let healthSyncQueued = false;
-function queueHealthSync(get) {
+function queueHealthSync(get, set) {
   if (healthSyncQueued) return;
   healthSyncQueued = true;
-  setTimeout(() => {
+  setTimeout(async () => {
     healthSyncQueued = false;
     const state = get();
     if (!navigator.onLine) {
       state.queueSync("health", buildHealthPayload(state));
-    } else {
-      syncHealthToDB(get);
+      return;
     }
+    // Online but the upload failed / timed out: keep the snapshot for the next flush.
+    const ok = await syncHealthToDB(get, set);
+    if (!ok) get().queueSync("health", buildHealthPayload(get()));
   }, 200);
+}
+
+// Record a deletion so the entry does not come back from another device.
+function tomb(s, collection, id) {
+  const tombs = s.healthTombstones || {};
+  return { healthTombstones: { ...tombs, [collection]: addTombstone(tombs[collection], entryKey({ id })) } };
 }
 
 export const createHealthSlice = (set, get) => ({
@@ -113,41 +130,57 @@ export const createHealthSlice = (set, get) => ({
   competitionName: "",
   activeChallenges: [],
   pendingSyncs: [],
+  healthTombstones: {},
+  nutritionPlanUpdatedAt: 0,
+  competitionUpdatedAt: 0,
 
   queueSync: (type, payload) => {
     set(s => ({
       // Keep only the latest payload per type: each one is a full snapshot
-      pendingSyncs: [...(s.pendingSyncs || []).filter((p) => p.type !== type), { type, payload, timestamp: Date.now() }].slice(-50),
+      pendingSyncs: [...(s.pendingSyncs || []).filter((p) => p.type !== type), { type, payload, userId: getAuthUserId(), timestamp: Date.now() }].slice(-50),
     }));
   },
 
   flushPendingSyncs: async () => {
-    const pending = get().pendingSyncs || [];
-    if (!pending.length || !navigator.onLine) return;
-    const failed = [];
-    for (const item of pending) {
+    if (!navigator.onLine) return;
+    const uid = getAuthUserId();
+    // Snapshots queued under another account (A -> B switch) must never be uploaded
+    // under this session nor block the queue: drop them.
+    const all = get().pendingSyncs || [];
+    const mine = all.filter((p) => !p.userId || !uid || p.userId === uid);
+    if (mine.length !== all.length) set({ pendingSyncs: mine });
+    if (!mine.length) return;
+    const done = [];
+    for (const item of mine) {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user?.id) { failed.push(item); continue; }
+        if (!session?.user?.id) continue;
+        if (item.userId && item.userId !== session.user.id) { done.push(item); continue; }
         if (item.type === "health") {
-          const { error: healthFlushError } = await withTimeout(supabase.from("profiles").update({ health_data: item.payload }).eq("id", session.user.id));
-          if (healthFlushError) throw healthFlushError;
+          // Merge remote first and upload the fresh state, never the stale snapshot:
+          // it could otherwise overwrite newer edits made on another device.
+          await get().loadHealthFromDB();
+          if (await syncHealthToDB(get, set)) done.push(item);
         } else if (item.type === "gym") {
           const { error: gymFlushError } = await withTimeout(supabase.from("profiles").update({ gym_data: item.payload }).eq("id", session.user.id));
           if (gymFlushError) throw gymFlushError;
+          done.push(item);
+        } else {
+          done.push(item); // unknown type: drop so it cannot block
         }
       } catch {
-        failed.push(item);
+        // keep for the next attempt
       }
     }
-    set({ pendingSyncs: failed });
+    // Remove only what we processed; items queued meanwhile survive.
+    set((s) => ({ pendingSyncs: (s.pendingSyncs || []).filter((p) => !done.some((d) => d.type === p.type && d.timestamp === p.timestamp)) }));
   },
 
   // Upload current local state to Supabase immediately (called on app open)
   syncHealthToDB: async () => {
     get().setSyncStatus?.("saving");
     try {
-      const ok = await syncHealthToDB(get);
+      const ok = await syncHealthToDB(get, set);
       get().setSyncStatus?.(ok ? "saved" : "error");
     } catch {
       get().setSyncStatus?.("error");
@@ -161,33 +194,13 @@ export const createHealthSlice = (set, get) => ({
       const { data } = await supabase.from("profiles").select("health_data").eq("id", session.user.id).single();
       if (data?.health_data) {
         const hd = data.health_data;
-        // Merge arrays by id — never discard locally-stored entries.
-        // Remote wins for scalar fields; for arrays we take the union.
-        // Entries without id (weight/sleep/water logs, rest days) are keyed by date.
-        const keyOf = (x) => (x?.id != null ? `id:${x.id}` : x?.date != null ? `date:${x.date}` : null);
-        const mergeById = (local, remote) => {
-          if (!remote?.length) return local || [];
-          if (!local?.length) return remote;
-          const seen = new Set(local.map(keyOf).filter(Boolean));
-          return [...local, ...remote.filter(x => { const k = keyOf(x); return !k || !seen.has(k); })];
-        };
+        // Union by key with tombstones: deleted entries do not come back, the newer
+        // updatedAt wins, cleared plan/competition do not resurrect (see healthMerge.js).
         const local = get();
         set({
-          // Arrays: union of local + remote so no entry is ever lost
-          weightLog:       mergeById(local.weightLog,       hd.weight_log),
-          mealLog:         mergeById(local.mealLog,         hd.meal_log),
-          sleepLog:        mergeById(local.sleepLog,        hd.sleep_log),
-          waterLog:        mergeById(local.waterLog,        hd.water_log),
-          restDays:        mergeById(local.restDays,        hd.rest_days),
-          cardioHistory:   mergeById(local.cardioHistory,   hd.cardio_history),
-          savedMealCombos: mergeById(local.savedMealCombos, hd.saved_meal_combos),
-          activeChallenges:mergeById(local.activeChallenges,hd.active_challenges),
-          progressPhotos:  mergeById(local.progressPhotos,  hd.progress_photos),
+          ...mergeHealthData(local, hd),
           // Scalars: local wins if it's non-default; otherwise fall back to remote
           waterGoal:       (local.waterGoal && local.waterGoal !== 8) ? local.waterGoal : (hd.water_goal || local.waterGoal || 8),
-          nutritionPlan:   local.nutritionPlan   ?? hd.nutrition_plan   ?? null,
-          competitionDate: local.competitionDate ?? hd.competition_date ?? null,
-          competitionName: local.competitionName ?? hd.competition_name ?? "",
           // Settings synced via health_data — remote wins if local is still at default
           userGoal:      (local.userGoal && local.userGoal !== "mantenimiento")  ? local.userGoal      : (hd.user_goal      || local.userGoal      || "mantenimiento"),
           customKcal:    local.customKcal    || hd.custom_kcal    || "",
@@ -201,105 +214,105 @@ export const createHealthSlice = (set, get) => ({
   logWeight: (kg) => {
     const parsed = Number(String(kg || "").replace(/,/g, "."));
     if (!parsed || isNaN(parsed)) return;
-    const entry = { date: today(), kg: parsed };
+    const entry = { date: today(), kg: parsed, updatedAt: Date.now() };
     set((s) => ({
       weightLog: [entry, ...(s.weightLog || []).filter((e) => e.date !== entry.date)].slice(0, 90),
     }));
-    queueHealthSync(get);
+    queueHealthSync(get, set);
   },
 
   logRestDay: () => {
-    const entry = { date: today() };
+    const entry = { date: today(), updatedAt: Date.now() };
     set((s) => ({
       restDays: [entry, ...(s.restDays || []).filter((e) => e.date !== entry.date)].slice(0, 90),
     }));
-    queueHealthSync(get);
+    queueHealthSync(get, set);
   },
 
   logCardio: (session) => {
-    const s = { id: uid("cardio"), date: today(), ...session };
+    const s = { id: uid("cardio"), date: today(), ...session, updatedAt: Date.now() };
     set((state) => ({ cardioHistory: [s, ...(state.cardioHistory || [])] }));
-    queueHealthSync(get);
+    queueHealthSync(get, set);
   },
   deleteCardio: (id) => {
-    set((s) => ({ cardioHistory: (s.cardioHistory || []).filter((c) => c.id !== id) }));
-    queueHealthSync(get);
+    set((s) => ({ cardioHistory: (s.cardioHistory || []).filter((c) => c.id !== id), ...tomb(s, "cardioHistory", id) }));
+    queueHealthSync(get, set);
   },
 
   logMeal: (meal) => {
-    const m = { id: uid("meal"), date: today(), ...meal, user_id: getAuthUserId() };
+    const m = { id: uid("meal"), date: today(), ...meal, user_id: getAuthUserId(), updatedAt: Date.now() };
     set((s) => ({ mealLog: [m, ...(s.mealLog || [])] }));
-    queueHealthSync(get);
+    queueHealthSync(get, set);
   },
   deleteMeal: (id) => {
-    set((s) => ({ mealLog: (s.mealLog || []).filter((m) => m.id !== id) }));
-    queueHealthSync(get);
+    set((s) => ({ mealLog: (s.mealLog || []).filter((m) => m.id !== id), ...tomb(s, "mealLog", id) }));
+    queueHealthSync(get, set);
   },
 
   saveMealCombo: (name, meals) => {
-    const combo = { id: uid("combo"), name: String(name).trim(), meals };
+    const combo = { id: uid("combo"), name: String(name).trim(), meals, updatedAt: Date.now() };
     set((s) => ({ savedMealCombos: [combo, ...(s.savedMealCombos || [])] }));
-    queueHealthSync(get);
+    queueHealthSync(get, set);
   },
   deleteMealCombo: (id) => {
-    set((s) => ({ savedMealCombos: (s.savedMealCombos || []).filter((c) => c.id !== id) }));
-    queueHealthSync(get);
+    set((s) => ({ savedMealCombos: (s.savedMealCombos || []).filter((c) => c.id !== id), ...tomb(s, "savedMealCombos", id) }));
+    queueHealthSync(get, set);
   },
   saveNutritionPlan: (plan) => {
-    set({ nutritionPlan: plan });
-    queueHealthSync(get);
+    set({ nutritionPlan: plan, nutritionPlanUpdatedAt: Date.now() });
+    queueHealthSync(get, set);
   },
   clearNutritionPlan: () => {
-    set({ nutritionPlan: null });
-    queueHealthSync(get);
+    set({ nutritionPlan: null, nutritionPlanUpdatedAt: Date.now() });
+    queueHealthSync(get, set);
   },
 
   logMealCombo: (comboId) => {
     const combo = (get().savedMealCombos || []).find((c) => c.id === comboId);
     if (!combo) return;
     const todayDate = today();
-    const newMeals = combo.meals.map((m) => ({ id: uid("meal"), date: todayDate, ...m, user_id: getAuthUserId() }));
+    const newMeals = combo.meals.map((m) => ({ id: uid("meal"), date: todayDate, ...m, user_id: getAuthUserId(), updatedAt: Date.now() }));
     set((s) => ({ mealLog: [...newMeals, ...(s.mealLog || [])] }));
-    queueHealthSync(get);
+    queueHealthSync(get, set);
   },
 
   logSleep: (hours) => {
     const date = today();
-    set((s) => ({ sleepLog: [{ date, hours: Number(hours) }, ...(s.sleepLog || []).filter((e) => e.date !== date)].slice(0, 90) }));
-    queueHealthSync(get);
+    set((s) => ({ sleepLog: [{ date, hours: Number(hours), updatedAt: Date.now() }, ...(s.sleepLog || []).filter((e) => e.date !== date)].slice(0, 90) }));
+    queueHealthSync(get, set);
   },
   logWater: (glasses) => {
     const date = today();
-    set((s) => ({ waterLog: [{ date, glasses: Number(glasses) }, ...(s.waterLog || []).filter((e) => e.date !== date)].slice(0, 90) }));
-    queueHealthSync(get);
+    set((s) => ({ waterLog: [{ date, glasses: Number(glasses), updatedAt: Date.now() }, ...(s.waterLog || []).filter((e) => e.date !== date)].slice(0, 90) }));
+    queueHealthSync(get, set);
   },
   setWaterGoal: (goal) => {
     set({ waterGoal: Number(goal) });
-    queueHealthSync(get);
+    queueHealthSync(get, set);
   },
 
   setCompetitionMode: (date, name) => {
-    set({ competitionDate: date, competitionName: name });
-    queueHealthSync(get);
+    set({ competitionDate: date, competitionName: name, competitionUpdatedAt: Date.now() });
+    queueHealthSync(get, set);
   },
   clearCompetitionMode: () => {
-    set({ competitionDate: null, competitionName: "" });
-    queueHealthSync(get);
+    set({ competitionDate: null, competitionName: "", competitionUpdatedAt: Date.now() });
+    queueHealthSync(get, set);
   },
 
   start30DayChallenge: (exercise) => {
     const id = uid("ch");
-    set((s) => ({ activeChallenges: [{ id, type: "30day", exercise, startDate: today(), targetDays: 30, completedDays: [] }, ...(s.activeChallenges || [])] }));
-    queueHealthSync(get);
+    set((s) => ({ activeChallenges: [{ id, type: "30day", exercise, startDate: today(), targetDays: 30, completedDays: [], updatedAt: Date.now() }, ...(s.activeChallenges || [])] }));
+    queueHealthSync(get, set);
   },
   markChallengeDay: (id) => {
     const date = today();
-    set((s) => ({ activeChallenges: (s.activeChallenges || []).map((c) => c.id === id && !c.completedDays.includes(date) ? { ...c, completedDays: [...c.completedDays, date] } : c) }));
-    queueHealthSync(get);
+    set((s) => ({ activeChallenges: (s.activeChallenges || []).map((c) => c.id === id && !c.completedDays.includes(date) ? { ...c, completedDays: [...c.completedDays, date], updatedAt: Date.now() } : c) }));
+    queueHealthSync(get, set);
   },
   deleteChallenge: (id) => {
-    set((s) => ({ activeChallenges: (s.activeChallenges || []).filter((c) => c.id !== id) }));
-    queueHealthSync(get);
+    set((s) => ({ activeChallenges: (s.activeChallenges || []).filter((c) => c.id !== id), ...tomb(s, "activeChallenges", id) }));
+    queueHealthSync(get, set);
   },
 
   addProgressPhoto: (photoSource, note) => {
@@ -312,10 +325,16 @@ export const createHealthSlice = (set, get) => ({
       note: note || "",
     };
     set((s) => ({ progressPhotos: [photo, ...(s.progressPhotos || [])].slice(0, 50) }));
-    queueHealthSync(get);
+    queueHealthSync(get, set);
   },
   deleteProgressPhoto: (id) => {
-    set((s) => ({ progressPhotos: (s.progressPhotos || []).filter((p) => p.id !== id) }));
-    queueHealthSync(get);
+    set((s) => ({ progressPhotos: (s.progressPhotos || []).filter((p) => p.id !== id), ...tomb(s, "progressPhotos", id) }));
+    queueHealthSync(get, set);
+  },
+  // Edita un registro de comida (gramos, tipo, macros). No cambia id, fecha ni usuario.
+  updateMeal: (id, patch) => {
+    const { id: _i, date: _d, user_id: _u, ...safe } = patch || {};
+    set((s) => ({ mealLog: (s.mealLog || []).map((m) => (m.id === id ? { ...m, ...safe, updatedAt: Date.now() } : m)) }));
+    queueHealthSync(get, set);
   },
 });

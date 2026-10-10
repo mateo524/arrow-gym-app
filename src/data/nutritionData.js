@@ -400,9 +400,9 @@ export const FOOD_DB = [
   { cat:"bebida", name:"Agua con gas (500ml)",         kcal:0,   protein:0,   carbs:0,   fat:0    },
   { cat:"bebida", name:"Coca-Cola (350ml)",            kcal:140, protein:0,   carbs:39,  fat:0    },
   { cat:"bebida", name:"Coca-Cola Zero (350ml)",       kcal:1,   protein:0,   carbs:0,   fat:0    },
-  { cat:"bebida", name:"Cerveza (330ml)",              kcal:155, protein:1.6, carbs:13,  fat:0    },
-  { cat:"bebida", name:"Vino tinto (150ml)",           kcal:125, protein:0.1, carbs:4,   fat:0    },
-  { cat:"bebida", name:"Vino blanco (150ml)",          kcal:121, protein:0.1, carbs:3.8, fat:0    },
+  { cat:"bebida", name:"Cerveza (330ml)",              kcal:155, protein:1.6, carbs:13,  fat:0, alcohol:true },
+  { cat:"bebida", name:"Vino tinto (150ml)",           kcal:125, protein:0.1, carbs:4,   fat:0, alcohol:true },
+  { cat:"bebida", name:"Vino blanco (150ml)",          kcal:121, protein:0.1, carbs:3.8, fat:0, alcohol:true },
   { cat:"bebida", name:"Té frío (500ml)",              kcal:60,  protein:0,   carbs:15,  fat:0    },
   // -- Suplementos ----------------------------------------------
   { cat:"suplemento", name:"Whey protein (scoop 30g)", kcal:120, protein:24,  carbs:3,   fat:2    },

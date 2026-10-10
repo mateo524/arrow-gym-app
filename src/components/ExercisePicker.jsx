@@ -6,8 +6,9 @@ import Icon from "./Icon.jsx";
 const ALL = "Todos";
 const CHIPS = [ALL, ...BODY_GROUPS];
 const EQUIP_CHIPS = Object.keys(EQUIPMENT_CATEGORIES);
+const PAGE_SIZE = 40;
 
-function ExerciseList({ items, favoriteExercises, toggleFavorite, onExerciseTap, handlePick, totalCount }) {
+function ExerciseList({ items, favoriteExercises, toggleFavorite, onExerciseTap, handlePick, totalCount, onMore, remaining }) {
   if (items.length === 0) {
     return (
       <div className="notice" style={{ marginTop: 8 }}>
@@ -47,7 +48,12 @@ function ExerciseList({ items, favoriteExercises, toggleFavorite, onExerciseTap,
           </div>
         );
       })}
-      {totalCount > items.length && (
+      {remaining > 0 && (
+        <button type="button" className="ghost" style={{ width: "100%", marginTop: 8, fontSize: 13 }} onClick={onMore}>
+          Ver más ({remaining} restantes)
+        </button>
+      )}
+      {totalCount > items.length && remaining <= 0 && (
         <p style={{ textAlign: "center", fontSize: 12, color: "var(--muted)", padding: "8px 0" }}>
           Mostrando {items.length} de {totalCount} — usá los filtros para acotar
         </p>
@@ -94,7 +100,14 @@ export default function ExercisePicker({ onPick, compact = false, query: queryPr
     [allResults, showFavoritesOnly, favoriteExercises]
   );
 
-  const displayed = compact ? results.slice(0, 50) : results;
+  // Render por tandas: el límite se reinicia al cambiar búsqueda/filtros
+  const filterKey = `${debouncedQuery}|${group}|${muscle}|${equipment}|${showFavoritesOnly}`;
+  const [pager, setPager] = useState({ key: filterKey, n: PAGE_SIZE });
+  const limit = pager.key === filterKey ? pager.n : PAGE_SIZE;
+  const cap = compact ? Math.min(results.length, 50) : results.length;
+  const displayed = useMemo(() => results.slice(0, Math.min(limit, cap)), [results, limit, cap]);
+  const remaining = cap - displayed.length;
+  const showMore = useCallback(() => setPager({ key: filterKey, n: limit + PAGE_SIZE }), [filterKey, limit]);
 
   const muscles = group === ALL ? Object.values(MUSCLES_BY_GROUP).flat() : MUSCLES_BY_GROUP[group] || [];
 
@@ -120,12 +133,12 @@ export default function ExercisePicker({ onPick, compact = false, query: queryPr
         />
       </div>
 
-      <div className="chips-row" role="tablist" aria-label="Body group filter">
+      <div className="chips-row" role="group" aria-label="Body group filter">
         {CHIPS.map((chip) => (
           <button
             key={chip}
-            role="tab"
-            aria-selected={group === chip}
+            type="button"
+            aria-pressed={group === chip}
             className={`chip ${group === chip ? "chip-active" : ""}`}
             onClick={() => { setGroup(chip); setMuscle(ALL); }}
           >
@@ -148,12 +161,12 @@ export default function ExercisePicker({ onPick, compact = false, query: queryPr
         </button>
       </div>
 
-      <div className="chips-row" role="tablist" aria-label="Equipment filter" style={{ marginTop: 2 }}>
+      <div className="chips-row" role="group" aria-label="Equipment filter" style={{ marginTop: 2 }}>
         {EQUIP_CHIPS.map((cat) => (
           <button
             key={cat}
-            role="tab"
-            aria-selected={equipment === cat}
+            type="button"
+            aria-pressed={equipment === cat}
             className={`chip ${equipment === cat ? "chip-active" : ""}`}
             onClick={() => setEquipment(equipment === cat ? ALL : cat)}
           >
@@ -176,6 +189,8 @@ export default function ExercisePicker({ onPick, compact = false, query: queryPr
         onExerciseTap={onExerciseTap}
         handlePick={handlePick}
         totalCount={results.length}
+        onMore={showMore}
+        remaining={remaining}
       />
     </div>
   );

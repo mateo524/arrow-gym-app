@@ -26,6 +26,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: (id) => {
+          if (id.includes('src/data/exerciseDatabase.js')) return 'exercise-db';
           if (id.includes('node_modules')) {
             if (id.includes('@supabase')) return 'vendor-supabase';
             if (id.includes('react-dom') || id.includes('react/')) return 'vendor-react';

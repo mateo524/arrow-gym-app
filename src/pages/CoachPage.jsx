@@ -1,3 +1,4 @@
+import { openCheckout } from "../lib/checkout.js";
 import { formatDMY, formatDM } from "../lib/dates.js";
 ﻿import { useMemo, useState, useEffect } from "react";
 import MuscleRadarChart from "../components/MuscleRadarChart.jsx";
@@ -29,7 +30,7 @@ export default function CoachPage() {
     return (
       <section className="page" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "48px 24px" }}>
         <Icon name="Lock" size={48} style={{ display:'block', margin:'0 auto 16px' }} />
-        <h2 style={{ margin: "0 0 8px", fontSize: 22 }}>Coach IA</h2>
+        <h2 style={{ margin: "0 0 8px", fontSize: 22 }}>Coach con IA</h2>
         <p style={{ color: "var(--muted)", fontSize: 14, marginBottom: 28, maxWidth: 280 }}>
           Analizá tu progreso, recibí recomendaciones personalizadas y optimizá tu entrenamiento con inteligencia artificial.
         </p>
@@ -41,7 +42,7 @@ export default function CoachPage() {
               const { supabase } = await import("../lib/supabase.js");
               const { data, error } = await supabase.functions.invoke("mp-create-subscription");
               if (data?.already_active) { window.__showToast?.("Ya tenés una suscripción activa.", "info"); return; }
-              if (!error && data?.init_point) window.location.href = data.init_point;
+              if (!error && data?.init_point) openCheckout(data.init_point);
               else window.__showToast?.("No se pudo iniciar el pago. Intentá de nuevo.", "error");
             } catch { window.__showToast?.("Error de conexión.", "error"); }
           }}
@@ -274,18 +275,22 @@ export default function CoachPage() {
       const bfEssential   = sexFlag === "F" ? 10 : 5;   // grasa esencial — riesgo hormonal severo
 
       if (bodyFatPct > bfHighThresh) {
-        alerts.push({ type: "bodyfat_high", msg: `% grasa elevado (${bodyFatPct.toFixed(1)}%). Gallagher et al. (2000): >25% en hombres / >32% en mujeres se asocia a mayor riesgo metabólico. Objetivo: déficit 300-500 kcal/día ? pérdida de 0.5-1% peso/semana (ISSN 2017). Cardio aeróbico 2-3x/semana complementa el déficit sin comprometer el másculo.` });
+        const adultOk = userAge !== null && userAge >= 18;
+        const defTip = adultOk ? ` Si estás en una fase de definición, suele usarse un déficit moderado (300-500 kcal/día) sin bajar de un piso calórico saludable, y el cardio aeróbico 2-3x/semana puede complementarlo.` : "";
+        alerts.push({ type: "bodyfat_high", msg: `% grasa elevado (${bodyFatPct.toFixed(1)}%). Gallagher et al. (2000): >25% en hombres / >32% en mujeres se asocia a mayor riesgo metabólico.${defTip} Orientativo, no reemplaza a un profesional.` });
       } else if (bodyFatPct > bfModThresh) {
-        alerts.push({ type: "bodyfat_mod", msg: `% grasa moderadamente elevado (${bodyFatPct.toFixed(1)}%). Considerá una fase de definición con déficit conservador (300 kcal/día) para llegar al rango óptimo (15-20% hombres, 22-28% mujeres) antes de un ciclo de volumen.` });
+        const adultMod = userAge !== null && userAge >= 18;
+        const modTip = adultMod ? ` Podrías considerar una fase de definición con déficit conservador (alrededor de 300 kcal/día, sin bajar de un piso calórico saludable) antes de un ciclo de volumen.` : "";
+        alerts.push({ type: "bodyfat_mod", msg: `% grasa moderadamente elevado (${bodyFatPct.toFixed(1)}%). El rango habitual de referencia es 15-20% en hombres y 22-28% en mujeres.${modTip} Orientativo, no reemplaza a un profesional.` });
       } else if (bodyFatPct < bfEssential) {
-        alerts.push({ type: "bodyfat_critical", msg: `% grasa crítico (${bodyFatPct.toFixed(1)}%). Por debajo de la grasa esencial (5% hombres, 10% mujeres). Riesgo serio de disfunción hormonal, amenorrea e inmunodepresión (Friedl et al. 1994). Aumentá calorías de inmediato.` });
+        alerts.push({ type: "bodyfat_critical", msg: `% grasa crítico (${bodyFatPct.toFixed(1)}%). Por debajo de la grasa esencial (5% hombres, 10% mujeres). Valor fuera de rango saludable; conviene consultar a un profesional (médico o nutricionista). Orientativo, no reemplaza a un profesional.` });
       } else if (bodyFatPct < bfLowRisk) {
-        alerts.push({ type: "bodyfat_low", msg: `% grasa muy bajo (${bodyFatPct.toFixed(1)}%). Valores <8% en hombres (<14% mujeres) pueden comprometer testosterona y rendimiento (Friedl et al. 1994). Priorizar calorías suficientes y proteína =2g/kg.` });
+        alerts.push({ type: "bodyfat_low", msg: `% grasa muy bajo (${bodyFatPct.toFixed(1)}%). Valores <8% en hombres (<14% mujeres) pueden comprometer testosterona y rendimiento (Friedl et al. 1994). Conviene sostener calorías suficientes y una ingesta de proteína adecuada. Orientativo, no reemplaza a un profesional.` });
       }
     }
 
     return alerts;
-  }, [workouts, bodyFatPct, profile]);
+  }, [workouts, bodyFatPct, profile, userAge]);
 
   const periodization = useMemo(() => getPeriodizationPhase(workouts), [workouts]);
   const fatigueScore  = useMemo(() => getWeeklyFatigueScore(workouts), [workouts]);
@@ -827,7 +832,7 @@ export default function CoachPage() {
               <Icon name="BrainCircuit" size={20} style={{flexShrink:0, marginTop:1}} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ margin: "0 0 2px", fontWeight: 700, fontSize: 13, color: "var(--accent, #a855f7)" }}>
-                  {coachNotif.title || "Coach IA"}
+                  {coachNotif.title || "Coach con IA"}
                 </p>
                 <p style={{ margin: 0, fontSize: 13, color: "var(--text)", lineHeight: 1.5 }}>
                   {coachNotif.body}
@@ -874,7 +879,7 @@ export default function CoachPage() {
                 const icon     = isDeload ? "RotateCcw" : isAccum ? "TrendingUp" : "Dumbbell";
                 const label    = periodization.needsDeload ? "Deload recomendado" : isAccum ? "Fase de acumulación" : periodization.phase === "deload" ? "Fase de descarga" : "Fase de intensificación";
                 const desc     = periodization.needsDeload
-                  ? "Llevas 3+ semanas subiendo volumen. Esta semana bajá el peso al 60% y aumentá las repeticiones (12-20 reps por serie) para que el cuerpo se recupere sin perder calidad."
+                  ? "Llevás 3+ semanas subiendo volumen. Esta semana bajá el peso al 60% y aumentá las repeticiones (12-20 reps por serie) para que el cuerpo se recupere sin perder calidad."
                   : isAccum ? "Volumen en alza — buena señal. Priorizá técnica perfecta antes de seguir subiendo cargas."
                   : periodization.phase === "deload" ? "Volumen bajando. Si es planificado, perfecto. Si no, revisá fatiga o motivación."
                   : "Volumen estable — momento ideal para subir la intensidad (más kg, mismas series).";
@@ -1181,7 +1186,7 @@ export default function CoachPage() {
           {!progression.length && !topExercises.length && !prs.length ? (
             <div style={{ textAlign:"center", padding:"40px 20px" }}>
               <div style={{ marginBottom:12, display:'flex', justifyContent:'center' }}><Icon name="BarChart2" size={48} /></div>
-              <h3 style={{ margin:"0 0 8px", fontSize:17 }}>Sin datos aún</h3>
+              <h3 style={{ margin:"0 0 8px", fontSize:17 }}>Sin datos todavía</h3>
               <p style={{ color:"var(--muted)", fontSize:13, lineHeight:1.5, margin:0 }}>Completá más entrenamientos para ver tu progresión por ejercicio y grupo muscular.</p>
             </div>
           ) : (
@@ -1293,7 +1298,7 @@ export default function CoachPage() {
                 // Sleep
                 if (sleepAvg !== null) {
                   const ok = Number(sleepAvg) >= 7;
-                  insights.push({ icon:"Moon", text:`Sueño: ${sleepAvg}h promedio${ok ? " — óptimo" : " — ideal =7h"}`, color:ok ? "var(--green)" : "#f59e0b" });
+                  insights.push({ icon:"Moon", text:`Sueño: ${sleepAvg}h promedio${ok ? " — óptimo" : " — ideal ≥7h"}`, color:ok ? "var(--green)" : "#f59e0b" });
                 }
                 // Volume trend
                 if (volTrend !== null && !isNaN(volTrend)) {
@@ -1666,7 +1671,7 @@ export default function CoachPage() {
             return (
               <div style={{ background:"var(--panel)", borderRadius:14, padding:"14px 16px", marginBottom:14 }}>
                 <p style={{ margin:"0 0 12px", fontSize:11, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em" }}>
-                  Volumen semanal por másculo (esta semana)
+                  Volumen semanal por músculo (esta semana)
                 </p>
                 {entries.map(({ group, sets, mev, mav, mrv, status }) => {
                   const barPct = Math.min(1, sets / mrv);

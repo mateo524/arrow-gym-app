@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { supabase } from "../lib/supabase.js";
 import { setAuthUserId, setAuthProfile } from "../lib/authBridge.js";
+import { dropForeign } from "../lib/offlineQueue.js";
 
 const PROFILE_CACHE_KEY = "loop-gym-profile-v1";
 
@@ -92,6 +93,8 @@ const useAuthStore = create((set, get) => ({
   },
 
   fetchProfile: async (user) => {
+    // Offline-queue items owned by another account must never go up under this session.
+    try { dropForeign(user.id); } catch {}
     // Eagerly detect cross-user switch before the Supabase round-trip so the
     // new user never briefly sees stale mealLog data from localStorage.
     try {
@@ -159,6 +162,9 @@ const useAuthStore = create((set, get) => ({
           // After merge, push the combined result back to Supabase so it stays in sync
           try { await useStore.getState().syncHealthToDB(); } catch {}
           useStore.getState().syncAllToSupabase(user.id);
+          // App open: retry snapshots/queue items left over from an offline session
+          try { await useStore.getState().flushPendingSyncs(); } catch {}
+          try { const { flushPending } = await import("../lib/workoutSync.js"); await flushPending({ force: true }); } catch {}
         } catch {}
       } else {
         // Supabase returned an error — fall back to cached profile so the app never hangs
@@ -208,6 +214,15 @@ const useAuthStore = create((set, get) => ({
   cacheProfile: (profile) => { saveCachedProfile(profile); },
 
   logout: async () => {
+    // Flush while the session is still valid, bounded so a dead network can't block logout.
+    try {
+      const { default: useStore } = await import("./useStore.js");
+      const { flushPending } = await import("../lib/workoutSync.js");
+      await Promise.race([
+        Promise.allSettled([useStore.getState().flushPendingSyncs(), flushPending({ force: true })]),
+        new Promise((resolve) => setTimeout(resolve, 5000)),
+      ]);
+    } catch {}
     clearCachedProfile();
     try { await supabase.auth.signOut(); } catch {}
     setAuthUserId(null);
@@ -219,10 +234,15 @@ const useAuthStore = create((set, get) => ({
       useStore.getState().resetUserData(null);
     } catch {}
     sessionStorage.removeItem("loop-gym-active-workout");
+    try { localStorage.removeItem("loop-gym-active-workout"); } catch {}
     try {
       if ("caches" in window) {
+        // Only user-data caches: the SW precache (workbox-precache-*) and the app-shell
+        // navigation cache must survive or the app would not open offline after logout.
         const keys = await caches.keys();
-        await Promise.all(keys.map((k) => caches.delete(k)));
+        await Promise.all(keys
+          .filter((k) => !/precache/i.test(k) && k !== "navigation")
+          .map((k) => caches.delete(k)));
       }
     } catch {}
   },

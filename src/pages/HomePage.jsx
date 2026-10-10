@@ -1,3 +1,4 @@
+import { openCheckout } from "../lib/checkout.js";
 ﻿import { useState, useMemo, useEffect } from "react";
 import { useShallow } from "zustand/react/shallow";
 import useStore from "../store/useStore.js";
@@ -8,6 +9,7 @@ import AdvancedMuscleDiagram from "../components/AdvancedMuscleDiagram.jsx";
 import Icon from "../components/Icon.jsx";
 import NotificationPanel from "../components/NotificationPanel.jsx";
 import { features } from "../config/features.js";
+import StreakCard, { FirstWorkoutCta } from "../components/StreakCard.jsx";
 
 export default function HomePage() {
   const { workouts, restDays, setPage, activeWorkout, achievements, prs, cardioHistory, weeklyGoal, logRestDay, mealLog, weightLog } = useStore(
@@ -26,6 +28,7 @@ export default function HomePage() {
     }))
   );
   const profile = useAuthStore((s) => s.profile);
+  const startWorkout = useStore((s) => s.startWorkout);
   const [activeMuscle, setActiveMuscle] = useState(null);
   const achMap = useMemo(() => new Map(ACHIEVEMENTS_DEF.map(d => [d.id, d])), []);
   const last = workouts[0];
@@ -273,7 +276,7 @@ export default function HomePage() {
               const { supabase } = await import("../lib/supabase.js");
               const { data, error } = await supabase.functions.invoke("mp-create-subscription");
               if (data?.already_active) { window.__showToast?.("Ya tenés una suscripción activa.", "info"); return; }
-              if (!error && data?.init_point) window.location.href = data.init_point;
+              if (!error && data?.init_point) openCheckout(data.init_point);
               else window.__showToast?.("No se pudo iniciar el pago. Intentá de nuevo.", "error");
             } catch { window.__showToast?.("Error de conexión.", "error"); }
           }}
@@ -530,6 +533,14 @@ export default function HomePage() {
               );
             })}
           </div>
+
+          {/* Primer entrenamiento guiado / racha semanal y progreso */}
+          {workouts.length === 0 && !activeWorkout && (
+            <FirstWorkoutCta goal={userGoal} level={activityLevel} onStart={(routine) => startWorkout(routine)} />
+          )}
+          {workouts.length > 0 && (
+            <StreakCard workouts={workouts} prs={prs} weightLog={weightLog} goal={adaptedWeeklyGoal} />
+          )}
 
           {/* Logros recientes */}
           {recentAch.length > 0 && (

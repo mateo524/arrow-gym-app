@@ -44,11 +44,16 @@ export function keyOf(item) {
   return item.key || (item.id != null ? `${item.type}:${item.id}` : null);
 }
 
+// Owner of an item: explicit userId, or the user_id of the row it carries.
+export function ownerOf(item) {
+  return item?.userId ?? item?.row?.user_id ?? null;
+}
+
 export function enqueue(item) {
   const key = keyOf(item);
   let q = load();
   if (key) q = q.filter((i) => keyOf(i) !== key);
-  q.push({ ...item, key, queuedAt: Date.now() });
+  q.push({ ...item, key, userId: ownerOf(item), queuedAt: Date.now() });
   if (q.length === SOFT_WARN_SIZE) warn("cola de sincronización grande", { size: q.length });
   save(q);
 }
@@ -59,6 +64,17 @@ export function items() { return load().slice(); }
 export function clear() {
   inMemoryFallback = null;
   try { localStorage.removeItem(KEY); } catch {}
+}
+
+// Account switch A -> B: drop every item that belongs to another user so it can
+// neither be uploaded under B's session nor block the queue. Items without an
+// owner (legacy) are kept. Returns how many were dropped.
+export function dropForeign(userId) {
+  if (!userId) return 0;
+  const q = load();
+  const next = q.filter((i) => { const o = ownerOf(i); return !o || o === userId; });
+  if (next.length !== q.length) save(next);
+  return q.length - next.length;
 }
 
 function removeExact(item) {

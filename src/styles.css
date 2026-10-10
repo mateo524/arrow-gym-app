@@ -1093,7 +1093,7 @@ p { color: #c4b8d8; }
 .radar-line { fill: none; stroke: var(--green); stroke-width: 2; }
 .radar-dot { fill: var(--green); stroke: #0a0020; stroke-width: 2; }
 .radar-label { fill: var(--muted); font-size: 10px; font-weight: 700; }
-.radar-small { fill: rgba(255,255,255,.35); font-size: 9px; }
+.radar-small { fill: rgba(255,255,255,.7); font-size: 11px; }
 
 .progression-card {
   background: rgba(13,18,20,.92);
@@ -3437,11 +3437,6 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   .shimmer-accent { animation: none; }
 }
 
-/* HelpTip */
-.help-tip { position: relative; display: inline-flex; vertical-align: middle; margin-left: 4px; }
-.help-tip-btn { width: 16px; height: 16px; min-width: 16px; padding: 0; border-radius: 50%; border: 1px solid var(--muted); background: transparent; color: var(--muted); font-size: 10px; font-weight: 800; line-height: 1; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
-.help-tip-pop { position: absolute; z-index: 10010; left: 50%; bottom: calc(100% + 6px); transform: translateX(-50%); width: 220px; max-width: 70vw; padding: 8px 10px; border-radius: 10px; background: var(--panel2); border: 1px solid var(--border); color: var(--text); font-size: 12px; font-weight: 500; line-height: 1.4; text-align: left; text-transform: none; letter-spacing: 0; box-shadow: 0 6px 20px rgba(0,0,0,.4); }
-.help-tip-pop b { display: block; margin-bottom: 2px; }
 .check-ico { display: inline-flex; flex-shrink: 0; }
 
 /* ── Accesibilidad: targets >= 44px, foco, pantallas chicas ── */
@@ -3505,3 +3500,30 @@ img, video, canvas { max-width: 100%; }
   .set-row-actions { flex-basis: 100%; justify-content: flex-end; margin-left: 0; }
   .set-row-inputs { margin-right: 0; }
 }
+
+/* Serie: botones de ícono >= 32px sin achicar los cuadros de peso/reps (se compensa con menos aire) */
+.set-row-actions .set-icon-32 { min-width: 32px; min-height: 32px; }
+.set-row-actions.set-actions-tight { gap: 2px; }
+.set-row-inputs.set-inputs-tight { margin-right: 4px; }
+.set-repeat-prev { min-height: 32px; font-size: 12px; padding: 4px 10px; align-self: flex-start; }
+.set-link-btn { background: none; border: 0; padding: 4px 0; min-height: 32px; color: var(--green); font-size: 12px; font-weight: 700; text-decoration: underline; cursor: pointer; }
+
+/* ── Comidas: editar, deshacer, recientes, porciones ── */
+.nut-meal-card { flex: 1; min-width: 0; min-height: 48px; background: none; border: 0; padding: 12px 14px; text-align: left; color: inherit; font: inherit; cursor: pointer; border-radius: 14px; }
+.nut-meal-card:focus-visible, .nut-recent-chip:focus-visible, .nut-portion-btn:focus-visible, .nut-link-btn:focus-visible, .nut-more-btn:focus-visible, .nut-undo-btn:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+.nut-alcohol-note { font-size: 11px; font-weight: 600; color: #f59e0b; margin-top: 3px; }
+.nut-link-btn { background: none; border: 0; padding: 4px 0; min-height: 32px; color: var(--green); font-size: 12px; font-weight: 700; text-decoration: underline; cursor: pointer; white-space: nowrap; }
+.nut-more-btn { display: block; width: 100%; min-height: 44px; margin: 4px 0 16px; background: var(--panel2); border: 1px solid var(--line); border-radius: 12px; color: var(--text); font-size: 13px; font-weight: 700; cursor: pointer; }
+.nut-recents { margin-bottom: 14px; }
+.nut-recents-title { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 6px; }
+.nut-recents-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; }
+.nut-recent-chip { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-start; gap: 1px; min-height: 44px; max-width: 170px; padding: 7px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; color: var(--text); cursor: pointer; text-align: left; }
+.nut-recent-name { font-size: 12px; font-weight: 700; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nut-recent-kcal { font-size: 11px; font-weight: 800; color: var(--green); }
+.nut-portion { display: flex; align-items: center; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.nut-portion-label { flex: 1 1 100%; font-size: 11px; color: var(--muted); }
+.nut-portion-btn { min-width: 52px; min-height: 40px; padding: 6px 14px; background: var(--panel2); border: 1.5px solid var(--line); border-radius: 10px; color: var(--text); font-size: 14px; font-weight: 700; cursor: pointer; }
+.nut-portion-btn.is-active { border-color: var(--green); background: rgba(52, 211, 153, .12); color: var(--green); }
+.nut-undo { position: fixed; left: 12px; right: 12px; bottom: calc(76px + env(safe-area-inset-bottom, 0px)); z-index: 500; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 8px 24px rgba(0, 0, 0, .45); }
+.nut-undo-text { font-size: 13px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nut-undo-btn { flex-shrink: 0; min-height: 40px; padding: 6px 14px; background: none; border: 0; color: var(--green); font-size: 13px; font-weight: 800; text-transform: uppercase; cursor: pointer; }

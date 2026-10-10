@@ -12,6 +12,23 @@ const USER_TABS = [
   { id: "profile",   label: "Perfil",    icon: "User" },
 ];
 
+// Prefetch de chunks lazy (mismos módulos que App.jsx; el navegador los cachea)
+const PREFETCH = {
+  start:     () => import("../pages/StartWorkoutPage.jsx"),
+  coach:     () => import("../pages/CoachPage.jsx"),
+  nutrition: () => import("../pages/NutritionPage.jsx"),
+  profile:   () => import("../pages/ProfilePage.jsx"),
+  trainer:   () => import("../pages/TrainerPage.jsx"),
+  admin:     () => import("../pages/AdminPage.jsx"),
+};
+const prefetched = new Set();
+function prefetchPage(id) {
+  const loader = PREFETCH[id];
+  if (!loader || prefetched.has(id)) return;
+  prefetched.add(id);
+  loader().catch(() => prefetched.delete(id));
+}
+
 const TRAINER_EXTRA = { id: "trainer", label: "Alumnos", icon: "Users" };
 const ADMIN_EXTRA   = { id: "admin",   label: "Admin",   icon: "ShieldCheck" };
 
@@ -60,6 +77,9 @@ export default function Nav({ role }) {
             key={tab.id}
             className={`nav-item${isActive ? " active" : ""}${tab.pulse ? " nav-item-workout" : ""}`}
             onClick={() => setPage(tab.id)}
+            onPointerEnter={() => prefetchPage(tab.id)}
+            onTouchStart={() => prefetchPage(tab.id)}
+            onFocus={() => prefetchPage(tab.id)}
             type="button"
             aria-label={tab.label}
             aria-current={isActive ? "page" : undefined}

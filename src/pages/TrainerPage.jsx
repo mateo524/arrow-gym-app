@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { supabase } from "../lib/supabase.js";
+import { supabase, sb } from "../lib/supabase.js";
 import useAuthStore from "../store/useAuthStore.js";
 import useStore from "../store/useStore.js";
 import { EXERCISE_DATABASE } from "../data/exerciseDatabase.js";
@@ -134,7 +134,15 @@ export default function TrainerPage() {
 
   async function respondToRequest(requestId, newStatus) {
     setRespondingId(requestId);
-    await supabase.rpc("respond_trainer_request", { request_id: requestId, new_status: newStatus });
+    const { error } = await sb(
+      supabase.rpc("respond_trainer_request", { request_id: requestId, new_status: newStatus }),
+      { label: "respond_trainer_request" }
+    );
+    if (error) {
+      window.__showToast?.("No se pudo responder la solicitud. Intentá de nuevo.", "error");
+      setRespondingId(null);
+      return;
+    }
     setPendingRequests(prev => prev.filter(r => r.id !== requestId));
     if (newStatus === "accepted") loadClients();
     setRespondingId(null);
@@ -291,9 +299,9 @@ export default function TrainerPage() {
   function paymentReminderMsg(client) {
     const ps = clientPaymentStatus(client);
     const name = client.name?.split(" ")[0] || "hola";
-    if (ps.label === "Vencido") return `Hola ${name}! Tu suscripción a Loop venció. Para seguir entrenando con tu rutina personalizada, renová acá: ${window.location.origin}/#/home`;
-    if (ps.trialDaysLeft !== null && ps.trialDaysLeft <= 7) return `Hola ${name}! Te quedan ${ps.trialDaysLeft} días de prueba gratuita en Loop. Para seguir sin interrupciones, suscribite acá: ${window.location.origin}/#/home`;
-    return `Hola ${name}! Recordatorio de Loop: tu suscripción vence pronto. Renovala acá: ${window.location.origin}/#/home`;
+    if (ps.label === "Vencido") return `¡Hola ${name}! Tu suscripción a Loop venció. Para seguir entrenando con tu rutina personalizada, renová acá: ${window.location.origin}/#/home`;
+    if (ps.trialDaysLeft !== null && ps.trialDaysLeft <= 7) return `¡Hola ${name}! Te quedan ${ps.trialDaysLeft} días de prueba gratuita en Loop. Para seguir sin interrupciones, suscribite acá: ${window.location.origin}/#/home`;
+    return `¡Hola ${name}! Recordatorio de Loop: tu suscripción vence pronto. Renovala acá: ${window.location.origin}/#/home`;
   }
 
   // Escribir al alumno inactivo: inserta una notificación con plantilla (mismo patrón que applyProgram)
@@ -1384,8 +1392,14 @@ export default function TrainerPage() {
           const amount = document.getElementById("pay-amount").value;
           const today = new Date().toISOString().split("T")[0];
           const nextDate = new Date(Date.now() + 30*24*60*60*1000).toISOString().split("T")[0];
-          const { supabase } = await import("../lib/supabase.js");
-          await supabase.from("profiles").update({ last_payment_date: today, next_payment_date: nextDate }).eq("id", payModal.id);
+          const { error: payError } = await sb(
+            supabase.from("profiles").update({ last_payment_date: today, next_payment_date: nextDate }).eq("id", payModal.id),
+            { label: "registrar_cobro" }
+          );
+          if (payError) {
+            window.__showToast?.("No se pudo registrar el cobro. Intentá de nuevo.", "error");
+            return;
+          }
           setPayModal(null);
           // Refetch clients
           window.location.reload();

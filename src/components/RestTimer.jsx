@@ -113,7 +113,7 @@ export default function RestTimer({ duration = 90, onComplete, onSkip, onClose, 
         doneRef.current = true;
         if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
         if (Notification?.permission === "granted") {
-          try { new Notification("Loop - Descanso terminado", { body: "Listo para la proxima serie.", tag: "rest-timer", silent: true }); } catch {}
+          try { new Notification("Loop - Descanso terminado", { body: "Listo para la próxima serie.", tag: "rest-timer", silent: true }); } catch {}
         }
         try { if (soundEnabled) playDone(); } catch {}
         onCompleteRef.current?.();

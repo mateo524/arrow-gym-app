@@ -1,4 +1,5 @@
 import { formatDMY } from "../lib/dates.js";
+import { isNewPR as isNewPRWeight } from "../lib/pr.js";
 ﻿import { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import useStore from "../store/useStore.js";
 import useAuthStore from "../store/useAuthStore.js";
@@ -65,7 +66,7 @@ function computeCoachSuggestion(setItem, sets, exercise, weightPrescriptions, pr
       const next = Math.round((w + 2.5) * 2) / 2;
       return { dir: "up", weight: next, reason: `Te quedaron ${rir} reps → próxima serie: ${next}kg` };
     }
-    return { dir: null, weight: w, reason: `RIR ${rir} — zona óptima, mantené ${w}kg` };
+    return { dir: null, weight: w, reason: `${rir} ${rir === 1 ? "rep" : "reps"} en reserva — zona óptima, mantené ${w}kg` };
   }
 
   const g = (goal || "volumen").toLowerCase();
@@ -399,6 +400,8 @@ export default function WorkoutPage() {
   const [prCelebration, setPrCelebration] = useState(null);
   const pendingFinishRef = useRef(null);
   const undoTimerRef = useRef(null);
+  const setToastTimerRef = useRef(null);
+  const [setToast, setSetToast] = useState(null);
   const wakeLockRef = useRef(null);
   const hasShownReadinessRef = useRef(false);
 
@@ -408,6 +411,7 @@ export default function WorkoutPage() {
     const isBodyweight = s.equipment === "Peso corporal" || s.equipment === "Bodyweight" || s.bodyweight === true;
     return !((isBodyweight || Number(s.weight) > 0) && Number(s.reps) > 0);
   }).length, [active?.sets]);
+  const savedSetsCount = Math.max(0, (active?.sets?.length || 0) - emptySetsCount);
   const completedSetsCount = useMemo(() => (active?.sets || []).filter((s) => s.weight && s.reps).length, [active?.sets]);
   const todayReadiness = readiness?.date === todayLocal() ? readiness.score : null;
   const liveHints = useMemo(() => {
@@ -555,8 +559,13 @@ export default function WorkoutPage() {
     sliderRef.current.scrollTo({ left: idx * sliderRef.current.clientWidth, behavior: "smooth" });
   }
 
-  const handleSetComplete = useCallback((exercise, rpe=null) => {
+  const handleSetComplete = useCallback((exercise, rpe=null, completed=false) => {
     if (navigator.vibrate) navigator.vibrate([30, 20, 60]);
+    if (completed) {
+      setSetToast("Serie guardada");
+      clearTimeout(setToastTimerRef.current);
+      setToastTimerRef.current = setTimeout(() => setSetToast(null), 1800);
+    }
     // Smart rest duration based on RPE and goal
     const currentGoal = (useStore.getState().userGoal || "").toLowerCase();
     let baseDuration = exerciseRestTimes[exercise] || 90;
@@ -1013,7 +1022,7 @@ export default function WorkoutPage() {
                     <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)", gap: 8, marginBottom: 12 }}>
                       {[
                         { label:"Mejor peso",  value: prData?.bestWeight  ? `${prData.bestWeight}kg` : "—" },
-                        { label:"Mejor vol.",  value: prData?.bestVolume  ? `${prData.bestVolume}kg` : "—" },
+                        { label:"Mejor volumen (kg totales)",  value: prData?.bestVolume  ? `${prData.bestVolume}kg` : "—" },
                         { label:"Más reps",    value: prData?.bestReps    ? `${prData.bestReps}×${prData.bestRepsWeight}` : "—" },
                       ].map(({ label, value }) => (
                         <div key={label} style={{ background: "var(--panel2)", borderRadius: 12, padding: "10px 6px", textAlign: "center", minWidth: 0 }}>
@@ -1059,8 +1068,7 @@ export default function WorkoutPage() {
                       // PR badge only on the FIRST set in this session that beats the historical best
                       // Récord global: supera tu mejor peso histórico en este ejercicio y también
                       // el de las series anteriores de esta sesión (una serie igual o menor no es PR)
-                      const priorBest = Math.max(bestPR || 0, ...sets.slice(0, index).map(s => Number(s.weight) || 0));
-                      const isNewPR = Number(setItem.weight) > 0 && Number(setItem.weight) > priorBest;
+                      const isNewPR = isNewPRWeight(setItem.weight, bestPR, sets.slice(0, index).map(s => s.weight));
                       return (
                         <div key={setItem.id} style={{ position: "relative" }}>
                           {setItem.isDropset && (
@@ -1095,7 +1103,8 @@ export default function WorkoutPage() {
                               clearTimeout(undoTimerRef.current);
                               undoTimerRef.current = setTimeout(() => setDeletedSet(null), 5000);
                             }}
-                            onStartRest={(rpe) => handleSetComplete(exercise, rpe)}
+                            onStartRest={(rpe, completed) => handleSetComplete(exercise, rpe, completed)}
+                            prevInSession={index > 0 ? sets[index - 1] : null}
                             isBodyweight={first?.equipment === "Peso corporal"}
                             bodyWeight={latestBodyWeight}
                             prData={prData}
@@ -1304,6 +1313,7 @@ export default function WorkoutPage() {
             {f.rpe_field && (
             <div style={{ background: "var(--panel)", borderRadius: 14, padding: "12px 14px", marginBottom: 10 }}>
               <p style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 8px" }}>Esfuerzo (RPE)</p>
+              <p style={{ fontSize: 11, color: "var(--muted)", margin: "0 0 8px" }}>1 = muy fácil, 10 = al límite</p>
               <div style={{ display: "flex", gap: 6 }}>
                 {[6,7,8,9,10].map(v => (
                   <button key={v} onClick={() => setWorkoutRPE(v)} style={{
@@ -1425,10 +1435,11 @@ export default function WorkoutPage() {
             <h2 style={{ margin: "0 0 8px" }}>¿Finalizar entrenamiento?</h2>
             <p style={{ color: "var(--muted)", fontSize: 14, margin: "0 0 16px" }}>
               Tenés <b>{emptySetsCount} {emptySetsCount === 1 ? "serie" : "series"}</b> sin peso ni reps. No se van a guardar.
+              {" "}Se {savedSetsCount === 1 ? "guarda" : "guardan"} <b>{savedSetsCount} {savedSetsCount === 1 ? "serie" : "series"}</b>.
             </p>
             <div style={{ display: "flex", gap: 10 }}>
               <button className="ghost" style={{ flex: 1 }} onClick={() => setShowFinishConfirm(false)}>Seguir</button>
-              <button className="primary" style={{ flex: 1 }} onClick={() => { setShowFinishConfirm(false); setShowRpe(true); }}>Finalizar igual</button>
+              <button className="primary" style={{ flex: 1 }} onClick={() => { setShowFinishConfirm(false); setShowRpe(true); }}>Finalizar igual ({savedSetsCount} {savedSetsCount === 1 ? "serie guardada" : "series guardadas"})</button>
             </div>
           </div>
         </div>
@@ -1441,7 +1452,7 @@ export default function WorkoutPage() {
             <div style={{ textAlign: "center", marginBottom: 16 }}>
               <div style={{ marginBottom: 6, display:"flex", justifyContent:"center" }}><Icon name="Dumbbell" size={32} /></div>
               <h2 style={{ margin: "0 0 4px" }}>¿Cómo te sentiste?</h2>
-              <p style={{ color: "var(--muted)", fontSize: 13, margin: 0 }}>Esfuerzo percibido (RPE 1-10)</p>
+              <p style={{ color: "var(--muted)", fontSize: 13, margin: 0 }}>Esfuerzo percibido (RPE): 1 = muy fácil, 10 = al límite</p>
             </div>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center", marginBottom: 16 }}>
               {[1,2,3,4,5,6,7,8,9,10].map(n => (
@@ -1712,6 +1723,10 @@ export default function WorkoutPage() {
           OK
         </button>
       </div>
+    )}
+
+    {setToast && !deletedSet && (
+      <div role="status" aria-live="polite" style={{ position: "fixed", bottom: 100, left: "50%", transform: "translateX(-50%)", background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 14, padding: "8px 14px", fontSize: 13, zIndex: 1000, whiteSpace: "nowrap", boxShadow: "0 4px 20px rgba(0,0,0,.4)" }}>{setToast}</div>
     )}
 
     {/* ── UNDO DELETE TOAST ─────────────────────────────────────────────── */}

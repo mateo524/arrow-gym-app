@@ -145,7 +145,7 @@ export default function HistoryPage() {
   const [compareIds, setCompareIds] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedWorkoutId, setExpandedWorkoutId] = useState(null);
-  const [historyPage, setHistoryPage] = useState(30);
+  const [historyPage, setHistoryPage] = useState(20);
 
   function prevMonth() {
     if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); }
@@ -179,10 +179,11 @@ export default function HistoryPage() {
   const prDates = new Set(prs.map(p => p.date));
 
   const allEntries = useMemo(() => {
+    // Wrappers livianos (sin spread del objeto original): item apunta a la referencia del store
     const entries = [
-      ...(workouts || []).map(w => ({ ...w, _type: 'workout' })),
-      ...(restDays || []).map(r => ({ id: 'rest-' + r.date, date: r.date, _type: 'rest' })),
-      ...(cardioHistory || []).map(c => ({ ...c, _type: 'cardio' })),
+      ...(workouts || []).map(w => ({ _type: 'workout', id: w.id, date: w.date, item: w })),
+      ...(restDays || []).map(r => ({ _type: 'rest', id: 'rest-' + r.date, date: r.date, item: r })),
+      ...(cardioHistory || []).map(c => ({ _type: 'cardio', id: c.id, date: c.date, item: c })),
     ];
     return entries.sort((a,b) => String(b.date).localeCompare(String(a.date)));
   }, [workouts, restDays, cardioHistory]);
@@ -192,11 +193,23 @@ export default function HistoryPage() {
     const q = searchQuery.trim().toLowerCase();
     return allEntries.filter(entry => {
       if (entry._type === 'rest') return false;
-      return (entry.sets || []).some(s => s.exercise && s.exercise.toLowerCase().includes(q));
+      return (entry.item.sets || []).some(s => s.exercise && s.exercise.toLowerCase().includes(q));
     });
   }, [allEntries, searchQuery]);
 
   const isSearching = searchQuery.trim().length > 0;
+
+  const monthStats = useMemo(() => {
+    const m = {};
+    for (const w of workouts || []) {
+      const key = w.date ? String(w.date).slice(0, 7) : null;
+      if (!key) continue;
+      const st = m[key] || (m[key] = { volume: 0, count: 0 });
+      st.count++;
+      for (const set of (w.sets || [])) st.volume += (Number(set.weight) || 0) * (Number(set.reps) || 0);
+    }
+    return m;
+  }, [workouts]);
 
   return (
     <section className="page">
@@ -212,8 +225,8 @@ export default function HistoryPage() {
 
       {workouts.length === 0 && (
         <div style={{ textAlign:"center", padding:"48px 24px", color:"var(--muted)" }}>
-          <p style={{ fontSize:16, fontWeight:600, marginBottom:6, color:"var(--text)" }}>Sin entrenamientos aún</p>
-          <p style={{ fontSize:14 }}>Completá tu primer entreno para ver el historial aquí.</p>
+          <p style={{ fontSize:16, fontWeight:600, marginBottom:12, color:"var(--text)" }}>Todavía no entrenaste. Empezá tu primera rutina.</p>
+          <button className="primary" type="button" onClick={() => setPage("start")}>Entrenar</button>
         </div>
       )}
 
@@ -318,9 +331,10 @@ export default function HistoryPage() {
                 </div>
               );
             }
-            return filteredEntries.map(entry => {
+            const shownSearch = filteredEntries.slice(0, historyPage);
+            return [...shownSearch.map(entry => {
               if (entry._type !== 'workout') return null;
-              const workout = entry;
+              const workout = entry.item;
               const best = getBestSet(workout);
               const hasPr = prDates.has(workout.date);
               const isExpanded = expandedWorkoutId === workout.id;
@@ -352,7 +366,13 @@ export default function HistoryPage() {
                   )}
                 </div>
               );
-            });
+            }),
+            filteredEntries.length > historyPage && (
+              <button key="load-more-search" className="ghost" style={{ width:"100%", marginTop:8, fontSize:13 }}
+                onClick={() => setHistoryPage(p => p + 20)}>
+                Cargar más ({filteredEntries.length - historyPage} restantes)
+              </button>
+            )];
           })()}
 
           {/* Full history list (no search active) */}
@@ -366,9 +386,8 @@ export default function HistoryPage() {
                 lastMonth = entryMonth;
                 const [y, m] = entryMonth.split("-");
                 const monthLabel = `${MONTH_NAMES[parseInt(m, 10) - 1]} ${y}`;
-                const workoutsInMonth = (workouts || []).filter(w => w.date?.startsWith(entryMonth));
-                const monthVolume = workoutsInMonth.reduce((sum, w) => sum + (w.sets||[]).reduce((s2, s) => s2 + (Number(s.weight)||0)*(Number(s.reps)||0), 0), 0);
-                const monthWorkoutCount = workoutsInMonth.length;
+                const monthVolume = monthStats[entryMonth]?.volume || 0;
+                const monthWorkoutCount = monthStats[entryMonth]?.count || 0;
                 items.push(
                   <div key={`month-${entryMonth}`} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 2px 4px", marginTop:12 }}>
                     <span style={{ fontSize:13, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.5px" }}>{monthLabel}</span>
@@ -387,25 +406,26 @@ export default function HistoryPage() {
                   </div>
                 );
               } else if (entry._type === 'cardio') {
-                const mins = entry.duration ? Math.round(entry.duration / 60) : null;
+                const c = entry.item;
+                const mins = c.duration ? Math.round(c.duration / 60) : null;
                 items.push(
-                  <div key={entry.id || `cardio-${entry.date}-${entry.sport}`} style={{ display:"flex", alignItems:"center", gap:10, background:"var(--panel)", border:"1px solid rgba(6,182,212,.2)", borderLeft:"3px solid var(--cyan)", borderRadius:12, padding:"10px 14px", marginBottom:6 }}>
+                  <div key={c.id || `cardio-${entry.date}-${c.sport}`} style={{ display:"flex", alignItems:"center", gap:10, background:"var(--panel)", border:"1px solid rgba(6,182,212,.2)", borderLeft:"3px solid var(--cyan)", borderRadius:12, padding:"10px 14px", marginBottom:6 }}>
                     <div style={{ flex:1 }}>
                       <div style={{ display:"flex", alignItems:"baseline", gap:6, marginBottom:2 }}>
-                        <p style={{ margin:0, fontSize:13, fontWeight:700, color:"var(--text)" }}>{entry.sportName || entry.sport || "Cardio"}</p>
+                        <p style={{ margin:0, fontSize:13, fontWeight:700, color:"var(--text)" }}>{c.sportName || c.sport || "Cardio"}</p>
                         <span style={{ fontSize:10, fontWeight:800, color:"var(--cyan)", textTransform:"uppercase", letterSpacing:"0.05em" }}>Cardio</span>
                       </div>
                       <small style={{ color:"var(--muted)" }}>
                         {formatDate(entry.date)}
                         {mins ? ` · ${mins} min` : ""}
-                        {entry.distance ? ` · ${entry.distance} km` : ""}
-                        {(entry.calories || entry.kcal) ? ` · ${entry.calories || entry.kcal} kcal` : ""}
+                        {c.distance ? ` · ${c.distance} km` : ""}
+                        {(c.calories || c.kcal) ? ` · ${c.calories || c.kcal} kcal` : ""}
                       </small>
                     </div>
                   </div>
                 );
               } else {
-                const workout = entry;
+                const workout = entry.item;
                 const best = getBestSet(workout);
                 const hasPr = prDates.has(workout.date);
                 const isExpanded = expandedWorkoutId === workout.id;
@@ -455,7 +475,7 @@ export default function HistoryPage() {
             if (allEntries.length > historyPage) {
               items.push(
                 <button key="load-more" className="ghost" style={{ width:"100%", marginTop:8, fontSize:13 }}
-                  onClick={() => setHistoryPage(p => p + 30)}>
+                  onClick={() => setHistoryPage(p => p + 20)}>
                   Cargar más ({allEntries.length - historyPage} restantes)
                 </button>
               );

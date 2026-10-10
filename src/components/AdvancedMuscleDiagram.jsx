@@ -84,7 +84,7 @@ export default function AdvancedMuscleDiagram({ workouts = [], intensity = {}, o
 
         {/* ── FRONT ─────────────────────────────────────────────────────── */}
         <div style={{ flex:"1 1 0", minWidth:0 }}>
-          <p style={{ fontSize:9, color:"rgba(255,255,255,.3)", letterSpacing:1, textTransform:"uppercase", textAlign:"center", margin:"0 0 4px" }}>Frente</p>
+          <p style={{ fontSize:12, color:"rgba(255,255,255,.7)", letterSpacing:1, textTransform:"uppercase", textAlign:"center", margin:"0 0 4px" }}>Frente</p>
           <svg viewBox="0 0 60 158" style={{ width:"100%", height:"auto", display:"block" }}>
 
             {/* Head */}
@@ -157,7 +157,7 @@ export default function AdvancedMuscleDiagram({ workouts = [], intensity = {}, o
 
         {/* ── BACK ──────────────────────────────────────────────────────── */}
         <div style={{ flex:"1 1 0", minWidth:0 }}>
-          <p style={{ fontSize:9, color:"rgba(255,255,255,.3)", letterSpacing:1, textTransform:"uppercase", textAlign:"center", margin:"0 0 4px" }}>Espalda</p>
+          <p style={{ fontSize:12, color:"rgba(255,255,255,.7)", letterSpacing:1, textTransform:"uppercase", textAlign:"center", margin:"0 0 4px" }}>Espalda</p>
           <svg viewBox="0 0 60 158" style={{ width:"100%", height:"auto", display:"block" }}>
 
             {/* Head */}
@@ -229,14 +229,14 @@ export default function AdvancedMuscleDiagram({ workouts = [], intensity = {}, o
       </div>
 
       {hasActivity ? (
-        <div style={{ display:"flex", gap:14, fontSize:11, color:"rgba(255,255,255,.4)", justifyContent:"center" }}>
+        <div style={{ display:"flex", gap:14, fontSize:12, color:"rgba(255,255,255,.7)", justifyContent:"center" }}>
           <span style={{ display:"flex", alignItems:"center", gap:5 }}>
             <span style={{ width:8, height:8, borderRadius:"50%", background:ACTIVE_FILL, boxShadow:"0 0 6px #22d37a" }}/>
             Entrenado esta semana
           </span>
         </div>
       ) : (
-        <p style={{ fontSize:11, color:"rgba(255,255,255,.3)", margin:0 }}>Sin actividad esta semana</p>
+        <p style={{ fontSize:12, color:"rgba(255,255,255,.7)", margin:0 }}>Sin actividad esta semana</p>
       )}
     </div>
   );

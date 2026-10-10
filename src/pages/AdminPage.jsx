@@ -1,3 +1,4 @@
+import { friendlyError } from "../lib/errors.js";
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase.js";
 import Icon from "../components/Icon.jsx";
@@ -65,14 +66,14 @@ export default function AdminPage() {
     const reason = hidden ? window.prompt("Motivo para ocultar (opcional):") : null;
     if (hidden && reason === null) return;
     const { error } = await supabase.rpc("admin_set_shared_food_hidden", { p_food_id: foodId, p_hidden: hidden, p_reason: reason || null });
-    if (error) { window.__showToast?.(error.message, "error"); return; }
+    if (error) { window.__showToast?.(friendlyError(error), "error"); return; }
     window.__showToast?.(hidden ? "Alimento oculto." : "Alimento restaurado.", "success");
     await loadData();
   }
 
   async function handleCloseTicket(id, close) {
     const { error } = await supabase.from("support_tickets").update({ status: close ? "closed" : "open", closed_at: close ? new Date().toISOString() : null }).eq("id", id);
-    if (error) { window.__showToast?.(error.message, "error"); return; }
+    if (error) { window.__showToast?.(friendlyError(error), "error"); return; }
     await logAudit(close ? "ticket_close" : "ticket_reopen", "support_ticket", id);
     await loadData();
   }
@@ -91,7 +92,7 @@ export default function AdminPage() {
 
   async function handleRejectTrainer(requestId, userId, reason) {
     const { error } = await supabase.from("trainer_role_requests").update({ status: "rejected", reviewed_at: new Date().toISOString() }).eq("id", requestId);
-    if (error) { window.__showToast?.(error.message, "error"); return; }
+    if (error) { window.__showToast?.(friendlyError(error), "error"); return; }
     await logAudit("trainer_reject", "user", userId, { reason: reason || null });
     window.__showToast?.("Solicitud rechazada.", "success");
     await loadData();

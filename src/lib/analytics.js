@@ -259,7 +259,7 @@ export function buildCoachReport(workout, allWorkouts = [], userProfile = null) 
 
     // Unstable load increase
     if (prevMaxWeight !== null && maxWeight > prevMaxWeight && prevMaxReps !== null && maxReps < prevMaxReps - 3) {
-      alerts.push({ exercise, type: "unstable", msg: `${exercise}: subiste a ${maxWeight}kg pero las reps bajaron de ${prevMaxReps} a ${maxReps}. Estabilizá la carga.` });
+      alerts.push({ exercise, type: "unstable", msg: `${exercise}: subiste a ${maxWeight}kg pero las reps bajaron de ${prevMaxReps} a ${maxReps}. suele convenir estabilizar la carga.` });
     }
 
     // Shoulder alert
@@ -698,7 +698,7 @@ function ruleACWR(ctx) {
   if (fatigue.acwr !== null && fatigue.acwr > 1.5) {
     hints.push({
       exercise: null, type: "overreach",
-      msg: `ACWR ${fatigue.acwr.toFixed(2)} — carga aguda muy alta. Riesgo de lesión. Bajá el volumen hoy.`,
+      msg: `ACWR ${fatigue.acwr.toFixed(2)} — tu carga reciente es alta respecto de tu promedio; considerá bajar el volumen hoy.`,
       priority: 1,
     });
   } else if (fatigue.acwr !== null && fatigue.acwr > 1.3) {
@@ -1604,7 +1604,7 @@ export function getWeeklyActionableFeedback(workouts) {
   const thisVol = thisWeek.reduce((s, w) => s + (w.sets || []).filter(hasData).reduce((v, set) => v + (Number(set.weight) || 0) * (Number(set.reps) || 0), 0), 0);
   const lastVol = lastWeek.reduce((s, w) => s + (w.sets || []).filter(hasData).reduce((v, set) => v + (Number(set.weight) || 0) * (Number(set.reps) || 0), 0), 0);
   if (lastVol > 0 && thisVol < lastVol * 0.6 && thisWeek.length > 0) {
-    feedback.push({ impact: 4, msg: `Volumen esta semana muy por debajo de la semana anterior (${Math.round(thisVol/1000)}k vs ${Math.round(lastVol/1000)}k kg) — aún hay margen para agregar intensidad` });
+    feedback.push({ impact: 4, msg: `Volumen esta semana muy por debajo de la semana anterior (${Math.round(thisVol/1000)}k vs ${Math.round(lastVol/1000)}k kg) — todavía hay margen para agregar intensidad` });
   }
 
   // Sort by impact (lower = higher priority) and return top 3

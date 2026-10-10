@@ -44,7 +44,7 @@ export default function NotificationPanel() {
       <button
         onClick={handleOpen}
         style={{ background:"none", border:"none", cursor:"pointer", padding:4, position:"relative", display:"flex", alignItems:"center", justifyContent:"center" }}
-        aria-label="Notificaciones"
+        aria-label={unreadCount > 0 ? `Notificaciones, ${unreadCount} sin leer` : "Notificaciones"}
       >
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--text)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
@@ -53,9 +53,9 @@ export default function NotificationPanel() {
         {unreadCount > 0 && (
           <span style={{
             position:"absolute", top:0, right:0,
-            width:16, height:16, borderRadius:"50%",
-            background:"#ef4444", color:"#fff",
-            fontSize:9, fontWeight:900,
+            minWidth:18, height:18, borderRadius:"50%",
+            background:"#dc2626", color:"#fff",
+            fontSize:12, fontWeight:900,
             display:"flex", alignItems:"center", justifyContent:"center",
             border:"2px solid var(--bg)",
           }}>
@@ -80,14 +80,14 @@ export default function NotificationPanel() {
                 </svg>
                 <h3 style={{ margin:0, fontSize:17, fontWeight:900 }}>Notificaciones</h3>
                 {unreadCount > 0 && (
-                  <span style={{ background:"#ef4444", color:"#fff", fontSize:10, fontWeight:800, padding:"2px 7px", borderRadius:20 }}>{unreadCount} nueva{unreadCount > 1 ? "s" : ""}</span>
+                  <span style={{ background:"#dc2626", color:"#fff", fontSize:12, fontWeight:800, padding:"2px 7px", borderRadius:20 }}>{unreadCount} nueva{unreadCount > 1 ? "s" : ""}</span>
                 )}
               </div>
               <div style={{ display:"flex", gap:8, alignItems:"center" }}>
                 {unreadCount > 0 && (
                   <button onClick={markAllRead} style={{ background:"none", border:"none", fontSize:12, color:"var(--green)", fontWeight:600, cursor:"pointer" }}>Marcar todo leído</button>
                 )}
-                <button onClick={() => setOpen(false)} style={{ background:"none", border:"none", cursor:"pointer", fontSize:22, color:"var(--muted)" }}>×</button>
+                <button onClick={() => setOpen(false)} aria-label="Cerrar notificaciones" style={{ background:"none", border:"none", cursor:"pointer", fontSize:22, color:"var(--muted)" }}>×</button>
               </div>
             </div>
 
@@ -127,7 +127,7 @@ export default function NotificationPanel() {
                         <div style={{ flex:1, minWidth:0 }}>
                           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:8, marginBottom:3 }}>
                             <span style={{ fontSize:12, fontWeight:800, color:meta.color }}>{meta.label}</span>
-                            <span style={{ fontSize:10, color:"var(--muted)", flexShrink:0 }}>{timeAgo(notif.createdAt)}</span>
+                            <span style={{ fontSize:12, color:"var(--muted)", flexShrink:0 }}>{!notif.read && <strong style={{ color:"var(--text)", marginRight:6 }}>Nueva</strong>}{timeAgo(notif.createdAt)}</span>
                           </div>
                           <p style={{ margin:"0 0 6px", fontSize:13, fontWeight:600, color:"var(--text)", lineHeight:1.4 }}>{notif.title}</p>
                           {notif.body && <p style={{ margin:"0 0 8px", fontSize:12, color:"var(--muted)", lineHeight:1.4 }}>{notif.body}</p>}
@@ -144,7 +144,7 @@ export default function NotificationPanel() {
                                   </button>
                                   <button
                                     onClick={e => { e.stopPropagation(); handleAction(notif, "reject"); }}
-                                    style={{ flex:1, background:"rgba(239,68,68,.1)", border:"1px solid rgba(239,68,68,.3)", borderRadius:10, padding:"7px 10px", fontSize:12, fontWeight:700, color:"#ef4444", cursor:"pointer" }}>
+                                    style={{ flex:1, background:"rgba(239,68,68,.1)", border:"1px solid rgba(239,68,68,.3)", borderRadius:10, padding:"7px 10px", fontSize:12, fontWeight:700, color:"#f87171", cursor:"pointer" }}>
                                     <Icon name="X" size={12} style={{display:"inline-block",verticalAlign:"middle",marginRight:3}} /> Rechazar
                                   </button>
                                 </>
@@ -167,7 +167,7 @@ export default function NotificationPanel() {
                           {!hasActions && (
                             <button
                               onClick={e => { e.stopPropagation(); dismiss(notif.id); }}
-                              style={{ background:"none", border:"none", padding:0, fontSize:11, color:"var(--muted)", cursor:"pointer" }}>
+                              style={{ background:"none", border:"none", padding:"4px 0", fontSize:12, color:"var(--muted)", cursor:"pointer" }}>
                               Descartar
                             </button>
                           )}

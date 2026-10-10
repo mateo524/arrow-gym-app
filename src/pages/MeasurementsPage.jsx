@@ -460,7 +460,7 @@ export default function MeasurementsPage() {
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <input
             inputMode="decimal"
-            placeholder="kg de hoy"
+            placeholder="kg de hoy" aria-label="Peso de hoy en kilos" autoComplete="off"
             value={todayKg}
             onChange={(e) => setTodayKg(e.target.value)}
             onKeyDown={e => e.key === "Enter" && todayKg && document.activeElement.blur()}
@@ -538,7 +538,7 @@ export default function MeasurementsPage() {
             type="number"
             value={todaySleep}
             onChange={e => setTodaySleep(e.target.value)}
-            placeholder="Horas dormidas"
+            placeholder="Horas dormidas" aria-label="Horas dormidas anoche"
             min="1" max="12" step="0.5"
             style={{ flex:1, background:"var(--panel2)", border:"1px solid var(--line)", borderRadius:10, padding:"9px 12px", color:"var(--text)", fontSize:14 }}
           />

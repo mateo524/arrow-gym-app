@@ -15,3 +15,20 @@ export const supabase = createClient(
     },
   }
 );
+
+/**
+ * Espera una consulta de Supabase sin lanzar nunca.
+ * Loguea el error con console.error y devuelve siempre { data, error }.
+ */
+export async function sb(promise, { label = "supabase" } = {}) {
+  try {
+    const res = await promise;
+    const data = res?.data ?? null;
+    const error = res?.error ?? null;
+    if (error) console.error(`[${label}]`, error);
+    return { data, error };
+  } catch (error) {
+    console.error(`[${label}]`, error);
+    return { data: null, error };
+  }
+}
