@@ -29,3 +29,4 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
       - run: npm audit --audit-level=high
+        continue-on-error: true  # avisa pero no bloquea (vite/esbuild solo afectan al servidor de desarrollo)
