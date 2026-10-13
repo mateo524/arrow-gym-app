@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState, Component, lazy, Suspense } from "react";
+﻿import { useEffect, useRef, useState, Component, lazy as reactLazy, Suspense } from "react";
 import { telemetrySetProfile, T } from "./lib/telemetry.js";
 import { Router, useLocation } from "wouter";
 import { useHashLocation } from "wouter/use-hash-location";
@@ -6,6 +6,24 @@ import { useHashLocation } from "wouter/use-hash-location";
 import HomePage from "./pages/HomePage.jsx";
 import WorkoutPage from "./pages/WorkoutPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
+// Carga de páginas con reintento. Tras un deploy (o con el caché viejo del celular) el primer pedido de un
+// archivo de página puede fallar; se reintenta una vez y, si sigue fallando, se recarga la app una sola vez.
+function loadWithRetry(loader) {
+  return loader().catch(() =>
+    new Promise((r) => setTimeout(r, 500)).then(loader).catch((err) => {
+      try {
+        if (!sessionStorage.getItem("_chunk_reload")) {
+          sessionStorage.setItem("_chunk_reload", "1");
+          window.location.reload();
+          return new Promise(() => {}); // la página se recarga: no mostrar error
+        }
+      } catch { /* sin sessionStorage */ }
+      throw err;
+    })
+  );
+}
+const lazy = (loader) => reactLazy(() => loadWithRetry(loader));
+
 const StartWorkoutPage   = lazy(() => import("./pages/StartWorkoutPage.jsx"));
 const ExercisesPage      = lazy(() => import("./pages/ExercisesPage.jsx"));
 const HistoryPage        = lazy(() => import("./pages/HistoryPage.jsx"));
@@ -90,24 +108,49 @@ function InstallBanner({ onInstall, onDismiss, isIOS }) {
 }
 
 class ErrorBoundary extends Component {
-  state = { error: null };
+  state = { error: null, retrying: false };
+  retries = 0;
   static getDerivedStateFromError(error) { return { error }; }
-  componentDidCatch(error, info) { console.error("[ErrorBoundary]", error, info); }
+  componentDidCatch(error, info) {
+    console.error("[ErrorBoundary]", error, info);
+    try {
+      localStorage.setItem("loop-last-error", JSON.stringify({
+        message: String(error?.message || error).slice(0, 400),
+        stack: String(error?.stack || "").slice(0, 800),
+        at: new Date().toISOString(),
+        page: this.props.resetKey || null,
+      }));
+    } catch { /* storage lleno */ }
+    // Primer error de esta pantalla: se reintenta solo, sin molestar (suele ser un fallo de carga pasajero)
+    if (this.retries < 1) {
+      this.retries += 1;
+      this.setState({ retrying: true });
+      setTimeout(() => this.setState({ error: null, retrying: false }), 250);
+    }
+  }
   componentDidUpdate(prevProps) {
-    // Reset error when page changes so the next page renders cleanly
-    if (prevProps.resetKey !== this.props.resetKey && this.state.error) {
-      this.setState({ error: null });
+    // Al cambiar de pantalla se limpia el error y se vuelve a permitir un reintento automático
+    if (prevProps.resetKey !== this.props.resetKey) {
+      this.retries = 0;
+      if (this.state.error) this.setState({ error: null, retrying: false });
     }
   }
   render() {
     if (this.state.error) {
+      if (this.state.retrying) return null;
       return (
         <div style={{ padding: 24, minHeight: "100vh", background: "var(--bg, #fff)" }}>
           <h2 style={{ marginTop: 0, color: "var(--text, #e2e8f0)" }}>Algo salió mal</h2>
-          <p style={{ color: "var(--muted)", fontSize: 13, fontFamily: "monospace", wordBreak: "break-word" }}>
-            {this.state.error.message}
+          <p style={{ color: "var(--muted)", fontSize: 14 }}>
+            No pudimos mostrar esta pantalla. Probá de nuevo; si sigue pasando, cerrá y volvé a abrir la app.
           </p>
-          <button className="primary" onClick={() => this.setState({ error: null })}>Reintentar</button>
+          <button className="primary" onClick={() => { this.retries = 0; this.setState({ error: null }); }}>Reintentar</button>
+          <details style={{ marginTop: 16 }}>
+            <summary style={{ color: "var(--muted)", fontSize: 12, cursor: "pointer" }}>Ver detalle</summary>
+            <p style={{ color: "var(--muted)", fontSize: 12, fontFamily: "monospace", wordBreak: "break-word" }}>
+              {String(this.state.error?.message || this.state.error)}
+            </p>
+          </details>
         </div>
       );
     }
@@ -419,6 +462,10 @@ function AppContent() {
   // Push notification: ask permission once, fire at most once per day if inactive 3+ days
   useEffect(() => {
     if (!user || !("Notification" in window)) return;
+    // Solo a la mañana (8–11) o a la noche (19–22), y nunca en medio de un entrenamiento
+    const hourNow = new Date().getHours();
+    if (!((hourNow >= 8 && hourNow < 11) || (hourNow >= 19 && hourNow < 22))) return;
+    if (useStore.getState().activeWorkout) return;
     const lastNotif = localStorage.getItem("loop-last-notif");
     if (lastNotif && Date.now() - Number(lastNotif) < 86400000) return;
     const workouts = useStore.getState().workouts || [];
@@ -433,7 +480,7 @@ function AppContent() {
     if (daysSince < 3) return;
     const notify = () => {
       const msgs = [
-        `Llevas ${daysSince} días sin entrenar. ¡El gym te extraña!`,
+        `Llevás ${daysSince} días sin entrenar. ¡El gym te extraña!`,
         `${daysSince} días de descanso... ¿será que ya descansaste suficiente?`,
         `Tu racha está en pausa hace ${daysSince} días. ¡Volvé hoy!`,
       ];
@@ -462,6 +509,33 @@ function AppContent() {
       sessionStorage.removeItem("loop-gym-active-workout");
     }
   }, [activeWorkout]);
+
+  // Marca de "entrenando ahora": el servidor no manda el aviso de "volvé a entrenar" mientras esté vigente.
+  // Se renueva cada 10 min y vence sola a las 3 h (si la app se cierra de golpe).
+  const isTraining = !!activeWorkout;
+  useEffect(() => {
+    const uid = user?.id;
+    if (!uid) return;
+    const mark = (on) => {
+      supabase.from("profiles")
+        .update({ workout_active_until: on ? new Date(Date.now() + 3 * 3600 * 1000).toISOString() : null })
+        .eq("id", uid)
+        .then(() => {}, () => {});
+    };
+    if (!isTraining) {
+      let wasMarked = false;
+      try { wasMarked = localStorage.getItem("loop-training-marked") === uid; } catch { /* */ }
+      if (wasMarked) {
+        mark(false);
+        try { localStorage.removeItem("loop-training-marked"); } catch { /* */ }
+      }
+      return;
+    }
+    try { localStorage.setItem("loop-training-marked", uid); } catch { /* */ }
+    mark(true);
+    const t = setInterval(() => { if (document.visibilityState === "visible") mark(true); }, 10 * 60 * 1000);
+    return () => clearInterval(t);
+  }, [isTraining, user?.id]);
 
   // On mount: recover active workout from sessionStorage
   useEffect(() => {

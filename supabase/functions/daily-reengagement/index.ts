@@ -14,6 +14,15 @@ async function timingSafeEqual(a: string, b: string): Promise<boolean> {
   return diff === 0;
 }
 
+// Hora y fecha de Argentina (UTC-3, sin horario de verano). El servidor corre en UTC.
+const AR_OFFSET_MS = -3 * 3600 * 1000;
+function argentinaNow() {
+  const d = new Date(Date.now() + AR_OFFSET_MS);
+  return { hour: d.getUTCHours(), date: d.toISOString().slice(0, 10) };
+}
+// Ventanas permitidas para avisos de entrenamiento: mañana (8–11) y noche (19–22, cerca de las 21)
+const inSendWindow = (hour: number) => (hour >= 8 && hour < 11) || (hour >= 19 && hour < 22);
+
 Deno.serve(async (req: Request) => {
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -67,6 +76,14 @@ Deno.serve(async (req: Request) => {
     });
   }
 
+  const ar = argentinaNow();
+  if (!inSendWindow(ar.hour)) {
+    return new Response(JSON.stringify({ sent: 0, reason: `fuera de horario (${ar.hour}h Argentina)` }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
   let sent = 0;
   let skipped = 0;
 
@@ -87,8 +104,19 @@ Deno.serve(async (req: Request) => {
         continue;
       }
 
-      // Skip if user trained today
-      const today = new Date().toISOString().split("T")[0];
+      // No molestar si está entrenando ahora mismo (la app marca profiles.workout_active_until mientras dura)
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("workout_active_until")
+        .eq("id", user_id)
+        .maybeSingle();
+      if (prof?.workout_active_until && new Date(prof.workout_active_until).getTime() > Date.now()) {
+        skipped++;
+        continue;
+      }
+
+      // Skip if user trained today (fecha de Argentina, no UTC)
+      const today = ar.date;
       if (workouts[0]?.date === today) {
         skipped++;
         continue;
@@ -98,7 +126,7 @@ Deno.serve(async (req: Request) => {
 
       // Calculate days of inactivity
       const daysInactive = Math.floor(
-        (Date.now() - new Date(lastWorkoutDate + "T12:00:00").getTime()) / 86400000
+        (new Date(today + "T12:00:00").getTime() - new Date(lastWorkoutDate + "T12:00:00").getTime()) / 86400000
       );
 
       if (daysInactive < 3) {
