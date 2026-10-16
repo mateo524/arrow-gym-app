@@ -1,5 +1,6 @@
 import { ROUTINES } from "../../data/seedData.js";
 import { T } from "../../lib/telemetry.js";
+import { applySavedOrder } from "../../lib/exerciseOrder.js";
 import { buildCoachReport, hydrateSet, calcEffective1RM, getPersonalizedChallenge } from "../../lib/analytics.js";
 import { loadInitialWorkouts, normalizeSet } from "../../lib/storageMigration.js";
 import { syncWorkoutUp, syncWorkoutDelete, syncAllWorkoutsUp, fetchWorkoutsFromDB, mergeWorkouts } from "../../lib/workoutSync.js";
@@ -176,6 +177,7 @@ export const createWorkoutSlice = (set, get) => ({
         progressionTargets: s.progressionTargets || {},
         // settingsSlice
         exerciseRestTimes: s.exerciseRestTimes || {},
+        exerciseOrderByRoutine: s.exerciseOrderByRoutine || {},
         customFoods: (s.customFoods || []).slice(0, 200),
         customFoodsModifiedAt: s.customFoodsModifiedAt || 0,
       };
@@ -270,6 +272,7 @@ export const createWorkoutSlice = (set, get) => ({
         exerciseNotes:     mergeMaps(local.exerciseNotes,       gd.exerciseNotes),
         progressionTargets:mergeMaps(local.progressionTargets,  gd.progressionTargets),
         exerciseRestTimes: mergeMaps(local.exerciseRestTimes,   gd.exerciseRestTimes),
+        exerciseOrderByRoutine: mergeMaps(local.exerciseOrderByRoutine, gd.exerciseOrderByRoutine),
         customFoods:       mergeWithTs(local.customFoods,       gd.customFoods,       local.customFoodsModifiedAt,       gd.customFoodsModifiedAt),
         customFoodsModifiedAt: Math.max(local.customFoodsModifiedAt || 0, gd.customFoodsModifiedAt || 0),
       });
@@ -279,7 +282,7 @@ export const createWorkoutSlice = (set, get) => ({
   clearActiveWorkout: () => set({ activeWorkout: null }),
 
   startWorkout: (type) => {
-    const routine = ROUTINES[type] || [];
+    const routine = applySavedOrder(ROUTINES[type] || [], (get().exerciseOrderByRoutine || {})[type]);
     const workouts = get().workouts || [];
     const adj = get().activePlanAdjustment;
     const factor = adj && new Date(adj.expiresAt) >= new Date() ? adj.factor : 1;
@@ -310,7 +313,7 @@ export const createWorkoutSlice = (set, get) => ({
     set({
       activeWorkout: {
         id: uid("workout"), type: name, date: today(), startedAt: Date.now(),
-        sets: exercises.map((ex) => {
+        sets: applySavedOrder(exercises, (get().exerciseOrderByRoutine || {})[name]).map((ex) => {
           const s = makePrefilledSet(ex, workouts, bw);
           if (!s.isBodyweight && factor !== 1 && s.lastWeight) {
             const scaled = String(Math.max(0, Math.round(Number(s.lastWeight) * factor * 2) / 2) || s.lastWeight);
@@ -431,7 +434,13 @@ export const createWorkoutSlice = (set, get) => ({
     [order[idx], order[swapIdx]] = [order[swapIdx], order[idx]];
     const newSets = [];
     for (const ex of order) newSets.push(...active.sets.filter((s) => s.exercise === ex));
-    set({ activeWorkout: { ...active, sets: newSets } });
+    // El orden elegido queda guardado para esta rutina: los próximos entrenamientos arrancan así
+    const routineKey = active.type;
+    const saved = routineKey && routineKey !== "Libre"
+      ? { exerciseOrderByRoutine: { ...(get().exerciseOrderByRoutine || {}), [routineKey]: order } }
+      : {};
+    set({ activeWorkout: { ...active, sets: newSets }, ...saved });
+    if (saved.exerciseOrderByRoutine) { try { get().syncGymStateToDB(); } catch {} }
   },
 
   finishWorkout: async (notes, mood) => {

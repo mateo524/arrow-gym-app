@@ -1296,14 +1296,15 @@ export default function WorkoutPage() {
             {/* Reorder */}
             {groupedExercises.length > 1 && (
               <div style={{ background: "var(--panel)", borderRadius: 14, padding: "12px 14px", marginBottom: 10 }}>
-                <p style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 10px" }}>Reordenar ejercicios</p>
+                <p style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 4px" }}>Reordenar ejercicios</p>
+                <p style={{ fontSize: 12, color: "var(--muted)", margin: "0 0 10px" }}>El orden queda guardado para esta rutina hasta que lo cambies de nuevo.</p>
                 {groupedExercises.map(({ exercise }, i) => (
                   <div key={exercise} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0", borderBottom: i < groupedExercises.length - 1 ? "1px solid rgba(255,255,255,.05)" : "none" }}>
                     <span style={{ flex: 1, fontSize: 13 }}>{exercise}</span>
-                    <button onClick={() => reorderActiveExercise(exercise, "up")} disabled={i === 0}
-                      style={{ background: "var(--panel2)", border: "none", borderRadius: 8, width: 28, height: 28, cursor: "pointer", fontSize: 14, color: i === 0 ? "rgba(255,255,255,.2)" : "var(--muted)", display: "flex", alignItems: "center", justifyContent: "center" }}>↑</button>
-                    <button onClick={() => reorderActiveExercise(exercise, "down")} disabled={i === groupedExercises.length - 1}
-                      style={{ background: "var(--panel2)", border: "none", borderRadius: 8, width: 28, height: 28, cursor: "pointer", fontSize: 14, color: i === groupedExercises.length - 1 ? "rgba(255,255,255,.2)" : "var(--muted)", display: "flex", alignItems: "center", justifyContent: "center" }}>↓</button>
+                    <button onClick={() => reorderActiveExercise(exercise, "up")} disabled={i === 0} aria-label={`Subir ${exercise}`}
+                      style={{ background: "var(--panel2)", border: "none", borderRadius: 8, width: 40, height: 40, cursor: "pointer", fontSize: 14, color: i === 0 ? "rgba(255,255,255,.2)" : "var(--muted)", display: "flex", alignItems: "center", justifyContent: "center" }}>↑</button>
+                    <button onClick={() => reorderActiveExercise(exercise, "down")} disabled={i === groupedExercises.length - 1} aria-label={`Bajar ${exercise}`}
+                      style={{ background: "var(--panel2)", border: "none", borderRadius: 8, width: 40, height: 40, cursor: "pointer", fontSize: 14, color: i === groupedExercises.length - 1 ? "rgba(255,255,255,.2)" : "var(--muted)", display: "flex", alignItems: "center", justifyContent: "center" }}>↓</button>
                   </div>
                 ))}
               </div>
