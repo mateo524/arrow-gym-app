@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   calc1RM,
   calcEffective1RM,
@@ -103,6 +103,14 @@ describe("calcSessionStrain", () => {
 
 // ── getWeeklyFatigueScore ──────────────────────────────────────────────────
 describe("getWeeklyFatigueScore", () => {
+  // La función cuenta semanas de lunes a domingo: se fija la fecha (un miércoles) para que el resultado
+  // no dependa del día en que corren los tests.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 9, 14, 12, 0, 0));
+  });
+  afterEach(() => { vi.useRealTimers(); });
+
   it("returns nulls for empty history", () => {
     const result = getWeeklyFatigueScore([]);
     expect(result.acwr).toBeNull();
