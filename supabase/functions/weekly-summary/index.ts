@@ -86,7 +86,11 @@ Deno.serve(async (req: Request) => {
 
       // No molestar si está entrenando justo ahora
       const { data: prof } = await supabase
-        .from("profiles").select("workout_active_until").eq("id", user_id).maybeSingle();
+        .from("profiles").select("workout_active_until, vacation_until").eq("id", user_id).maybeSingle();
+      if (prof?.vacation_until && prof.vacation_until >= dayKey(ar.ms)) {
+        skipped++;
+        continue;
+      }
       if (prof?.workout_active_until && new Date(prof.workout_active_until).getTime() > Date.now()) {
         skipped++;
         continue;

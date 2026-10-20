@@ -107,9 +107,14 @@ Deno.serve(async (req: Request) => {
       // No molestar si está entrenando ahora mismo (la app marca profiles.workout_active_until mientras dura)
       const { data: prof } = await supabase
         .from("profiles")
-        .select("workout_active_until")
+        .select("workout_active_until, vacation_until")
         .eq("id", user_id)
         .maybeSingle();
+      // Modo vacaciones: no se manda "volvé a entrenar" (vacation_until es una fecha YYYY-MM-DD)
+      if (prof?.vacation_until && prof.vacation_until >= new Date(Date.now() - 3 * 3600 * 1000).toISOString().slice(0, 10)) {
+        skipped++;
+        continue;
+      }
       if (prof?.workout_active_until && new Date(prof.workout_active_until).getTime() > Date.now()) {
         skipped++;
         continue;

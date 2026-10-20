@@ -56,17 +56,86 @@ export function workoutsByWeek(workouts) {
  * - streak: semanas consecutivas cumpliendo el objetivo. La semana en curso
  *   suma si ya se cumplió, pero si todavía no, no corta la racha.
  */
-export function getWeeklyStreak(workouts, goal, today = toKey(new Date())) {
+export function getWeeklyStreak(workouts, goal, today = toKey(new Date()), vacationPeriods = []) {
   const g = Math.max(1, Number(goal) || 1);
   const byWeek = workoutsByWeek(workouts);
   const current = weekStartKey(today);
   const thisWeek = byWeek[current] || 0;
-  let streak = thisWeek >= g ? 1 : 0;
+
+  // Modo vacaciones: una semana con 4+ días de vacaciones se pausa (ni suma ni corta);
+  // con menos, el objetivo se prorratea según los días que no estuvo de vacaciones.
+  const goalFor = (wk) => {
+    const vd = vacationDaysInWeek(vacationPeriods, wk, today);
+    if (vd >= 4) return 0;
+    return vd === 0 ? g : Math.max(1, Math.ceil((g * (7 - vd)) / 7));
+  };
+
+  const currentGoal = goalFor(current);
+  const currentPaused = currentGoal === 0;
+  let streak = !currentPaused && thisWeek >= currentGoal ? 1 : 0;
   let wk = shiftWeek(current, -1);
   for (let i = 0; i < 520; i++) {
-    if ((byWeek[wk] || 0) >= g) { streak++; wk = shiftWeek(wk, -1); } else break;
+    const wg = goalFor(wk);
+    if (wg === 0) { wk = shiftWeek(wk, -1); continue; } // semana pausada: se salta
+    if ((byWeek[wk] || 0) >= wg) { streak++; wk = shiftWeek(wk, -1); } else break;
   }
-  return { thisWeek, goal: g, streak, goalReached: thisWeek >= g, remaining: Math.max(0, g - thisWeek) };
+  const effGoal = currentPaused ? g : currentGoal;
+  return {
+    thisWeek, goal: effGoal, streak, paused: currentPaused,
+    goalReached: !currentPaused && thisWeek >= effGoal,
+    remaining: currentPaused ? 0 : Math.max(0, effGoal - thisWeek),
+  };
+}
+
+/** ¿`dateKey` cae dentro de algún período de vacaciones? (end null = sigue activo) */
+export function isOnVacation(periods, dateKey) {
+  return (periods || []).some((p) => p && p.start && dateKey >= p.start && (!p.end || dateKey <= p.end));
+}
+
+/** Días de la semana (lunes `wk`) que estuvieron de vacaciones, sin contar el futuro (> today). */
+export function vacationDaysInWeek(periods, wk, today) {
+  if (!periods || !periods.length) return 0;
+  let n = 0;
+  for (let i = 0; i < 7; i++) {
+    const d = parseKey(wk);
+    d.setUTCDate(d.getUTCDate() + i);
+    const k = utcKey(d);
+    if (k > today) break;
+    if (isOnVacation(periods, k)) n++;
+  }
+  return n;
+}
+
+/** Días sin entrenar entre `fromKey` (último entreno) y `toKey`, sin contar los de vacaciones. */
+export function idleDaysExcludingVacation(periods, fromKey, toKey) {
+  const a = parseKey(fromKey);
+  const b = parseKey(toKey);
+  if (!a || !b) return 0;
+  let n = 0;
+  for (let t = a.getTime() + DAY_MS; t <= b.getTime(); t += DAY_MS) {
+    if (!isOnVacation(periods, utcKey(new Date(t)))) n++;
+  }
+  return n;
+}
+
+/** Une períodos de dos dispositivos: mismo `start` → gana el cerrado (con end); orden por fecha. */
+export function mergeVacationPeriods(a, b) {
+  const map = new Map();
+  [...(b || []), ...(a || [])].forEach((p) => {
+    if (!p || !p.start) return;
+    const ex = map.get(p.start);
+    if (!ex || (!ex.end && p.end)) map.set(p.start, p);
+  });
+  return [...map.values()].sort((x, y) => x.start.localeCompare(y.start)).slice(-30);
+}
+
+/** Días de vacaciones de un período (inclusive). */
+export function vacationLength(period, today = toKey(new Date())) {
+  if (!period?.start) return 0;
+  const a = parseKey(period.start);
+  const b = parseKey(period.end || today);
+  if (!a || !b) return 0;
+  return Math.max(1, Math.round((b - a) / DAY_MS) + 1);
 }
 
 /** Récord más reciente (por fecha) o null. */

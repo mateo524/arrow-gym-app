@@ -270,6 +270,11 @@ export default function TrainerPage() {
   // Semáforo de adherencia: verde ≤3d, amarillo 4-INACTIVITY_DAYS (5d), rojo >5d (o nunca entrenó)
   function adherenceStatus(userId) {
     const days = daysSinceLast(userId);
+    // De vacaciones: no cuenta como inactivo ni en riesgo
+    const vac = clients.find((c) => c.id === userId)?.vacation_until;
+    if (vac && String(vac).slice(0, 10) >= new Date().toISOString().slice(0, 10)) {
+      return { level: "vacation", chip: "De vacaciones", color: "#38bdf8", bg: "rgba(56,189,248,.15)", days };
+    }
     if (days === null) {
       return { level: "red", chip: "Inactivo", color: "#f87171", bg: "rgba(220,38,38,.18)", days: null };
     }
@@ -699,7 +704,7 @@ export default function TrainerPage() {
           {!loading && clients.length > 0 && trainerTab === "alumnos" && (() => {
             const m = businessMetrics();
             const trainedList = clients.filter((c) => (adherenceMap[c.id]?.size || 0) > 0);
-            const notTrainedList = clients.filter((c) => daysSinceLastWorkout(c.id) >= 3);
+            const notTrainedList = clients.filter((c) => adherenceStatus(c.id).level !== "vacation" && daysSinceLastWorkout(c.id) >= 3);
             return (
               <div style={{ background: "var(--panel)", border: "1px solid var(--line, var(--border))", borderRadius: 16, padding: "14px 16px", marginBottom: 14 }}>
                 <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 10 }}>Esta semana</div>

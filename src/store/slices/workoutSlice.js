@@ -8,6 +8,7 @@ import { supabase } from "../../lib/supabase.js";
 import { getAuthUserId, getAuthProfile } from "../../lib/authBridge.js";
 import { EXERCISE_DATABASE, findExerciseMeta, resolveExerciseGroup, resolveExerciseMuscle } from "../../data/exerciseDatabase.js";
 import { todayLocal, dateToLocal } from "../../lib/dates.js";
+import { mergeVacationPeriods } from "../../lib/streak.js";
 
 function uid(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -178,6 +179,7 @@ export const createWorkoutSlice = (set, get) => ({
         // settingsSlice
         exerciseRestTimes: s.exerciseRestTimes || {},
         exerciseOrderByRoutine: s.exerciseOrderByRoutine || {},
+        vacationPeriods: s.vacationPeriods || [],
         customFoods: (s.customFoods || []).slice(0, 200),
         customFoodsModifiedAt: s.customFoodsModifiedAt || 0,
       };
@@ -273,6 +275,7 @@ export const createWorkoutSlice = (set, get) => ({
         progressionTargets:mergeMaps(local.progressionTargets,  gd.progressionTargets),
         exerciseRestTimes: mergeMaps(local.exerciseRestTimes,   gd.exerciseRestTimes),
         exerciseOrderByRoutine: mergeMaps(local.exerciseOrderByRoutine, gd.exerciseOrderByRoutine),
+        vacationPeriods:   mergeVacationPeriods(local.vacationPeriods, gd.vacationPeriods),
         customFoods:       mergeWithTs(local.customFoods,       gd.customFoods,       local.customFoodsModifiedAt,       gd.customFoodsModifiedAt),
         customFoodsModifiedAt: Math.max(local.customFoodsModifiedAt || 0, gd.customFoodsModifiedAt || 0),
       });

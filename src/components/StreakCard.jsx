@@ -6,8 +6,8 @@ const card = { background: "var(--panel)", border: "1px solid var(--line)", bord
 const label = { fontSize: 10, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 };
 
 /** Racha semanal + progreso visible (último récord y tendencia de peso de 30 días). */
-export default function StreakCard({ workouts, prs, weightLog, goal }) {
-  const week = useMemo(() => getWeeklyStreak(workouts, goal), [workouts, goal]);
+export default function StreakCard({ workouts, prs, weightLog, goal, vacationPeriods = [] }) {
+  const week = useMemo(() => getWeeklyStreak(workouts, goal, undefined, vacationPeriods), [workouts, goal, vacationPeriods]);
   const pr = useMemo(() => getLatestPR(prs), [prs]);
   const trend = useMemo(() => getWeightTrend(weightLog), [weightLog]);
   const pct = Math.min(100, Math.round((week.thisWeek / week.goal) * 100));
@@ -26,7 +26,9 @@ export default function StreakCard({ workouts, prs, weightLog, goal }) {
         <div style={{ width: `${pct}%`, height: "100%", background: "var(--green)", borderRadius: 4, transition: "width .6s ease" }} />
       </div>
       <div style={{ fontSize: 12, color: "var(--muted)" }}>
-        {week.goalReached
+        {week.paused
+          ? "Racha en pausa por vacaciones. Te espera intacta."
+          : week.goalReached
           ? "Objetivo cumplido, tu racha sigue viva."
           : week.streak > 0
             ? `Te ${week.remaining === 1 ? "falta 1 entreno" : `faltan ${week.remaining} entrenos`} para sostener la racha.`

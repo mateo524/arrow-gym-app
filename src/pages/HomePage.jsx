@@ -10,6 +10,8 @@ import Icon from "../components/Icon.jsx";
 import NotificationPanel from "../components/NotificationPanel.jsx";
 import { features } from "../config/features.js";
 import StreakCard, { FirstWorkoutCta } from "../components/StreakCard.jsx";
+import VacationCard from "../components/VacationCard.jsx";
+import { isOnVacation, idleDaysExcludingVacation } from "../lib/streak.js";
 
 export default function HomePage() {
   const { workouts, restDays, setPage, activeWorkout, achievements, prs, cardioHistory, weeklyGoal, logRestDay, mealLog, weightLog } = useStore(
@@ -51,6 +53,8 @@ export default function HomePage() {
   const waterLog2  = useStore((s) => s.waterLog) || [];
   const waterGoalV = useStore((s) => s.waterGoal) || 8;
   const sleepLog2  = useStore((s) => s.sleepLog) || [];
+  const vacationPeriods = useStore((s) => s.vacationPeriods) || [];
+  const onVacation = vacationPeriods.some((p) => !p.end);
 
   // Derive weekly goal: explicit user setting > profile frequency > goal-based recommendation
   const adaptedWeeklyGoal = useMemo(() => {
@@ -88,10 +92,13 @@ export default function HomePage() {
     for (let i = startI; i < 365; i++) {
       const d = new Date(today);
       d.setDate(today.getDate() - i);
-      if (activeDates.has(dateToLocal(d))) { count++; } else { break; }
+      const key = dateToLocal(d);
+      if (activeDates.has(key)) { count++; }
+      else if (isOnVacation(vacationPeriods, key)) { continue; } // vacaciones: la racha se pausa, no se corta
+      else { break; }
     }
     return count;
-  }, [workouts, cardioHistory, restDays]);
+  }, [workouts, cardioHistory, restDays, vacationPeriods]);
 
   const consistencyScore = useMemo(() => {
     if (!workouts?.length) return null;
@@ -119,9 +126,10 @@ export default function HomePage() {
     const lastDate = workouts[0].date?.slice(0, 10);
     if (!lastDate) return null;
     const today = todayLocal().slice(0, 10);
-    const diff = Math.floor((new Date(today + "T12:00:00") - new Date(lastDate + "T12:00:00")) / 86400000);
+    if (onVacation) return null;
+    const diff = idleDaysExcludingVacation(vacationPeriods, lastDate, today);
     return diff >= 5 ? diff : null;
-  }, [workouts]);
+  }, [workouts, vacationPeriods, onVacation]);
 
   // Feature 3: Monthly volume
   const monthlyVolume = useMemo(() => {
@@ -324,6 +332,8 @@ export default function HomePage() {
               </div>
             )}
           </div>
+
+          <VacationCard />
 
           {/* Feature 1: Comeback mechanic */}
           {comebackDays !== null && (
@@ -539,7 +549,7 @@ export default function HomePage() {
             <FirstWorkoutCta goal={userGoal} level={activityLevel} onStart={(routine) => startWorkout(routine)} />
           )}
           {workouts.length > 0 && (
-            <StreakCard workouts={workouts} prs={prs} weightLog={weightLog} goal={adaptedWeeklyGoal} />
+            <StreakCard workouts={workouts} prs={prs} weightLog={weightLog} goal={adaptedWeeklyGoal} vacationPeriods={vacationPeriods} />
           )}
 
           {/* Logros recientes */}

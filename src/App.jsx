@@ -466,6 +466,8 @@ function AppContent() {
     const hourNow = new Date().getHours();
     if (!((hourNow >= 8 && hourNow < 11) || (hourNow >= 19 && hourNow < 22))) return;
     if (useStore.getState().activeWorkout) return;
+    // Modo vacaciones: sin recordatorios
+    if ((useStore.getState().vacationPeriods || []).some((p) => !p.end)) return;
     const lastNotif = localStorage.getItem("loop-last-notif");
     if (lastNotif && Date.now() - Number(lastNotif) < 86400000) return;
     const workouts = useStore.getState().workouts || [];
