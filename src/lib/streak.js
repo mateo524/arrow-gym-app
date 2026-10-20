@@ -106,6 +106,28 @@ export function vacationDaysInWeek(periods, wk, today) {
   return n;
 }
 
+/**
+ * Contexto de vacaciones para el coach: `quiet` = de vacaciones o recién vuelto (14 días),
+ * momento en que la baja de volumen/frecuencia es esperable y no debe generar alertas.
+ */
+export function getVacationContext(periods, today = toKey(new Date())) {
+  const list = periods || [];
+  const activePeriod = list.find((p) => p && p.start && !p.end) || null;
+  const closed = list.filter((p) => p && p.start && p.end).sort((a, b) => b.end.localeCompare(a.end))[0] || null;
+  const t = parseKey(today);
+  const sinceEnd = closed && t ? Math.round((t - parseKey(closed.end)) / DAY_MS) : null;
+  const returnedRecently = !activePeriod && sinceEnd !== null && sinceEnd <= 14;
+  return {
+    active: !!activePeriod,
+    daysAway: activePeriod ? vacationLength(activePeriod, today) : 0,
+    until: activePeriod?.until || null,
+    returnedRecently,
+    daysSinceReturn: returnedRecently ? sinceEnd : null,
+    lastAwayDays: closed ? vacationLength(closed, closed.end) : 0,
+    quiet: !!activePeriod || returnedRecently,
+  };
+}
+
 /** Días sin entrenar entre `fromKey` (último entreno) y `toKey`, sin contar los de vacaciones. */
 export function idleDaysExcludingVacation(periods, fromKey, toKey) {
   const a = parseKey(fromKey);

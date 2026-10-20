@@ -10,6 +10,7 @@ import { shareWorkout } from "../lib/shareWorkout.js";
 import { todayLocal, dateToLocal } from "../lib/dates.js";
 import { buildCoachReport, formatDate, getPeriodizationPhase, getWeeklyFatigueScore, getWeightPrescriptions, getSkippedGroups, getOneRMHistory, getCycleComparison, getMuscleBalance, getWeekComparison, getWorkoutVolume, VOLUME_LANDMARKS, getStagnantExercises, getWeeklyActionableFeedback, calcWorkoutCalories } from "../lib/analytics.js";
 import { features } from "../config/features.js";
+import { getVacationContext } from "../lib/streak.js";
 export default function CoachPage() {
   const reports = useStore((state) => state.coachReports) ?? [];
   const workouts = useStore((state) => state.workouts) ?? [];
@@ -23,6 +24,9 @@ export default function CoachPage() {
   const declinePlanRecommendation = useStore(s => s.declinePlanRecommendation);
   const profile = useAuthStore((s) => s.profile);
   const user = useAuthStore((s) => s.user);
+  const vacationPeriods = useStore((s) => s.vacationPeriods) ?? [];
+  const vac = getVacationContext(vacationPeriods, todayLocal());
+  const quiet = vac.quiet; // de vacaciones o recién vuelto: la baja de actividad es esperable
 
   // Subscription gate — trainers and admins always have access
   const isSubscribed = profile?.subscription_status === "active" || ["trainer","admin","superadmin"].includes(profile?.role);
@@ -194,7 +198,7 @@ export default function CoachPage() {
     const getVol = (w) => (w.sets || []).reduce((sum, s) => sum + (Number(s.weight) || 0) * (Number(s.reps) || 0), 0);
     const recent2w = workouts.filter((w) => w.date && new Date(w.date + "T00:00:00") >= twoWeeksAgo);
     const prev2w = workouts.filter((w) => w.date && new Date(w.date + "T00:00:00") >= fourWeeksAgo && new Date(w.date + "T00:00:00") < twoWeeksAgo);
-    if (recent2w.length >= 2 && prev2w.length >= 2) {
+    if (!quiet && recent2w.length >= 2 && prev2w.length >= 2) {
       const recentVol = recent2w.reduce((s, w) => s + getVol(w), 0);
       const prevVol = prev2w.reduce((s, w) => s + getVol(w), 0);
       if (prevVol > 0 && recentVol < prevVol * 0.8) {
@@ -240,7 +244,7 @@ export default function CoachPage() {
     }
 
     // 5. Neglected legs: no leg training in 10+ days with 5+ total workouts
-    if (workouts.length >= 5) {
+    if (!quiet && workouts.length >= 5) {
       const legWords = ["sentadilla", "pierna", "femoral", "glúteo", "peso muerto", "estocada", "leg press", "hack squat", "hip thrust", "nordico", "pantorrilla"];
       const lastLeg = sortedW.find(w => (w.sets || []).some(s => {
         const g = (s.group || "").toLowerCase();
@@ -256,7 +260,7 @@ export default function CoachPage() {
     }
 
     // 6. Low frequency: < 2 workouts/week average over last 4 weeks
-    if (workouts.length >= 3) {
+    if (!quiet && workouts.length >= 3) {
       const fourWAgo = new Date(now - 28 * msPerDay);
       const last4w = workouts.filter(w => w.date && new Date(w.date + "T00:00:00") >= fourWAgo);
       const avgPerWeek = last4w.length / 4;
@@ -290,9 +294,13 @@ export default function CoachPage() {
     }
 
     return alerts;
-  }, [workouts, bodyFatPct, profile, userAge]);
+  }, [workouts, bodyFatPct, profile, userAge, quiet]);
 
-  const periodization = useMemo(() => getPeriodizationPhase(workouts), [workouts]);
+  // En vacaciones (o recién vuelto) el volumen bajo es planificado: no se recomienda deload
+  const periodization = useMemo(() => {
+    const p = getPeriodizationPhase(workouts);
+    return quiet ? { ...p, needsDeload: false, phase: p.phase === "deload" ? "unknown" : p.phase } : p;
+  }, [workouts, quiet]);
   const fatigueScore  = useMemo(() => getWeeklyFatigueScore(workouts), [workouts]);
   const prescriptions = useMemo(() => getWeightPrescriptions(workouts), [workouts]);
   const skippedGroups = useMemo(() => getSkippedGroups(workouts), [workouts]);
@@ -527,6 +535,38 @@ export default function CoachPage() {
           </button>
         </div>
       </div>
+
+      {/* -- Modo vacaciones: el coach entiende el contexto y adapta el consejo -- */}
+      {quiet && (
+        <div style={{ background:"rgba(56,189,248,.08)", border:"1px solid rgba(56,189,248,.3)", borderRadius:14, padding:"14px 16px", marginBottom:14 }}>
+          <p style={{ margin:"0 0 6px", fontSize:14, fontWeight:800, color:"#38bdf8" }}>
+            {vac.active ? "Coach en modo vacaciones" : "Volviendo de vacaciones"}
+          </p>
+          {vac.active ? (
+            <>
+              <p style={{ margin:"0 0 8px", fontSize:13, color:"var(--muted)", lineHeight:1.5 }}>
+                Día {vac.daysAway}{vac.until ? ` · volvés el ${formatDMY(vac.until)}` : ""}. Pausé las alertas de inactividad, caída de volumen y deload: descansar ahora es parte del plan y tu racha está protegida.
+              </p>
+              <ul style={{ margin:0, paddingLeft:18, fontSize:12, color:"var(--muted)", lineHeight:1.6 }}>
+                <li>Si querés moverte, 20-30 min de caminata o ejercicios con peso corporal alcanzan para mantener el hábito.</li>
+                <li>Sostené la proteína y el agua, sin culpa por comer distinto.</li>
+                <li>Dormí bien: es la mejor recuperación para cuando vuelvas.</li>
+              </ul>
+            </>
+          ) : (
+            <>
+              <p style={{ margin:"0 0 8px", fontSize:13, color:"var(--muted)", lineHeight:1.5 }}>
+                Hace {vac.daysSinceReturn} {vac.daysSinceReturn === 1 ? "día" : "días"} volviste de {vac.lastAwayDays} {vac.lastAwayDays === 1 ? "día" : "días"} de vacaciones. Durante estas dos semanas no cuento la baja de volumen como un problema.
+              </p>
+              <ul style={{ margin:0, paddingLeft:18, fontSize:12, color:"var(--muted)", lineHeight:1.6 }}>
+                <li>{vac.lastAwayDays >= 14 ? "Tras 2+ semanas fuera, arrancá con ~80% de tus pesos y 2-3 series por ejercicio." : vac.lastAwayDays >= 5 ? "Tras 5+ días fuera, arrancá con ~90% de tus pesos y sumá de a poco." : "Podés retomar con tus pesos habituales."}</li>
+                <li>Priorizá técnica y volver a la frecuencia antes que buscar récords.</li>
+                <li>Es normal sentir las primeras sesiones más duras; la fuerza vuelve rápido.</li>
+              </ul>
+            </>
+          )}
+        </div>
+      )}
 
       {/* -- Tab bar ------------------------------------------- */}
       <div style={{ display:"flex", gap:4, background:"var(--panel)", borderRadius:14, padding:4, marginBottom:16 }}>
@@ -1034,6 +1074,7 @@ export default function CoachPage() {
                   ? Math.floor((new Date() - new Date(last.date + "T12:00:00")) / 86400000)
                   : null;
                 if (daysSince === null) return null;
+                if (vac.active) return null; // el banner de vacaciones ya lo explica
                 const color = daysSince === 0 ? "var(--green)" : daysSince <= 2 ? "#60a5fa" : daysSince <= 4 ? "#f59e0b" : "#ef4444";
                 const msg = daysSince === 0 ? <><span>Entrenaste hoy</span> <Icon name="Sparkles" size={13} style={{display:'inline-block',verticalAlign:'middle'}} /></> : daysSince === 1 ? "Ayer fue el último entreno" : `Hace ${daysSince} días sin entrenar`;
                 return (
@@ -1133,7 +1174,7 @@ export default function CoachPage() {
               })()}
 
               {/* -- Grupos sin entrenar -- */}
-              {skippedGroups.length > 0 && (
+              {skippedGroups.length > 0 && !quiet && (
                 <div style={{ background:"rgba(239,68,68,.06)", border:"1px solid rgba(239,68,68,.2)", borderRadius:14, padding:"14px 16px" }}>
                   <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
                     <Icon name="AlertTriangle" size={20} style={{display:'inline-block',verticalAlign:'middle'}} />
@@ -1593,7 +1634,7 @@ export default function CoachPage() {
           {/* All alerts — collapsible when > 3 */}
           {(() => {
             const allAlerts = [
-              ...(fatigueScore.overreaching ? [{
+              ...(fatigueScore.overreaching && !vac.returnedRecently ? [{
                 key: "overreaching",
                 bg: "rgba(239,68,68,.08)", border: "rgba(239,68,68,.3)",
                 icon: "AlertTriangle", title: "Sobrecarga detectada",
@@ -1624,7 +1665,7 @@ export default function CoachPage() {
                 bg: "rgba(168,85,247,.07)", border: "rgba(168,85,247,.25)",
                 icon: "Zap", title: "Fatiga acumulada por RPE", msg: a.msg
               })),
-              ...(skippedGroups.length > 0 ? [{
+              ...(skippedGroups.length > 0 && !quiet ? [{
                 key: "skipped",
                 bg: "rgba(239,68,68,.07)", border: "rgba(239,68,68,.25)",
                 icon: "AlertTriangle", title: "Grupos sin entrenar",

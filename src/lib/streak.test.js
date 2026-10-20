@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { weekStartKey, workoutsByWeek, getWeeklyStreak, getLatestPR, getWeightTrend, suggestFirstRoutines, isOnVacation, idleDaysExcludingVacation, mergeVacationPeriods, vacationLength } from "./streak.js";
+import { weekStartKey, workoutsByWeek, getWeeklyStreak, getLatestPR, getWeightTrend, suggestFirstRoutines, isOnVacation, idleDaysExcludingVacation, mergeVacationPeriods, vacationLength, getVacationContext } from "./streak.js";
 
 // 2026-10-10 es sábado; su semana arranca el lunes 2026-10-05.
 const TODAY = "2026-10-10";
@@ -82,6 +82,13 @@ describe("utilidades de vacaciones", () => {
   it("mergeVacationPeriods prefiere el período cerrado", () => {
     const m = mergeVacationPeriods([{ start: "2026-10-01", end: null }], [{ start: "2026-10-01", end: "2026-10-05" }]);
     expect(m).toEqual([{ start: "2026-10-01", end: "2026-10-05" }]);
+  });
+  it("getVacationContext: activo, recién vuelto y normal", () => {
+    expect(getVacationContext([{ start: "2026-10-05", end: null }], "2026-10-08")).toMatchObject({ active: true, quiet: true, daysAway: 4 });
+    const back = getVacationContext([{ start: "2026-10-01", end: "2026-10-07" }], "2026-10-12");
+    expect(back).toMatchObject({ active: false, returnedRecently: true, quiet: true, lastAwayDays: 7, daysSinceReturn: 5 });
+    expect(getVacationContext([{ start: "2026-09-01", end: "2026-09-07" }], "2026-10-12").quiet).toBe(false);
+    expect(getVacationContext([], "2026-10-12").quiet).toBe(false);
   });
   it("vacationLength cuenta días inclusive", () => {
     expect(vacationLength({ start: "2026-10-01", end: "2026-10-03" })).toBe(3);
