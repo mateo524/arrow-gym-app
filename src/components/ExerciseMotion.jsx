@@ -1,5 +1,6 @@
 import { useState } from "react";
-import ExerciseIllustration, { getKey, norm } from "./ExerciseIllustration.jsx";
+import ExerciseIllustration, { norm } from "./ExerciseIllustration.jsx";
+import { motionKeyForName } from "../data/motionMap.js";
 import MotionFigure, { MOVES } from "./MotionFigure.jsx";
 import { getExerciseFrames } from "../data/exerciseMedia.js";
 
@@ -15,14 +16,12 @@ const CSS = `
  */
 export default function ExerciseMotion({ name, pattern, muscle, equipment, size = 220 }) {
   const eq = norm(equipment || "");
-  let key = getKey(name, pattern, muscle, equipment);
-  if (key === "bench-horizontal" && /maquina|smith/.test(eq) && !/smith/.test(eq)) key = "chest-press-machine";
-  if (key === "bench-incline" && /maquina/.test(eq)) key = "chest-press-machine";
+  const key = motionKeyForName(name);
   const propKind = eq.includes("mancuerna") ? "db" : /maquina|polea|smith/.test(eq) ? "bar" : undefined;
   const frames = getExerciseFrames(name);
   const [failed, setFailed] = useState(false);
 
-  if (MOVES[key]) {
+  if (key && MOVES[key]) {
     return <div role="img" aria-label={`Movimiento: ${name}`}><MotionFigure moveKey={key} size={size} propKind={propKind} /></div>;
   }
   if (!frames || failed) {

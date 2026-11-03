@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "react";
 const T = 34, UA = 19, FA = 18, TH = 28, SH = 26, HEAD = 8;
 const FLOOR = 142;
 const C = {
-  near: "#8b5cf6", far: "#6d3fd0", head: "#a78bfa", joint: "#5b2fb8", hl: "#fbbf24",
+  near: "url(#mf-near)", far: "url(#mf-far)", head: "url(#mf-head)", joint: "#5b2fb8", hl: "#fbbf24",
   gear: "#3a3354", gear2: "#4d4470", plate: "#e2e8f0", plateEdge: "#94a3b8", cable: "#c4b5fd", bg: "#14101f",
 };
 
@@ -90,6 +90,19 @@ function Highlight({ part, j }) {
 // ─── Movimientos ─────────────────────────────────────────────────────────────
 const STAND = { t: -90, th: 90, sh: 90 };
 
+function inclinePad(j, ext) {
+  const n = [-4.6, 6.6];
+  const ang = (Math.atan2(j.shoulder[1] - j.hip[1], j.shoulder[0] - j.hip[0]) * 180) / Math.PI;
+  const a = add(j.hip, n);
+  const b = add(add(j.shoulder, vec(ang, ext)), n);
+  return (<>
+    <line x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]} stroke={C.gear2} strokeWidth={9} strokeLinecap="round" />
+    <rect x={j.hip[0] - 14} y={j.hip[1] + 7} width={38} height={7} rx={3} fill={C.gear2} />
+    <line x1={j.hip[0] - 2} y1={j.hip[1] + 14} x2={j.hip[0] - 2} y2={FLOOR} stroke={C.gear} strokeWidth={5} strokeLinecap="round" />
+    <line x1={b[0] + 2} y1={b[1] + 6} x2={b[0] - 6} y2={FLOOR} stroke={C.gear} strokeWidth={5} strokeLinecap="round" />
+  </>);
+}
+
 export const MOVES = {
   "bench-horizontal": {
     anchor: "hip", at: [126, 106], prop: ["barbell", "wrist"], hl: ["chest", "arm"],
@@ -103,14 +116,9 @@ export const MOVES = {
   },
   "bench-incline": {
     anchor: "hip", at: [128, 106], prop: ["barbell", "wrist"], hl: ["chest", "shoulder"],
-    a: { t: -150, ua: 70, fa: -100, th: 15, sh: 85 },
-    b: { t: -150, ua: -80, fa: -80, th: 15, sh: 85 },
-    env: () => (<>
-      <line x1={132} y1={112} x2={84} y2={84} stroke={C.gear2} strokeWidth={9} strokeLinecap="round" />
-      <rect x={112} y={113} width={34} height={7} rx={3} fill={C.gear2} />
-      <line x1={124} y1={120} x2={124} y2={FLOOR} stroke={C.gear} strokeWidth={5} strokeLinecap="round" />
-      <line x1={92} y1={92} x2={86} y2={FLOOR} stroke={C.gear} strokeWidth={5} strokeLinecap="round" />
-    </>),
+    a: { t: -145, ua: 66, fa: -100, th: 15, sh: 85 },
+    b: { t: -145, ua: -78, fa: -80, th: 15, sh: 85 },
+    env: (j) => inclinePad(j, 12),
   },
   "chest-press-machine": {
     anchor: "hip", at: [104, 108], prop: ["bar", "wrist"], hl: ["chest", "arm"],
@@ -121,6 +129,75 @@ export const MOVES = {
       <line x1={103} y1={122} x2={103} y2={FLOOR} stroke={C.gear} strokeWidth={5} strokeLinecap="round" />
       <rect x={76} y={62} width={9} height={52} rx={4} fill={C.gear2} />
       <rect x={150} y={52} width={10} height={90} rx={4} fill={C.gear} />
+    </>),
+  },
+  "spider-curl": {
+    anchor: "hip", at: [92, 100], prop: ["db", "wrist"], hl: ["arm"],
+    a: { t: -45, ua: 90, fa: 88, th: 72, sh: 100 },
+    b: { t: -45, ua: 90, fa: -125, th: 72, sh: 100 },
+    env: (j) => {
+      const a = add(j.hip, [5, 7]), b = add(j.shoulder, [4, 7]);
+      return (<>
+        <line x1={a[0]} y1={a[1]} x2={b[0] + 4} y2={b[1] - 2} stroke={C.gear2} strokeWidth={9} strokeLinecap="round" />
+        <rect x={j.hip[0] - 16} y={j.hip[1] + 14} width={34} height={7} rx={3} fill={C.gear2} />
+        <line x1={j.hip[0]} y1={j.hip[1] + 21} x2={j.hip[0]} y2={FLOOR} stroke={C.gear} strokeWidth={5} strokeLinecap="round" />
+        <line x1={b[0] + 2} y1={b[1] + 4} x2={b[0] + 2} y2={FLOOR} stroke={C.gear} strokeWidth={5} strokeLinecap="round" />
+      </>);
+    },
+  },
+  "bayesian-curl": {
+    anchor: "foot", at: [118, 138], prop: ["bar", "wrist"], hl: ["arm"], cable: [22, 130],
+    a: { t: -82, th: 90, sh: 90, ua: 112, fa: 98 },
+    b: { t: -82, th: 90, sh: 90, ua: 112, fa: -62 },
+    env: () => (<>
+      <rect x={10} y={112} width={14} height={30} rx={4} fill={C.gear} />
+      <circle cx={22} cy={130} r={3} fill="none" stroke={C.cable} strokeWidth={1.4} />
+    </>),
+  },
+  "curl-incline": {
+    anchor: "hip", at: [112, 108], prop: ["db", "wrist"], hl: ["arm"],
+    a: { t: -125, ua: 92, fa: 90, th: 10, sh: 85 },
+    b: { t: -125, ua: 92, fa: -70, th: 10, sh: 85 },
+    env: (j) => inclinePad(j, 10),
+  },
+  "preacher-curl": {
+    anchor: "hip", at: [90, 108], prop: ["db", "wrist"], hl: ["arm"],
+    a: { t: -86, ua: 56, fa: 58, th: 10, sh: 85 },
+    b: { t: -86, ua: 56, fa: -105, th: 10, sh: 85 },
+    env: (j) => {
+      const a = add(j.shoulder, [3, 6]), b = add(j.shoulder, vec(56, 36));
+      return (<>
+        <line x1={a[0]} y1={a[1]} x2={b[0] + 3} y2={b[1] + 6} stroke={C.gear2} strokeWidth={9} strokeLinecap="round" />
+        <line x1={a[0] + 4} y1={a[1]} x2={a[0] + 4} y2={FLOOR} stroke={C.gear} strokeWidth={5} strokeLinecap="round" />
+        <rect x={j.hip[0] - 16} y={j.hip[1] + 7} width={32} height={7} rx={3} fill={C.gear2} />
+        <line x1={j.hip[0]} y1={j.hip[1] + 14} x2={j.hip[0]} y2={FLOOR} stroke={C.gear} strokeWidth={5} strokeLinecap="round" />
+      </>);
+    },
+  },
+  "concentration-curl": {
+    anchor: "hip", at: [96, 108], prop: ["db", "wrist"], hl: ["arm"],
+    a: { t: -30, ua: 100, fa: 76, th: 5, sh: 90 },
+    b: { t: -30, ua: 100, fa: -82, th: 5, sh: 90 },
+    env: (j) => (<>
+      <rect x={j.hip[0] - 20} y={j.hip[1] + 7} width={52} height={7} rx={3} fill={C.gear2} />
+      <line x1={j.hip[0] - 8} y1={j.hip[1] + 14} x2={j.hip[0] - 8} y2={FLOOR} stroke={C.gear} strokeWidth={5} strokeLinecap="round" />
+      <line x1={j.hip[0] + 22} y1={j.hip[1] + 14} x2={j.hip[0] + 22} y2={FLOOR} stroke={C.gear} strokeWidth={5} strokeLinecap="round" />
+    </>),
+  },
+  "tricep-pushdown": {
+    anchor: "foot", at: [100, 138], prop: ["bar", "wrist"], hl: ["arm"], cable: [112, 4],
+    a: { t: -84, th: 90, sh: 90, ua: 88, fa: -8 },
+    b: { t: -84, th: 90, sh: 90, ua: 88, fa: 86 },
+    env: () => <rect x={98} y={0} width={26} height={7} rx={3} fill={C.gear} />,
+  },
+  "skull-crusher": {
+    anchor: "hip", at: [126, 106], prop: ["bar", "wrist"], hl: ["arm"],
+    a: { t: 180, ua: -86, fa: -168, th: 15, sh: 85 },
+    b: { t: 180, ua: -86, fa: -88, th: 15, sh: 85 },
+    env: () => (<>
+      <rect x={64} y={113} width={84} height={8} rx={3} fill={C.gear2} />
+      <line x1={74} y1={121} x2={74} y2={FLOOR} stroke={C.gear} strokeWidth={5} strokeLinecap="round" />
+      <line x1={138} y1={121} x2={138} y2={FLOOR} stroke={C.gear} strokeWidth={5} strokeLinecap="round" />
     </>),
   },
   "overhead-press": {
@@ -194,12 +271,17 @@ export function FigureSvg({ def, k, size = 260, propKind }) {
   return (
     <svg viewBox={vb.join(" ")} width={size} height={size * 0.75} style={{ display: "block", maxWidth: "100%", borderRadius: 14, background: C.bg }} aria-hidden="true">
       <defs>
+        <linearGradient id="mf-near" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#b79cff" /><stop offset="1" stopColor="#7433e6" /></linearGradient>
+        <linearGradient id="mf-far" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#7d57d8" /><stop offset="1" stopColor="#4b2599" /></linearGradient>
+        <linearGradient id="mf-head" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#d4c2ff" /><stop offset="1" stopColor="#9a74f5" /></linearGradient>
+        <radialGradient id="mf-bg" cx="50%" cy="55%" r="65%"><stop offset="0" stopColor="#2a2150" /><stop offset="1" stopColor="#120e1f" /></radialGradient>
         <filter id="mf-glow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="2.2" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
       </defs>
-      <rect x={vb[0]} y={FLOOR} width={vb[2]} height={400} fill="#1b1630" />
+      <rect x={vb[0]} y={vb[1]} width={vb[2]} height={vb[3]} fill="url(#mf-bg)" />
+      <rect x={vb[0]} y={FLOOR} width={vb[2]} height={400} fill="#171229" />
       <rect x={vb[0]} y={FLOOR} width={vb[2]} height={1.6} fill={C.gear2} />
       <ellipse cx={(j.ankle[0] + j.hip[0]) / 2 + 4} cy={FLOOR + 1} rx={26} ry={2.6} fill="#000" opacity={0.35} />
-      {def.env?.()}
+      {def.env?.(j)}
       {def.cable && <line x1={j.wrist[0]} y1={j.wrist[1]} x2={def.cable[0]} y2={def.cable[1]} stroke={C.cable} strokeWidth={1.2} strokeDasharray="4 3" />}
       {/* lado lejano */}
       {limb(dx(j.hip, 4), dx(j.knee, 4), 5.6, 4.4, C.far)}
