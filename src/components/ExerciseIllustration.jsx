@@ -947,11 +947,11 @@ function Compound({ mini=false, animated=false }) {
 
 // ─── MAPPING ─────────────────────────────────────────────────────────────────
 
-function norm(s) {
+export function norm(s) {
   return (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
 }
 
-function getKey(name, pattern, muscle, equipment) {
+export function getKey(name, pattern, muscle, equipment) {
   const n = norm(name);
   const m = norm(muscle);
   const eq = norm(equipment || "");
