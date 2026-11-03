@@ -9,6 +9,7 @@ import { uploadProgressPhoto } from "../lib/uploadPhoto.js";
 import { todayLocal } from "../lib/dates.js";
 import { formatDate } from "../lib/analytics.js";
 import Icon from "../components/Icon.jsx";
+import { isAdvancedView } from "../config/features.js";
 
 function calcDurninWomersleyPct(tri, sub, bic, ili, age) {
   const sum4 = tri + sub + bic + ili;
@@ -566,8 +567,10 @@ export default function MeasurementsPage() {
         <div style={{ display: "flex", borderBottom: "1px solid var(--line)", marginBottom: 16, gap: 0 }}>
           {[
             { id: "basico", label: "Básico" },
-            { id: "pliegues", label: "Pliegues" },
-            { id: "perimetros", label: "Perímetros" },
+            ...(isAdvancedView(profile) ? [
+              { id: "pliegues", label: "Pliegues" },
+              { id: "perimetros", label: "Perímetros" },
+            ] : []),
             { id: "fotos", label: <><Icon name="Camera" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> Fotos</> },
           ].map(({ id, label }) => (
             <button

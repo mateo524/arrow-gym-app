@@ -266,7 +266,7 @@ export default function RoutinesPage() {
     <>
       <section className="page">
       <div className="page-head">
-        <button className="back-btn" onClick={() => setPage("home")}><Icon name="ArrowLeft" size={20} strokeWidth={2.5} /></button>
+        <button className="back-btn" aria-label="Volver" onClick={() => setPage("home")}><Icon name="ArrowLeft" size={20} strokeWidth={2.5} /></button>
         <div className="page-head-titles">
           <p className="eyebrow">Entrenamiento</p>
           <h1>Mis Rutinas</h1>
@@ -449,7 +449,15 @@ export default function RoutinesPage() {
       )}
 
       {showExPicker && (
-        <ExercisePicker onSelect={addExercise} onClose={() => setShowExPicker(false)} />
+        <div className="modal-overlay" style={{ zIndex: 300, alignItems: "center" }} onClick={() => setShowExPicker(false)}>
+          <div className="modal-card" style={{ maxHeight: "80vh", overflow: "auto" }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Elegir ejercicio</h2>
+              <button type="button" className="ghost icon-btn" aria-label="Cerrar" onClick={() => setShowExPicker(false)}><Icon name="X" size={20} /></button>
+            </div>
+            <ExercisePicker compact onPick={addExercise} />
+          </div>
+        </div>
       )}
 
       {/* Custom delete confirmation modal */}

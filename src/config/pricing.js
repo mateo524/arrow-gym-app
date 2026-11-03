@@ -1,5 +1,8 @@
 // Fuente única de precios y reglas de trial/suscripción de Loop Gym.
 export const PRICE_ARS = 10000;
+// Interruptor global: false = la app es gratis para todos (sin trial, sin paywall, sin avisos de pago).
+// Para volver a cobrar, poner en true.
+export const SUBSCRIPTIONS_ENABLED = false;
 export const TRIAL_DAYS = 30;
 // Días sin entrenar a partir de los cuales un alumno se considera inactivo (semáforo/banner/docs).
 export const INACTIVITY_DAYS = 5;
@@ -15,6 +18,7 @@ export function getTrialInfo(profile) {
 
 /** true si tiene suscripción vigente (active/trialing, vencimiento futuro) o trial vigente. */
 export function isSubscribed(profile) {
+  if (!SUBSCRIPTIONS_ENABLED) return true;
   const status = profile?.subscription_status;
   if (status === "active" || status === "trialing") return true;
   const exp = profile?.subscription_expires_at ? new Date(profile.subscription_expires_at) : null;

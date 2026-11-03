@@ -11,6 +11,8 @@ import NotificationPanel from "../components/NotificationPanel.jsx";
 import { features } from "../config/features.js";
 import StreakCard, { FirstWorkoutCta } from "../components/StreakCard.jsx";
 import VacationCard from "../components/VacationCard.jsx";
+import ViewModeToggle from "../components/ViewModeToggle.jsx";
+import { SUBSCRIPTIONS_ENABLED } from "../config/pricing.js";
 import { isOnVacation, idleDaysExcludingVacation } from "../lib/streak.js";
 
 export default function HomePage() {
@@ -276,8 +278,10 @@ export default function HomePage() {
         </button>
       </div>
 
+      <ViewModeToggle />
+
       {/* Subscription banner for non-subscribers */}
-      {profile?.role === "user" && profile?.subscription_status !== "active" && (
+      {SUBSCRIPTIONS_ENABLED && profile?.role === "user" && profile?.subscription_status !== "active" && (
         <div
           onClick={async () => {
             try {
@@ -504,7 +508,7 @@ export default function HomePage() {
           })()}
 
           {/* Feature 3: Volumen acumulado del mes */}
-          {monthlyVolume.current > 0 && (() => {
+          {f.advanced_tools && monthlyVolume.current > 0 && (() => {
             const vol = monthlyVolume.current;
             const prev = monthlyVolume.prev;
             const volStr = vol >= 1000 ? `${(vol / 1000).toFixed(1)} k` : `${vol.toLocaleString("es-AR")} kg`;

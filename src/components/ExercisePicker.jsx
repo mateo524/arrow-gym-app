@@ -2,6 +2,7 @@ import { useMemo, useState, useRef, useCallback, useEffect } from "react";
 import { BODY_GROUPS, MUSCLES_BY_GROUP, EQUIPMENT_CATEGORIES, getFilteredExercises } from "../data/exerciseDatabase.js";
 import useStore from "../store/useStore.js";
 import Icon from "./Icon.jsx";
+import ExerciseHowTo from "./ExerciseHowTo.jsx";
 
 const ALL = "Todos";
 const CHIPS = [ALL, ...BODY_GROUPS];
@@ -9,6 +10,7 @@ const EQUIP_CHIPS = Object.keys(EQUIPMENT_CATEGORIES);
 const PAGE_SIZE = 40;
 
 function ExerciseList({ items, favoriteExercises, toggleFavorite, onExerciseTap, handlePick, totalCount, onMore, remaining }) {
+  const [howTo, setHowTo] = useState(null);
   if (items.length === 0) {
     return (
       <div className="notice" style={{ marginTop: 8 }}>
@@ -19,6 +21,7 @@ function ExerciseList({ items, favoriteExercises, toggleFavorite, onExerciseTap,
 
   return (
     <div className="exercise-results-list">
+      {howTo && <ExerciseHowTo exercise={howTo.name} tip={howTo.tip} onClose={() => setHowTo(null)} />}
       {items.map((ex) => {
         const isFav = favoriteExercises.includes(ex.name);
         return (
@@ -31,17 +34,26 @@ function ExerciseList({ items, favoriteExercises, toggleFavorite, onExerciseTap,
               <b>{ex.name}</b>
               <small>{ex.group} · {ex.muscle} · {ex.equipment}</small>
             </div>
+            <button
+              type="button"
+              className="fav-btn"
+              onClick={(e) => { e.stopPropagation(); setHowTo(ex); }}
+              aria-label={`Cómo se hace ${ex.name}`}
+              title="Cómo se hace (dibujo, técnica y video)"
+            >
+              <Icon name="Play" size={14} color="var(--green)" />
+            </button>
             {onExerciseTap && (
               <button
                 onClick={() => handlePick(ex)}
                 aria-label="Agregar ejercicio"
-                style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, padding: "4px 6px", color: "var(--muted)", flexShrink: 0 }}
+                style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, padding: "4px 10px", minWidth: 36, color: "var(--muted)", flexShrink: 0 }}
               >+</button>
             )}
             <button
               className="fav-btn"
               onClick={(e) => { e.stopPropagation(); toggleFavorite(ex.name); }}
-              aria-label={isFav ? "Remove from favorites" : "Add to favorites"}
+              aria-label={isFav ? "Quitar de favoritos" : "Agregar a favoritos"}
             >
               <Icon name="Star" size={14} fill={isFav ? "var(--yellow)" : "none"} color={isFav ? "var(--yellow)" : "var(--muted)"} />
             </button>

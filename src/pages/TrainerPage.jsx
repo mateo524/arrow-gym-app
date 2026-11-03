@@ -6,7 +6,7 @@ import { EXERCISE_DATABASE } from "../data/exerciseDatabase.js";
 import Icon from "../components/Icon.jsx";
 import AssignRoutineModal from "../components/AssignRoutineModal.jsx";
 import { getGroupTotals, filterCurrentWeek } from "../lib/analytics.js";
-import { PRICE_ARS, TRIAL_DAYS, INACTIVITY_DAYS } from "../config/pricing.js";
+import { PRICE_ARS, TRIAL_DAYS, INACTIVITY_DAYS, SUBSCRIPTIONS_ENABLED } from "../config/pricing.js";
 
 /*
   SQL para crear la tabla invite_codes (ejecutar en Supabase SQL editor):
@@ -289,6 +289,7 @@ export default function TrainerPage() {
 
   // Payment helpers
   function clientPaymentStatus(client) {
+    if (!SUBSCRIPTIONS_ENABLED) return { label: "Sin cobro", color: "#4ade80", bg: "rgba(34,197,94,.15)", urgent: false, trialDaysLeft: null };
     const sub = client.subscription_status;
     const createdMs = client.created_at ? Date.now() - new Date(client.created_at).getTime() : 0;
     const trialDaysLeft = Math.max(0, TRIAL_DAYS - Math.floor(createdMs / (1000 * 60 * 60 * 24)));
@@ -688,6 +689,7 @@ export default function TrainerPage() {
                     <div style={{ fontSize: 22, fontWeight: 800, color: m.adherencePct >= 60 ? "#4ade80" : m.adherencePct >= 40 ? "#fbbf24" : "#f87171", lineHeight: 1.1 }}>{m.adherencePct}%</div>
                     <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 4, lineHeight: 1.2 }}>Adherencia semanal</div>
                   </div>
+                  {SUBSCRIPTIONS_ENABLED && <>
                   <div style={{ width: 1, background: "#1b2d31" }} />
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 22, fontWeight: 800, color: "var(--text)", lineHeight: 1.1 }}>
@@ -695,6 +697,7 @@ export default function TrainerPage() {
                     </div>
                     <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 4, lineHeight: 1.2 }}>Ingresos/mes est. (ARS)</div>
                   </div>
+                  </>}
                 </div>
               </>
             );

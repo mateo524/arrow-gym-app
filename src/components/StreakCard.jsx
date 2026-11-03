@@ -26,7 +26,7 @@ export default function StreakCard({ workouts, prs, weightLog, goal, vacationPer
         <div style={{ width: `${pct}%`, height: "100%", background: "var(--green)", borderRadius: 4, transition: "width .6s ease" }} />
       </div>
       <div style={{ fontSize: 12, color: "var(--muted)" }}>
-        {week.paused
+        {week.paused || vacationPeriods.some((p) => !p.end)
           ? "Racha en pausa por vacaciones. Te espera intacta."
           : week.goalReached
           ? "Objetivo cumplido, tu racha sigue viva."

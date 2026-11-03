@@ -37,9 +37,20 @@ const FEATURE_MAP = {
   },
 };
 
+// Banderas de la vista Avanzada (mediciones detalladas, volumen, récords por serie, etc.).
+// Básica = "simple"; Avanzada = "standard" o "advanced".
+for (const [mode, on] of [["simple", false], ["standard", true], ["advanced", true]]) {
+  FEATURE_MAP[mode].advanced_tools = on;
+}
+
 export function features(profile) {
   const mode = profile?.ui_mode ?? 'standard';
   return FEATURE_MAP[mode] ?? FEATURE_MAP.standard;
+}
+
+/** true si la persona eligió la vista Avanzada (o el modo estándar heredado). */
+export function isAdvancedView(profile) {
+  return features(profile).advanced_tools === true;
 }
 
 // Vocabulary adapter — plain language for simple mode, technical for advanced

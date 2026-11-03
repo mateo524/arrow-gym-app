@@ -11,6 +11,7 @@ import { todayLocal, dateToLocal } from "../lib/dates.js";
 import { buildCoachReport, formatDate, getPeriodizationPhase, getWeeklyFatigueScore, getWeightPrescriptions, getSkippedGroups, getOneRMHistory, getCycleComparison, getMuscleBalance, getWeekComparison, getWorkoutVolume, VOLUME_LANDMARKS, getStagnantExercises, getWeeklyActionableFeedback, calcWorkoutCalories } from "../lib/analytics.js";
 import { features } from "../config/features.js";
 import { getVacationContext } from "../lib/streak.js";
+import { SUBSCRIPTIONS_ENABLED } from "../config/pricing.js";
 export default function CoachPage() {
   const reports = useStore((state) => state.coachReports) ?? [];
   const workouts = useStore((state) => state.workouts) ?? [];
@@ -29,7 +30,7 @@ export default function CoachPage() {
   const quiet = vac.quiet; // de vacaciones o recién vuelto: la baja de actividad es esperable
 
   // Subscription gate — trainers and admins always have access
-  const isSubscribed = profile?.subscription_status === "active" || ["trainer","admin","superadmin"].includes(profile?.role);
+  const isSubscribed = !SUBSCRIPTIONS_ENABLED || profile?.subscription_status === "active" || ["trainer","admin","superadmin"].includes(profile?.role);
   if (profile && !isSubscribed) {
     return (
       <section className="page" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "48px 24px" }}>

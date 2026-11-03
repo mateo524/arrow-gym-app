@@ -3527,3 +3527,10 @@ img, video, canvas { max-width: 100%; }
 .nut-undo { position: fixed; left: 12px; right: 12px; bottom: calc(76px + env(safe-area-inset-bottom, 0px)); z-index: 500; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 8px 24px rgba(0, 0, 0, .45); }
 .nut-undo-text { font-size: 13px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nut-undo-btn { flex-shrink: 0; min-height: 40px; padding: 6px 14px; background: none; border: 0; color: var(--green); font-size: 13px; font-weight: 800; text-transform: uppercase; cursor: pointer; }
+
+/* Botones de pantallas con dedo (táctil): alto mínimo cómodo para tocar. Se excluyen los controles compactos propios. */
+@media (pointer: coarse) {
+  .page button:not(.toggle):not(.set-delete-btn):not(.set-icon-32):not(.set-done-action):not(.nav-item):not(.week-cal-day):not(.profile-avatar):not(.back-btn):not(.icon-btn) {
+    min-height: 36px;
+  }
+}

@@ -5,6 +5,7 @@ import useAuthStore from "../store/useAuthStore.js";
 import { supabase } from "../lib/supabase.js";
 import { T } from "../lib/telemetry.js";
 import { BRAND } from "../config/brand.js";
+import { SUBSCRIPTIONS_ENABLED } from "../config/pricing.js";
 
 const CheckIcon = ({ color = "var(--accent)", size = 18 }) => (
   <svg className="check-ico" width={size} height={size} viewBox="0 0 20 20" fill="none" aria-hidden="true" style={{ marginLeft: "auto" }}>
@@ -130,9 +131,11 @@ export default function OnboardingModal() {
             <div style={{ textAlign: "center", marginBottom: 24 }}>
               <div style={{ fontSize: 18, marginBottom: 12, fontWeight: 800 }}>{BRAND}</div>
               <h2 style={{ margin: "0 0 8px", fontSize: 24 }}>Bienvenido a Loop</h2>
-              <div style={{ background: "rgba(168,85,247,.08)", border: "1px solid rgba(168,85,247,.25)", borderRadius: 10, padding: "8px 12px", margin: "0 0 12px", fontSize: 13, fontWeight: 600 }}>
-                Tenés 30 días de prueba gratis, sin pagar nada.
-              </div>
+              {SUBSCRIPTIONS_ENABLED && (
+                <div style={{ background: "rgba(168,85,247,.08)", border: "1px solid rgba(168,85,247,.25)", borderRadius: 10, padding: "8px 12px", margin: "0 0 12px", fontSize: 13, fontWeight: 600 }}>
+                  Tenés 30 días de prueba gratis, sin pagar nada.
+                </div>
+              )}
               <p style={{ color: "var(--muted)", fontSize: 14, margin: 0, lineHeight: 1.5 }}>
                 ¿Cómo querés usar la app? Ya te dejamos elegido el modo Estándar; lo cambiás cuando quieras en Perfil.
               </p>
@@ -352,12 +355,14 @@ export default function OnboardingModal() {
             )}
 
             {/* Trial awareness */}
-            <div style={{ background: "rgba(168,85,247,.06)", border: "1px solid rgba(168,85,247,.2)", borderRadius: 12, padding: "14px 16px", marginBottom: 24 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>30 días de prueba gratuita</div>
-              <div style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.6 }}>
-                Tenés 30 días para probar Loop sin pagar nada. Si querés seguir, la suscripción es <b style={{ color: "var(--text)" }}>$10.000 ARS/mes</b> — te avisamos antes de que venza.
+            {SUBSCRIPTIONS_ENABLED && (
+              <div style={{ background: "rgba(168,85,247,.06)", border: "1px solid rgba(168,85,247,.2)", borderRadius: 12, padding: "14px 16px", marginBottom: 24 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>30 días de prueba gratuita</div>
+                <div style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.6 }}>
+                  Tenés 30 días para probar Loop sin pagar nada. Si querés seguir, la suscripción es <b style={{ color: "var(--text)" }}>$10.000 ARS/mes</b> — te avisamos antes de que venza.
+                </div>
               </div>
-            </div>
+            )}
 
             <div style={{ display: "flex", gap: 10 }}>
               <button className="ghost" style={{ flex: 1 }} onClick={() => setStep(4)}>← Atrás</button>

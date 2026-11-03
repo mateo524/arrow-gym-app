@@ -1,4 +1,5 @@
 import { openCheckout } from "../lib/checkout.js";
+import { SUBSCRIPTIONS_ENABLED } from "../config/pricing.js";
 import { formatDMY } from "../lib/dates.js";
 import DateInput from "../components/DateInput.jsx";
 ﻿import { useState, useRef, useEffect } from "react";
@@ -354,7 +355,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Subscription status — only for regular users */}
-        {role === "user" && (() => {
+        {SUBSCRIPTIONS_ENABLED && role === "user" && (() => {
           const isActive = profile?.subscription_status === "active";
           const hasPreapproval = !!profile?.mp_preapproval_id;
           const subExpiresAt = profile?.subscription_expires_at ? new Date(profile.subscription_expires_at) : null;
@@ -577,7 +578,7 @@ export default function ProfilePage() {
 
           <div className="settings-row">
             <div><label>Sonido descanso</label><small>Beep al terminar el temporizador</small></div>
-            <button className={`toggle${soundEnabled ? " on" : ""}`} onClick={toggleSound} aria-pressed={soundEnabled} />
+            <button className={`toggle${soundEnabled ? " on" : ""}`} onClick={toggleSound} aria-pressed={soundEnabled} aria-label="Sonido del descanso" role="switch" aria-checked={soundEnabled} />
           </div>
 
           {isPushSupported() && !isIosNotInstalled() && (
@@ -590,6 +591,7 @@ export default function ProfilePage() {
                 onClick={toggleNotifications}
                 disabled={notifLoading}
                 aria-pressed={notifEnabled}
+                aria-label="Notificaciones push"
                 className={`toggle${notifEnabled ? " on" : ""}`}
                 style={{ opacity: notifLoading ? 0.6 : 1 }}
               />
@@ -660,7 +662,7 @@ export default function ProfilePage() {
               if (!error) {
                 useAuthStore.setState(s => ({ profile: { ...s.profile, coach_enabled: next } }));
               }
-            }} style={{
+            }} aria-label="Activar o desactivar el Coach" style={{
               width: 48, height: 28, borderRadius: 14, border: "none", cursor: "pointer", flexShrink: 0,
               background: (profile?.coach_enabled ?? true) ? "var(--green)" : "rgba(255,255,255,.12)",
               position: "relative", transition: "background .2s",

@@ -56,7 +56,7 @@ import useStore from "./store/useStore.js";
 import useAuthStore from "./store/useAuthStore.js";
 import { supabase } from "./lib/supabase.js";
 import { subscribeToPush, requestPushPermission, isPushSupported } from "./lib/pushNotifications.js";
-import { PRICE_ARS, getTrialInfo, isSubscribed } from "./config/pricing.js";
+import { PRICE_ARS, getTrialInfo, isSubscribed, SUBSCRIPTIONS_ENABLED } from "./config/pricing.js";
 
 const APP_VERSION = "54";
 
@@ -790,7 +790,7 @@ function AppContent() {
       <div className="app-shell">
         {/* -- TRIAL COUNTDOWN BANNER --------------------------------------- */}
         {(() => {
-          if (isAdminRole || trialBannerDismissed) return null;
+          if (!SUBSCRIPTIONS_ENABLED || isAdminRole || trialBannerDismissed) return null;
           if (subStatus === "active") return null;
           const daysLeft = getTrialInfo(profile).daysLeft;
           if (daysLeft > 7 || daysLeft <= 0) return null;

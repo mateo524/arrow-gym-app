@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase.js";
 import Icon from "../components/Icon";
+import { SUBSCRIPTIONS_ENABLED } from "../config/pricing.js";
 
 export default function TrainerLandingPage({ inviteCode, onJoin, onBack }) {
   const [trainer, setTrainer] = useState(null);
@@ -129,12 +130,14 @@ export default function TrainerLandingPage({ inviteCode, onJoin, onBack }) {
         )}
 
         {/* Pricing */}
-        <div style={{ background: "rgba(168,85,247,.08)", border: "1px solid rgba(168,85,247,.25)", borderRadius: 14, padding: "14px 16px", marginBottom: 24, textAlign: "center" }}>
-          <p style={{ margin: "0 0 4px", fontSize: 12, color: "var(--muted)" }}>30 días de prueba gratis, después</p>
-          <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: "var(--text)" }}>
-            $10.000 <span style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)" }}>ARS / mes</span>
-          </p>
-        </div>
+        {SUBSCRIPTIONS_ENABLED && (
+          <div style={{ background: "rgba(168,85,247,.08)", border: "1px solid rgba(168,85,247,.25)", borderRadius: 14, padding: "14px 16px", marginBottom: 24, textAlign: "center" }}>
+            <p style={{ margin: "0 0 4px", fontSize: 12, color: "var(--muted)" }}>30 días de prueba gratis, después</p>
+            <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: "var(--text)" }}>
+              $10.000 <span style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)" }}>ARS / mes</span>
+            </p>
+          </div>
+        )}
 
         <label style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 12, lineHeight: 1.5, color: "var(--muted)", cursor: "pointer", marginBottom: 12 }}>
           <input type="checkbox" checked={accepted} onChange={(e) => setAccepted(e.target.checked)} style={{ marginTop: 3, flexShrink: 0 }} />

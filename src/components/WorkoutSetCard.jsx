@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import Icon from "./Icon.jsx";
 import useStore from "../store/useStore.js";
 import { calc1RM } from "../lib/analytics.js";
+import useAuthStore from "../store/useAuthStore.js";
+import { isAdvancedView } from "../config/features.js";
 
 function haptic(type = "tap") {
   if (!navigator.vibrate) return;
@@ -16,6 +18,7 @@ export default function WorkoutSetCard({
   prevSet = null, prevInSession = null, beyondLastSession = false, isNewPR = false
 }) {
   const done = !!setItem.done;
+  const advancedView = isAdvancedView(useAuthStore((s) => s.profile));
   const setPage = useStore(s => s.setPage);
   const [showPRPanel, setShowPRPanel] = useState(false);
   const [editingNote, setEditingNote] = useState(false);
@@ -52,14 +55,16 @@ export default function WorkoutSetCard({
   const antW = beyondLastSession ? null : (prevSet?.weight || setItem.lastWeight);
   const antR = beyondLastSession ? null : (prevSet?.reps || setItem.lastReps);
   const hasPrev = !beyondLastSession && (antW || antR);
+  const antExtra = prevSet?.extraWeight || setItem.lastExtraWeight;
 
 
   // "Repetir anterior": peso y reps de la serie previa de la sesión, o de la sesión anterior
   const repSrc = (() => {
+    // Primero la MISMA serie de la última sesión (sin importar lo que hiciste en la serie anterior de hoy)
+    if (!beyondLastSession && Number(antR) > 0 && Number(antW) > 0) return { weight: antW, extraWeight: antExtra, reps: antR, fromLast: true };
     const fromSession = prevInSession && Number(prevInSession.reps) > 0 && (Number(prevInSession.weight) > 0 || Number(prevInSession.extraWeight) > 0)
       ? prevInSession : null;
     if (fromSession) return { weight: fromSession.weight, extraWeight: fromSession.extraWeight, reps: fromSession.reps };
-    if (!beyondLastSession && Number(antR) > 0 && Number(antW) > 0) return { weight: antW, extraWeight: setItem.lastExtraWeight, reps: antR };
     return null;
   })();
   const isEmpty = !hasData && !(Number(setItem.reps) > 0);
@@ -75,7 +80,7 @@ export default function WorkoutSetCard({
     return calc1RM(eff, Math.min(Number(setItem.reps) + rir, 30));
   })();
 
-  const hasExtras = showRepeatPrev || needsBodyWeight || editingNote || (note && !editingNote) || showPRPanel || (coachSuggestion !== null && coachSuggestion !== undefined);
+  const hasExtras = showRepeatPrev || needsBodyWeight || editingNote || (note && !editingNote) || (advancedView && showPRPanel) || (coachSuggestion !== null && coachSuggestion !== undefined);
 
   return (
     <div style={{ marginBottom: 4 }}>
@@ -106,13 +111,9 @@ export default function WorkoutSetCard({
               className="set-val-sm"
               inputMode="decimal"
               value={setItem.extraWeight === 0 || setItem.extraWeight === "0" ? "" : (setItem.extraWeight || "")}
-              placeholder={setItem.lastExtraWeight && !beyondLastSession ? `${setItem.lastExtraWeight}` : "0"}
+              placeholder={antExtra && !beyondLastSession ? `${antExtra}` : "0"}
               onChange={(e) => { haptic(); onUpdate({ extraWeight: sanitizeWeight(e.target.value) || 0, ...(done ? { done: false } : {}) }); }}
-              onFocus={(e) => {
-                if ((!setItem.extraWeight || setItem.extraWeight === 0) && setItem.lastExtraWeight && !beyondLastSession)
-                  onUpdate({ extraWeight: Number(setItem.lastExtraWeight) });
-                e.target.select();
-              }}
+              onFocus={(e) => e.target.select()}
               style={{ borderColor: setItem.extraWeight ? "rgba(168,85,247,.5)" : undefined }}
             />
             <span className="set-sep">×</span>
@@ -120,13 +121,9 @@ export default function WorkoutSetCard({
               className="set-val-sm"
               inputMode="numeric"
               value={setItem.reps}
-              placeholder={!beyondLastSession ? (setItem.planReps || setItem.lastReps || "—") : "—"}
+              placeholder={!beyondLastSession ? (setItem.planReps || antR || "—") : "—"}
               onChange={(e) => { haptic(); onUpdate({ reps: sanitizeReps(e.target.value), ...(done ? { done: false } : {}) }); }}
-              onFocus={(e) => {
-                if (!setItem.reps && setItem.lastReps && !beyondLastSession)
-                  onUpdate({ reps: String(setItem.lastReps) });
-                e.target.select();
-              }}
+              onFocus={(e) => e.target.select()}
               style={{ borderColor: setItem.reps ? "rgba(168,85,247,.5)" : undefined }}
             />
           </div>
@@ -137,14 +134,10 @@ export default function WorkoutSetCard({
               inputMode="decimal"
               value={setItem.weight}
               placeholder={!beyondLastSession
-                ? ((!setItem.weight && coachSuggestion?.weight != null) ? String(coachSuggestion.weight) : (setItem.lastWeight || ""))
+                ? String(antW || (coachSuggestion?.weight != null ? coachSuggestion.weight : ""))
                 : ""}
               onChange={(e) => { haptic(); onUpdate({ weight: sanitizeWeight(e.target.value), ...(done ? { done: false } : {}) }); }}
-              onFocus={(e) => {
-                if (!setItem.weight && setItem.lastWeight && !beyondLastSession)
-                  onUpdate({ weight: String(setItem.lastWeight) });
-                e.target.select();
-              }}
+              onFocus={(e) => e.target.select()}
               style={{ borderColor: setItem.weight ? "rgba(168,85,247,.5)" : undefined }}
             />
             <span className="set-sep">×</span>
@@ -152,13 +145,9 @@ export default function WorkoutSetCard({
               className="set-val-sm"
               inputMode="numeric"
               value={setItem.reps}
-              placeholder={!beyondLastSession ? (setItem.planReps || setItem.lastReps || "—") : "—"}
+              placeholder={!beyondLastSession ? (setItem.planReps || antR || "—") : "—"}
               onChange={(e) => { haptic(); onUpdate({ reps: sanitizeReps(e.target.value), ...(done ? { done: false } : {}) }); }}
-              onFocus={(e) => {
-                if (!setItem.reps && setItem.lastReps && !beyondLastSession)
-                  onUpdate({ reps: String(setItem.lastReps) });
-                e.target.select();
-              }}
+              onFocus={(e) => e.target.select()}
               style={{ borderColor: setItem.reps ? "rgba(168,85,247,.5)" : undefined }}
             />
           </div>
@@ -175,15 +164,17 @@ export default function WorkoutSetCard({
           >
             <Icon name="FileText" size={12} />
           </button>
-          <button
-            className="set-delete-btn set-icon-32"
-            aria-label="Récords"
-            style={{ color: showPRPanel ? "var(--green)" : "var(--muted)" }}
-            onClick={() => setShowPRPanel(!showPRPanel)}
-            title="Récords"
-          >
-            <Icon name="BarChart2" size={12} />
-          </button>
+          {advancedView && (
+            <button
+              className="set-delete-btn set-icon-32"
+              aria-label="Récords"
+              style={{ color: showPRPanel ? "var(--green)" : "var(--muted)" }}
+              onClick={() => setShowPRPanel(!showPRPanel)}
+              title="Récords"
+            >
+              <Icon name="BarChart2" size={12} />
+            </button>
+          )}
 
           {hasData && !done ? (
             <button
@@ -231,7 +222,7 @@ export default function WorkoutSetCard({
                 onUpdate(patch);
               }}
             >
-              Repetir anterior: {isBodyweight ? `+${Number(repSrc.extraWeight) || 0}` : `${repSrc.weight}`}kg × {repSrc.reps}
+              {repSrc.fromLast ? "Usar última vez" : "Repetir anterior"}: {isBodyweight ? `+${Number(repSrc.extraWeight) || 0}` : `${repSrc.weight}`}kg × {repSrc.reps}
             </button>
           )}
           {needsBodyWeight && (

@@ -1,5 +1,6 @@
 import { formatDMY } from "../lib/dates.js";
 import { isNewPR as isNewPRWeight } from "../lib/pr.js";
+import { compareExerciseVolume } from "../lib/volumeCompare.js";
 ﻿import { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import useStore from "../store/useStore.js";
 import useAuthStore from "../store/useAuthStore.js";
@@ -11,8 +12,8 @@ import WorkoutSetCard from "../components/WorkoutSetCard.jsx";
 import RestTimer from "../components/RestTimer.jsx";
 import VolumeSparkline from "../components/VolumeSparkline.jsx";
 import Icon from "../components/Icon.jsx";
-import ExerciseIllustration from "../components/ExerciseIllustration.jsx";
-import { findExerciseMeta, EXERCISE_DATABASE } from "../data/exerciseDatabase.js";
+import ExerciseHowTo from "../components/ExerciseHowTo.jsx";
+import { EXERCISE_DATABASE } from "../data/exerciseDatabase.js";
 import ShareWorkoutCard from "../components/ShareWorkoutCard.jsx";
 import WorkoutPDF from "../components/WorkoutPDF.jsx";
 import { features } from "../config/features.js";
@@ -185,17 +186,22 @@ function getExercisePR(workouts, exercise) {
   return { bestWeight, bestVolume: Math.round(bestVolume), bestReps, bestRepsWeight, lastDate };
 }
 
-function ProgressiveOverloadChip({ sets, lastWeight }) {
-  const bestWeight = Math.max(0, ...sets.map((s) => Number(s.weight || 0)).filter(v => v > 0));
-  if (!bestWeight || !lastWeight) return null;
-  const diff = bestWeight - Number(lastWeight);
-  let label, color, bg;
-  if (diff > 0) { label = `↑ +${diff}kg vs anterior`; color = "#16a34a"; bg = "rgba(168,85,247,.12)"; }
-  else if (diff < 0) { label = `↓ ${diff}kg`; color = "#dc2626"; bg = "rgba(248,113,113,.12)"; }
-  else { label = "= mismo peso"; color = "var(--muted)"; bg = "var(--panel2)"; }
+// Rendimiento vs última sesión por volumen total (kg × reps), no solo por peso
+function VolumeCompareChip({ sets, lastSets }) {
+  const cmp = compareExerciseVolume(sets, lastSets);
+  if (!cmp) return null;
+  const palette = {
+    up:   { color: "#16a34a", bg: "rgba(34,197,94,.12)", arrow: "↑" },
+    same: { color: "var(--muted)", bg: "var(--panel2)", arrow: "=" },
+    down: { color: "#dc2626", bg: "rgba(248,113,113,.12)", arrow: "↓" },
+  }[cmp.status];
+  const pct = cmp.pct > 0 ? `+${cmp.pct}%` : `${cmp.pct}%`;
   return (
-    <span style={{ fontSize:11, padding:"2px 8px", borderRadius:10, display:"inline-flex", alignItems:"center", gap:4, backgroundColor:bg, color, marginTop:4 }}>
-      {label}
+    <span
+      title={`${cmp.message} Hoy ${cmp.today} kg vs ${cmp.last} kg en las mismas ${cmp.n} series de la última vez.`}
+      style={{ fontSize:11, padding:"2px 8px", borderRadius:10, display:"inline-flex", alignItems:"center", gap:4, backgroundColor:palette.bg, color:palette.color, marginTop:4 }}
+    >
+      {palette.arrow} Volumen {cmp.today} kg ({pct})
     </span>
   );
 }
@@ -394,7 +400,6 @@ export default function WorkoutPage() {
   const [shareMsg, setShareMsg] = useState("");
   const [showPDF, setShowPDF] = useState(false);
 
-  const [illustrationExercise, setIllustrationExercise] = useState(null);
   const [restDone, setRestDone] = useState(false);
   const [showReadiness, setShowReadiness] = useState(false);
   const [prCelebration, setPrCelebration] = useState(null);
@@ -793,7 +798,7 @@ export default function WorkoutPage() {
   // ─────────────────────────────────────────────────────────────────────────────
   return (
     <>
-    <section className="page" style={{ padding: 0, display: "flex", flexDirection: "column", overflow: "hidden", position: "fixed", left: 0, right: 0, top: "max(env(safe-area-inset-top, 0px), 0px)", bottom: "calc(60px + 58px + env(safe-area-inset-bottom, 0px))" }}>
+    <section className="page" style={{ padding: 0, display: "flex", flexDirection: "column", overflow: "hidden", position: "fixed", zIndex: 160, left: 0, right: 0, top: "max(env(safe-area-inset-top, 0px), 0px)", bottom: "calc(60px + 58px + env(safe-area-inset-bottom, 0px))" }}>
 
       {/* ── TOP BAR ─────────────────────────────────────────────────────────── */}
       <div style={{
@@ -933,7 +938,7 @@ export default function WorkoutPage() {
                               <>Último: <b style={{ color: "var(--text)" }}>{first.lastWeight}kg × {first.lastReps}</b></>
                             )}
                           </span>
-                          <ProgressiveOverloadChip sets={sets} lastWeight={first.lastWeight} />
+                          <VolumeCompareChip sets={sets} lastSets={lastSessionsByExercise[exercise]?.sets} />
                         </div>
                         {(() => {
                           const suggested = getProgressiveSuggestion(workouts, exercise, goal);
@@ -1162,17 +1167,12 @@ export default function WorkoutPage() {
               }}>
                 {/* Left actions */}
                 <div style={{ display: "flex", gap: 8 }}>
-                  {/* Illustration flip button */}
-                  <button onClick={() => setIllustrationExercise(exercise)}
-                    style={{ background: "var(--panel2)", border: "none", borderRadius: 10, width: 38, height: 38, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)" }}
-                    title="Ver movimiento">
-                    <Icon name="Eye" size={17} strokeWidth={1.8} />
-                  </button>
-
-                  {/* Tip */}
-                  <button onClick={() => setTipExercise(tipExercise === exercise ? null : exercise)}
-                    style={{ marginRight: 8, background: "var(--panel2)", border: "none", borderRadius: 10, width: 38, height: 38, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)" }}>
-                    <Icon name="Lightbulb" size={17} strokeWidth={1.8} />
+                  {/* Cómo se hace: dibujo + técnica + video */}
+                  <button onClick={() => setTipExercise(exercise)}
+                    data-testid="how-to-btn"
+                    style={{ background: "rgba(168,85,247,.15)", border: "1px solid rgba(168,85,247,.45)", borderRadius: 10, height: 38, padding: "0 12px", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, color: "var(--green)", fontSize: 12, fontWeight: 700, marginRight: 4 }}
+                    title="Ver cómo se hace este ejercicio (dibujo, técnica y video)">
+                    <Icon name="Play" size={15} strokeWidth={2.2} /> Cómo se hace
                   </button>
 
                   {/* Swap exercise */}
@@ -1348,7 +1348,7 @@ export default function WorkoutPage() {
             {/* Finish */}
             <button className="primary" style={{ width: "100%" }}
               onClick={() => { setShowMenu(false); handleFinishClick(); }}>
-              {emptySetsCount > 0 ? `Guardar entrenamiento (${emptySetsCount} vacías)` : "Guardar entrenamiento"}
+              {emptySetsCount > 0 ? `Guardar entrenamiento (${emptySetsCount} ${emptySetsCount === 1 ? "serie sin cargar" : "series sin cargar"})` : "Guardar entrenamiento"}
             </button>
           </div>
         </div>
@@ -1441,7 +1441,7 @@ export default function WorkoutPage() {
             </p>
             <div style={{ display: "flex", gap: 10 }}>
               <button className="ghost" style={{ flex: 1 }} onClick={() => setShowFinishConfirm(false)}>Seguir</button>
-              <button className="primary" style={{ flex: 1 }} onClick={() => { setShowFinishConfirm(false); setShowRpe(true); }}>Finalizar igual ({savedSetsCount} {savedSetsCount === 1 ? "serie guardada" : "series guardadas"})</button>
+              <button className="primary" style={{ flex: 1 }} onClick={() => { setShowFinishConfirm(false); if (f.rpe_field) setShowRpe(true); else doFinish(sessionNotes, null); }}>Finalizar igual ({savedSetsCount} {savedSetsCount === 1 ? "serie guardada" : "series guardadas"})</button>
             </div>
           </div>
         </div>
@@ -1624,69 +1624,10 @@ export default function WorkoutPage() {
       </div>
     )}
 
-    {/* ── TECHNIQUE TIP MODAL ───────────────────────────────────────────── */}
+    {/* ── CÓMO SE HACE (dibujo + técnica + video) ───────────────────────── */}
     {tipExercise && (
-      <div className="modal-overlay" onClick={() => setTipExercise(null)}>
-        <div className="modal-card" style={{ maxWidth: 360 }} onClick={e => e.stopPropagation()}>
-          <div className="modal-header">
-            <h2 style={{ fontSize: 16 }}>Técnica: {tipExercise}</h2>
-            <button className="ghost icon-btn" onClick={() => setTipExercise(null)}><Icon name="X" size={18} /></button>
-          </div>
-          <p style={{ fontSize: 14, lineHeight: 1.6, color: "var(--text)", margin: "8px 0 16px" }}>
-            {getTip(tipExercise)}
-          </p>
-          <button className="primary" style={{ width: "100%" }} onClick={() => setTipExercise(null)}>Entendido</button>
-        </div>
-      </div>
+      <ExerciseHowTo exercise={tipExercise} tip={getTip(tipExercise)} accent={workoutTypeTheme.accent} onClose={() => setTipExercise(null)} />
     )}
-
-
-    {/* ── ILLUSTRATION FULL-SCREEN OVERLAY ─────────────────────────────── */}
-    {illustrationExercise && (() => {
-      const exMeta = findExerciseMeta(illustrationExercise);
-      const exSets = (active?.sets || []).filter(s => s.exercise === illustrationExercise);
-      const meta = exMeta || exSets[0] || {};
-      return (
-        <>
-        <style>{`
-          @keyframes card-flip-in {
-            from { transform: perspective(900px) rotateY(90deg) scale(.92); opacity: 0; }
-            to   { transform: perspective(900px) rotateY(0deg) scale(1);   opacity: 1; }
-          }
-        `}</style>
-        <div
-          onClick={() => setIllustrationExercise(null)}
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.88)", zIndex: 500, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
-          <div
-            onClick={e => e.stopPropagation()}
-            style={{ background: "var(--panel)", borderRadius: 24, padding: "28px 24px", maxWidth: 360, width: "100%", textAlign: "center", animation: "card-flip-in .38s cubic-bezier(.34,1.4,.64,1) both" }}>
-            <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 800, color: "var(--green)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-              {meta?.group || "Ejercicio"}
-            </p>
-            <h2 style={{ margin: "0 0 20px", fontSize: 18, fontWeight: 900 }}>{illustrationExercise}</h2>
-            <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
-              <ExerciseIllustration
-                name={illustrationExercise}
-                pattern={meta?.pattern}
-                muscle={meta?.muscle}
-                equipment={meta?.equipment}
-                size={200}
-                animated={true}
-              />
-            </div>
-            <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginBottom: 20 }}>
-              {meta?.muscle && <span style={{ fontSize: 12, color: workoutTypeTheme.accent, background: "var(--panel2)", borderRadius: 8, padding: "3px 10px", fontWeight: 700 }}>{meta.muscle}</span>}
-              {meta?.equipment && <span style={{ fontSize: 12, color: "var(--muted)", background: "var(--panel2)", borderRadius: 8, padding: "3px 10px" }}>{meta.equipment}</span>}
-            </div>
-            <button onClick={() => setIllustrationExercise(null)}
-              style={{ width: "100%", background: "rgba(168,85,247,.12)", border: "1px solid rgba(168,85,247,.3)", borderRadius: 14, padding: "12px", cursor: "pointer", fontSize: 14, fontWeight: 700, color: "var(--green)" }}>
-              Cerrar
-            </button>
-          </div>
-        </div>
-        </>
-      );
-    })()}
 
     {/* ── REST TIMER OVERLAY ────────────────────────────────────────────── */}
     {restExercise && (
@@ -1770,7 +1711,7 @@ export default function WorkoutPage() {
         Cancelar
       </button>
       <button className="primary" style={{ flex: 2, fontSize: 13 }} onClick={handleFinishClick}>
-        {emptySetsCount > 0 ? `Guardar (${emptySetsCount} vacías)` : "Guardar entrenamiento"}
+        {emptySetsCount > 0 ? `Guardar (${emptySetsCount} ${emptySetsCount === 1 ? "serie sin cargar" : "series sin cargar"})` : "Guardar entrenamiento"}
       </button>
     </div>
 
