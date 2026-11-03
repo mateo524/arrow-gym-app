@@ -1,10 +1,9 @@
 import Icon from "./Icon.jsx";
 import ExerciseMotion from "./ExerciseMotion.jsx";
 import { findExerciseMeta } from "../data/exerciseDatabase.js";
-import { exerciseVideoUrl } from "../lib/exerciseVideo.js";
 
 /**
- * Hoja única "Cómo se hace": dibujo animado del movimiento, técnica escrita y video.
+ * Hoja única "Cómo se hace": animación del movimiento y técnica escrita.
  * `tip` es el texto de técnica ya resuelto por quien la abre.
  */
 const DEFAULT_TIP = "Ejecutá el movimiento en forma controlada. Concentrate en el músculo que trabaja, exhalá en el esfuerzo e inhalá al volver. Si dudás, empezá con poco peso.";
@@ -39,15 +38,6 @@ export default function ExerciseHowTo({ exercise, tip, onClose, accent = "var(--
         <p style={{ margin: "0 0 4px", fontSize: 11, fontWeight: 800, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Técnica</p>
         <p style={{ fontSize: 14, lineHeight: 1.6, color: "var(--text)", margin: "0 0 14px" }}>{text}</p>
 
-        <a
-          href={exerciseVideoUrl(exercise)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="primary"
-          style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", boxSizing: "border-box", padding: "12px", borderRadius: 12, fontWeight: 700, textDecoration: "none", marginBottom: 8 }}
-        >
-          <Icon name="Play" size={16} /> Ver video en YouTube
-        </a>
         <button className="ghost" style={{ width: "100%" }} onClick={onClose}>Cerrar</button>
       </div>
     </div>
