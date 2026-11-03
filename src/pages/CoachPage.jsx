@@ -12,6 +12,7 @@ import { buildCoachReport, formatDate, getPeriodizationPhase, getWeeklyFatigueSc
 import { features } from "../config/features.js";
 import { getVacationContext } from "../lib/streak.js";
 import { SUBSCRIPTIONS_ENABLED } from "../config/pricing.js";
+import BasicCoachSummary from "../components/BasicCoachSummary.jsx";
 export default function CoachPage() {
   const reports = useStore((state) => state.coachReports) ?? [];
   const workouts = useStore((state) => state.workouts) ?? [];
@@ -26,6 +27,7 @@ export default function CoachPage() {
   const profile = useAuthStore((s) => s.profile);
   const user = useAuthStore((s) => s.user);
   const vacationPeriods = useStore((s) => s.vacationPeriods) ?? [];
+  const weeklyGoalSetting = useStore((s) => s.weeklyGoal) || 4;
   const vac = getVacationContext(vacationPeriods, todayLocal());
   const quiet = vac.quiet; // de vacaciones o recién vuelto: la baja de actividad es esperable
 
@@ -353,6 +355,8 @@ export default function CoachPage() {
     }).filter(Boolean);
   }, [workouts]);
 
+  // Vista Básica: solo el resumen, en palabras simples
+  const adv = f.advanced_tools;
   const TABS = [
     { id: "resumen",    label: "Resumen"    },
     { id: "plan",       label: "Plan"       },
@@ -570,7 +574,7 @@ export default function CoachPage() {
       )}
 
       {/* -- Tab bar ------------------------------------------- */}
-      <div style={{ display:"flex", gap:4, background:"var(--panel)", borderRadius:14, padding:4, marginBottom:16 }}>
+      {adv && <div style={{ display:"flex", gap:4, background:"var(--panel)", borderRadius:14, padding:4, marginBottom:16 }}>
         {TABS.map(({ id, label }) => (
           <button key={id} onClick={() => setTab(id)} style={{
             flex:1, padding:"8px 4px", fontSize:12, fontWeight:600, borderRadius:10,
@@ -579,11 +583,12 @@ export default function CoachPage() {
             color: tab === id ? "#fff" : "var(--muted)",
           }}>{label}</button>
         ))}
-      </div>
+      </div>}
 
       {/* -- TAB: RESUMEN -------------------------------------- */}
-      {tab === "resumen" && (
+      {(tab === "resumen" || !adv) && (
         <div>
+          {adv && (<>
           {/* -- Medidas -- */}
           <div style={{ background:"var(--panel)", borderRadius:16, padding:"12px 14px", marginBottom:14 }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
@@ -595,38 +600,38 @@ export default function CoachPage() {
             <div style={{ display:"flex", gap:8, overflow:"auto", flexWrap:"nowrap" }}>
               {bodyWeight && (
                 <div style={{ flex:"0 0 auto", minWidth:80, background:"rgba(34,197,94,.07)", border:"1px solid rgba(34,197,94,.2)", borderRadius:10, padding:"8px 10px", textAlign:"center" }}>
-                  <p style={{ margin:"0 0 1px", fontSize:10, color:"var(--green)", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.04em" }}>Peso</p>
-                  <p style={{ margin:0, fontSize:16, fontWeight:900, color:"var(--text)" }}>{bodyWeight}<span style={{ fontSize:10, fontWeight:400, color:"var(--muted)" }}>kg</span></p>
+                  <p style={{ margin:"0 0 1px", fontSize:11, color:"var(--green)", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.04em" }}>Peso</p>
+                  <p style={{ margin:0, fontSize:16, fontWeight:900, color:"var(--text)" }}>{bodyWeight}<span style={{ fontSize:11, fontWeight:400, color:"var(--muted)" }}>kg</span></p>
                 </div>
               )}
               {bodyFatPct !== null && (
                 <div style={{ flex:"0 0 auto", minWidth:80, background:"rgba(168,85,247,.07)", border:"1px solid rgba(168,85,247,.2)", borderRadius:10, padding:"8px 10px", textAlign:"center" }}>
-                  <p style={{ margin:"0 0 1px", fontSize:10, color:"var(--green)", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.04em" }}>Grasa</p>
-                  <p style={{ margin:0, fontSize:16, fontWeight:900, color:"var(--text)" }}>{bodyFatPct.toFixed(1)}<span style={{ fontSize:10, fontWeight:400, color:"var(--muted)" }}>%</span></p>
+                  <p style={{ margin:"0 0 1px", fontSize:11, color:"var(--green)", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.04em" }}>Grasa</p>
+                  <p style={{ margin:0, fontSize:16, fontWeight:900, color:"var(--text)" }}>{bodyFatPct.toFixed(1)}<span style={{ fontSize:11, fontWeight:400, color:"var(--muted)" }}>%</span></p>
                 </div>
               )}
               {lbm !== null && (
                 <div style={{ flex:"0 0 auto", minWidth:80, background:"rgba(96,165,250,.07)", border:"1px solid rgba(96,165,250,.2)", borderRadius:10, padding:"8px 10px", textAlign:"center" }}>
-                  <p style={{ margin:"0 0 1px", fontSize:10, color:"var(--green)", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.04em" }}>Masa magra</p>
-                  <p style={{ margin:0, fontSize:16, fontWeight:900, color:"var(--text)" }}>{lbm.toFixed(1)}<span style={{ fontSize:10, fontWeight:400, color:"var(--muted)" }}>kg</span></p>
+                  <p style={{ margin:"0 0 1px", fontSize:11, color:"var(--green)", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.04em" }}>Masa magra</p>
+                  <p style={{ margin:0, fontSize:16, fontWeight:900, color:"var(--text)" }}>{lbm.toFixed(1)}<span style={{ fontSize:11, fontWeight:400, color:"var(--muted)" }}>kg</span></p>
                 </div>
               )}
               {profile?.height_cm && (
                 <div style={{ flex:"0 0 auto", minWidth:72, background:"rgba(245,158,11,.07)", border:"1px solid rgba(245,158,11,.2)", borderRadius:10, padding:"8px 10px", textAlign:"center" }}>
-                  <p style={{ margin:"0 0 1px", fontSize:10, color:"#f59e0b", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.04em" }}>Talla</p>
-                  <p style={{ margin:0, fontSize:16, fontWeight:900, color:"var(--text)" }}>{profile.height_cm}<span style={{ fontSize:10, fontWeight:400, color:"var(--muted)" }}>cm</span></p>
+                  <p style={{ margin:"0 0 1px", fontSize:11, color:"#f59e0b", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.04em" }}>Talla</p>
+                  <p style={{ margin:0, fontSize:16, fontWeight:900, color:"var(--text)" }}>{profile.height_cm}<span style={{ fontSize:11, fontWeight:400, color:"var(--muted)" }}>cm</span></p>
                 </div>
               )}
               {profile?.waist_cm && (
                 <div style={{ flex:"0 0 auto", minWidth:72, background:"rgba(248,113,113,.07)", border:"1px solid rgba(248,113,113,.2)", borderRadius:10, padding:"8px 10px", textAlign:"center" }}>
-                  <p style={{ margin:"0 0 1px", fontSize:10, color:"#f87171", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.04em" }}>Cintura</p>
-                  <p style={{ margin:0, fontSize:16, fontWeight:900, color:"var(--text)" }}>{profile.waist_cm}<span style={{ fontSize:10, fontWeight:400, color:"var(--muted)" }}>cm</span></p>
+                  <p style={{ margin:"0 0 1px", fontSize:11, color:"#f87171", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.04em" }}>Cintura</p>
+                  <p style={{ margin:0, fontSize:16, fontWeight:900, color:"var(--text)" }}>{profile.waist_cm}<span style={{ fontSize:11, fontWeight:400, color:"var(--muted)" }}>cm</span></p>
                 </div>
               )}
               {profile?.arm_flexed_cm && (
                 <div style={{ flex:"0 0 auto", minWidth:72, background:"rgba(52,211,153,.07)", border:"1px solid rgba(52,211,153,.2)", borderRadius:10, padding:"8px 10px", textAlign:"center" }}>
-                  <p style={{ margin:"0 0 1px", fontSize:10, color:"#34d399", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.04em" }}>Brazo</p>
-                  <p style={{ margin:0, fontSize:16, fontWeight:900, color:"var(--text)" }}>{profile.arm_flexed_cm}<span style={{ fontSize:10, fontWeight:400, color:"var(--muted)" }}>cm</span></p>
+                  <p style={{ margin:"0 0 1px", fontSize:11, color:"#34d399", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.04em" }}>Brazo</p>
+                  <p style={{ margin:0, fontSize:16, fontWeight:900, color:"var(--text)" }}>{profile.arm_flexed_cm}<span style={{ fontSize:11, fontWeight:400, color:"var(--muted)" }}>cm</span></p>
                 </div>
               )}
               {!bodyWeight && (
@@ -667,23 +672,26 @@ export default function CoachPage() {
                   <div key={name} style={{ background: "var(--panel2)", borderRadius: 12, padding: "10px 8px", textAlign: "center" }}>
                     <div style={{ width: 28, height: 28, borderRadius: "50%", background: `${color}22`, border: `2px solid ${color}`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 6px", fontSize: 13, color }}>{iconName ? <Icon name={iconName} size={13} style={{display:'inline-block',verticalAlign:'middle'}} /> : "●"}</div>
                     <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text)", marginBottom: 2 }}>{name}</div>
-                    <div style={{ fontSize: 10, color: "var(--muted)" }}>
+                    <div style={{ fontSize: 11, color: "var(--muted)" }}>
                       {daysSince === null ? "Sin datos" : daysSince === 0 ? "Hoy" : `Hace ${daysSince}d`}
                     </div>
-                    <div style={{ fontSize: 9, color, fontWeight: 700, marginTop: 2, textTransform: "uppercase" }}>{status}</div>
+                    <div style={{ fontSize: 11, color, fontWeight: 700, marginTop: 2, textTransform: "uppercase" }}>{status}</div>
                   </div>
                 );
               })}
             </div>
-            <p style={{ margin: "10px 0 0", fontSize: 10, color: "var(--muted)" }}>
+            <p style={{ margin: "10px 0 0", fontSize: 11, color: "var(--muted)" }}>
               Basado en volumen de última sesión y tiempo de recuperación recomendado por grupo.
             </p>
           </div>
+          </>)}
 
           {workouts.length === 0 ? (
             <div className="notice"><b>Sin entrenamientos</b><p>Completá tu primer entrenamiento para activar el Coach.</p></div>
-          ) : (
+          ) : adv ? (
             <HolisticSummary workouts={workouts} prs={prs} userAge={userAge} bodyWeight={bodyWeight} bodyFatPct={bodyFatPct} lbm={lbm} userGoal={userGoal} />
+          ) : (
+            <BasicCoachSummary workouts={workouts} goal={weeklyGoalSetting} quiet={quiet} onStart={() => setPage("start")} />
           )}
 
           {weeklyChallenge && (
@@ -705,6 +713,7 @@ export default function CoachPage() {
             </div>
           )}
 
+          {adv && (<>
           {/* Análisis avanzado (colapsable) */}
           <button onClick={() => setShowAdvanced(s => !s)}
             style={{ width:"100%", padding:"8px", borderRadius:10, border:"1px solid var(--line)", background:"var(--panel)", cursor:"pointer", fontSize:12, fontWeight:600, color:"var(--muted)", marginBottom:12 }}>
@@ -735,7 +744,7 @@ export default function CoachPage() {
               {muscleData.filter(d => d.value > 0).map((d,i) => (
                 <div key={d.name} style={{ textAlign:"center", background:"var(--panel2)", borderRadius:10, padding:"8px 4px" }}>
                   <div style={{ fontSize:14, fontWeight:800, color:"var(--green)" }}>{d.pct}%</div>
-                  <div style={{ fontSize:10, color:"var(--muted)" }}>{d.name}</div>
+                  <div style={{ fontSize:11, color:"var(--muted)" }}>{d.name}</div>
                 </div>
               ))}
             </div>
@@ -771,7 +780,7 @@ export default function CoachPage() {
                     );
                   })}
                 </div>
-                <p style={{ margin:"8px 0 0", fontSize:10, color:"var(--muted)" }}>Fórmula Epley — Estimación, no reemplaza test real</p>
+                <p style={{ margin:"8px 0 0", fontSize:11, color:"var(--muted)" }}>Fórmula Epley — Estimación, no reemplaza test real</p>
               </div>
             );
           })()}
@@ -819,7 +828,7 @@ export default function CoachPage() {
                   ].map(item=>(
                     <div key={item.label} style={{ background:"var(--panel2)", borderRadius:12, padding:"12px", textAlign:"center" }}>
                       <div style={{ fontSize:18, fontWeight:900, color:"var(--green)" }}>{item.val}<span style={{ fontSize:12, fontWeight:400 }}>{item.unit}</span></div>
-                      <div style={{ fontSize:10, color:"var(--muted)", marginTop:2 }}>{item.label}</div>
+                      <div style={{ fontSize:11, color:"var(--muted)", marginTop:2 }}>{item.label}</div>
                     </div>
                   ))}
                 </div>
@@ -857,6 +866,7 @@ export default function CoachPage() {
               <Icon name="ChevronRight" size={16} style={{ color: "var(--muted)", flexShrink: 0 }} />
             </button>
           )}
+          </>)}
 
           {/* -- Proactive coach notification (from daily cron) --- */}
           {coachNotif && (
@@ -896,7 +906,7 @@ export default function CoachPage() {
       )}
 
       {/* -- TAB: PLAN ----------------------------------------- */}
-      {tab === "plan" && (
+      {adv && tab === "plan" && (
         <div>
           {workouts.length < 3 ? (
             <div style={{ textAlign:"center", padding:"40px 20px" }}>
@@ -978,11 +988,11 @@ export default function CoachPage() {
                   </div>
                   <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr)", gap:8 }}>
                     <div style={{ background:"var(--panel2)", borderRadius:12, padding:"8px 10px" }}>
-                      <p style={{ margin:"0 0 2px", fontSize:10, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em" }}>Esta semana</p>
+                      <p style={{ margin:"0 0 2px", fontSize:11, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em" }}>Esta semana</p>
                       <b style={{ fontSize:14 }}>{fatigueScore.thisWeek >= 1000 ? (fatigueScore.thisWeek/1000).toFixed(1) + "k" : fatigueScore.thisWeek} kg</b>
                     </div>
                     <div style={{ background:"var(--panel2)", borderRadius:12, padding:"8px 10px" }}>
-                      <p style={{ margin:"0 0 2px", fontSize:10, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em" }}>Semana ant. (mismo período)</p>
+                      <p style={{ margin:"0 0 2px", fontSize:11, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em" }}>Semana ant. (mismo período)</p>
                       <b style={{ fontSize:14 }}>{fatigueScore.lastWeek >= 1000 ? (fatigueScore.lastWeek/1000).toFixed(1) + "k" : fatigueScore.lastWeek} kg</b>
                     </div>
                   </div>
@@ -1017,7 +1027,7 @@ export default function CoachPage() {
                     </div>
                     <div style={{ textAlign:"right", flexShrink:0, marginLeft:12 }}>
                       <p style={{ margin:"0 0 1px", fontSize:22, fontWeight:900, color:"var(--green)", lineHeight:1 }}>{suggestedWeight}<span style={{ fontSize:12, fontWeight:600 }}>kg</span></p>
-                      <p style={{ margin:0, fontSize:10, color:"var(--muted)" }}>ant. {lastWeight}kg–{lastReps}</p>
+                      <p style={{ margin:0, fontSize:11, color:"var(--muted)" }}>ant. {lastWeight}kg–{lastReps}</p>
                     </div>
                   </div>
                 )) : (
@@ -1055,7 +1065,7 @@ export default function CoachPage() {
                             <div style={{ height:48, background:"var(--panel2)", borderRadius:8, overflow:"hidden", display:"flex", alignItems:"flex-end" }}>
                               <div style={{ width:"100%", height:`${Math.max(8, pct*100)}%`, background:wColor, borderRadius:8, transition:"height .4s" }} />
                             </div>
-                            <div style={{ fontSize:10, color:"var(--muted)", marginTop:4 }}>{w.label}</div>
+                            <div style={{ fontSize:11, color:"var(--muted)", marginTop:4 }}>{w.label}</div>
                             <div style={{ fontSize:12, fontWeight:800, color:wColor }}>{w.count}/{goal}</div>
                           </div>
                         );
@@ -1127,7 +1137,7 @@ export default function CoachPage() {
                         <div key={s.label} style={{ background:"var(--panel2)", borderRadius:10, padding:"8px", textAlign:"center" }}>
                           <div style={{ fontSize:11, color:"var(--muted)", marginBottom:2 }}>{s.label}</div>
                           <div style={{ fontSize:18, fontWeight:900, color:"#60a5fa" }}>{s.val}</div>
-                          <div style={{ fontSize:10, color:"var(--muted)" }}>{s.unit}</div>
+                          <div style={{ fontSize:11, color:"var(--muted)" }}>{s.unit}</div>
                         </div>
                       ))}
                     </div>
@@ -1163,7 +1173,7 @@ export default function CoachPage() {
                         <div key={w.label} style={{ background:"var(--panel2)", borderRadius:12, padding:"10px 8px", textAlign:"center" }}>
                           <div style={{ fontSize:11, color:"var(--muted)", marginBottom:4 }}>{w.label}</div>
                           <div style={{ fontSize:20, fontWeight:900, color: w.count >= 3 ? "var(--green)" : w.count >= 1 ? "#f59e0b" : "var(--muted)" }}>{w.count}</div>
-                          <div style={{ fontSize:10, color:"var(--muted)", marginTop:2 }}>sesiones</div>
+                          <div style={{ fontSize:11, color:"var(--muted)", marginTop:2 }}>sesiones</div>
                           <div style={{ fontSize:11, fontWeight:700, color:"var(--muted)", marginTop:4 }}>
                             {w.vol >= 1000 ? (w.vol/1000).toFixed(1)+"k" : w.vol} kg
                           </div>
@@ -1223,7 +1233,7 @@ export default function CoachPage() {
       )}
 
       {/* -- TAB: PROGRESIÓN ----------------------------------- */}
-      {tab === "progreso" && (
+      {adv && tab === "progreso" && (
         <div>
           {!progression.length && !topExercises.length && !prs.length ? (
             <div style={{ textAlign:"center", padding:"40px 20px" }}>
@@ -1374,7 +1384,7 @@ export default function CoachPage() {
                 {/* Top 3 PRs */}
                 {prs.slice(0,3).map((pr,i) => (
                   <div key={i} style={{ flex:"0 0 auto", minWidth:120, background:"rgba(232,247,119,.07)", border:"1px solid rgba(232,247,119,.15)", borderRadius:12, padding:"8px 10px" }}>
-                    <p style={{ margin:"0 0 2px", fontSize:10, color:"var(--yellow)", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.05em" }}>PR #{i+1}</p>
+                    <p style={{ margin:"0 0 2px", fontSize:11, color:"var(--yellow)", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.05em" }}>PR #{i+1}</p>
                     <p style={{ margin:0, fontSize:13, fontWeight:800, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{pr.exercise}</p>
                     <p style={{ margin:"2px 0 0", fontSize:11, color:"var(--text)" }}>{pr.weight}kg — {pr.reps}</p>
                   </div>
@@ -1386,7 +1396,7 @@ export default function CoachPage() {
                   const prevSets = 0; // simplified: show current sets only
                   return (
                     <div style={{ flex:"0 0 auto", minWidth:100, background:"rgba(168,85,247,.07)", border:"1px solid rgba(168,85,247,.2)", borderRadius:12, padding:"8px 10px" }}>
-                      <p style={{ margin:"0 0 2px", fontSize:10, color:"var(--green)", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.05em" }}>Mejor grupo</p>
+                      <p style={{ margin:"0 0 2px", fontSize:11, color:"var(--green)", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.05em" }}>Mejor grupo</p>
                       <p style={{ margin:0, fontSize:13, fontWeight:800 }}>{topGroup[0]}</p>
                       <p style={{ margin:"2px 0 0", fontSize:11, color:"var(--muted)" }}>{topGroup[1].sets} series/sem</p>
                     </div>
@@ -1394,7 +1404,7 @@ export default function CoachPage() {
                 })()}
                 {/* Medidas link */}
                 <div style={{ flex:"0 0 auto", minWidth:100, background:"rgba(34,197,94,.07)", border:"1px solid rgba(34,197,94,.2)", borderRadius:12, padding:"8px 10px", cursor:"pointer" }} onClick={() => setPage("measurements")}>
-                  <p style={{ margin:"0 0 2px", fontSize:10, color:"var(--green)", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.05em" }}>Medidas</p>
+                  <p style={{ margin:"0 0 2px", fontSize:11, color:"var(--green)", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.05em" }}>Medidas</p>
                   <p style={{ margin:0, fontSize:13, fontWeight:800 }}>{bodyWeight ? `${bodyWeight}kg` : "–"}</p>
                   <p style={{ margin:"2px 0 0", fontSize:11, color:"var(--muted)" }}>Ver todo →</p>
                 </div>
@@ -1518,7 +1528,7 @@ export default function CoachPage() {
                         return (
                           <div key={day} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:3 }}>
                             <div style={{ width:"100%", height:h, background: isFav ? "var(--green)" : counts[i] ? "rgba(168,85,247,.5)" : "var(--panel2)", borderRadius:4, transition:"height .4s" }} />
-                            <span style={{ fontSize:9, color: isFav ? "var(--green)" : "var(--muted)", fontWeight: isFav ? 800 : 400 }}>{day}</span>
+                            <span style={{ fontSize:11, color: isFav ? "var(--green)" : "var(--muted)", fontWeight: isFav ? 800 : 400 }}>{day}</span>
                           </div>
                         );
                       })}
@@ -1564,7 +1574,7 @@ export default function CoachPage() {
                         <circle key={i} cx={px(i)} cy={py(Number(e.kg))} r="3" fill={trendColor} />
                       ))}
                     </svg>
-                    <div style={{ display:"flex", justifyContent:"space-between", marginTop:6, fontSize:10, color:"var(--muted)" }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", marginTop:6, fontSize:11, color:"var(--muted)" }}>
                       <span>{formatDMY(pts[0].date)}</span>
                       <span>{formatDMY(pts[pts.length-1].date)}</span>
                     </div>
@@ -1617,7 +1627,7 @@ export default function CoachPage() {
       )}
 
       {/* -- TAB: ALERTAS -------------------------------------- */}
-      {tab === "alertas" && (
+      {adv && tab === "alertas" && (
         <div>
           {smartAlerts.length === 0 && skippedGroups.length === 0 && !fatigueScore.overreaching && workouts.length >= 2 && (
             <div style={{ display:"flex", gap:10, alignItems:"flex-start", background:"rgba(168,85,247,.07)", border:"1px solid rgba(168,85,247,.2)", borderRadius:14, padding:"14px 16px", marginBottom:14 }}>
@@ -1697,7 +1707,7 @@ export default function CoachPage() {
           })()}
 
           {/* Disclaimer */}
-          <p style={{ fontSize: 10, color: 'var(--muted)', margin: '0 0 12px', opacity: 0.7, textAlign: 'center' }}>
+          <p style={{ fontSize: 11, color: 'var(--muted)', margin: '0 0 12px', opacity: 0.7, textAlign: 'center' }}>
             Las sugerencias son orientativas. Consultá un profesional de salud ante cualquier dolor o lesión.
           </p>
 
@@ -1738,7 +1748,7 @@ export default function CoachPage() {
                     </div>
                   );
                 })}
-                <div style={{ display:"flex", gap:12, marginTop:8, fontSize:10, color:"var(--muted)", flexWrap:"wrap" }}>
+                <div style={{ display:"flex", gap:12, marginTop:8, fontSize:11, color:"var(--muted)", flexWrap:"wrap" }}>
                   <span>• = MEV (mínimo efectivo)</span>
                   <span>• = MAV (óptimo)</span>
                   <span style={{ color:"var(--danger)" }}>Rojo = excede MRV</span>
@@ -2434,9 +2444,9 @@ function HolisticSummary({ workouts, prs, userAge, bodyWeight, bodyFatPct, lbm, 
             const isLast = i === 3;
             return (
               <div key={i} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:4 }}>
-                <span style={{ fontSize:9, color:"var(--muted)" }}>{v > 0 ? `${(v/1000).toFixed(1)}t` : ""}</span>
+                <span style={{ fontSize:11, color:"var(--muted)" }}>{v > 0 ? `${(v/1000).toFixed(1)}t` : ""}</span>
                 <div style={{ width:"100%", height:h, borderRadius:"6px 6px 3px 3px", background: isLast ? "var(--green)" : "rgba(168,85,247,.3)", transition:"height .3s" }} />
-                <span style={{ fontSize:9, color: isLast ? "var(--green)" : "var(--muted)" }}>
+                <span style={{ fontSize:11, color: isLast ? "var(--green)" : "var(--muted)" }}>
                   {["S-3","S-2","S-1","Esta"][i]}
                 </span>
               </div>

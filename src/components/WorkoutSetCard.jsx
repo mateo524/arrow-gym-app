@@ -96,7 +96,7 @@ export default function WorkoutSetCard({
             {beyondLastSession
               ? <span style={{ color: "var(--muted)", opacity: 0.3 }}>—</span>
               : hasPrev
-                ? <>{antW ? `${antW}kg` : "—"}×{antR || "—"}</>
+                ? <><span>{antW ? `${antW}kg` : "—"}</span><span>×{antR || "—"}</span></>
                 : <span style={{ opacity: 0.25 }}>—</span>
             }
           </span>
@@ -263,12 +263,12 @@ export default function WorkoutSetCard({
                 ].map(({ label, value }) => (
                   <div key={label} style={{ textAlign: "center" }}>
                     <div style={{ fontSize: 13, fontWeight: 800, color: "var(--green)" }}>{value}</div>
-                    <div style={{ fontSize: 9, color: "var(--muted)", marginTop: 2 }}>{label}</div>
+                    <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>{label}</div>
                   </div>
                 ))}
               </div>
               {prData?.lastDate && (
-                <p style={{ fontSize: 10, color: "var(--muted)", margin: "6px 0 0", textAlign: "center" }}>
+                <p style={{ fontSize: 11, color: "var(--muted)", margin: "6px 0 0", textAlign: "center" }}>
                   Última sesión: {prData.lastDate}
                 </p>
               )}

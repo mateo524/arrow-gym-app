@@ -3,6 +3,7 @@ import useStore from "../store/useStore.js";
 import useAuthStore from "../store/useAuthStore.js";
 import { supabase } from "../lib/supabase.js";
 import Icon from "./Icon.jsx";
+import { isAdvancedView } from "../config/features.js";
 
 const USER_TABS = [
   { id: "home",      label: "Inicio",    icon: "Home" },
@@ -63,6 +64,9 @@ export default function Nav({ role }) {
     }
     return tab;
   });
+
+  // Vista Básica: sin la pestaña Comidas (queda para la vista Avanzada)
+  if (!isAdvancedView(profile)) tabs = tabs.filter((t) => t.id !== "nutrition");
 
   if (role === "trainer") tabs = [...tabs, TRAINER_EXTRA];
   if (role === "admin" || role === "superadmin")   tabs = [...tabs, ADMIN_EXTRA];

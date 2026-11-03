@@ -577,9 +577,9 @@ export default function NutritionPage() {
             { label:"Grasa",    val:todayTotals.fat,     target:effectiveTargets.fat,     unit:"g", color:"#f87171" },
           ].map(m => (
             <div key={m.label} style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:14, padding:"12px 10px" }}>
-              <div style={{ fontSize:10, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em" }}>{m.label}</div>
+              <div style={{ fontSize:11, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em" }}>{m.label}</div>
               <div style={{ fontSize:20, fontWeight:900, color:m.color, lineHeight:1, marginTop:4 }}>{m.val}<span style={{ fontSize:11, fontWeight:400, color:"var(--muted)" }}>{m.unit}</span></div>
-              <div style={{ fontSize:10, color:"var(--muted)", marginTop:2 }}>meta {m.target}{m.unit}</div>
+              <div style={{ fontSize:11, color:"var(--muted)", marginTop:2 }}>meta {m.target}{m.unit}</div>
               {macroBar(m.val, m.target, m.color)}
             </div>
           ))}
@@ -787,9 +787,9 @@ export default function NutritionPage() {
               { label:"Grasas",        val:`${effectiveTargets.fat}`, unit:"g", color:"#f87171" },
             ].map(row => (
               <div key={row.label} style={{ background:"var(--panel2)", borderRadius:12, padding:"10px" }}>
-                <div style={{ fontSize:10, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:4 }}>{row.label}</div>
+                <div style={{ fontSize:11, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:4 }}>{row.label}</div>
                 <div style={{ fontSize:20, fontWeight:900, color:row.color, lineHeight:1 }}>{row.val}</div>
-                <div style={{ fontSize:10, color:"var(--muted)", marginTop:2 }}>{row.unit}</div>
+                <div style={{ fontSize:11, color:"var(--muted)", marginTop:2 }}>{row.unit}</div>
               </div>
             ))}
           </div>
@@ -971,7 +971,7 @@ export default function NutritionPage() {
                         <button key={b.id} onClick={() => setWizBudget(b.id)}
                           style={{ ...btnStyle(wizBudget===b.id), flexDirection:"column", display:"flex", alignItems:"flex-start", gap:2 }}>
                           <span>{b.label}</span>
-                          <span style={{ fontSize:10, color:"var(--muted)", fontWeight:400 }}>{b.hint}</span>
+                          <span style={{ fontSize:11, color:"var(--muted)", fontWeight:400 }}>{b.hint}</span>
                         </button>
                       ))}
                     </div>
@@ -1050,13 +1050,13 @@ export default function NutritionPage() {
                           <div key={ii} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"4px 0", borderBottom: ii < meal.items.length-1 ? "1px solid var(--line)" : "none" }}>
                             <div style={{ flex:1 }}>
                               <div style={{ fontSize:13, fontWeight:600 }}>{item.name}</div>
-                              <div style={{ fontSize:10, color:"var(--muted)" }}>
+                              <div style={{ fontSize:11, color:"var(--muted)" }}>
                                 {item.grams ? `${item.grams}g` : item.ml ? `${item.ml}ml` : item.qty ? `×${item.qty}` : ""}
                               </div>
                             </div>
                             <div style={{ textAlign:"right" }}>
                               <div style={{ fontSize:13, fontWeight:700, color:"var(--green)" }}>{r2(item.kcal)} kcal</div>
-                              <div style={{ fontSize:10, color:"var(--muted)" }}>{r2(item.protein)}g P · {r2(item.carbs)}g C · {r2(item.fat)}g G</div>
+                              <div style={{ fontSize:11, color:"var(--muted)" }}>{r2(item.protein)}g P · {r2(item.carbs)}g C · {r2(item.fat)}g G</div>
                             </div>
                           </div>
                         ))}
@@ -1095,7 +1095,7 @@ export default function NutritionPage() {
                 </div>
                 <div style={{ textAlign:"right" }}>
                   <div style={{ fontSize:14, fontWeight:800, color:"var(--green)" }}>{kcal} kcal</div>
-                  <div style={{ fontSize:10, color:"#60a5fa" }}>{prot}g prot.</div>
+                  <div style={{ fontSize:11, color:"#60a5fa" }}>{prot}g prot.</div>
                 </div>
               </div>
             );
@@ -1133,10 +1133,10 @@ export default function NutritionPage() {
                   </div>
                   <div style={{ textAlign:"right", minWidth:90 }}>
                     <span style={{ fontSize:13, fontWeight:800, color: isTrainDay ? "var(--green)" : "var(--text)" }}>{kcal} kcal</span>
-                    <span style={{ fontSize:10, color:"var(--muted)", marginLeft:6 }}>{prot}g P</span>
+                    <span style={{ fontSize:11, color:"var(--muted)", marginLeft:6 }}>{prot}g P</span>
                   </div>
-                  {isTrainDay && <span style={{ fontSize:10, fontWeight:700, color:"var(--green)", background:"rgba(52,211,153,.1)", borderRadius:6, padding:"2px 6px", flexShrink:0 }}>Entreno</span>}
-                  {!isTrainDay && <span style={{ fontSize:10, color:"var(--muted)", width:52, textAlign:"center", flexShrink:0 }}>Descanso</span>}
+                  {isTrainDay && <span style={{ fontSize:11, fontWeight:700, color:"var(--green)", background:"rgba(52,211,153,.1)", borderRadius:6, padding:"2px 6px", flexShrink:0 }}>Entreno</span>}
+                  {!isTrainDay && <span style={{ fontSize:11, color:"var(--muted)", width:52, textAlign:"center", flexShrink:0 }}>Descanso</span>}
                 </div>
               );
             });
@@ -1219,7 +1219,7 @@ export default function NutritionPage() {
                       </div>
                       <div style={{ textAlign:"right", flexShrink:0 }}>
                         <div style={{ fontSize:13, fontWeight:800, color:"var(--green)" }}>{r2(food.kcal)} kcal</div>
-                        <div style={{ fontSize:10, color:"var(--muted)" }}>{r2(food.protein)}P · {r2(food.carbs)}C · {r2(food.fat)}G</div>
+                        <div style={{ fontSize:11, color:"var(--muted)" }}>{r2(food.protein)}P · {r2(food.carbs)}C · {r2(food.fat)}G</div>
                       </div>
                     </button>
                   ))}
@@ -1263,7 +1263,7 @@ export default function NutritionPage() {
                     style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:10, padding:"8px 10px", fontSize:12, fontWeight:600, cursor:"pointer", textAlign:"left", color:"var(--text)" }}>
                     <div style={{ fontWeight:700, marginBottom:2, fontSize:11, lineHeight:1.3 }}>{food.name}</div>
                     <div style={{ color:"var(--green)", fontWeight:800 }}>{r2(food.kcal)} kcal</div>
-                    <div style={{ color:"var(--muted)", fontSize:10 }}>{r2(food.protein)}g P · {r2(food.carbs)}g C · {r2(food.fat)}g G</div>
+                    <div style={{ color:"var(--muted)", fontSize:11 }}>{r2(food.protein)}g P · {r2(food.carbs)}g C · {r2(food.fat)}g G</div>
                   </button>
                 ))}
               </div>
@@ -1520,7 +1520,7 @@ export default function NutritionPage() {
                         </div>
                         <div style={{ textAlign:"right", flexShrink:0 }}>
                           <div style={{ fontSize:13, fontWeight:800, color:"var(--green)" }}>{r2(food.kcal)} kcal</div>
-                          <div style={{ fontSize:10, color:"var(--muted)" }}>{r2(food.protein)}P · {r2(food.carbs)}C · {r2(food.fat)}G</div>
+                          <div style={{ fontSize:11, color:"var(--muted)" }}>{r2(food.protein)}P · {r2(food.carbs)}C · {r2(food.fat)}G</div>
                         </div>
                       </button>
                     ))}

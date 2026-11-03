@@ -3,10 +3,10 @@ import { ROUTINES } from "../data/seedData.js";
 import { getWeeklyStreak, getLatestPR, getWeightTrend, suggestFirstRoutines } from "../lib/streak.js";
 
 const card = { background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 16, padding: "14px 16px", marginBottom: 14 };
-const label = { fontSize: 10, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 };
+const label = { fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 };
 
 /** Racha semanal + progreso visible (último récord y tendencia de peso de 30 días). */
-export default function StreakCard({ workouts, prs, weightLog, goal, vacationPeriods = [] }) {
+export default function StreakCard({ workouts, prs, weightLog, goal, vacationPeriods = [], compact = false }) {
   const week = useMemo(() => getWeeklyStreak(workouts, goal, undefined, vacationPeriods), [workouts, goal, vacationPeriods]);
   const pr = useMemo(() => getLatestPR(prs), [prs]);
   const trend = useMemo(() => getWeightTrend(weightLog), [weightLog]);
@@ -35,7 +35,7 @@ export default function StreakCard({ workouts, prs, weightLog, goal, vacationPer
             : `${week.remaining === 1 ? "Un entreno" : `${week.remaining} entrenos`} para arrancar una racha.`}
       </div>
 
-      {(pr || trend) && (
+      {!compact && (pr || trend) && (
         <div style={{ display: "grid", gridTemplateColumns: pr && trend ? "minmax(0,1fr) minmax(0,1fr)" : "1fr", gap: 10, marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--line)" }}>
           {pr && (
             <div>

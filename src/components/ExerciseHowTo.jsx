@@ -1,5 +1,5 @@
 import Icon from "./Icon.jsx";
-import ExerciseIllustration from "./ExerciseIllustration.jsx";
+import ExerciseMotion from "./ExerciseMotion.jsx";
 import { findExerciseMeta } from "../data/exerciseDatabase.js";
 import { exerciseVideoUrl } from "../lib/exerciseVideo.js";
 
@@ -28,7 +28,7 @@ export default function ExerciseHowTo({ exercise, tip, onClose, accent = "var(--
         </div>
 
         <div style={{ display: "flex", justifyContent: "center", margin: "6px 0 10px" }}>
-          <ExerciseIllustration name={exercise} pattern={meta.pattern} muscle={meta.muscle} equipment={meta.equipment} size={170} animated />
+          <ExerciseMotion name={exercise} pattern={meta.pattern} muscle={meta.muscle} equipment={meta.equipment} size={260} />
         </div>
 
         <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap", marginBottom: 12 }}>

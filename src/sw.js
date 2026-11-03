@@ -1,6 +1,8 @@
 import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
 import { registerRoute, NavigationRoute } from 'workbox-routing';
-import { NetworkFirst } from 'workbox-strategies';
+import { NetworkFirst, CacheFirst } from 'workbox-strategies';
+import { ExpirationPlugin } from 'workbox-expiration';
+import { CacheableResponsePlugin } from 'workbox-cacheable-response';
 
 cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST);
@@ -15,6 +17,18 @@ registerRoute(
     }),
     { denylist: [/^\/api\//] }
   )
+);
+
+// Fotos de los ejercicios ("Cómo se hace"): se guardan al verlas y quedan disponibles sin conexión.
+registerRoute(
+  ({ url }) => url.hostname === 'cdn.jsdelivr.net' && url.pathname.includes('/free-exercise-db@'),
+  new CacheFirst({
+    cacheName: 'exercise-media',
+    plugins: [
+      new CacheableResponsePlugin({ statuses: [0, 200] }),
+      new ExpirationPlugin({ maxEntries: 600, maxAgeSeconds: 60 * 60 * 24 * 180 }),
+    ],
+  })
 );
 
 // No skipWaiting() on install: a new SW stays "waiting" until the page sends

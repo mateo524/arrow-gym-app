@@ -3303,7 +3303,9 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   align-items: center;
   gap: 3px;
   flex-shrink: 0;
-  width: 38px;
+  width: 48px;
+  min-width: 0;
+  overflow: hidden;
 }
 .set-num-sm {
   width: 26px;
@@ -3325,13 +3327,21 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   color: #34d399;
 }
 .set-ant-sm {
-  font-size: 12px;
+  /* Dato de la sesión anterior: dos líneas cortas dentro de su columna, nunca por encima del cuadro de peso */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 100%;
+  font-size: 11px;
   color: var(--muted);
   font-weight: 600;
   text-align: center;
   white-space: nowrap;
-  line-height: 1.2;
+  line-height: 1.15;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+.set-ant-sm > span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .set-row-inputs {
   display: flex;
   align-items: center;

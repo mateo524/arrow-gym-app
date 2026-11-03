@@ -375,6 +375,7 @@ export default function WorkoutPage() {
   const [showPicker, setShowPicker] = useState(false);
   const [swapTarget, setSwapTarget] = useState(null);
   const [supersetTarget, setSupersetTarget] = useState(null);
+  const [supersetAll, setSupersetAll] = useState(false); // false = elegir entre los ejercicios de la rutina
   const [restExercise, setRestExercise] = useState(null);
   const [restKey, setRestKey] = useState(0);
   const [restDuration, setRestDuration] = useState(90);
@@ -469,7 +470,8 @@ export default function WorkoutPage() {
   useEffect(() => {
     if (!active) return;
     const readinessNotSetToday = !readiness || readiness.date !== todayLocal();
-    if (completedSetsCount === 1 && !hasShownReadinessRef.current && readinessNotSetToday) {
+    // Solo en vista Avanzada: la pregunta interrumpe el entrenamiento, no se hace en la Básica
+    if (f.advanced_tools && completedSetsCount === 1 && !hasShownReadinessRef.current && readinessNotSetToday) {
       hasShownReadinessRef.current = true;
       setShowReadiness(true);
     }
@@ -668,7 +670,8 @@ export default function WorkoutPage() {
       : null;
     pendingFinishRef.current = { notes, rpe, summary, mood };
     const userId = profile?.id || useAuthStore.getState().profile?.id;
-    if (!userId || uniqueExercises.length === 0) {
+    // Vista Básica: sin preguntar por guardar la rutina; se guarda y listo
+    if (!userId || uniqueExercises.length === 0 || !f.advanced_tools) {
       _commitFinish(notes, rpe, summary, mood);
       return;
     }
@@ -703,7 +706,7 @@ export default function WorkoutPage() {
   }
 
   async function _commitFinish(notes, rpe, summary, mood) {
-    if (summary) {
+    if (summary && f.advanced_tools) {
       // BUG-03: do NOT clear the draft yet — clearWorkoutDraft is called by the
       // "Listo" / "Ver análisis" handlers after finish() so a crash before the
       // user confirms does not lose an uncommitted workout.
@@ -716,6 +719,7 @@ export default function WorkoutPage() {
       await finish(notes, mood);
       if (!useStore.getState().activeWorkout) {
         clearWorkoutDraft();
+        if (!f.advanced_tools) window.__showToast?.("¡Entrenamiento guardado!", "success");
       }
       setCheckinMood(null);
     }
@@ -961,7 +965,7 @@ export default function WorkoutPage() {
                         .join(' · ');
                       if (!summary) return null;
                       return (
-                        <p style={{ margin: "4px 0 0", fontSize: 11, color: "var(--muted)", lineHeight: 1.4 }}>
+                        <p style={{ margin: "4px 0 0", fontSize: 11, color: "var(--muted)", lineHeight: 1.4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                           Última vez ({formatShortDate(lastSess.date)}): {summary}
                         </p>
                       );
@@ -1010,6 +1014,8 @@ export default function WorkoutPage() {
                 </div>
               )}
               {(() => {
+                // Vista Básica: sin panel de coach en vivo (deja lugar a las series)
+                if (!f.advanced_tools) return null;
                 const filteredHints = (liveHints || []).filter(h => !['balance','pr','ready'].includes(h.type));
                 if (!filteredHints.length && !volStatus) return null;
                 return (
@@ -1138,7 +1144,7 @@ export default function WorkoutPage() {
                       <button className="ghost" style={{ flex: 1, fontSize: 12, padding: "7px 0", color: "#f59e0b", border: "1px solid rgba(245,158,11,.3)", borderRadius: 10 }}
                         onClick={() => addDropset(exercise)}>Drop Set</button>
                       <button className="ghost" style={{ flex: 1, fontSize: 12, padding: "7px 0", color: "#a78bfa", border: "1px solid rgba(167,139,250,.3)", borderRadius: 10 }}
-                        onClick={() => setSupersetTarget(exercise)}>⇄ Super Serie</button>
+                        onClick={() => { setSupersetAll(false); setSupersetTarget(exercise); }}>⇄ Super Serie</button>
                     </div>
 
                   </div>
@@ -1217,13 +1223,14 @@ export default function WorkoutPage() {
 
       {/* ── NAVIGATION DOTS ─────────────────────────────────────────────────── */}
       {groupedExercises.length > 0 && (
-        <div style={{ padding: "8px 16px 10px", display: "flex", flexDirection: "column", alignItems: "center", gap: 0, flexShrink: 0 }}>
-          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 6 }}>
+        <div style={{ padding: "3px 16px 3px", display: "flex", flexDirection: "column", alignItems: "center", gap: 0, flexShrink: 0 }}>
+          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 5 }}>
             {[...Array(groupedExercises.length + 1)].map((_, i) => (
               <button key={i} onClick={() => scrollToExercise(i)} style={{
-                width: i === currentExIndex ? 20 : 7,
-                height: 7,
-                borderRadius: 4,
+                width: i === currentExIndex ? 16 : 6,
+                height: 4,
+                minHeight: 0,
+                borderRadius: 3,
                 background: i === currentExIndex ? "#fff" : i === groupedExercises.length ? "rgba(168,85,247,.4)" : "rgba(255,255,255,.2)",
                 border: "none",
                 cursor: "pointer",
@@ -1238,7 +1245,7 @@ export default function WorkoutPage() {
             if (!name) return null;
             const label = name.length > 24 ? name.slice(0, 21) + '...' : name;
             return (
-              <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', marginTop: 2 }}>
+              <div style={{ fontSize: 11, lineHeight: 1.2, color: 'var(--text-muted)', textAlign: 'center', marginTop: 1 }}>
                 {label}
               </div>
             );
@@ -1422,9 +1429,38 @@ export default function WorkoutPage() {
                 <p style={{ margin: 0, fontSize: 15, fontWeight: 800 }}>Elegí el segundo ejercicio</p>
                 <p style={{ margin: 0, fontSize: 12, color: "var(--muted)" }}>Parear con: <b style={{ color: "var(--green)" }}>{supersetTarget}</b></p>
               </div>
-              <button onClick={() => setSupersetTarget(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--green)", fontWeight: 700, fontSize: 20, padding: "0 4px" }}>←</button>
+              <button onClick={() => setSupersetTarget(null)} aria-label="Cerrar" style={{ background: "none", border: "none", cursor: "pointer", color: "var(--green)", fontWeight: 700, fontSize: 20, padding: "0 4px" }}>✕</button>
             </div>
-            <ExercisePicker compact onPick={(exercise) => { linkSuperset(supersetTarget, exercise); setSupersetTarget(null); }} />
+            {!supersetAll ? (() => {
+              const targetGroup = groupedExercises.find(g => g.exercise === supersetTarget);
+              const targetLinked = targetGroup?.sets.some(s => s.supersetGroup);
+              const options = groupedExercises.filter(g => g.exercise !== supersetTarget);
+              return (
+                <>
+                  <p style={{ margin: "0 0 8px", fontSize: 12, color: "var(--muted)" }}>Ejercicios de tu rutina:</p>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
+                    {options.length === 0 && <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>No hay otros ejercicios en esta rutina.</p>}
+                    {options.map(g => {
+                      const linked = g.sets.some(s => s.supersetGroup);
+                      return (
+                        <button key={g.exercise} type="button"
+                          onClick={() => { linkSuperset(supersetTarget, g.exercise); setSupersetTarget(null); }}
+                          style={{ textAlign: "left", background: "var(--panel2)", border: "1px solid var(--line)", borderRadius: 12, padding: "12px 14px", cursor: "pointer", color: "var(--text)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                          <span style={{ fontWeight: 700, fontSize: 14 }}>{g.exercise}</span>
+                          <span style={{ fontSize: 11, color: "var(--muted)", flexShrink: 0 }}>{g.sets.length} {g.sets.length === 1 ? "serie" : "series"}{linked && !targetLinked ? " · ya en superserie" : ""}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <button type="button" className="ghost" style={{ width: "100%" }} onClick={() => setSupersetAll(true)}>Buscar otro ejercicio…</button>
+                </>
+              );
+            })() : (
+              <>
+                <button type="button" className="ghost" style={{ marginBottom: 10 }} onClick={() => setSupersetAll(false)}>← Volver a los de mi rutina</button>
+                <ExercisePicker compact onPick={(exercise) => { linkSuperset(supersetTarget, exercise); setSupersetTarget(null); }} />
+              </>
+            )}
           </div>
         </div>
       )}
@@ -1816,9 +1852,9 @@ export default function WorkoutPage() {
           </div>
 
           <button className="primary" style={{ width: "100%" }} onClick={() => {
+            // El resumen ya avisa qué series no se guardan: no hace falta otra pantalla de confirmación
             setShowSummary(false);
-            if (emptySetsCount > 0) setShowFinishConfirm(true);
-            else doFinish(sessionNotes, workoutRPE, checkinMood);
+            doFinish(sessionNotes, workoutRPE, checkinMood);
           }}>
             Guardar y terminar
           </button>

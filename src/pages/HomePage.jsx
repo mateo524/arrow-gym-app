@@ -304,7 +304,7 @@ export default function HomePage() {
       )}
 
       {/* ── Health quick-access ── */}
-      <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)", gap:8, marginBottom:14 }} onClick={() => setPage("measurements")}>
+      {f.advanced_tools && <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)", gap:8, marginBottom:14 }} onClick={() => setPage("measurements")}>
         {[
           { label:"Peso", value: lastWeight2 ? `${lastWeight2.kg}` : "—", unit:"kg", color:"var(--green)", iconName:"Scale" },
           { label:"Agua", value: todayWater2 > 0 ? String(todayWater2) : "—", unit: todayWater2 > 0 ? `/${waterGoalV}` : "", color:"#60a5fa", iconName:"Droplet" },
@@ -313,10 +313,10 @@ export default function HomePage() {
           <div key={m.label} style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:14, padding:"10px 8px", textAlign:"center", cursor:"pointer" }}>
             <Icon name={m.iconName} size={16} style={{ color:m.color, marginBottom:4 }} />
             <div style={{ fontSize:18, fontWeight:900, color:m.color, lineHeight:1 }}>{m.value}<span style={{ fontSize:11, fontWeight:400, color:"var(--muted)" }}>{m.unit}</span></div>
-            <div style={{ fontSize:10, color:"var(--muted)", marginTop:3 }}>{m.label}</div>
+            <div style={{ fontSize:11, color:"var(--muted)", marginTop:3 }}>{m.label}</div>
           </div>
         ))}
-      </div>
+      </div>}
 
       {/* Dashboard principal */}
       {(
@@ -383,19 +383,19 @@ export default function HomePage() {
                         {streak === 0 ? "sin racha" : isMilestone ? milestoneMsg : `día${streak !== 1 ? "s" : ""} de racha`}
                       </div>
                       {consistencyScore !== null && (
-                        <span style={{ fontSize: 10, color: 'var(--muted)', display: 'block' }}>
+                        <span style={{ fontSize: 11, color: 'var(--muted)', display: 'block' }}>
                           {consistencyScore}% de semanas con objetivo cumplido
                         </span>
                       )}
                     </div>
                   </div>
                   {isRestToday
-                    ? <div style={{ display:"inline-flex", alignItems:"center", gap:4, background:"rgba(6,182,212,.15)", border:"1px solid rgba(6,182,212,.4)", borderRadius:8, padding:"3px 8px", fontSize:10, color:"#06b6d4", fontWeight:600, alignSelf:"flex-start" }}>
+                    ? <div style={{ display:"inline-flex", alignItems:"center", gap:4, background:"rgba(6,182,212,.15)", border:"1px solid rgba(6,182,212,.4)", borderRadius:8, padding:"3px 8px", fontSize:11, color:"#06b6d4", fontWeight:600, alignSelf:"flex-start" }}>
                         Descanso activo
                       </div>
                     : <button
                         onClick={() => logRestDay && logRestDay()}
-                        style={{ background:"rgba(6,182,212,.1)", border:"1px solid rgba(6,182,212,.3)", borderRadius:8, padding:"3px 8px", fontSize:10, color:"#06b6d4", fontWeight:600, cursor:"pointer", alignSelf:"flex-start" }}
+                        style={{ background:"rgba(6,182,212,.1)", border:"1px solid rgba(6,182,212,.3)", borderRadius:8, padding:"3px 8px", fontSize:11, color:"#06b6d4", fontWeight:600, cursor:"pointer", alignSelf:"flex-start" }}
                       >
                         + Registrar día libre
                       </button>
@@ -424,7 +424,7 @@ export default function HomePage() {
                       {goal - done > 0 ? `${goal - done} entrenos restantes` : "¡Meta cumplida!"}
                     </div>
                     {done > goal && (
-                      <div style={{ fontSize:10, color:"var(--green)", marginTop:2, fontWeight:600 }}>+{done - goal} entrenamiento{done - goal !== 1 ? "s" : ""} extra esta semana</div>
+                      <div style={{ fontSize:11, color:"var(--green)", marginTop:2, fontWeight:600 }}>+{done - goal} entrenamiento{done - goal !== 1 ? "s" : ""} extra esta semana</div>
                     )}
                   </div>
                 </div>
@@ -434,7 +434,7 @@ export default function HomePage() {
 
 
           {/* Próxima meta */}
-          {(() => {
+          {f.advanced_tools && (() => {
             if (!prs.length) return null;
             const latest = [...prs].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')))[0];
             if (!latest) return null;
@@ -480,7 +480,7 @@ export default function HomePage() {
               <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr)", gap:10, marginBottom:14 }}>
                 {/* Weekly volume */}
                 <div className="home-stat-card" style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:16, padding:"14px 14px 12px" }}>
-                  <div style={{ fontSize:10, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:6 }}>Vol. semanal</div>
+                  <div style={{ fontSize:11, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:6 }}>Vol. semanal</div>
                   <div style={{ fontSize:20, fontWeight:900, color:"var(--green)", marginBottom:8, lineHeight:1 }}>
                     {weekVolume >= 1000 ? `${(weekVolume/1000).toFixed(1)}k` : weekVolume}<span style={{ fontSize:12, fontWeight:400, color:"var(--muted)", marginLeft:3 }}>kg</span>
                   </div>
@@ -490,7 +490,7 @@ export default function HomePage() {
                 </div>
                 {/* Daily calories */}
                 <div className="home-stat-card" style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:16, padding:"14px 14px 12px" }}>
-                  <div style={{ fontSize:10, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:6 }}>Calorías hoy</div>
+                  <div style={{ fontSize:11, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:6 }}>Calorías hoy</div>
                   <div style={{ fontSize:20, fontWeight:900, color:todayKcal>0?"#f59e0b":"var(--muted)", marginBottom:8, lineHeight:1 }}>
                     {todayKcal>0?Math.round(todayKcal*10)/10:"—"}{todayKcal>0&&<span style={{ fontSize:12, fontWeight:400, color:"var(--muted)", marginLeft:3 }}>kcal</span>}
                   </div>
@@ -521,7 +521,7 @@ export default function HomePage() {
             }
             return (
               <div style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 16, padding: "14px 16px", marginBottom: 14 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>Volumen del mes</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>Volumen del mes</div>
                 <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
                   <div style={{ fontSize: 28, fontWeight: 900, color: "var(--green)", lineHeight: 1 }}>{volStr}</div>
                   <div style={{ fontSize: 12, color: "var(--muted)" }}>levantaste este mes</div>
@@ -540,8 +540,8 @@ export default function HomePage() {
                 style={cardio ? { background:"rgba(52,211,153,.1)", border:"1.5px solid rgba(52,211,153,.4)" } : isRest && !trained ? { background:"rgba(6,182,212,.15)", border:"1.5px solid rgba(6,182,212,.5)" } : {}}>
                 <span className="week-cal-name" style={cardio?{color:"#34d399"}:isRest&&!trained?{color:"#06b6d4"}:{}}>{dayName}</span>
                 <span className="week-cal-num" style={cardio?{color:"#34d399"}:isRest&&!trained?{color:"#06b6d4"}:{}}>{dayNum}</span>
-                {isRest && !trained && !cardio && <span style={{ fontSize:7, marginTop:1, color:"#06b6d4", fontWeight:700 }}>D</span>}
-                {cardio && <span style={{ fontSize:7, marginTop:1, color:"#34d399", fontWeight:700 }}>C</span>}
+                {isRest && !trained && !cardio && <span style={{ fontSize:11, marginTop:1, color:"#06b6d4", fontWeight:700 }}>D</span>}
+                {cardio && <span style={{ fontSize:11, marginTop:1, color:"#34d399", fontWeight:700 }}>C</span>}
                 {trained && <span className="week-cal-dot" />}
               </div>
               );
@@ -553,7 +553,7 @@ export default function HomePage() {
             <FirstWorkoutCta goal={userGoal} level={activityLevel} onStart={(routine) => startWorkout(routine)} />
           )}
           {workouts.length > 0 && (
-            <StreakCard workouts={workouts} prs={prs} weightLog={weightLog} goal={adaptedWeeklyGoal} vacationPeriods={vacationPeriods} />
+            <StreakCard workouts={workouts} prs={prs} weightLog={weightLog} goal={adaptedWeeklyGoal} vacationPeriods={vacationPeriods} compact={!f.advanced_tools} />
           )}
 
           {/* Logros recientes */}
@@ -598,7 +598,7 @@ export default function HomePage() {
                         <span style={{ fontSize:18 }}>{ach.icon}</span>
                         <div style={{ flex:1, minWidth:0 }}>
                           <div style={{ fontSize:12, fontWeight:700, color:"var(--text)" }}>{ach.title}</div>
-                          <div style={{ fontSize:10, color:"var(--muted)", marginTop:1, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{ach.desc}</div>
+                          <div style={{ fontSize:11, color:"var(--muted)", marginTop:1, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{ach.desc}</div>
                         </div>
                         <span style={{ fontSize:11, fontWeight:700, color:"var(--green)", flexShrink:0 }}>{ach.progress}/{ach.required}</span>
                       </div>

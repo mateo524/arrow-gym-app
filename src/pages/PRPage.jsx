@@ -58,13 +58,13 @@ function PRCard({ pr, rank, onToggle, isExpanded, progression, delta, compact })
   if (compact) {
     return (
       <div style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 10px", background:"var(--panel2)", borderRadius:10, border:"1px solid var(--line)" }}>
-        <span style={{ fontSize:10, fontWeight:800, color: rank === 0 ? "#fbbf24" : rank === 1 ? "#94a3b8" : rank === 2 ? "#d97706" : "var(--muted)", minWidth:20, textAlign:"center" }}>
+        <span style={{ fontSize:11, fontWeight:800, color: rank === 0 ? "#fbbf24" : rank === 1 ? "#94a3b8" : rank === 2 ? "#d97706" : "var(--muted)", minWidth:20, textAlign:"center" }}>
           {rank === 0 ? <Icon name="Trophy" size={12} style={{ color:"#fbbf24" }} /> : rank === 1 ? <Icon name="Award" size={11} style={{ color:"#94a3b8" }} /> : `#${rank+1}`}
         </span>
         <span style={{ flex:1, fontSize:12, fontWeight:600 }}>{pr.exercise}</span>
         <span style={{ fontSize:12, fontWeight:800, color:"var(--cyan)" }}>{pr.weight}kg</span>
         {delta && (
-          <span style={{ fontSize:9, fontWeight:700, color:"#22c55e" }}>+{delta.pct}%</span>
+          <span style={{ fontSize:11, fontWeight:700, color:"#22c55e" }}>+{delta.pct}%</span>
         )}
       </div>
     );
@@ -75,18 +75,18 @@ function PRCard({ pr, rank, onToggle, isExpanded, progression, delta, compact })
       <button onClick={onToggle}
         style={{ width:"100%", display:"flex", alignItems:"center", padding:0, background:"none", border:"none", cursor:"pointer", textAlign:"left" }}>
         <div style={{ flex:1, display:"flex", alignItems:"center", gap:8, padding:"8px 10px" }}>
-          <span style={{ fontSize:10, fontWeight:800, color: rank === 0 ? "#fbbf24" : rank === 1 ? "#94a3b8" : rank === 2 ? "#d97706" : "var(--muted)", minWidth:22, textAlign:"center" }}>
+          <span style={{ fontSize:11, fontWeight:800, color: rank === 0 ? "#fbbf24" : rank === 1 ? "#94a3b8" : rank === 2 ? "#d97706" : "var(--muted)", minWidth:22, textAlign:"center" }}>
             {rank === 0 ? <Icon name="Trophy" size={14} style={{ color:"#fbbf24" }} /> : rank === 1 ? <Icon name="Award" size={12} style={{ color:"#94a3b8" }} /> : `#${rank+1}`}
           </span>
           <div style={{ flex:1, minWidth:0, lineHeight:1.3 }}>
             <span style={{ fontSize:13, fontWeight:700 }}>{pr.exercise}</span>
-            {pr.group && <span style={{ fontSize:9, color:"var(--muted)", marginLeft:4 }}>{pr.group}</span>}
+            {pr.group && <span style={{ fontSize:11, color:"var(--muted)", marginLeft:4 }}>{pr.group}</span>}
           </div>
           <div style={{ textAlign:"right", lineHeight:1.4 }}>
             <span style={{ fontSize:13, fontWeight:800, color:"var(--cyan)" }}>{pr.weight}kg × {pr.reps}</span>
-            <span style={{ fontSize:9, color:"var(--muted)", marginLeft:4 }}>1RM ~{pr.oneRM}kg</span>
+            <span style={{ fontSize:11, color:"var(--muted)", marginLeft:4 }}>1RM ~{pr.oneRM}kg</span>
             {delta && (
-              <span style={{ fontSize:9, fontWeight:700, color:"#22c55e", marginLeft:4 }}>↑ +{delta.kg}kg ({delta.pct}%)</span>
+              <span style={{ fontSize:11, fontWeight:700, color:"#22c55e", marginLeft:4 }}>↑ +{delta.kg}kg ({delta.pct}%)</span>
             )}
           </div>
         </div>
@@ -96,8 +96,8 @@ function PRCard({ pr, rank, onToggle, isExpanded, progression, delta, compact })
         {isExpanded && progression.length >= 2 && (
           <div style={{ padding:"5px 10px 8px", background:"var(--panel2)", borderTop:"1px solid var(--line)" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:2 }}>
-              <span style={{ color:"var(--muted)", fontSize:9 }}>1RM · {progression.length} sesiones</span>
-              <span style={{ color:"var(--green)", fontWeight:700, fontSize:10 }}>{progression[progression.length-1]?.best1RM}kg</span>
+              <span style={{ color:"var(--muted)", fontSize:11 }}>1RM · {progression.length} sesiones</span>
+              <span style={{ color:"var(--green)", fontWeight:700, fontSize:11 }}>{progression[progression.length-1]?.best1RM}kg</span>
             </div>
             <MicroLineChart data={progression.map(p=>({value:p.best1RM}))} width={280} height={28} color="var(--green)" />
           </div>
@@ -205,7 +205,7 @@ export default function PRPage() {
       <div style={{ display:"grid", gridTemplateColumns:"repeat(4, minmax(0,1fr))", gap:4, marginBottom:10 }}>
         {METRICS.map(m => (
           <div key={m.label} style={{ background:"var(--panel)", borderRadius:9, padding:"5px 3px", textAlign:"center" }}>
-            <div style={{ fontSize:8, color:"var(--muted)", fontWeight:700, textTransform:"uppercase", marginBottom:1 }}>{m.label}</div>
+            <div style={{ fontSize:11, color:"var(--muted)", fontWeight:700, textTransform:"uppercase", marginBottom:1 }}>{m.label}</div>
             <div style={{ fontSize:16, fontWeight:900, color:m.color, lineHeight:1.2 }}>{m.val}</div>
           </div>
         ))}
@@ -216,7 +216,7 @@ export default function PRPage() {
         <>
           {/* Top PRs */}
           <div style={{ marginBottom:8 }}>
-            <span style={{ fontSize:10, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:4, display:"block" }}>
+            <span style={{ fontSize:11, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:4, display:"block" }}>
               Mejores PRs
             </span>
             <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
@@ -230,7 +230,7 @@ export default function PRPage() {
           {/* Recent PRs (if different from top) */}
           {recentPRs.some((pr, i) => topPRs[i]?.exercise !== pr.exercise) && (
             <div style={{ marginBottom:8 }}>
-              <span style={{ fontSize:10, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:4, display:"block" }}>
+              <span style={{ fontSize:11, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:4, display:"block" }}>
                 Ultimos PRs
               </span>
               <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
@@ -258,7 +258,7 @@ export default function PRPage() {
             <div style={{ display:"flex", gap:4, flexWrap:"wrap", marginBottom:8, paddingBottom:2 }}>
               {["", ...groups].map(g => (
                 <button key={g || "all"} onClick={() => { setGroupFilter(g); setSearch(""); }}
-                  style={{ flexShrink:0, padding:"3px 10px", borderRadius:16, border:"none", cursor:"pointer", fontSize:10, fontWeight:700, whiteSpace:"nowrap",
+                  style={{ flexShrink:0, padding:"3px 10px", borderRadius:16, border:"none", cursor:"pointer", fontSize:11, fontWeight:700, whiteSpace:"nowrap",
                     background: groupFilter === g ? "var(--green)" : "var(--panel2)",
                     color: groupFilter === g ? "#000" : "var(--muted)" }}>
                   {g || "Todos"}
