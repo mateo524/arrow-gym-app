@@ -1,7 +1,7 @@
 import { useState } from "react";
-import ExerciseIllustration, { norm } from "./ExerciseIllustration.jsx";
-import { motionKeyForName } from "../data/motionMap.js";
-import MotionFigure, { MOVES } from "./MotionFigure.jsx";
+import ExerciseIllustration from "./ExerciseIllustration.jsx";
+import MotionFigure from "./MotionFigure.jsx";
+import { motionForName } from "../data/motion/index.js";
 import { getExerciseFrames } from "../data/exerciseMedia.js";
 
 const CSS = `
@@ -15,14 +15,12 @@ const CSS = `
  * sensación de animación. Si no hay fotos o no cargan (sin conexión), usa el dibujo animado.
  */
 export default function ExerciseMotion({ name, pattern, muscle, equipment, size = 220 }) {
-  const eq = norm(equipment || "");
-  const key = motionKeyForName(name);
-  const propKind = eq.includes("mancuerna") ? "db" : /maquina|polea|smith/.test(eq) ? "bar" : undefined;
+  const def = motionForName(name);
   const frames = getExerciseFrames(name);
   const [failed, setFailed] = useState(false);
 
-  if (key && MOVES[key]) {
-    return <div role="img" aria-label={`Movimiento: ${name}`}><MotionFigure moveKey={key} size={size} propKind={propKind} /></div>;
+  if (def) {
+    return <div role="img" aria-label={`Movimiento: ${name}`}><MotionFigure def={def} size={size} /></div>;
   }
   if (!frames || failed) {
     return <ExerciseIllustration name={name} pattern={pattern} muscle={muscle} equipment={equipment} size={170} animated />;

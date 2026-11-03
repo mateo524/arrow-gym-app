@@ -1,5 +1,5 @@
 setTimeout(function () {
-  var b = 53;
+  var b = 54;
   fetch('/version.json?t=' + Date.now(), { cache: 'no-store' })
     .then(function (r) { return r.json(); })
     .then(function (d) {
