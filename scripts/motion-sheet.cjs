@@ -2,6 +2,7 @@
 //   node scripts/motion-sheet.cjs --group=Pecho --out=sheet.png
 //   node scripts/motion-sheet.cjs --match="curl" --out=sheet.png
 //   node scripts/motion-sheet.cjs --group=Piernas --slice=0:39 --list     (solo lista los nombres y cuáles faltan)
+//   --view=front|side fuerza la vista (por defecto la propia de cada ejercicio)
 //   --slice=a:b recorta la lista del grupo (para revisar de a tandas)
 // Los ejercicios sin movimiento definido salen marcados "FALTA".
 const path = require("path");
@@ -16,6 +17,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { EXERCISE_DATABASE } from "./src/data/exerciseDatabase.js";
 import { motionForName } from "./src/data/motion/index.js";
 import { FigureSvg } from "./src/components/motion/rig.jsx";
+const VIEW = ${JSON.stringify(arg("view", ""))} || undefined;
 const group = ${JSON.stringify(arg("group", ""))}, match = ${JSON.stringify(arg("match", "").toLowerCase())};
 let list = EXERCISE_DATABASE.filter((e) => (!group || e.group === group) && (!match || e.name.toLowerCase().includes(match)));
 const sl = ${JSON.stringify(arg("slice", ""))};
@@ -24,7 +26,7 @@ if (${JSON.stringify(process.argv.includes("--list"))}) { console.log(list.map((
 const cells = list.map((e) => {
   const def = motionForName(e.name);
   const body = def
-    ? renderToStaticMarkup(<FigureSvg def={def} k={0} size={230} />) + renderToStaticMarkup(<FigureSvg def={def} k={1} size={230} />)
+    ? renderToStaticMarkup(<FigureSvg def={def} k={0} size={230} view={VIEW} />) + renderToStaticMarkup(<FigureSvg def={def} k={1} size={230} view={VIEW} />)
     : '<div style="width:466px;height:172px;border:1px dashed #a33;color:#f88;display:flex;align-items:center;justify-content:center">FALTA</div>';
   return '<div style="margin:5px;color:#ddd;font:12px sans-serif"><b>' + e.name + '</b> <span style="color:#889">[' + e.equipment + ']</span><div style="display:flex;gap:4px">' + body + '</div></div>';
 });

@@ -20,7 +20,7 @@ export default function ExerciseMotion({ name, pattern, muscle, equipment, size 
   const [failed, setFailed] = useState(false);
 
   if (def) {
-    return <div role="img" aria-label={`Movimiento: ${name}`}><MotionFigure def={def} size={size} /></div>;
+    return <div role="img" aria-label={`Movimiento: ${name}`}><MotionFigure def={def} size={size} name={name} /></div>;
   }
   if (!frames || failed) {
     return <ExerciseIllustration name={name} pattern={pattern} muscle={muscle} equipment={equipment} size={170} animated />;

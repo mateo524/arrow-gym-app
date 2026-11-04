@@ -26,6 +26,12 @@ function seatedPress(o = {}) {
 // Press Arnold de frente (sentado): arranca con los codos adelante, juntos, antebrazos verticales y palmas hacia vos;
 // al subir los codos se abren hacia los costados (las palmas giran hacia adelante) y termina con los brazos arriba.
 const arnold = () => ({
+  alt: {
+    anchor: "hip", at: SEAT_AT, prop: ["db", "wrist"], hl: ["shoulder", "arm"],
+    a: { ...SEATED, ua: 38, fa: -96 },
+    b: { ...SEATED, ua: -88, fa: -90 },
+    env: seatedEnv,
+  },
   view: "front", anchor: "hip", at: [100, 98], prop: ["db", "both"], hl: ["shoulder", "arm"],
   a: { lt: 140, ls: 90, rt: 40, rs: 90, la: 75, lf: 290, ra: 105, rf: -110 },
   b: { lt: 140, ls: 90, rt: 40, rs: 90, la: 262, lf: 265, ra: -82, rf: -85 },
@@ -154,8 +160,16 @@ function frontRaise(prop) {
 
 // ─── Elevaciones laterales (frente) ─────────────────────────────────────────
 const FRONT_STAND = { lt: 96, ls: 90, rt: 84, rs: 90, lean: 0 };
+const SIDE_LAT = { t: -85, th: 90, sh: 90 };
 function lateralRaise(o = {}) {
   return {
+    // perfil: el brazo sube por el costado (plano escapular, algo adelante) visto de lado
+    alt: {
+      anchor: "foot", at: [100, 138], prop: o.db === false ? ["none"] : ["db", "wrist"], hl: ["shoulder"],
+      a: { ...SIDE_LAT, ua: 92, fa: 98 },
+      b: { ...SIDE_LAT, ua: -22, fa: -8 },
+      env: o.altEnv,
+    },
     view: "front", anchor: "foot", at: [100, 138], prop: o.db === false ? ["none"] : ["db", "both"], hl: ["shoulder"],
     a: { ...FRONT_STAND, la: 100, lf: 97, ra: 80, rf: 83 },
     b: { ...FRONT_STAND, la: 177, lf: 166, ra: 3, rf: 14 },
@@ -165,6 +179,10 @@ function lateralRaise(o = {}) {
 function lateralBand() {
   return lateralRaise({
     db: false,
+    altEnv: (j) => (<>
+      {line([98, 140], j.wrist, 1.6, "#f59e0b")}
+      {line([98, 140], [112, 140], 2.4, "#f59e0b")}
+    </>),
     env: (j) => (<>
       {line([j.la[0] - 2, 140], [j.ra[0] + 2, 140], 2.4, "#f59e0b")}
       {line([j.la[0] - 2, 140], j.lw, 1.6, "#f59e0b")}
@@ -175,6 +193,12 @@ function lateralBand() {
 }
 function lateralCableSingle() {
   return {
+    alt: {
+      anchor: "foot", at: [96, 138], prop: ["none"], hl: ["shoulder"], cable: { at: [140, 130] },
+      a: { ...SIDE_LAT, ua: 92, fa: 96 },
+      b: { ...SIDE_LAT, ua: -22, fa: -8 },
+      env: (j) => plate(j.wrist, 3.6),
+    },
     view: "front", anchor: "foot", at: [86, 138], prop: ["none"], hl: ["shoulder"], cable: { at: [160, 130], to: "lw" },
     a: { ...FRONT_STAND, la: 100, lf: 100, ra: 80, rf: 82 },
     b: { ...FRONT_STAND, la: 177, lf: 166, ra: 80, rf: 82 },
@@ -183,6 +207,16 @@ function lateralCableSingle() {
 }
 function lateralMachine() {
   return {
+    alt: {
+      anchor: "hip", at: SEAT_AT, prop: ["none"], hl: ["shoulder"],
+      a: { ...SEATED, ua: 88, fa: 92 },
+      b: { ...SEATED, ua: -22, fa: -12 },
+      env: (j) => (<>
+        <Seat x={103} y={114} w={34} /><Pad x={76} y={60} w={9} h={54} />
+        <circle cx={j.shoulder[0] + 2} cy={j.shoulder[1]} r={4} fill={C.plateEdge} />
+        {line(j.elbow, j.wrist, 7, C.plateEdge)}
+      </>),
+    },
     view: "front", anchor: "hip", at: [100, 98], prop: ["none"], hl: ["shoulder"],
     a: { lt: 140, ls: 90, rt: 40, rs: 90, la: 104, lf: 100, ra: 76, rf: 80 },
     b: { lt: 140, ls: 90, rt: 40, rs: 90, la: 176, lf: 170, ra: 4, rf: 10 },
@@ -202,7 +236,18 @@ function lateralMachine() {
   };
 }
 function lateralLeaning() {
+  const L = { t: -80, th: 92, sh: 90 };
   return {
+    alt: {
+      anchor: "foot", at: [100, 138], prop: ["none"], hl: ["shoulder"],
+      a: { ...L, ua: 92, fa: 98, ua2: 22, fa2: -18 },
+      b: { ...L, ua: -22, fa: -8, ua2: 22, fa2: -18 },
+      env: (j) => (<>
+        {line([j.wrist2[0], 142], [j.wrist2[0], 28], 5, C.gear2)}
+        <rect x={j.wrist2[0] - 9} y={138} width={18} height={4} rx={2} fill={C.gear} />
+        {plate(j.wrist, 6)}
+      </>),
+    },
     view: "front", anchor: "foot", at: [110, 138], prop: ["none"], hl: ["shoulder"],
     a: { lt: 98, ls: 90, rt: 80, rs: 90, lean: -14, la: 150, lf: 130, ra: 78, rf: 82 },
     b: { lt: 98, ls: 90, rt: 80, rs: 90, lean: -14, la: 150, lf: 130, ra: -12, rf: 0 },
@@ -214,7 +259,18 @@ function lateralLeaning() {
   };
 }
 function lateralLying() {
+  const Ly = { t: 0, th: 178, sh: 180 };
   return {
+    // perfil: acostado de lado, el brazo sube desde la cadera hasta vertical (se ve en el plano de la pantalla)
+    alt: {
+      anchor: "hip", at: [112, 104], prop: ["none"], hl: ["shoulder"],
+      a: { ...Ly, ua: 178, fa: 178 },
+      b: { ...Ly, ua: -90, fa: -90 },
+      env: (j) => (<>
+        <Bench x0={50} x1={178} />
+        {plate(j.wrist, 5)}
+      </>),
+    },
     view: "front", anchor: "hip", at: [112, 104], prop: ["none"], hl: ["shoulder"],
     a: { lt: 180, ls: 180, rt: 180, rs: 180, lean: 90, la: 30, lf: -20, ra: 180, rf: 180 },
     b: { lt: 180, ls: 180, rt: 180, rs: 180, lean: 90, la: 30, lf: -20, ra: 270, rf: 270 },
@@ -246,7 +302,21 @@ function rearRaiseBent(o = {}) {
   };
 }
 function rearMachine() {
+  const R = { t: -80, th: -4, sh: 85 };
   return {
+    // perfil: sentado de frente al respaldo (pecho apoyado); los brazos van de adelante hacia los costados/atras
+    alt: {
+      anchor: "hip", at: [92, 108], prop: ["none"], hl: ["shoulder", "back"],
+      a: { ...R, ua: 2, fa: 0 },
+      b: { ...R, ua: 150, fa: 160 },
+      env: (j) => (<>
+        <Seat x={92} y={114} w={34} />
+        <rect x={j.shoulder[0] + 6} y={j.shoulder[1] - 6} width={9} height={52} rx={4} fill={C.gear2} />
+        <rect x={j.shoulder[0] + 24} y={j.shoulder[1] + 40} width={8} height={FLOOR - j.shoulder[1] - 40} rx={3} fill={C.gear} />
+        {line([j.shoulder[0] + 24, j.shoulder[1] + 4], j.wrist, 4.4, C.gear2)}
+        {plate(j.wrist, 3.6)}
+      </>),
+    },
     view: "front", anchor: "hip", at: [100, 98], prop: ["none"], hl: ["shoulder", "back"],
     a: { lt: 140, ls: 90, rt: 40, rs: 90, la: 162, lf: 20, ra: 18, rf: 160 },
     b: { lt: 140, ls: 90, rt: 40, rs: 90, la: 184, lf: 176, ra: -4, rf: 4 },
@@ -264,7 +334,14 @@ function rearMachine() {
   };
 }
 function rearCable() {
+  const Hn = { t: -86, th: 90, sh: 90 };
   return {
+    alt: {
+      anchor: "foot", at: [92, 138], prop: ["none"], hl: ["shoulder", "back"], cable: { at: [170, 8] },
+      a: { ...Hn, ua: -12, fa: -18 },
+      b: { ...Hn, ua: 160, fa: 168 },
+      env: (j) => plate(j.wrist, 3.4),
+    },
     view: "front", anchor: "foot", at: [100, 138], prop: ["none"], hl: ["shoulder", "back"],
     cable: [{ at: [30, 8], to: "rw" }, { at: [170, 8], to: "lw" }],
     a: { ...FRONT_STAND, la: 160, lf: 20, ra: 20, rf: 160 },
@@ -282,7 +359,14 @@ function facePull() {
 
 // ─── Manguito rotador ───────────────────────────────────────────────────────
 function externalRotation() {
+  const rot = (fa) => ({ ...STAND, ua: 90, fa });
   return {
+    // perfil: codo pegado al costado a 90 grados; el antebrazo gira hacia afuera (visto de lado, acortado)
+    alt: {
+      anchor: "foot", at: [100, 138], prop: ["none"], hl: ["shoulder"], cable: { at: [60, 92] },
+      a: rot(18), b: rot(-24),
+      env: (j) => plate(j.wrist, 3.4),
+    },
     view: "front", anchor: "foot", at: [100, 138], prop: ["none"], hl: ["shoulder"], cable: { at: [20, 70], to: "rw" },
     a: { ...FRONT_STAND, la: 92, lf: 92, ra: 90, rf: 180 },
     b: { ...FRONT_STAND, la: 92, lf: 92, ra: 90, rf: 20 },
@@ -290,7 +374,13 @@ function externalRotation() {
   };
 }
 function internalRotation() {
+  const rot = (fa) => ({ ...STAND, ua: 90, fa });
   return {
+    alt: {
+      anchor: "foot", at: [100, 138], prop: ["none"], hl: ["shoulder"], cable: { at: [60, 92] },
+      a: rot(-24), b: rot(18),
+      env: (j) => plate(j.wrist, 3.4),
+    },
     view: "front", anchor: "foot", at: [100, 138], prop: ["none"], hl: ["shoulder"], cable: { at: [180, 70], to: "rw" },
     a: { ...FRONT_STAND, la: 92, lf: 92, ra: 90, rf: 20 },
     b: { ...FRONT_STAND, la: 92, lf: 92, ra: 90, rf: 180 },
@@ -299,6 +389,11 @@ function internalRotation() {
 }
 function cubanPress() {
   return {
+    alt: {
+      anchor: "foot", at: [100, 138], prop: ["db", "wrist"], hl: ["shoulder"],
+      a: { ...STAND, ua: 12, fa: 100 },
+      b: { ...STAND, ua: -90, fa: -90 },
+    },
     view: "front", anchor: "foot", at: [100, 138], prop: ["db", "both"], hl: ["shoulder"],
     a: { ...FRONT_STAND, la: 175, lf: 95, ra: 5, rf: 85 },
     b: { ...FRONT_STAND, la: 250, lf: 280, ra: -70, rf: -100 },
@@ -317,6 +412,11 @@ function wRaise() {
 // ─── Trapecio ───────────────────────────────────────────────────────────────
 function uprightRow() {
   return {
+    alt: {
+      anchor: "foot", at: [100, 138], prop: ["barbell", "wrist"], hl: ["traps", "shoulder"],
+      a: { ...STAND, ua: 86, fa: 88 },
+      b: { ...STAND, ua: -22, fa: 118 },
+    },
     view: "front", anchor: "foot", at: [100, 138], prop: ["none"], hl: ["traps", "shoulder"],
     a: { ...FRONT_STAND, la: 100, lf: 68, ra: 80, rf: 112 },
     b: { ...FRONT_STAND, la: 165, lf: 40, ra: 15, rf: 140 },
@@ -325,6 +425,17 @@ function uprightRow() {
 }
 function cableShrug() {
   return {
+    alt: {
+      anchor: "foot", at: [96, 138], prop: ["none"], hl: ["traps"], cable: { at: [140, 130] },
+      a: { ...STAND, ua: 92, fa: 92 },
+      b: { ...STAND, ua: 100, fa: 98 },
+      env: (j) => {
+        const arrow = (p) => (<g stroke={C.accent} strokeWidth={2} strokeLinecap="round" fill="none" opacity={0.9}>
+          <path d={`M${p[0] - 4},${p[1] - 12} l4,-5 l4,5`} /><path d={`M${p[0] - 4},${p[1] - 19} l4,-5 l4,5`} opacity={0.5} />
+        </g>);
+        return (<>{plate(j.wrist, 3.4)}{arrow(add(j.shoulder, [0, 4]))}</>);
+      },
+    },
     view: "front", anchor: "foot", at: [100, 138], prop: ["none"], hl: ["traps"],
     cable: [{ at: [40, 130], to: "lw" }, { at: [160, 130], to: "rw" }],
     a: { ...FRONT_STAND, la: 94, lf: 94, ra: 86, rf: 86 },

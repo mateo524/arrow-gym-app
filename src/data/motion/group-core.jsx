@@ -170,6 +170,12 @@ function sidePlank() {
     view: "front", anchor: "foot", at: [78, 139], hl: ["core"],
     a: { lean: 78, lt: 170, ls: 170, rt: 170, rs: 170, ...arms },
     b: { lean: 82, lt: 163, ls: 163, rt: 163, rs: 163, ...arms },
+    // perfil: cuerpo en linea apoyado en el antebrazo; la cadera baja (a) y sube a la linea recta (b)
+    alt: {
+      anchor: "toe", at: [40, 141], hl: ["core"],
+      a: { t: -4, th: 176, sh: 176, ft: 60, ua: 90, fa: 0 },
+      b: { t: -12, th: 167, sh: 167, ft: 60, ua: 90, fa: 0 },
+    },
   };
 }
 
@@ -234,6 +240,12 @@ function pallof() {
     view: "front", anchor: "foot", at: [118, 139], prop: ["bar", "hands-mid"], hl: ["core"], cable: { at: [28, 70] },
     a: { lean: 0, lt: 96, ls: 96, rt: 84, rs: 84, la: 105, lf: -25, ra: 75, rf: 205 },
     b: { lean: 0, lt: 96, ls: 96, rt: 84, rs: 84, la: 95, lf: -50, ra: 85, rf: 230 },
+    // perfil: el cable llega a la altura del pecho; se presiona del pecho hacia el frente y se resiste la tracción
+    alt: {
+      anchor: "foot", at: [96, 139], prop: ["bar", "wrist"], hl: ["core"], cable: { at: [24, 56] },
+      a: { t: -90, th: 90, sh: 90, ua: 85, fa: -30 },
+      b: { t: -90, th: 90, sh: 90, ua: 12, fa: 10 },
+    },
   };
 }
 
@@ -243,6 +255,12 @@ function cableRotation() {
     view: "front", anchor: "foot", at: [118, 139], hl: ["core"], cable: { at: [28, 66] },
     a: { lean: -6, ...legs, la: 158, lf: 160, ra: 158, rf: 160 },
     b: { lean: 6, ...legs, la: 22, lf: 20, ra: 22, rf: 20 },
+    // perfil: los brazos extendidos barren desde el lado de la polea (atrás) hacia el frente girando el tronco
+    alt: {
+      anchor: "foot", at: [96, 139], prop: ["bar", "wrist"], hl: ["core"], cable: { at: [24, 61] },
+      a: { t: -94, th: 90, sh: 90, ua: 162, fa: 166 },
+      b: { t: -86, th: 90, sh: 90, ua: 14, fa: 14 },
+    },
   };
 }
 
@@ -267,6 +285,13 @@ function russianTwist(prop) {
     ...(prop ? { prop: [prop, "hands-mid"] } : {}),
     a: { lean: -10, ...legs, la: 140, lf: 150, ra: 140, rf: 150 },
     b: { lean: 10, ...legs, la: 40, lf: 30, ra: 40, rf: 30 },
+    // perfil: sentado en V con el torso recostado; las manos van al frente (a) y al costado de la cadera (b) al girar
+    alt: {
+      anchor: "hip", at: [92, 134], hl: ["core"],
+      ...(prop ? { prop: [prop, "wrist"] } : {}),
+      a: { t: -62, th: -35, sh: 15, ua: 22, fa: 12 },
+      b: { t: -62, th: -35, sh: 15, ua: 100, fa: 128 },
+    },
   };
 }
 
@@ -277,6 +302,12 @@ function windmill() {
     a: { lean: 0, ...legs, la: 100, lf: 95, ra: -90, rf: -90 },
     b: { lean: -52, ...legs, la: 118, lf: 108, ra: -90, rf: -90 },
     env: (j) => <KB at={j.rw} />,
+    // perfil: bisagra de cadera con la kettlebell siempre vertical sobre el hombro y la otra mano bajando hacia la pierna
+    alt: {
+      anchor: "foot", at: [96, 138], prop: ["kb", "wrist"], hl: ["core"],
+      a: { t: -90, th: 90, sh: 90, ua: -90, fa: -90, ua2: 90, fa2: 90 },
+      b: { t: -42, th: 66, sh: 98, ua: -90, fa: -90, ua2: 100, fa2: 100 },
+    },
   };
 }
 
@@ -292,11 +323,20 @@ function carry(o = {}) {
     a: { lean: 0, ...stepL, ...arms },
     b: { lean: 0, ...stepR, ...arms },
   };
+  // perfil: paso alternado con el torso erguido y los brazos colgando con la carga
+  const stride = (nearFwd) => (nearFwd
+    ? { th: 74, sh: 80, th2: 108, sh2: 112 }
+    : { th: 108, sh: 112, th2: 74, sh2: 80 });
+  const alt = {
+    anchor: "hip", at: [100, 86], hl: ["core"],
+    a: { t: -90, ua: 90, fa: 90, ...stride(true) },
+    b: { t: -90, ua: 90, fa: 90, ...stride(false) },
+  };
   if (o.one) {
     // maletín: carga solo en la mano izquierda; el otro brazo queda libre
-    return { ...def, env: (j) => <DB at={[j.lw[0] - 6, j.lw[1] + 4]} /> };
+    return { ...def, env: (j) => <DB at={[j.lw[0] - 6, j.lw[1] + 4]} />, alt: { ...alt, prop: [o.prop === "kb" ? "kb" : "db", "wrist"], a: { ...alt.a, ua2: 78, fa2: 100 }, b: { ...alt.b, ua2: 78, fa2: 100 } } };
   }
-  return { ...def, prop: [o.prop || "db", "both"] };
+  return { ...def, prop: [o.prop || "db", "both"], alt: { ...alt, prop: [o.prop || "db", "wrist"] } };
 }
 
 // ─── Boca abajo / cuadrupedia ────────────────────────────────────────────────

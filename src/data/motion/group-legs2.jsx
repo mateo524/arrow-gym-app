@@ -97,6 +97,12 @@ function bandAbductor() {
     a: { lt: 90, ls: 90, rt: 90, rs: 90, la: 100, lf: 80, ra: 80, rf: 100, lean: 0 },
     b: { lt: 90, ls: 90, rt: 52, rs: 52, la: 100, lf: 80, ra: 80, rf: 100, lean: -4 },
     env: (j) => band(j.la, j.ra),
+    // perfil: la pierna que trabaja se separa (hacia el espectador) y la banda entre tobillos se estira
+    alt: {
+      anchor: "hip", at: [100, 84], hl: ["glute"], env: (j) => band(j.ankle, j.ankle2),
+      a: { t: -90, th: 90, sh: 90, ua: 100, fa: 60, th2: 90, sh2: 90 },
+      b: { t: -92, th: 82, sh: 56, ua: 100, fa: 60, th2: 90, sh2: 90 },
+    },
   };
 }
 function bandAdductor() {
@@ -109,6 +115,17 @@ function bandAdductor() {
       <circle cx={146} cy={126} r={4} fill={C.gear2} />
       {band([146, 126], j.ra)}
     </>),
+    // perfil: banda anclada a un poste; la pierna cruza hacia la de apoyo (a: separada, b: cruzada)
+    alt: {
+      anchor: "hip", at: [92, 84], hl: ["thigh"], extra: [[150, 100]],
+      a: { t: -90, th: 82, sh: 56, ua: 100, fa: 60, th2: 90, sh2: 90 },
+      b: { t: -90, th: 96, sh: 100, ua: 100, fa: 60, th2: 90, sh2: 90 },
+      env: (j) => (<>
+        {line([146, 100], [146, FLOOR], 5, C.gear)}
+        <circle cx={146} cy={126} r={4} fill={C.gear2} />
+        {band([146, 126], j.ankle)}
+      </>),
+    },
   };
 }
 function bandSideWalk() {
@@ -117,6 +134,13 @@ function bandSideWalk() {
     a: { lt: 120, ls: 60, rt: 60, rs: 120, la: 100, lf: 40, ra: 80, rf: 140, lean: 0 },
     b: { lt: 120, ls: 60, rt: 50, rs: 75, la: 100, lf: 40, ra: 80, rf: 140, lean: 0 },
     env: (j) => band(j.lk, j.rk, 3),
+    // perfil: media sentadilla con banda en las rodillas; el pie lejano se despega al dar el paso lateral
+    alt: {
+      anchor: "foot", at: [96, 138], hl: ["glute", "thigh"],
+      env: (j) => band(j.knee, j.knee2, 3),
+      a: { t: -72, th: 36, sh: 108, ua: 50, fa: 5, th2: 36, sh2: 108 },
+      b: { t: -72, th: 36, sh: 108, ua: 50, fa: 5, th2: 58, sh2: 78 },
+    },
   };
 }
 
@@ -353,6 +377,12 @@ function sumoSmith() {
     view: "front", anchor: "foot", at: [100, 138], prop: ["barbell", "hands-mid"], smith: true, hl: ["thigh", "glute"],
     a: { lt: 112, ls: 112, rt: 68, rs: 68, ...arms, lean: 0 },
     b: { lt: 148, ls: 79, rt: 32, rs: 101, ...arms, lean: 0 },
+    // perfil: sentadilla en Smith con pies levemente adelantados, torso erguido
+    alt: {
+      anchor: "foot", at: [96, 138], prop: ["barbell", "shoulder"], smith: true, hl: ["thigh", "glute"],
+      a: { t: -90, th: 80, sh: 80, ua: 125, fa: -35 },
+      b: { t: -78, th: 16, sh: 108, ua: 125, fa: -35 },
+    },
   };
 }
 

@@ -215,6 +215,7 @@ function pullupGrip(grip, weighted) {
     view: "front", anchor: "hip", at: [100, 76], prop: ["none"], hl: ["back", "arm"],
     a: { ...legs, ...G.a }, b: { ...legs, ...G.b },
     extra: [[100, 4]],
+    alt: pullup({ weighted }),
     env: (j) => {
       const y = (j.lw[1] + j.rw[1]) / 2, cx = j.sc[0];
       return (<>
@@ -340,6 +341,14 @@ function shrugFront(o = {}) {
   </g>);
   return {
     view: "front", anchor: "foot", at: [100, 138], prop: hands ? ["db", "both"] : ["none"], hl: ["traps"], smith: o.smith,
+    alt: {
+      anchor: "foot", at: [100, 138], prop: [hands ? "db" : "barbell", "wrist"], hl: ["traps"], smith: o.smith,
+      a: { ...STAND, ua: 92, fa: 90, th: 88, sh: 92 },
+      b: { ...STAND, ua: 96, fa: 90 },
+      env: (j) => (<g stroke={C.accent} strokeWidth={2} strokeLinecap="round" fill="none" opacity={0.9}>
+        <path d={`M${j.shoulder[0] - 3},${j.shoulder[1] - 14} l4,-5 l4,5`} /><path d={`M${j.shoulder[0] - 3},${j.shoulder[1] - 21} l4,-5 l4,5`} opacity={0.5} />
+      </g>),
+    },
     a: { lt: 94, ls: 92, rt: 86, rs: 88, la: 94, lf: 90, ra: 86, rf: 90, lean: 0 },
     b: { lt: 94, ls: 92, rt: 86, rs: 88, la: 100, lf: 80, ra: 80, rf: 100, lean: 0 },
     env: (j) => (<>
@@ -357,6 +366,15 @@ function shrugFront(o = {}) {
 function bandPullApart() {
   return {
     view: "front", anchor: "foot", at: [100, 138], prop: ["none"], hl: ["back"],
+    alt: {
+      anchor: "foot", at: [100, 138], prop: ["none"], hl: ["back"],
+      a: { ...STAND, ua: 0, fa: 0 },
+      b: { ...STAND, ua: 0, fa: 180 },
+      env: (j) => (<>
+        {line(j.wrist, add(j.wrist, [4, 0]), 1.8, C.cable)}
+        <circle cx={j.wrist[0]} cy={j.wrist[1]} r={3.4} fill={C.cable} />
+      </>),
+    },
     a: { lt: 94, ls: 92, rt: 86, rs: 88, la: 135, lf: 15, ra: 45, rf: 165, lean: 0 },
     b: { lt: 94, ls: 92, rt: 86, rs: 88, la: 180, lf: 180, ra: 0, rf: 0, lean: 0 },
     env: (j) => (<>

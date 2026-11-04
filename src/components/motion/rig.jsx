@@ -15,6 +15,12 @@ import { useEffect, useRef, useState } from "react";
  *   la, lf (brazo izq.: hombro->codo, codo->muñeca), ra, rf (brazo der.), lean (inclinación del torso en grados, 0 = recto).
  *   def.anchor "foot": def.at = [x del centro, y del piso donde apoyan los pies]; "hip": def.at = cadera.
  *
+ * SEGUNDA VISTA. Los movimientos definidos de perfil se muestran también "de frente" por proyección automática: la profundidad (x del
+ * perfil) se acorta y se ve el ancho del cuerpo. Campos opcionales para afinarla: def.fgrip (medio ancho entre manos; 9 normal, 18 agarre
+ * ancho, 3 cerrado), def.fstance (medio ancho entre pies; 7 normal, 16 sumo), y por pose gx / fx. def.fenv(j) agrega equipo propio en la vista
+ * de frente (j trae hip, sc, sl, sr, lk, la, rk, ra, le, lw, re, rw). Los movimientos definidos de frente (view:"front") pueden traer
+ * def.alt = otra def de perfil para la vista de perfil.
+ *
  * Otros campos de def: prop ["barbell"|"db"|"bar"|"kb"|"plate"|"rope"|"none", "wrist"|"shoulder"|"hips"], hl [partes], env(j) => JSX
  * de equipo extra, cable {at:[x,y]} (torre con polea) o array de ellos, smith:true (dibuja la máquina Smith), extra:[[x,y]] puntos
  * a incluir en el encuadre, loop:"pingpong" (por defecto).
@@ -231,7 +237,12 @@ function HighlightFront({ part, j }) {
 }
 
 // ─── Encuadre ────────────────────────────────────────────────────────────────
-function jointsOf(def, pose) {
+function jointsOf(def, pose, mode) {
+  if (mode === "proj") {
+    const q = solveProjected(def, pose);
+    const g = pose.gx ?? def.fgrip ?? 9;
+    return [...q.points, [q.C0 - g - 18, q.wl[1]], [q.C0 + g + 18, q.wl[1]]];
+  }
   if (def.view === "front") {
     const j = solveFront(def, pose);
     return [j.hip, j.hl, j.hr, j.sl, j.sr, j.lk, j.la, j.rk, j.ra, j.le, j.lw, j.re, j.rw, j.head];
@@ -239,9 +250,9 @@ function jointsOf(def, pose) {
   const j = solve(def, pose);
   return [j.hip, j.knee, j.ankle, j.toe, j.shoulder, j.head, j.elbow, j.wrist, j.knee2, j.ankle2, j.elbow2, j.wrist2];
 }
-export function frame(def) {
+export function frame(def, mode) {
   const xs = [], ys = [];
-  for (const pose of [def.a, def.b]) for (const p of jointsOf(def, pose)) { xs.push(p[0]); ys.push(p[1]); }
+  for (const pose of [def.a, def.b]) for (const p of jointsOf(def, pose, mode)) { xs.push(p[0]); ys.push(p[1]); }
   const cables = def.cable ? (Array.isArray(def.cable) ? def.cable : [def.cable]) : [];
   for (const c of cables) { xs.push(c.at[0]); ys.push(c.at[1]); }
   for (const p of def.extra || []) { xs.push(p[0]); ys.push(p[1]); }
@@ -273,6 +284,103 @@ function Cables({ def, from }) {
       </g>
     );
   });
+}
+
+
+// ─── Segunda vista por proyección ────────────────────────────────────────────
+export function solveProjected(def, pose) {
+  const j = solve(def, pose);
+  const gx = pose.gx ?? def.fgrip ?? 9;
+  const fx = pose.fx ?? def.fstance ?? 7;
+  const C0 = 100;
+  const P = (p, lat) => [C0 + lat, p[1], p[0]]; // [x lateral, y altura, z profundidad = x del perfil]
+  const eLat = (SW + gx) / 2 + 2;
+  const sc = P(j.shoulder, 0), hc = P(j.hip, 0);
+  const sl = P(j.shoulder, -SW), sr = P(j.shoulder, SW);
+  const el = P(j.elbow, -eLat), er = P(j.elbow2, eLat);
+  const wl = P(j.wrist, -gx), wr = P(j.wrist2, gx);
+  const hl = P(j.hip, -HW), hr = P(j.hip, HW);
+  const kLat = (HW + fx) / 2;
+  const lk = P(j.knee, -kLat), rk = P(j.knee2, kLat);
+  const la = P(j.ankle, -fx), ra = P(j.ankle2, fx);
+  const head = P(j.head, 0);
+  const points = [sc, hc, sl, sr, el, er, wl, wr, hl, hr, lk, rk, la, ra, head];
+  return { C0, j, gx, fx, sc, hc, sl, sr, el, er, wl, wr, hl, hr, lk, rk, la, ra, head, points, hip: hc };
+}
+
+function FrontProp({ kind, where, q }) {
+  const { wl, wr, sl, sr } = q;
+  if (kind === "none") return null;
+  if (where === "shoulder") {
+    const y = q.sc[1] - 1, x0 = q.C0 - SW - 14, x1 = q.C0 + SW + 14;
+    if (kind === "barbell") return <g>{line([x0, y], [x1, y], 2.6, C.plateEdge)}<rect x={x0 - 3} y={y - 11} width={4} height={22} rx={1.4} fill={C.plate} stroke={C.plateEdge} strokeWidth={0.8} /><rect x={x1 - 1} y={y - 11} width={4} height={22} rx={1.4} fill={C.plate} stroke={C.plateEdge} strokeWidth={0.8} /></g>;
+    return <g>{line([x0 + 6, y], [x1 - 6, y], 2.6, C.plateEdge)}</g>;
+  }
+  const mx = (wl[0] + wr[0]) / 2, my = (wl[1] + wr[1]) / 2;
+  if (kind === "barbell") {
+    const x0 = Math.min(wl[0], wr[0]) - 14, x1 = Math.max(wl[0], wr[0]) + 14;
+    return <g>{line([x0, my], [x1, my], 2.6, C.plateEdge)}<rect x={x0 - 3} y={my - 11} width={4} height={22} rx={1.4} fill={C.plate} stroke={C.plateEdge} strokeWidth={0.8} /><rect x={x1 - 1} y={my - 11} width={4} height={22} rx={1.4} fill={C.plate} stroke={C.plateEdge} strokeWidth={0.8} /></g>;
+  }
+  if (kind === "bar") {
+    const x0 = Math.min(wl[0], wr[0]) - 4, x1 = Math.max(wl[0], wr[0]) + 4;
+    return <g>{line([x0, my], [x1, my], 3.2, C.plateEdge)}</g>;
+  }
+  if (kind === "db") {
+    const one = (w) => <g key={w[0]}><rect x={w[0] - 6} y={w[1] - 3} width={12} height={6} rx={2} fill={C.plate} stroke={C.plateEdge} strokeWidth={0.8} /><rect x={w[0] - 8} y={w[1] - 5} width={3} height={10} rx={1} fill={C.plate} /><rect x={w[0] + 5} y={w[1] - 5} width={3} height={10} rx={1} fill={C.plate} /></g>;
+    return <g>{one(wl)}{one(wr)}</g>;
+  }
+  if (kind === "kb") return <g><path d={`M${mx - 4},${my - 2} a4,4 0 0 1 8,0`} fill="none" stroke={C.plateEdge} strokeWidth={2} /><circle cx={mx} cy={my + 3} r={6.5} fill={C.plate} stroke={C.plateEdge} strokeWidth={1.4} /></g>;
+  if (kind === "plate") return <g><circle cx={mx} cy={my} r={9} fill="none" stroke={C.plate} strokeWidth={3} /></g>;
+  if (kind === "rope") return <g>{line([mx - 3, my - 2], [mx - 6, my + 6], 2.4, C.plate)}{line([mx + 3, my - 2], [mx + 6, my + 6], 2.4, C.plate)}</g>;
+  return null;
+}
+
+function ProjectedSvg({ def, k }) {
+  const pose = mixPose(def.a, def.b, k);
+  const q = solveProjected(def, pose);
+  const { C0, j } = q;
+  const pt = (p) => [p[0], p[1]];
+  const where = def.prop?.[1];
+  // equipo automático de frente
+  const bench = def.anchor === "hip" && j.hip[1] < FLOOR - 12;
+  const hand = (def.cable ? (Array.isArray(def.cable) ? def.cable : [def.cable]) : []);
+  const mid2 = [(q.wl[0] + q.wr[0]) / 2, (q.wl[1] + q.wr[1]) / 2];
+  // segmentos con profundidad (mayor z = más cerca del espectador)
+  const L = (a, b, ra, rb, col) => ({ z: (a[2] + b[2]) / 2, el: limb(pt(a), pt(b), ra, rb, col) });
+  const segs = [
+    L(q.hl, q.lk, 5.4, 4.4, C.near), L(q.lk, q.la, 4.4, 3.2, C.near), L(q.la, [q.la[0] - 3, q.la[1] + 3, q.la[2]], 3.2, 2.8, C.joint),
+    L(q.hr, q.rk, 5.4, 4.4, C.near), L(q.rk, q.ra, 4.4, 3.2, C.near), L(q.ra, [q.ra[0] + 3, q.ra[1] + 3, q.ra[2]], 3.2, 2.8, C.joint),
+    L(q.hc, q.sc, 8.5, 12, C.near),
+    L(q.sl, q.el, 4.2, 3.4, C.near), L(q.el, q.wl, 3.4, 2.8, C.near),
+    L(q.sr, q.er, 4.2, 3.4, C.near), L(q.er, q.wr, 3.4, 2.8, C.near),
+  ].sort((a, b) => a.z - b.z);
+  const fj = { hip: pt(q.hc), hl: pt(q.hl), hr: pt(q.hr), sc: pt(q.sc), sl: pt(q.sl), sr: pt(q.sr), lk: pt(q.lk), la: pt(q.la), rk: pt(q.rk), ra: pt(q.ra), le: pt(q.el), lw: pt(q.wl), re: pt(q.er), rw: pt(q.wr), head: pt(q.head) };
+  return (
+    <>
+      {def.smith && <g>{line([C0 - 40, 8], [C0 - 40, FLOOR], 3.2, C.gear2)}{line([C0 + 40, 8], [C0 + 40, FLOOR], 3.2, C.gear2)}<rect x={C0 - 44} y={4} width={88} height={5} rx={2} fill={C.gear} /><rect x={C0 - 42} y={mid2[1] - 3} width={84} height={6} rx={2.5} fill={C.gear2} stroke={C.plateEdge} strokeWidth={0.8} /></g>}
+      {bench && <g><rect x={C0 - 14} y={j.hip[1] + 7} width={28} height={8} rx={3} fill={C.gear2} />{line([C0 - 9, j.hip[1] + 15], [C0 - 9, FLOOR], 4.4, C.gear)}{line([C0 + 9, j.hip[1] + 15], [C0 + 9, FLOOR], 4.4, C.gear)}</g>}
+      {def.anchor === "wrist" && line([C0 - q.gx - 14, q.wl[1]], [C0 + q.gx + 14, q.wl[1]], 4, C.gear2)}
+      {hand.map((c, i) => (
+        <g key={i}>
+          <rect x={C0 - 7} y={Math.min(c.at[1] - 10, 20)} width={14} height={FLOOR - Math.min(c.at[1] - 10, 20)} rx={3} fill={C.gear} opacity={0.8} />
+          <circle cx={C0} cy={c.at[1]} r={5} fill={C.gear2} stroke={C.cable} strokeWidth={1.4} />
+          {line([C0, c.at[1]], mid2, 1.3, C.cable, { strokeDasharray: "4 3" })}
+        </g>
+      ))}
+      {def.fenv?.(fj)}
+      {segs.map((s2, i) => <g key={i}>{s2.el}</g>)}
+      {def.hl?.map((h) => <HighlightFront key={h} part={h} j={fj} />)}
+      {limb(pt(q.sc), mid(pt(q.sc), pt(q.head), 0.75), 4.4, 4.4, C.head)}
+      <circle cx={q.head[0]} cy={q.head[1]} r={HEAD} fill={C.head} />
+      {def.prop && <FrontProp kind={def.prop[0]} where={where} q={q} />}
+    </>
+  );
+}
+
+/** Vistas disponibles: perfil y frente (las defs de frente necesitan def.alt para tener perfil). */
+export function availableViews(def) {
+  if (!def) return [];
+  return def.view === "front" ? (def.alt ? ["side", "front"] : ["front"]) : ["side", "front"];
 }
 
 function SideSvg({ def, k, vb }) {
@@ -335,15 +443,21 @@ function FrontSvg({ def, k }) {
   );
 }
 
-export function FigureSvg({ def, k, size = 260 }) {
-  const vb = frame(def);
+export function FigureSvg({ def, k, size = 260, view }) {
+  const authoredFront = def.view === "front";
+  const want = view || (authoredFront ? "front" : "side");
+  const side = want === "side";
+  let use = def, mode = authoredFront ? "front" : "side";
+  if (side && authoredFront && def.alt) { use = { ...def.alt, view: undefined }; mode = "side"; }
+  else if (!side && !authoredFront) mode = "proj";
+  const vb = frame(use, mode === "proj" ? "proj" : undefined);
   return (
     <svg viewBox={vb.join(" ")} width={size} height={size * 0.75} style={{ display: "block", maxWidth: "100%", borderRadius: 14, background: C.bg }} aria-hidden="true">
       <Defs />
       <rect x={vb[0]} y={vb[1]} width={vb[2]} height={vb[3]} fill="url(#mf-bg)" />
       <rect x={vb[0]} y={FLOOR} width={vb[2]} height={400} fill="#171229" />
       <rect x={vb[0]} y={FLOOR} width={vb[2]} height={1.6} fill={C.gear2} />
-      {def.view === "front" ? <FrontSvg def={def} k={k} /> : <SideSvg def={def} k={k} vb={vb} />}
+      {mode === "front" ? <FrontSvg def={use} k={k} /> : mode === "proj" ? <ProjectedSvg def={use} k={k} /> : <SideSvg def={use} k={k} vb={vb} />}
     </svg>
   );
 }

@@ -1,5 +1,5 @@
 // Movimientos del grupo: Piernas (tanda 0-39). Formato en src/components/motion/rig.jsx.
-import { Bench, Seat, Pad, Box, line, FLOOR, C, vec, add, angleOf, solve, TH, SH } from "../../components/motion/rig.jsx";
+import { Bench, Seat, Pad, Box, InclinePad, line, FLOOR, C, vec, add, angleOf, solve, TH, SH } from "../../components/motion/rig.jsx";
 import { squat } from "./base.jsx";
 
 const STAND = { t: -90, th: 90, sh: 90 };
@@ -74,6 +74,12 @@ function sumoSquat() {
       <rect x={j.sl[0] - 32} y={j.sl[1] - 15} width={6} height={22} rx={2} fill={C.plate} stroke={C.plateEdge} strokeWidth={1} />
       <rect x={j.sr[0] + 26} y={j.sr[1] - 15} width={6} height={22} rx={2} fill={C.plate} stroke={C.plateEdge} strokeWidth={1} />
     </>),
+    // perfil: sentadilla con barra alta, torso erguido (en sumo el tronco queda mas vertical)
+    alt: {
+      anchor: "foot", at: [96, 138], prop: ["barbell", "shoulder"], hl: ["thigh", "glute"],
+      a: { ...STAND, ua: 125, fa: -35 },
+      b: { t: -76, th: 18, sh: 104, ua: 125, fa: -35 },
+    },
   };
 }
 
@@ -262,6 +268,12 @@ function sumoDeadlift() {
   return {
     view: "front", anchor: "foot", at: [100, 138], prop: ["barbell", "hands-mid"], hl: ["glute", "thigh"],
     a: mk(26, 34), b: mk(50, 16),
+    // perfil: bisagra con espalda recta, barra cerca de las piernas, torso mas vertical que en convencional
+    alt: {
+      anchor: "foot", at: [96, 138], prop: ["barbell", "wrist"], hl: ["glute", "thigh"],
+      a: { t: -52, th: 22, sh: 96, ua: 92, fa: 92 },
+      b: { ...STAND, ua: 92, fa: 92 },
+    },
   };
 }
 
@@ -325,6 +337,12 @@ function lateralLunge() {
     view: "front", anchor: "foot", at: [100, 138], prop: ["db", "hands-mid"], hl: ["thigh"],
     a: { ...mk(52, -9, 9), ...arms },
     b: { ...mk(32, -16, 44), ...arms },
+    // perfil: la cadera se sienta hacia atras sobre la pierna que flexiona (la otra queda estirada hacia el costado)
+    alt: {
+      anchor: "foot", at: [96, 138], prop: ["db", "wrist"], hl: ["thigh"],
+      a: { ...STAND, ua: 85, fa: -75, th2: 90, sh2: 90 },
+      b: { t: -62, th: 20, sh: 104, ua: 85, fa: -75, th2: 82, sh2: 90 },
+    },
   };
 }
 
@@ -435,6 +453,31 @@ function hipMachine(adduct) {
         : (<><Pad x={j.lk[0] - 8} y={j.lk[1] - 12} w={6} h={26} r={3} /><Pad x={j.rk[0] + 2} y={j.rk[1] - 12} w={6} h={26} r={3} /></>)}
       <rect x={j.lk[0] - 20} y={FLOOR - 3} width={50} height={3} fill={C.gear} opacity={0} />
     </>),
+    // perfil: sentada con respaldo; las piernas se abren / cierran en V y las almohadillas giran desde el pivote bajo el asiento
+    alt: (() => {
+      const open = { t: -98, ua: 55, fa: 85, th: -14, sh: 88, th2: 20, sh2: 92 };
+      const closed = { t: -98, ua: 55, fa: 85, th: 3, sh: 90, th2: 6, sh2: 90 };
+      return {
+        anchor: "hip", at: [78, 112], prop: ["none"], hl: ["thigh", "glute"],
+        a: adduct ? open : closed, b: adduct ? closed : open,
+        env: (j) => {
+          const lever = (kn, an, op) => {
+            const dir = angleOf(kn, an), m = add(kn, vec(dir, 14)), piv = [j.hip[0] - 4, j.hip[1] + 13];
+            return (<g opacity={op}>
+              {line(m, piv, 3, C.gear)}
+              {line(add(m, vec(dir + 90, -4)), add(m, vec(dir + 90, 4)), 4, C.gear2)}
+              <circle cx={piv[0]} cy={piv[1]} r={3.4} fill={C.gear2} />
+            </g>);
+          };
+          return (<>
+            <InclinePad j={j} ext={6} />
+            {lever(j.knee2, j.ankle2, 0.55)}
+            {lever(j.knee, j.ankle, 1)}
+            {line([j.ankle[0] - 7, FLOOR - 2], [j.ankle[0] + 24, FLOOR - 2], 4, C.gear)}
+          </>);
+        },
+      };
+    })(),
   };
 }
 

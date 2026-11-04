@@ -16,6 +16,7 @@ const kOf = (j, a, b) => (angleOf(j.elbow, j.wrist) - a) / (b - a);
 function curlAlternate() {
   return {
     view: "front", anchor: "foot", at: [100, 138], prop: ["db", "both"], hl: ["arm"],
+    alt: { ...curlStanding({ prop: "db" }), a: { ...STAND, ua: 92, fa: 88, ua2: 92, fa2: 90 }, b: { ...STAND, ua: 84, fa: -68, ua2: 92, fa2: 90 } },
     a: { lt: 90, ls: 90, rt: 90, rs: 90, la: 92, lf: 90, ra: 88, rf: 90 },
     b: { lt: 90, ls: 90, rt: 90, rs: 90, la: 92, lf: 90, ra: 96, rf: -112 },
   };
@@ -48,6 +49,7 @@ function curlReverse(prop) {
   const legs = { lt: 90, ls: 90, rt: 90, rs: 90 };
   return {
     view: "front", anchor: "foot", at: [100, 138], prop: [prop, "both"], hl: ["forearm", "arm"],
+    alt: { ...curlStanding({ prop: prop === "db" ? "db" : "barbell" }), hl: ["forearm", "arm"] },
     a: { ...legs, la: 92, lf: 90, ra: 88, rf: 90 },
     b: { ...legs, la: 92, lf: 248, ra: 88, rf: -68 },
   };
@@ -90,6 +92,7 @@ function curl21() {
 function hammerCross() {
   return {
     view: "front", anchor: "foot", at: [100, 138], prop: ["db", "both"], hl: ["arm"],
+    alt: { ...curlStanding({ prop: "db" }), a: { ...STAND, ua: 92, fa: 88, ua2: 92, fa2: 90 }, b: { ...STAND, ua: 84, fa: -68, ua2: 92, fa2: 90 } },
     a: { lt: 90, ls: 90, rt: 90, rs: 90, la: 92, lf: 90, ra: 88, rf: 90 },
     b: { lt: 90, ls: 90, rt: 90, rs: 90, la: 92, lf: 90, ra: 96, rf: -158 },
   };
@@ -100,6 +103,11 @@ function curlHighCable() {
   return {
     view: "front", anchor: "foot", at: [100, 138], prop: ["bar", "both"], hl: ["arm"],
     cable: { at: [176, 8], to: "rw" },
+    alt: {
+      anchor: "foot", at: [96, 138], prop: ["bar", "wrist"], hl: ["arm"], cable: { at: [170, 8] },
+      a: { ...STAND, ua: 0, fa: 0, ua2: 92, fa2: 90 },
+      b: { ...STAND, ua: 0, fa: -125, ua2: 92, fa2: 90 },
+    },
     a: { lt: 90, ls: 90, rt: 90, rs: 90, la: 92, lf: 90, ra: 0, rf: 0 },
     b: { lt: 90, ls: 90, rt: 90, rs: 90, la: 92, lf: 90, ra: 0, rf: -125 },
   };
@@ -110,6 +118,11 @@ function curlHighBilateral() {
   return {
     view: "front", anchor: "foot", at: [100, 138], prop: ["bar", "both"], hl: ["arm"],
     cable: [{ at: [26, 8], to: "lw" }, { at: [174, 8], to: "rw" }],
+    alt: {
+      anchor: "foot", at: [96, 138], prop: ["bar", "wrist"], hl: ["arm"], cable: { at: [170, 8] },
+      a: { ...STAND, ua: 0, fa: 0 },
+      b: { ...STAND, ua: 0, fa: -125 },
+    },
     a: { lt: 90, ls: 90, rt: 90, rs: 90, la: 180, lf: 180, ra: 0, rf: 0 },
     b: { lt: 90, ls: 90, rt: 90, rs: 90, la: 180, lf: 245, ra: 0, rf: -65 },
   };

@@ -54,7 +54,7 @@ function dbFly(angle) {
 }
 
 // ─── Cruces en polea (de frente, dos poleas) ────────────────────────────────
-function crossover(y, a, b, unilateral = false) {
+function crossover(y, a, b, unilateral = false, pa, pb) {
   const cables = unilateral
     ? { at: [22, y], to: "lw" }
     : [{ at: [22, y], to: "lw" }, { at: [178, y], to: "rw" }];
@@ -64,17 +64,35 @@ function crossover(y, a, b, unilateral = false) {
   return {
     view: "front", anchor: "foot", at: [100, 138], hl: ["chest"], prop: ["none"], cable: cables,
     a: mk(a), b: mk(b),
+    // perfil: de pie, leve inclinacion, polea detras; las manos viajan desde atras hasta juntarse delante del pecho
+    alt: {
+      anchor: "foot", at: [100, 138], hl: ["chest"], prop: ["none"], cable: { at: [22, y] },
+      a: { t: -80, th: 96, sh: 90, th2: 80, sh2: 90, ...pa },
+      b: { t: -80, th: 96, sh: 90, th2: 80, sh2: 90, ...pb },
+    },
   };
 }
-const crossHigh = () => crossover(8, { la: -155, lf: -165 }, { la: 65, lf: 80 });
-const crossMid = () => crossover(70, { la: 165, lf: 165 }, { la: 30, lf: 50 });
-const crossLow = () => crossover(130, { la: 135, lf: 120 }, { la: -10, lf: -40 });
-const crossUni = () => crossover(70, { la: 168, lf: 168 }, { la: 30, lf: 50 }, true);
+const crossHigh = () => crossover(8, { la: -155, lf: -165 }, { la: 65, lf: 80 }, false, { ua: -150, fa: -160 }, { ua: 62, fa: 72 });
+const crossMid = () => crossover(70, { la: 165, lf: 165 }, { la: 30, lf: 50 }, false, { ua: 172, fa: 175 }, { ua: 15, fa: 5 });
+const crossLow = () => crossover(130, { la: 135, lf: 120 }, { la: -10, lf: -40 }, false, { ua: 120, fa: 130 }, { ua: -25, fa: -35 });
+const crossUni = () => crossover(70, { la: 168, lf: 168 }, { la: 30, lf: 50 }, true, { ua: 172, fa: 175 }, { ua: 15, fa: 5 });
 
 // ─── Pec deck / mariposa (de frente, sentado) ───────────────────────────────
 function pecDeck(handles = false) {
   const leg = { lt: 105, ls: 90, rt: 75, rs: 90 };
+  const S = { t: -92, th: -4, sh: 85 };
   return {
+    // perfil: sentado con la espalda en el respaldo; los brazos van desde atras (abiertos) hasta delante del pecho
+    alt: {
+      anchor: "hip", at: [100, 108], prop: ["none"], hl: ["chest"],
+      a: handles ? { ...S, ua: 168, fa: 172 } : { ...S, ua: 172, fa: -92 },
+      b: handles ? { ...S, ua: -3, fa: -2 } : { ...S, ua: -4, fa: -86 },
+      env: (j) => (<>
+        <Seat x={100} y={114} w={34} /><Pad x={74} y={52} w={9} h={62} />
+        <rect x={j.shoulder[0] + 18} y={30} width={10} height={FLOOR - 30} rx={3} fill={C.gear} />
+        {handles ? line(j.wrist, [j.wrist[0] + 6, j.wrist[1]], 5, C.gear2) : <rect x={j.wrist[0] - 4} y={j.wrist[1] - 12} width={8} height={30} rx={3} fill={C.gear2} />}
+      </>),
+    },
     view: "front", anchor: "hip", at: [100, 89], hl: ["chest"], prop: ["none"],
     a: handles ? { ...leg, la: 172, lf: 200, ra: 8, rf: -20 } : { ...leg, la: 170, lf: -100, ra: 10, rf: -80 },
     b: handles ? { ...leg, la: 52, lf: 80, ra: 128, rf: 100 } : { ...leg, la: 55, lf: -100, ra: 125, rf: -80 },
