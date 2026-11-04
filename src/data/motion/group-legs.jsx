@@ -417,9 +417,9 @@ function hipMachine(adduct) {
     const l = ik(hip, [-dx, dy], "out-l"), r = ik(hip, [dx, dy], "out-r");
     return { lt: l.th, ls: l.sh, rt: r.th, rs: r.sh, la: 100, lf: 70, ra: 80, rf: 110 };
   };
-  const closed = mk(48, 7), open = mk(44, 28);
+  const closed = { lt: 112, ls: 80, rt: 68, rs: 100, la: 100, lf: 70, ra: 80, rf: 110 }, open = mk(44, 34);
   return {
-    view: "front", anchor: "hip", at: [100, 96], prop: ["none"], hl: ["thigh", "glute"],
+    view: "front", anchor: "hip", at: [100, 91], prop: ["none"], hl: ["thigh", "glute"],
     a: adduct ? open : closed, b: adduct ? closed : open,
     env: (j) => (<>
       <rect x={j.hip[0] - 18} y={j.hip[1] + 6} width={36} height={7} rx={3} fill={C.gear2} />

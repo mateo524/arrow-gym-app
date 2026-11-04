@@ -127,7 +127,7 @@ function rowCurl() {
 // ─── Tríceps ─────────────────────────────────────────────────────────────────
 function pushdown(prop = "bar", unilateral = false) {
   const d = tricepPushdown();
-  const o = { ...d, prop: [prop, "wrist"] };
+  const o = { ...d, prop: [prop, "wrist"], cable: { at: [138, 28] } };
   if (unilateral) { o.a = { ...d.a, ua2: 92, fa2: 90 }; o.b = { ...d.b, ua2: 92, fa2: 90 }; }
   return o;
 }

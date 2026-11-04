@@ -179,8 +179,8 @@ function neutralPress() {
       <Bench x0={64} x1={148} />
       {[j.wrist2, j.wrist].map((w, i) => (<g key={i}>
         {line([w[0] - 7, w[1]], [w[0] + 7, w[1]], 3.5, C.gear2)}
-        <rect x={w[0] - 11} y={w[1] - 6} width={5} height={12} rx={1.5} fill={C.plate} stroke={C.plateEdge} strokeWidth={1} />
-        <rect x={w[0] + 6} y={w[1] - 6} width={5} height={12} rx={1.5} fill={C.plate} stroke={C.plateEdge} strokeWidth={1} />
+        <rect x={w[0] - 11} y={w[1] - 9} width={5} height={18} rx={1.5} fill={C.plate} stroke={C.plateEdge} strokeWidth={1} />
+        <rect x={w[0] + 6} y={w[1] - 9} width={5} height={18} rx={1.5} fill={C.plate} stroke={C.plateEdge} strokeWidth={1} />
       </g>))}
     </>),
   };

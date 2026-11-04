@@ -201,6 +201,7 @@ function Highlight({ part, j }) {
     case "chest": case "back": return g(limb(mid(j.hip, j.shoulder, 0.5), mid(j.hip, j.shoulder, 0.97), 6.2, 7, C.hl, 0.95));
     case "core": return g(limb(mid(j.hip, j.shoulder, 0.08), mid(j.hip, j.shoulder, 0.55), 6, 6, C.hl, 0.95));
     case "shoulder": return g(dot(j.shoulder, 6.6, C.hl));
+    case "traps": return g(limb(j.shoulder, mid(j.shoulder, j.head, 0.85), 6.4, 4.2, C.hl, 0.95));
     case "arm": return g(limb(j.shoulder, j.elbow, 4.4, 3.6, C.hl, 0.95));
     case "forearm": return g(limb(j.elbow, j.wrist, 3.5, 2.8, C.hl, 0.95));
     case "thigh": return g(limb(j.hip, j.knee, 6.4, 4.8, C.hl, 0.95));
@@ -220,7 +221,11 @@ function HighlightFront({ part, j }) {
     case "thigh": return g(<g>{limb(j.hl, j.lk, 5.6, 4.4, C.hl, 0.95)}{limb(j.hr, j.rk, 5.6, 4.4, C.hl, 0.95)}</g>);
     case "glute": return g(<g>{dot(j.hl, 6, C.hl)}{dot(j.hr, 6, C.hl)}</g>);
     case "calf": return g(<g>{limb(j.lk, j.la, 4.4, 3.2, C.hl, 0.95)}{limb(j.rk, j.ra, 4.4, 3.2, C.hl, 0.95)}</g>);
-    case "traps": return g(<g>{limb(j.sc, j.sl, 4.5, 5, C.hl, 0.95)}{limb(j.sc, j.sr, 4.5, 5, C.hl, 0.95)}</g>);
+    case "traps": {
+      const nl = add(j.sc, [-3.5, -9]), nr = add(j.sc, [3.5, -9]);
+      const pts = [nl, nr, add(j.sr, [2, -2]), add(j.sr, [0, 5]), add(j.sc, [0, 8]), add(j.sl, [0, 5]), add(j.sl, [-2, -2])];
+      return g(<polygon points={pts.map((p) => p.join(",")).join(" ")} fill={C.hl} opacity={0.95} />);
+    }
     default: return null;
   }
 }

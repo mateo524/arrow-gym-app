@@ -368,6 +368,7 @@ function bandPullApart() {
 function manMaker() {
   return {
     anchor: "toe", at: [64, 141], prop: ["db", "wrist"], hl: ["back", "arm"],
+    extra: [[64, -4]],
     a: { t: -14, th: 168, sh: 166, ft: 72, ua: 90, fa: 90 },
     b: { ...STAND, ua: -90, fa: -90 },
   };
@@ -381,7 +382,7 @@ function kettlebellFlow() {
 }
 function tireFlip() {
   return {
-    anchor: "foot", at: [92, 138], prop: ["none"], hl: ["back", "glute"],
+    anchor: "foot", at: [92, 138], prop: ["none"], hl: ["back", "glute"], extra: [[110, 14]],
     a: { t: -42, th: 36, sh: 106, ua: 70, fa: 62 },
     b: { t: -80, th: 80, sh: 92, ua: -18, fa: -30 },
     env: (j) => {

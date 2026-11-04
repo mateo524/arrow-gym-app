@@ -128,7 +128,7 @@ function vUp() {
 /** Plancha con antebrazos. raiseLeg: eleva la pierna lejana. */
 function plankForearm(o = {}) {
   const a = { t: -9, ua: 90, fa: 0, th: 171, sh: 171, ft: 60 };
-  const b = o.raiseLeg ? { ...a, th2: 190, sh2: 190 } : { ...a, t: -11, th: 169, sh: 169 };
+  const b = o.raiseLeg ? { ...a, th2: 190, sh2: 190 } : { ...a, t: -14, th: 166, sh: 166 };
   const a2 = o.raiseLeg ? { ...a, th2: 171, sh2: 171 } : a;
   return { anchor: "toe", at: [40, 141], hl: ["core"], a: a2, b };
 }
@@ -330,8 +330,8 @@ function vacuum() {
   return {
     anchor: "wrist", at: [150, 138], hl: ["core"],
     // a cuatro apoyos (variante confirmada), columna neutra; el abdomen se mete (no es visible): leve cambio de tronco
-    a: { t: -21, ua: 90, fa: 90, th: 90, sh: 180, ft: 180 },
-    b: { t: -23, ua: 90, fa: 90, th: 90, sh: 180, ft: 180 },
+    a: { t: -17, ua: 90, fa: 90, th: 90, sh: 180, ft: 180 },
+    b: { t: -27, ua: 90, fa: 90, th: 90, sh: 180, ft: 180 },
   };
 }
 
