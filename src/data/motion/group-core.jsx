@@ -31,8 +31,13 @@ function crunch(o = {}) {
 function sitUp() {
   return {
     ...SUP, hl: ["core"],
-    a: { t: 180, ua: -120, fa: 115, ...BENT },
-    b: { t: 275, ua: -25, fa: 210, ...BENT },
+    // brazos cruzados sobre el pecho, pies fijos (anclados) y rodillas flexionadas
+    a: { t: 180, ua: -25, fa: 205, ...BENT },
+    b: { t: 275, ua: 70, fa: 300, ...BENT },
+    env: (j) => (<>
+      <rect x={j.ankle[0] - 7} y={j.ankle[1] - 3} width={14} height={4} rx={2} fill={C.gear2} />
+      <rect x={j.ankle[0] - 2} y={j.ankle[1] - 1} width={4} height={FLOOR - j.ankle[1] + 1} rx={2} fill={C.gear} />
+    </>),
   };
 }
 
@@ -94,6 +99,8 @@ function bicycle() {
 }
 
 function heelTouch() {
+  // De perfil la flexion lateral no se ve (se probo vista cenital: se lee como figura de pie). Se muestra el alternado
+  // como el brazo cercano estirado hacia el talon (a) y el lejano (b), con los hombros despegados.
   return {
     ...SUP, hl: ["core"],
     a: { t: 190, ua: 4, fa: 0, ua2: 28, fa2: 18, ...BENT },

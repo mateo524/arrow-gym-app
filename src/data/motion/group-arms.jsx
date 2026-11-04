@@ -43,16 +43,47 @@ function curlMachine() {
   };
 }
 
-/** Curl reverso / inverso (agarre prono): mismo recorrido, resalta el antebrazo. */
+/** Curl reverso / inverso (agarre prono, de frente): ambos antebrazos suben con la barra/mancuernas, resalta el antebrazo (braquiorradial). */
 function curlReverse(prop) {
-  const d = curlStanding({ prop });
-  return { ...d, hl: ["forearm", "arm"] };
+  const legs = { lt: 90, ls: 90, rt: 90, rs: 90 };
+  return {
+    view: "front", anchor: "foot", at: [100, 138], prop: [prop, "both"], hl: ["forearm", "arm"],
+    a: { ...legs, la: 92, lf: 90, ra: 88, rf: 90 },
+    b: { ...legs, la: 92, lf: 248, ra: 88, rf: -68 },
+  };
 }
 
-/** Zottman: sube supino y baja prono (se ve el recorrido del curl; resalta bíceps y antebrazo). */
+/** Zottman (perfil): sube supino, en la cima la muñeca gira (flecha) y baja prono; resalta bíceps y antebrazo. */
 function zottman() {
   const d = curlStanding({ prop: "db" });
-  return { ...d, hl: ["arm", "forearm"] };
+  const A = d.a.fa, B = d.b.fa;
+  return {
+    ...d, hl: ["arm", "forearm"],
+    env: (j) => {
+      const k = (angleOf(j.elbow, j.wrist) - A) / (B - A);
+      if (k > 0.12 && k < 0.88) return null;
+      const w = j.wrist, r = 9, cx = w[0] + 12, cy = w[1] - 2;
+      return (<g>
+        <path d={`M ${cx - r} ${cy} A ${r} ${r} 0 1 1 ${cx + r * 0.6} ${cy + r * 0.8}`} fill="none" stroke={C.hl} strokeWidth={1.8} strokeLinecap="round" />
+        <polygon points={`${cx + r * 0.6 - 3},${cy + r * 0.8 - 3} ${cx + r * 0.6 + 3},${cy + r * 0.8 - 3} ${cx + r * 0.6},${cy + r * 0.8 + 3}`} fill={C.hl} />
+      </g>);
+    },
+  };
+}
+
+/** Curl 21s: 7 reps mitad inferior + 7 mitad superior + 7 completas. Se anima el recorrido completo y se marca el punto medio (antebrazo paralelo al piso). */
+function curl21() {
+  const d = curlStanding({ prop: "barbell" });
+  return {
+    ...d,
+    env: (j) => {
+      const y = j.elbow[1], x = j.elbow[0] + 14;
+      return (<g>
+        <line x1={x - 2} y1={y} x2={x + 26} y2={y} stroke={C.hl} strokeWidth={1.2} strokeDasharray="3 3" opacity={0.9} />
+        <text x={x + 28} y={y + 3} fontSize={8} fill={C.hl} fontWeight={700}>1/2</text>
+      </g>);
+    },
+  };
 }
 
 /** Curl martillo cruzado (de frente): la mancuerna neutra cruza hacia el hombro opuesto. */
@@ -87,7 +118,7 @@ function curlHighBilateral() {
 /** Remo + curl: remo inclinado y, al final, el codo atrás, el antebrazo sube hacia el pecho. */
 function rowCurl() {
   return {
-    anchor: "foot", at: [96, 138], prop: ["db", "wrist"], hl: ["arm"],
+    anchor: "foot", at: [96, 138], prop: ["db", "wrist"], hl: ["back", "arm"],
     a: { t: -40, th: 80, sh: 100, ua: 90, fa: 90 },
     b: { t: -40, th: 80, sh: 100, ua: 180, fa: -35 },
   };
@@ -248,6 +279,26 @@ function pinchGrip() {
   };
 }
 
+/** Press cerrado: de perfil el agarre no se nota, asi que un detalle de frente (manos al ancho de hombros, codos pegados) acompana el movimiento. */
+function closeGrip(o = {}) {
+  const d = benchPress(o);
+  return {
+    ...d, hl: ["arm"],
+    env: (j) => {
+      const cx = 162, y = 78;
+      return (<g>
+        {d.env && d.env(j)}
+        <rect x={cx - 24} y={y - 14} width={48} height={32} rx={6} fill="#14101f" opacity={0.85} stroke={C.gear2} strokeWidth={1} />
+        {line([cx - 12, y + 4], [cx + 12, y + 4], 5, C.gear2)}
+        {line([cx - 20, y - 8], [cx + 20, y - 8], 2.5, C.plateEdge)}
+        {line([cx - 20, y - 8], [cx - 20, y - 4], 2.5, C.plateEdge)}
+        <circle cx={cx - 8} cy={y - 8} r={3.2} fill={C.hl} /><circle cx={cx + 8} cy={y - 8} r={3.2} fill={C.hl} />
+        <text x={cx} y={y + 15} fontSize={6.5} fill={C.cable} textAnchor="middle" fontWeight={700}>agarre cerrado</text>
+      </g>);
+    },
+  };
+}
+
 // ─── Asignación ejercicio -> movimiento ──────────────────────────────────────
 export const ENTRIES = {
   "Curl con barra": curlStanding({ prop: "barbell" }),
@@ -264,7 +315,7 @@ export const ENTRIES = {
   "Curl inverso con barra": curlReverse("barbell"),
   "Curl inverso con mancuernas": curlReverse("db"),
   "Curl de araña": spiderCurl(),
-  "Curl 21s": curlStanding({ prop: "barbell" }),
+  "Curl 21s": curl21(),
   "Curl martillo cruzado": hammerCross(),
   "Curl zottman": zottman(),
   "Curl en polea alta": curlHighCable(),
@@ -291,8 +342,8 @@ export const ENTRIES = {
   "Fondos en banco": benchDips(),
   "Dips con lastre": weightedDips(),
   "Extensión de tríceps en máquina": tricepMachine(),
-  "Press de banca con agarre cerrado": { ...benchPress(), hl: ["arm"] },
-  "Press cerrado en Smith": { ...benchPress({ smith: true }), hl: ["arm"] },
+  "Press de banca con agarre cerrado": closeGrip(),
+  "Press cerrado en Smith": closeGrip({ smith: true }),
   "Flexiones diamante": diamondPushup(),
   "JM press": jmPress(),
   "Tate press": tatePress(),

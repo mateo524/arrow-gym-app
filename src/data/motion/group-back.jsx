@@ -171,11 +171,12 @@ function tBarRow() {
 }
 // Remo invertido bajo una barra (rack o Smith)
 function invertedRow(o = {}) {
+  // Pies fijos en el piso (talones apoyados): el cuerpo gira rígido sobre los talones y las muñecas quedan en la barra.
   const W = [120, 84];
   const def = {
-    anchor: "wrist", at: W, prop: ["bar", "wrist"], hl: ["back", "arm"], smith: o.smith,
-    a: { t: -14.8, th: 165.2, sh: 165.2, ua: -121.6, fa: -121.6 },
-    b: { t: -32.8, th: 147.2, sh: 147.2, ua: -212, fa: -65 },
+    anchor: "foot", at: [44, 138], prop: ["bar", "wrist"], hl: ["back", "arm"], smith: o.smith,
+    a: { t: -12.5, th: 167.5, sh: 167.5, ua: -95.5, fa: -116.6 },
+    b: { t: -27, th: 153, sh: 153, ua: -163.5, fa: -28.5 },
     extra: [[120, 20]],
   };
   if (!o.smith) {
@@ -302,11 +303,12 @@ function cableSpinalCurl() {
 
 // ─── Deadlift y derivados ────────────────────────────────────────────────────
 function deficitDeadlift() {
+  // De pie sobre una plataforma baja (~2 pulgadas): la barra arranca desde el piso a la misma altura que un peso muerto normal, o sea mas abajo respecto de los pies.
   return {
-    anchor: "foot", at: [96, 130], prop: ["barbell", "wrist"], hl: ["back", "glute"],
-    a: { t: -26, th: 42, sh: 100, ua: 92, fa: 92 },
+    anchor: "foot", at: [96, 133], prop: ["barbell", "wrist"], hl: ["back", "glute"],
+    a: { t: -46, th: 22, sh: 100, ua: 92, fa: 92 },
     b: { ...STAND, ua: 92, fa: 92 },
-    env: () => <Box x0={66} x1={128} y={132} />,
+    env: () => <Box x0={64} x1={130} y={137} />,
   };
 }
 function rackPull() {

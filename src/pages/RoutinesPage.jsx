@@ -417,7 +417,14 @@ export default function RoutinesPage() {
                         ))}
                       </div>
                       <span style={{ fontWeight: 700, fontSize: 14, flex: 1, marginRight: 8 }}>{ex.name}</span>
+                      <button type="button" className="ghost icon-btn" style={{ padding: "4px 6px", opacity: exIdx === 0 ? 0.3 : 1 }}
+                        aria-label={`Subir ${ex.name}`} data-testid="ex-up" disabled={exIdx === 0}
+                        onClick={() => moveExercise(exIdx, exIdx - 1)}><Icon name="ChevronUp" size={16} /></button>
+                      <button type="button" className="ghost icon-btn" style={{ padding: "4px 6px", opacity: exIdx === form.exercises.length - 1 ? 0.3 : 1 }}
+                        aria-label={`Bajar ${ex.name}`} data-testid="ex-down" disabled={exIdx === form.exercises.length - 1}
+                        onClick={() => moveExercise(exIdx, exIdx + 1)}><Icon name="ChevronDown" size={16} /></button>
                       <button type="button" className="ghost icon-btn" style={{ color: "var(--danger)", padding: "4px 6px" }}
+                        aria-label={`Quitar ${ex.name}`}
                         onClick={() => removeExercise(exIdx)}><Icon name="X" size={14} /></button>
                     </div>
                     {ex.sets.map((s, sIdx) => (

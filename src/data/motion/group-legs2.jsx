@@ -194,10 +194,15 @@ function jumpGeneric(o = {}) {
   };
 }
 const jumpSquat = () => jumpGeneric();
-const boxJump = () => jumpGeneric({
-  prop: ["db", "wrist"], armsA: 100, armsB: 100,
-  env: () => <Box x0={128} x1={176} y={100} />,
-});
+// Box jump: se muestra la caída sobre el cajón (pies apoyados arriba): aterrizaje en cuarto de sentadilla y luego se estira del todo.
+function boxJump() {
+  return {
+    anchor: "foot", at: [100, 102], prop: ["db", "wrist"], hl: ["thigh", "glute"],
+    a: { t: -62, th: 36, sh: 100, ua: 100, fa: 100 },
+    b: { ...STAND, ua: 92, fa: 92 },
+    env: () => <Box x0={78} x1={126} y={106} />,
+  };
+}
 function kbSwing() {
   return {
     anchor: "foot", at: [96, 138], prop: ["kb", "wrist"], hl: ["glute", "thigh"],

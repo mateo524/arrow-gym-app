@@ -253,13 +253,16 @@ function rdlUni() {
 }
 
 function sumoDeadlift() {
-  const d = {
-    anchor: "foot", at: [96, 138], prop: ["barbell", "wrist"], hl: ["glute", "thigh"],
-    // Salida baja (cadera casi a la altura de la rodilla, tibias casi verticales): la barra queda sobre el piso en el medio del pie.
-    a: { t: -38, th: 4, sh: 102, ua: 92, fa: 92 },
-    b: { ...STAND, ua: 92, fa: 92 },
+  // Vista de frente: pies muy abiertos, rodillas hacia afuera, brazos rectos por dentro de las rodillas, barra al piso entre los pies.
+  const hip = [0, 0];
+  const mk = (dy, dx) => {
+    const l = ik(hip, [-dx, dy], "out-l"), r = ik(hip, [dx, dy], "out-r");
+    return { lt: l.th, ls: l.sh, rt: r.th, rs: r.sh, la: 90, lf: 90, ra: 90, rf: 90, lean: 0 };
   };
-  return d;
+  return {
+    view: "front", anchor: "foot", at: [100, 138], prop: ["barbell", "hands-mid"], hl: ["glute", "thigh"],
+    a: mk(26, 34), b: mk(50, 16),
+  };
 }
 
 function trapBar() {

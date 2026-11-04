@@ -93,7 +93,7 @@ function pecDeck(handles = false) {
 }
 
 // ─── Flexiones y variantes (muñeca fija en el piso o apoyo elevado, pies fijos) ───────────
-function pushup({ wy = 139, ay = 138, drop = 21, wx = 140, row = false, handBox = 0, footBox = 0, prop = null }) {
+function pushup({ wy = 139, ay = 138, drop = 21, wx = 140, row = false, handBox = 0, footBox = 0, prop = null, hl = ["chest", "arm"] }) {
   const L = T + TH + SH;
   const w = [wx, wy];
   const s1 = [wx + 3, wy - 36.5];
@@ -107,7 +107,7 @@ function pushup({ wy = 139, ay = 138, drop = 21, wx = 140, row = false, handBox 
   const b = { t: -al2, th: 180 - al2, sh: 180 - al2, ft: 0, ua: ua2, fa: fa2 };
   if (row) { a.ua2 = ua1; a.fa2 = fa1; b.ua2 = 168; b.fa2 = 96; }
   return {
-    anchor: "wrist", at: w, hl: ["chest", "arm"], prop: prop ? [prop, "wrist"] : ["none"],
+    anchor: "wrist", at: w, hl, prop: prop ? [prop, "wrist"] : ["none"],
     a, b,
     env: (j) => (<>
       {handBox > 0 && <Box x0={wx - 14} x1={wx + 12} y={wy + 4} />}
@@ -117,8 +117,9 @@ function pushup({ wy = 139, ay = 138, drop = 21, wx = 140, row = false, handBox 
   };
 }
 const pushFloor = () => pushup({});
-const pushHandsInc = (h) => pushup({ wy: 139 - h, drop: 17, handBox: h });
-const pushFeetUp = () => pushup({ ay: 96, drop: 21, footBox: 1 });
+// Consenso: las fuentes populares dicen manos elevadas = pecho bajo/esternal (y mas facil); pies elevados = pecho alto + hombro frontal. Sin EMG que lo confirme: ambas trabajan todo el pectoral.
+const pushHandsInc = (h) => pushup({ wy: 139 - h, drop: 17, handBox: h, hl: ["chest"] });
+const pushFeetUp = () => pushup({ ay: 96, drop: 21, footBox: 1, hl: ["chest", "shoulder"] });
 
 // ─── Fondos ─────────────────────────────────────────────────────────────────
 function dips(assisted = false) {

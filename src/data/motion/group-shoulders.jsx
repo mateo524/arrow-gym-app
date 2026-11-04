@@ -23,7 +23,18 @@ function seatedPress(o = {}) {
     env: seatedEnv,
   };
 }
-const arnold = () => seatedPress({ ua: 48, fa: -112 });
+// Press Arnold de frente (sentado): arranca con los codos adelante, juntos, antebrazos verticales y palmas hacia vos;
+// al subir los codos se abren hacia los costados (las palmas giran hacia adelante) y termina con los brazos arriba.
+const arnold = () => ({
+  view: "front", anchor: "hip", at: [100, 98], prop: ["db", "both"], hl: ["shoulder", "arm"],
+  a: { lt: 140, ls: 90, rt: 40, rs: 90, la: 75, lf: 290, ra: 105, rf: -110 },
+  b: { lt: 140, ls: 90, rt: 40, rs: 90, la: 262, lf: 265, ra: -82, rf: -85 },
+  env: (j) => (<>
+    <rect x={j.hip[0] - 17} y={j.hip[1] + 6} width={34} height={7} rx={3} fill={C.gear2} />
+    {line([j.hip[0], j.hip[1] + 13], [j.hip[0], FLOOR], 5, C.gear)}
+    <rect x={j.hip[0] - 12} y={j.sc[1] - 8} width={24} height={48} rx={5} fill={C.gear2} opacity={0.7} />
+  </>),
+});
 
 function shoulderMachine() {
   return {
@@ -67,7 +78,7 @@ function behindNeck(o = {}) {
 function pushPress() {
   return {
     anchor: "foot", at: [100, 138], prop: ["barbell", "wrist"], hl: ["shoulder", "arm"],
-    a: { t: -84, th: 58, sh: 108, ua: 68, fa: -82 },
+    a: { t: -86, th: 68, sh: 104, ua: 68, fa: -82 },
     b: { ...STAND, ua: -90, fa: -90 },
   };
 }
@@ -216,16 +227,22 @@ function lateralLying() {
 
 // ─── Posteriores (pájaros) ──────────────────────────────────────────────────
 function rearRaiseBent(o = {}) {
-  // Vista de frente: la abduccion horizontal se ve mejor abriendo los brazos (torso inclinado no representable de frente)
+  // De perfil con el torso inclinado hacia adelante (bisagra de cadera): se distingue de la lateral (de frente).
+  // Los brazos suben hacia los costados (plano frontal): de perfil se ven acortados, por eso la amplitud angular es corta.
   const seated = o.seated;
-  const a = { ...FRONT_STAND, la: 104, lf: 112, ra: 76, rf: 68 };
-  const b = { ...FRONT_STAND, la: 182, lf: 174, ra: -2, rf: 6 };
-  if (!seated) return { view: "front", anchor: "foot", at: [100, 138], prop: ["db", "both"], hl: ["shoulder", "back"], a, b };
-  const S = { lt: 140, ls: 90, rt: 40, rs: 90, lean: 0 };
+  if (!seated) {
+    const H = { t: -38, th: 100, sh: 78 };
+    return {
+      anchor: "foot", at: [96, 138], prop: ["db", "wrist"], hl: ["shoulder", "back"],
+      a: { ...H, ua: 90, fa: 90 },
+      b: { ...H, ua: 58, fa: 52 },
+    };
+  }
+  const S = { t: -36, th: 6, sh: 90 };
   return {
-    view: "front", anchor: "hip", at: [100, 98], prop: ["db", "both"], hl: ["shoulder", "back"],
-    a: { ...S, la: 104, lf: 112, ra: 76, rf: 68 }, b: { ...S, la: 182, lf: 174, ra: -2, rf: 6 },
-    env: (j) => <Bench x0={j.hip[0] - 24} x1={j.hip[0] + 24} y={j.hip[1] + 6} />,
+    anchor: "hip", at: [96, 112], prop: ["db", "wrist"], hl: ["shoulder", "back"],
+    a: { ...S, ua: 90, fa: 90 }, b: { ...S, ua: 58, fa: 52 },
+    env: (j) => <Bench x0={j.hip[0] - 22} x1={j.hip[0] + 24} y={j.hip[1] + 6} />,
   };
 }
 function rearMachine() {
@@ -288,10 +305,12 @@ function cubanPress() {
   };
 }
 function wRaise() {
+  // Inclinado hacia adelante, codos flexionados a ~90 grados que se llevan atras/arriba juntando las escapulas (W).
+  const H = { t: -38, th: 100, sh: 78 };
   return {
-    view: "front", anchor: "foot", at: [100, 138], prop: ["db", "both"], hl: ["shoulder", "back"],
-    a: { ...FRONT_STAND, la: 104, lf: 80, ra: 76, rf: 100 },
-    b: { ...FRONT_STAND, la: 196, lf: 250, ra: -16, rf: -70 },
+    anchor: "foot", at: [96, 138], prop: ["db", "wrist"], hl: ["shoulder", "back"],
+    a: { ...H, ua: 92, fa: 50 },
+    b: { ...H, ua: 142, fa: 100 },
   };
 }
 
@@ -310,7 +329,13 @@ function cableShrug() {
     cable: [{ at: [40, 130], to: "lw" }, { at: [160, 130], to: "rw" }],
     a: { ...FRONT_STAND, la: 94, lf: 94, ra: 86, rf: 86 },
     b: { ...FRONT_STAND, la: 97, lf: 78, ra: 83, rf: 102 },
-    env: (j) => (<>{plate(j.lw, 3.4)}{plate(j.rw, 3.4)}</>),
+    // el hombro no sube en el rig: flechas sobre los hombros indican el ascenso (brazos rectos, la polea tira hacia abajo)
+    env: (j) => {
+      const arrow = (p) => (<g stroke={C.accent} strokeWidth={2} strokeLinecap="round" fill="none" opacity={0.9}>
+        <path d={`M${p[0] - 4},${p[1] - 12} l4,-5 l4,5`} /><path d={`M${p[0] - 4},${p[1] - 19} l4,-5 l4,5`} opacity={0.5} />
+      </g>);
+      return (<>{plate(j.lw, 3.4)}{plate(j.rw, 3.4)}{arrow(add(j.sl, [-7, 4]))}{arrow(add(j.sr, [7, 4]))}</>);
+    },
   };
 }
 
