@@ -1,16 +1,16 @@
 import { useEffect, useState } from "react";
-import { FigureSvg, usePhase, availableViews } from "./motion/rig.jsx";
+import { FigureSvg, usePhase, availableViews, defaultView } from "./motion/rig.jsx";
 
-const VIEW_LABEL = { side: "Perfil", front: "Frente" };
+const VIEW_LABEL = { side: "Perfil", diag: "Diagonal", front: "Frente" };
 
 /** Muñeco animado de un movimiento. `def` viene de src/data/motion (ver rig.jsx). Si el ejercicio tiene dos vistas, muestra el selector. */
 export default function MotionFigure({ def, size = 260, name }) {
   const k = usePhase(!!def);
   const views = availableViews(def);
-  const [view, setView] = useState(views[0]);
-  useEffect(() => { setView(availableViews(def)[0]); }, [def]);
+  const [view, setView] = useState(defaultView(def));
+  useEffect(() => { setView(defaultView(def)); }, [def]);
   if (!def) return null;
-  const current = views.includes(view) ? view : views[0];
+  const current = views.includes(view) ? view : defaultView(def);
   return (
     <div style={{ width: size, maxWidth: "100%" }}>
       <FigureSvg def={def} k={k} size={size} view={current} />

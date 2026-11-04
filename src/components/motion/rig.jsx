@@ -237,12 +237,10 @@ function HighlightFront({ part, j }) {
 }
 
 // ─── Encuadre ────────────────────────────────────────────────────────────────
+export const DIAG_YAW = 40;
+const yawOf = (mode) => (mode === "diag" ? DIAG_YAW : 0);
 function jointsOf(def, pose, mode) {
-  if (mode === "proj") {
-    const q = solveProjected(def, pose);
-    const g = pose.gx ?? def.fgrip ?? 9;
-    return [...q.points, [q.C0 - g - 18, q.wl[1]], [q.C0 + g + 18, q.wl[1]]];
-  }
+  if (mode === "proj" || mode === "diag") return solveProjected(def, pose, yawOf(mode)).points;
   if (def.view === "front") {
     const j = solveFront(def, pose);
     return [j.hip, j.hl, j.hr, j.sl, j.sr, j.lk, j.la, j.rk, j.ra, j.le, j.lw, j.re, j.rw, j.head];
@@ -252,10 +250,12 @@ function jointsOf(def, pose, mode) {
 }
 export function frame(def, mode) {
   const xs = [], ys = [];
+  const proj = mode === "proj" || mode === "diag";
   for (const pose of [def.a, def.b]) for (const p of jointsOf(def, pose, mode)) { xs.push(p[0]); ys.push(p[1]); }
   const cables = def.cable ? (Array.isArray(def.cable) ? def.cable : [def.cable]) : [];
-  for (const c of cables) { xs.push(c.at[0]); ys.push(c.at[1]); }
-  for (const p of def.extra || []) { xs.push(p[0]); ys.push(p[1]); }
+  const X = proj ? solveProjected(def, def.a, yawOf(mode)).X : null;
+  for (const c of cables) { xs.push(proj ? X(0, c.at[0]) : c.at[0]); ys.push(c.at[1]); }
+  if (mode !== "proj") for (const p of def.extra || []) { xs.push(proj ? X(0, p[0]) : p[0]); ys.push(p[1]); }
   ys.push(FLOOR + 4);
   let x0 = Math.min(...xs) - 26, x1 = Math.max(...xs) + 26, y0 = Math.min(...ys) - 18, y1 = Math.max(...ys) + 6;
   let w = x1 - x0, h = y1 - y0;
@@ -287,13 +287,17 @@ function Cables({ def, from }) {
 }
 
 
-// ─── Segunda vista por proyección ────────────────────────────────────────────
-export function solveProjected(def, pose) {
+// ─── Vistas por proyección (frente y diagonal) ───────────────────────────────
+// Se toma la pose de perfil (x = profundidad, y = altura), se le da el ancho del cuerpo (lateral) y se gira alrededor del eje vertical.
+// yaw 0 = de frente; yaw 90 = perfil. Pantalla: X = lateral·cos + profundidad·sen. Profundidad hacia el espectador: z = profundidad·cos − lateral·sen.
+export function solveProjected(def, pose, yaw = 0) {
   const j = solve(def, pose);
+  const c = Math.cos(rad(yaw)), s = Math.sin(rad(yaw));
   const gx = pose.gx ?? def.fgrip ?? 9;
   const fx = pose.fx ?? def.fstance ?? 7;
   const C0 = 100;
-  const P = (p, lat) => [C0 + lat, p[1], p[0]]; // [x lateral, y altura, z profundidad = x del perfil]
+  const X = (lat, depth) => C0 + lat * c + (depth - 100) * s;
+  const P = (p, lat) => [X(lat, p[0]), p[1], p[0] * c - lat * s];
   const eLat = (SW + gx) / 2 + 2;
   const sc = P(j.shoulder, 0), hc = P(j.hip, 0);
   const sl = P(j.shoulder, -SW), sr = P(j.shoulder, SW);
@@ -304,30 +308,26 @@ export function solveProjected(def, pose) {
   const lk = P(j.knee, -kLat), rk = P(j.knee2, kLat);
   const la = P(j.ankle, -fx), ra = P(j.ankle2, fx);
   const head = P(j.head, 0);
-  const points = [sc, hc, sl, sr, el, er, wl, wr, hl, hr, lk, rk, la, ra, head];
-  return { C0, j, gx, fx, sc, hc, sl, sr, el, er, wl, wr, hl, hr, lk, rk, la, ra, head, points, hip: hc };
+  const barL = [X(-(gx + 15), j.wrist[0]), j.wrist[1]], barR = [X(gx + 15, j.wrist[0]), j.wrist[1]];
+  const points = [sc, hc, sl, sr, el, er, wl, wr, hl, hr, lk, rk, la, ra, head, barL, barR];
+  return { C0, c, s, X, yaw, j, gx, fx, sc, hc, sl, sr, el, er, wl, wr, hl, hr, lk, rk, la, ra, head, barL, barR, points, hip: hc };
 }
 
-function FrontProp({ kind, where, q }) {
-  const { wl, wr, sl, sr } = q;
+function PropProj({ kind, where, q }) {
+  const { wl, wr, X, gx, j } = q;
   if (kind === "none") return null;
+  const plate = (p, h = 22) => <rect x={p[0] - 2} y={p[1] - h / 2} width={4} height={h} rx={1.4} fill={C.plate} stroke={C.plateEdge} strokeWidth={0.8} />;
   if (where === "shoulder") {
-    const y = q.sc[1] - 1, x0 = q.C0 - SW - 14, x1 = q.C0 + SW + 14;
-    if (kind === "barbell") return <g>{line([x0, y], [x1, y], 2.6, C.plateEdge)}<rect x={x0 - 3} y={y - 11} width={4} height={22} rx={1.4} fill={C.plate} stroke={C.plateEdge} strokeWidth={0.8} /><rect x={x1 - 1} y={y - 11} width={4} height={22} rx={1.4} fill={C.plate} stroke={C.plateEdge} strokeWidth={0.8} /></g>;
-    return <g>{line([x0 + 6, y], [x1 - 6, y], 2.6, C.plateEdge)}</g>;
+    const y = q.sc[1] - 1, d = j.shoulder[0];
+    const a = [X(-(SW + 14), d), y], b = [X(SW + 14, d), y];
+    return <g>{line(a, b, 2.6, C.plateEdge)}{kind === "barbell" && <>{plate(a)}{plate(b)}</>}</g>;
   }
   const mx = (wl[0] + wr[0]) / 2, my = (wl[1] + wr[1]) / 2;
-  if (kind === "barbell") {
-    const x0 = Math.min(wl[0], wr[0]) - 14, x1 = Math.max(wl[0], wr[0]) + 14;
-    return <g>{line([x0, my], [x1, my], 2.6, C.plateEdge)}<rect x={x0 - 3} y={my - 11} width={4} height={22} rx={1.4} fill={C.plate} stroke={C.plateEdge} strokeWidth={0.8} /><rect x={x1 - 1} y={my - 11} width={4} height={22} rx={1.4} fill={C.plate} stroke={C.plateEdge} strokeWidth={0.8} /></g>;
-  }
-  if (kind === "bar") {
-    const x0 = Math.min(wl[0], wr[0]) - 4, x1 = Math.max(wl[0], wr[0]) + 4;
-    return <g>{line([x0, my], [x1, my], 3.2, C.plateEdge)}</g>;
-  }
+  if (kind === "barbell") return <g>{line(q.barL, q.barR, 2.6, C.plateEdge)}{plate(q.barL)}{plate(q.barR)}</g>;
+  if (kind === "bar") return <g>{line([X(-(gx + 4), j.wrist[0]), my], [X(gx + 4, j.wrist[0]), my], 3.2, C.plateEdge)}</g>;
   if (kind === "db") {
-    const one = (w) => <g key={w[0]}><rect x={w[0] - 6} y={w[1] - 3} width={12} height={6} rx={2} fill={C.plate} stroke={C.plateEdge} strokeWidth={0.8} /><rect x={w[0] - 8} y={w[1] - 5} width={3} height={10} rx={1} fill={C.plate} /><rect x={w[0] + 5} y={w[1] - 5} width={3} height={10} rx={1} fill={C.plate} /></g>;
-    return <g>{one(wl)}{one(wr)}</g>;
+    const one = (w, i) => <g key={i}><rect x={w[0] - 6} y={w[1] - 3} width={12} height={6} rx={2} fill={C.plate} stroke={C.plateEdge} strokeWidth={0.8} /><rect x={w[0] - 8} y={w[1] - 5} width={3} height={10} rx={1} fill={C.plate} /><rect x={w[0] + 5} y={w[1] - 5} width={3} height={10} rx={1} fill={C.plate} /></g>;
+    return <g>{one(wl, 0)}{one(wr, 1)}</g>;
   }
   if (kind === "kb") return <g><path d={`M${mx - 4},${my - 2} a4,4 0 0 1 8,0`} fill="none" stroke={C.plateEdge} strokeWidth={2} /><circle cx={mx} cy={my + 3} r={6.5} fill={C.plate} stroke={C.plateEdge} strokeWidth={1.4} /></g>;
   if (kind === "plate") return <g><circle cx={mx} cy={my} r={9} fill="none" stroke={C.plate} strokeWidth={3} /></g>;
@@ -335,21 +335,23 @@ function FrontProp({ kind, where, q }) {
   return null;
 }
 
-function ProjectedSvg({ def, k }) {
+function ProjectedSvg({ def, k, yaw = 0 }) {
   const pose = mixPose(def.a, def.b, k);
-  const q = solveProjected(def, pose);
-  const { C0, j } = q;
+  const q = solveProjected(def, pose, yaw);
+  const { C0, c, s, X, j } = q;
   const pt = (p) => [p[0], p[1]];
   const where = def.prop?.[1];
-  // equipo automático de frente
-  const bench = def.anchor === "hip" && j.hip[1] < FLOOR - 12;
-  const hand = (def.cable ? (Array.isArray(def.cable) ? def.cable : [def.cable]) : []);
+  const diag = yaw > 0;
   const mid2 = [(q.wl[0] + q.wr[0]) / 2, (q.wl[1] + q.wr[1]) / 2];
-  // segmentos con profundidad (mayor z = más cerca del espectador)
+  const bench = !diag && def.anchor === "hip" && j.hip[1] < FLOOR - 12;
+  const cables = def.cable ? (Array.isArray(def.cable) ? def.cable : [def.cable]) : [];
+  const pa = def.smith ? solve(def, def.a) : null;
+  const bx = def.smith ? (where === "shoulder" ? pa.shoulder[0] : pa.wrist[0]) : 0;
+  const by = where === "shoulder" ? q.sc[1] : mid2[1];
   const L = (a, b, ra, rb, col) => ({ z: (a[2] + b[2]) / 2, el: limb(pt(a), pt(b), ra, rb, col) });
   const segs = [
-    L(q.hl, q.lk, 5.4, 4.4, C.near), L(q.lk, q.la, 4.4, 3.2, C.near), L(q.la, [q.la[0] - 3, q.la[1] + 3, q.la[2]], 3.2, 2.8, C.joint),
-    L(q.hr, q.rk, 5.4, 4.4, C.near), L(q.rk, q.ra, 4.4, 3.2, C.near), L(q.ra, [q.ra[0] + 3, q.ra[1] + 3, q.ra[2]], 3.2, 2.8, C.joint),
+    L(q.hl, q.lk, 5.4, 4.4, C.near), L(q.lk, q.la, 4.4, 3.2, C.near), L(q.la, [q.la[0] - 3 * c, q.la[1] + 3, q.la[2]], 3.2, 2.8, C.joint),
+    L(q.hr, q.rk, 5.4, 4.4, C.near), L(q.rk, q.ra, 4.4, 3.2, C.near), L(q.ra, [q.ra[0] + 3 * c, q.ra[1] + 3, q.ra[2]], 3.2, 2.8, C.joint),
     L(q.hc, q.sc, 8.5, 12, C.near),
     L(q.sl, q.el, 4.2, 3.4, C.near), L(q.el, q.wl, 3.4, 2.8, C.near),
     L(q.sr, q.er, 4.2, 3.4, C.near), L(q.er, q.wr, 3.4, 2.8, C.near),
@@ -357,30 +359,39 @@ function ProjectedSvg({ def, k }) {
   const fj = { hip: pt(q.hc), hl: pt(q.hl), hr: pt(q.hr), sc: pt(q.sc), sl: pt(q.sl), sr: pt(q.sr), lk: pt(q.lk), la: pt(q.la), rk: pt(q.rk), ra: pt(q.ra), le: pt(q.el), lw: pt(q.wl), re: pt(q.er), rw: pt(q.wr), head: pt(q.head) };
   return (
     <>
-      {def.smith && <g>{line([C0 - 40, 8], [C0 - 40, FLOOR], 3.2, C.gear2)}{line([C0 + 40, 8], [C0 + 40, FLOOR], 3.2, C.gear2)}<rect x={C0 - 44} y={4} width={88} height={5} rx={2} fill={C.gear} /><rect x={C0 - 42} y={mid2[1] - 3} width={84} height={6} rx={2.5} fill={C.gear2} stroke={C.plateEdge} strokeWidth={0.8} /></g>}
+      {def.smith && <g>{line([X(-40, bx), 8], [X(-40, bx), FLOOR], 3.2, C.gear2)}{line([X(40, bx), 8], [X(40, bx), FLOOR], 3.2, C.gear2)}<rect x={Math.min(X(-44, bx), X(44, bx))} y={4} width={Math.abs(X(44, bx) - X(-44, bx))} height={5} rx={2} fill={C.gear} /><rect x={Math.min(X(-42, bx), X(42, bx))} y={by - 3} width={Math.abs(X(42, bx) - X(-42, bx))} height={6} rx={2.5} fill={C.gear2} stroke={C.plateEdge} strokeWidth={0.8} /></g>}
       {bench && <g><rect x={C0 - 14} y={j.hip[1] + 7} width={28} height={8} rx={3} fill={C.gear2} />{line([C0 - 9, j.hip[1] + 15], [C0 - 9, FLOOR], 4.4, C.gear)}{line([C0 + 9, j.hip[1] + 15], [C0 + 9, FLOOR], 4.4, C.gear)}</g>}
-      {def.anchor === "wrist" && line([C0 - q.gx - 14, q.wl[1]], [C0 + q.gx + 14, q.wl[1]], 4, C.gear2)}
-      {hand.map((c, i) => (
-        <g key={i}>
-          <rect x={C0 - 7} y={Math.min(c.at[1] - 10, 20)} width={14} height={FLOOR - Math.min(c.at[1] - 10, 20)} rx={3} fill={C.gear} opacity={0.8} />
-          <circle cx={C0} cy={c.at[1]} r={5} fill={C.gear2} stroke={C.cable} strokeWidth={1.4} />
-          {line([C0, c.at[1]], mid2, 1.3, C.cable, { strokeDasharray: "4 3" })}
-        </g>
-      ))}
-      {def.fenv?.(fj)}
+      {!diag && def.anchor === "wrist" && line([C0 - q.gx - 14, q.wl[1]], [C0 + q.gx + 14, q.wl[1]], 4, C.gear2)}
+      {diag && def.env && <g transform={`translate(${C0} 0) scale(${s} 1) translate(-100 0)`}>{def.env(j)}</g>}
+      {cables.map((cb, i) => {
+        const cx = X(0, cb.at[0]);
+        const top = Math.min(cb.at[1] - 10, 20);
+        return (
+          <g key={i}>
+            {cb.tower !== false && <rect x={cx - 7} y={top} width={14} height={FLOOR - top} rx={3} fill={C.gear} opacity={0.8} />}
+            <circle cx={cx} cy={cb.at[1]} r={5} fill={C.gear2} stroke={C.cable} strokeWidth={1.4} />
+            {line([cx, cb.at[1]], mid2, 1.3, C.cable, { strokeDasharray: "4 3" })}
+          </g>
+        );
+      })}
+      {!diag && def.fenv?.(fj)}
       {segs.map((s2, i) => <g key={i}>{s2.el}</g>)}
       {def.hl?.map((h) => <HighlightFront key={h} part={h} j={fj} />)}
       {limb(pt(q.sc), mid(pt(q.sc), pt(q.head), 0.75), 4.4, 4.4, C.head)}
       <circle cx={q.head[0]} cy={q.head[1]} r={HEAD} fill={C.head} />
-      {def.prop && <FrontProp kind={def.prop[0]} where={where} q={q} />}
+      {def.prop && <PropProj kind={def.prop[0]} where={where} q={q} />}
     </>
   );
 }
 
-/** Vistas disponibles: perfil y frente (las defs de frente necesitan def.alt para tener perfil). */
+/** Vistas disponibles: perfil, diagonal y frente (las defs de frente necesitan def.alt para tener perfil y diagonal). */
 export function availableViews(def) {
   if (!def) return [];
-  return def.view === "front" ? (def.alt ? ["side", "front"] : ["front"]) : ["side", "front"];
+  return def.view === "front" && !def.alt ? ["front"] : ["side", "diag", "front"];
+}
+/** Vista con la que abre cada ejercicio: la diagonal, que muestra a la vez el cuerpo y el equipo; si no la tiene, la de frente. */
+export function defaultView(def) {
+  return availableViews(def).includes("diag") ? "diag" : "front";
 }
 
 function SideSvg({ def, k, vb }) {
@@ -446,18 +457,21 @@ function FrontSvg({ def, k }) {
 export function FigureSvg({ def, k, size = 260, view }) {
   const authoredFront = def.view === "front";
   const want = view || (authoredFront ? "front" : "side");
-  const side = want === "side";
   let use = def, mode = authoredFront ? "front" : "side";
-  if (side && authoredFront && def.alt) { use = { ...def.alt, view: undefined }; mode = "side"; }
-  else if (!side && !authoredFront) mode = "proj";
-  const vb = frame(use, mode === "proj" ? "proj" : undefined);
+  if (want === "side") {
+    if (authoredFront && def.alt) { use = def.alt; mode = "side"; }
+  } else if (want === "diag") {
+    const base = authoredFront ? def.alt : def;
+    if (base) { use = base; mode = "diag"; }
+  } else if (!authoredFront) mode = "proj";
+  const vb = frame(use, mode === "proj" || mode === "diag" ? mode : undefined);
   return (
     <svg viewBox={vb.join(" ")} width={size} height={size * 0.75} style={{ display: "block", maxWidth: "100%", borderRadius: 14, background: C.bg }} aria-hidden="true">
       <Defs />
       <rect x={vb[0]} y={vb[1]} width={vb[2]} height={vb[3]} fill="url(#mf-bg)" />
       <rect x={vb[0]} y={FLOOR} width={vb[2]} height={400} fill="#171229" />
       <rect x={vb[0]} y={FLOOR} width={vb[2]} height={1.6} fill={C.gear2} />
-      {mode === "front" ? <FrontSvg def={use} k={k} /> : mode === "proj" ? <ProjectedSvg def={use} k={k} /> : <SideSvg def={use} k={k} vb={vb} />}
+      {mode === "front" ? <FrontSvg def={use} k={k} /> : mode === "proj" ? <ProjectedSvg def={use} k={k} yaw={0} /> : mode === "diag" ? <ProjectedSvg def={use} k={k} yaw={DIAG_YAW} /> : <SideSvg def={use} k={k} vb={vb} />}
     </svg>
   );
 }

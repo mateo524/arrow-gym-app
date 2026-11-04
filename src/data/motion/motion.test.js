@@ -41,10 +41,10 @@ describe("movimientos del muñeco", () => {
     expect(missing).toEqual([]);
   });
 
-  it("todos tienen vista de perfil y de frente", () => {
+  it("todos tienen vista de perfil, diagonal y de frente", () => {
     const missing = EXERCISE_DATABASE.filter((e) => {
       const v = availableViews(motionForName(e.name));
-      return !(v.includes("side") && v.includes("front"));
+      return !(v.includes("side") && v.includes("diag") && v.includes("front"));
     }).map((e) => e.name);
     expect(missing).toEqual([]);
   });
