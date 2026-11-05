@@ -181,8 +181,35 @@ export function filterFoodsByQuery(list, query, limit = 20) {
     .map((x) => x.f);
 }
 
+// ── Unidad (g / ml) ─────────────────────────────────────────────────────────
+// Los líquidos se cargan y se muestran en ml; el resto en gramos. Se toma de `unit` y, si no está, del texto de la porción.
+export function foodUnit(food) {
+  if (food?.unit === "ml") return "ml";
+  if (food?.unit === "g") return "g";
+  const sv = String(food?.serving || "");
+  return /\d\s*(ml|cc)\b/i.test(sv) && !/\d\s*(g|gr|kg)\b/i.test(sv) ? "ml" : "g";
+}
+export const mealUnit = (meal) => (meal?.unit === "ml" ? "ml" : "g");
+
+// ── Duplicados ──────────────────────────────────────────────────────────────
+// Llave por palabras significativas, sin orden, sin plurales ni conectores: "Pavo pechuga" = "Pechuga de pavo".
+const STOP = new Set(["de", "del", "la", "el", "los", "las", "con", "en", "al", "y", "a", "un", "una", "s", "c", "sin"]);
+export function dedupeKey(name) {
+  return normalizeText(name).split(" ").filter((w) => w && !STOP.has(w)).map(stem).sort().join(" ");
+}
+
+// Macros que se contradicen con las calorías (kcal ≈ 4P + 4C + 9F, más el alcohol): se descartan en vez de mostrarlos mal.
+export function macrosCoherentes(f) {
+  const kcal = Number(f?.kcal) || 0, p = Number(f?.protein) || 0, c = Number(f?.carbs) || 0, g = Number(f?.fat) || 0;
+  if (kcal < 0 || p < 0 || c < 0 || g < 0) return false;
+  if (kcal < 20) return true;
+  if (f?.alcohol) return true;
+  const est = 4 * p + 4 * c + 9 * g;
+  return Math.abs(est - kcal) / kcal <= 0.3;
+}
+
 // ── Registros de comidas ────────────────────────────────────────────────────
-const NAME_GRAMS_RE = /\((\d+(?:[.,]\d+)?)\s*g\)/i;
+const NAME_GRAMS_RE = /\((\d+(?:[.,]\d+)?)\s*(?:g|ml)\)/i;
 
 // Gramos conocidos de un registro: campo `grams`, o "(150g)" en el nombre. null si no hay dato.
 export function mealGrams(meal) {
@@ -250,6 +277,7 @@ export function mealCopy(meal, overrides = {}) {
     kcal: round1(meal.kcal), protein: round1(meal.protein), carbs: round1(meal.carbs), fat: round1(meal.fat),
   };
   if (Number(meal.grams) > 0) c.grams = Number(meal.grams);
+  if (meal.unit === "ml") c.unit = "ml";
   if (meal.base) c.base = meal.base;
   if (meal.alcohol) c.alcohol = true;
   return { ...c, ...overrides };

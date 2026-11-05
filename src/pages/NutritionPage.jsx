@@ -9,7 +9,7 @@ import { features, vocab } from "../config/features.js";
 import { searchSharedFoods, publishSharedFood } from "../lib/sharedFoods.js";
 import {
   calcTdee, scaleMacros, normalizePer100, normalizeText, filterFoodsByQuery,
-  mealGrams, mealPer100, rescaleMeal, recentMeals, mealCopy,
+  mealGrams, mealPer100, rescaleMeal, recentMeals, mealCopy, foodUnit, mealUnit, dedupeKey,
 } from "../lib/nutrition.js";
 import BarcodeScanner from "../components/BarcodeScanner.jsx";
 import ReportFoodButton from "../components/ReportFoodButton.jsx";
@@ -59,15 +59,15 @@ function localFoodMatches(q, lib, customFoods, limit) {
   const base = lib ? lib.searchFoods(q, 12) : [];
   const seen = new Set();
   return [...custom, ...base].filter(f => {
-    const k = normalizeText(f.name);
+    const k = dedupeKey(f.name);
     if (seen.has(k)) return false;
     seen.add(k);
     return true;
   }).slice(0, limit);
 }
 function mergeShared(local, shared, limit) {
-  const seen = new Set(local.map(f => normalizeText(f.name)));
-  return [...local, ...shared.filter(f => !seen.has(normalizeText(f.name)))].slice(0, limit);
+  const seen = new Set(local.map(f => dedupeKey(f.name)));
+  return [...local, ...shared.filter(f => !seen.has(dedupeKey(f.name)))].slice(0, limit);
 }
 
 const QUICK_FOODS = [
@@ -171,6 +171,7 @@ export default function NutritionPage() {
   const [macrosEdited, setMacrosEdited] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [portion, setPortion] = useState(null);          // 0.5 | 1 | 2 | null (gramos escritos a mano)
+  const [createUnit, setCreateUnit] = useState("g");     // unidad al crear un alimento nuevo: g | ml
 
   // Base de alimentos y datos del plan: se cargan recién cuando hacen falta (son pesados)
   const [foodsLib, setFoodsLib] = useState(null);
@@ -443,8 +444,10 @@ export default function NutritionPage() {
     // Se guardan gramos y valores por 100 g para poder editar la cantidad después
     const gramsNum = Number(form.grams) > 0 ? Number(form.grams) : null;
     const entry = { type: form.type, name: form.name.trim(), kcal: r2(form.kcal), protein: r2(form.protein), carbs: r2(form.carbs), fat: r2(form.fat) };
+    const unit = foodMode === "crear" ? createUnit : foodUnit(baseFood);
     if (gramsNum) {
       entry.grams = gramsNum;
+      if (unit === "ml") entry.unit = "ml";
       entry.base = macrosEdited || !baseFood
         ? normalizePer100({ grams: gramsNum, kcal: entry.kcal, protein: entry.protein, carbs: entry.carbs, fat: entry.fat })
         : { kcal: baseFood.kcal, protein: baseFood.protein, carbs: baseFood.carbs, fat: baseFood.fat };
@@ -453,13 +456,14 @@ export default function NutritionPage() {
     logMeal(entry);
     // Save as custom food if not in DB and not already saved as custom
     const dbCheck = foodsLib ? foodsLib.searchFoods(form.name, 5) : [];
-    const alreadyCustom = (storeCustomFoods || []).some(f => normalizeText(f.name) === normalizeText(form.name));
-    if (foodMode === "crear" && !alreadyCustom && !dbCheck.some(f => normalizeText(f.name) === normalizeText(form.name))) {
+    const alreadyCustom = (storeCustomFoods || []).some(f => dedupeKey(f.name) === dedupeKey(form.name));
+    if (foodMode === "crear" && !alreadyCustom && !dbCheck.some(f => dedupeKey(f.name) === dedupeKey(form.name))) {
       addCustomFood?.({
         id: `custom-${form.name.toLowerCase().replace(/\s+/g,"-")}-${Date.now()}`,
         name: form.name.trim(),
         cat: "Mis alimentos",
-        serving: form.grams ? `${form.grams}g` : "100g",
+        serving: form.grams ? `${form.grams}${unit}` : `100${unit}`,
+        ...(unit === "ml" ? { unit: "ml" } : {}),
         grams: form.grams ? Number(form.grams) : 100,
         kcal: r2(form.kcal),
         protein: r2(form.protein),
@@ -467,7 +471,7 @@ export default function NutritionPage() {
         fat: r2(form.fat),
       });
       window.__showToast?.("Alimento guardado. También lo van a poder usar los demás usuarios", "success");
-      publishSharedFood({ name: form.name, grams: form.grams, kcal: form.kcal, protein: form.protein, carbs: form.carbs, fat: form.fat });
+      publishSharedFood({ name: form.name, grams: form.grams, kcal: form.kcal, protein: form.protein, carbs: form.carbs, fat: form.fat, unit });
     }
     resetForm();
     setSaving(false);
@@ -863,7 +867,7 @@ export default function NutritionPage() {
               };
               let generateNutritionPlan;
               try {
-                ({ generateNutritionPlan } = await import("../data/nutritionData.js"));
+                ({ generateNutritionPlan } = await import("../data/meals/planner.js"));
               } catch {
                 window.__showToast?.("No se pudieron cargar los alimentos. Revisá tu conexión e intentá de nuevo.", "error");
                 return;
@@ -1045,13 +1049,15 @@ export default function NutritionPage() {
                     </div>
                     {day.meals?.map((meal, mi) => (
                       <div key={mi} style={{ marginBottom:10, padding:"10px 12px", background:"var(--panel2)", borderRadius:12, border:"1px solid var(--line)" }}>
-                        <div style={{ fontSize:12, fontWeight:800, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:6 }}>{meal.label}</div>
+                        <div style={{ fontSize:12, fontWeight:800, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:meal.dish ? 2 : 6 }}>{meal.label}</div>
+                        {meal.dish && <div style={{ fontSize:14, fontWeight:800, color:"var(--text)", marginBottom:6 }}>{meal.dish}</div>}
+                        {meal.note && <div style={{ fontSize:12, color:"var(--muted)", marginBottom:6 }}>{meal.note}</div>}
                         {meal.items?.map((item, ii) => (
                           <div key={ii} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"4px 0", borderBottom: ii < meal.items.length-1 ? "1px solid var(--line)" : "none" }}>
                             <div style={{ flex:1 }}>
                               <div style={{ fontSize:13, fontWeight:600 }}>{item.name}</div>
                               <div style={{ fontSize:11, color:"var(--muted)" }}>
-                                {item.grams ? `${item.grams}g` : item.ml ? `${item.ml}ml` : item.qty ? `×${item.qty}` : ""}
+                                {item.grams ? `${item.grams}${mealUnit(item)}` : item.ml ? `${item.ml}ml` : item.qty ? `×${item.qty}` : ""}
                               </div>
                             </div>
                             <div style={{ textAlign:"right" }}>
@@ -1306,7 +1312,15 @@ export default function NutritionPage() {
               )}
               {/* Gramaje */}
               <div>
-                <label htmlFor="nut-food-grams" style={{ fontSize:12, color:"var(--muted)", fontWeight:600, display:"block", marginBottom:4 }}>{foodMode === "crear" ? "¿Para cuántos gramos son estos valores?" : "¿Cuántos gramos comiste?"}</label>
+                <label htmlFor="nut-food-grams" style={{ fontSize:12, color:"var(--muted)", fontWeight:600, display:"block", marginBottom:4 }}>{foodMode === "crear" ? `¿Para cuántos ${createUnit === "ml" ? "ml" : "gramos"} son estos valores?` : (foodUnit(baseFood) === "ml" ? "¿Cuántos ml tomaste?" : "¿Cuántos gramos comiste?")}</label>
+                {foodMode === "crear" && (
+                  <div role="group" aria-label="Unidad" style={{ display:"flex", gap:6, marginBottom:6 }}>
+                    {[["g", "Gramos (g)"], ["ml", "Líquido (ml)"]].map(([u, label]) => (
+                      <button key={u} type="button" aria-pressed={createUnit === u} onClick={() => setCreateUnit(u)}
+                        style={{ fontSize:12, fontWeight:700, padding:"6px 12px", minHeight:32, borderRadius:999, cursor:"pointer", border:"1px solid " + (createUnit === u ? "var(--green)" : "var(--line)"), background: createUnit === u ? "var(--green)" : "var(--panel2)", color: createUnit === u ? "#fff" : "var(--muted)" }}>{label}</button>
+                    ))}
+                  </div>
+                )}
                 <input id="nut-food-grams" className="input" inputMode="decimal" value={form.grams}
                   onChange={e => handleGramsChange(e.target.value.replace(",","."))}
                   placeholder="Ej: 150" />
@@ -1324,7 +1338,7 @@ export default function NutritionPage() {
                 {/* Macro preview — shown when a DB food is selected and grams is filled */}
                 {baseFood && form.grams && Number(form.grams) > 0 && !macrosEdited && (
                   <div style={{ marginTop:6, fontSize:12, color:"var(--green)", fontWeight:600, padding:"6px 10px", background:"rgba(52,211,153,.07)", borderRadius:8, border:"1px solid rgba(52,211,153,.15)" }}>
-                    Por {form.grams}g: {r2(form.kcal)} kcal · {r2(form.protein)}g P · {r2(form.carbs)}g C · {r2(form.fat)}g G
+                    Por {form.grams}{foodUnit(baseFood)}: {r2(form.kcal)} kcal · {r2(form.protein)}g P · {r2(form.carbs)}g C · {r2(form.fat)}g G
                   </div>
                 )}
               </div>
@@ -1395,7 +1409,7 @@ export default function NutritionPage() {
 
             {editMeal.hasGrams ? (
               <div style={{ marginBottom:12 }}>
-                <label htmlFor="nut-edit-grams" style={{ fontSize:12, color:"var(--muted)", fontWeight:600, display:"block", marginBottom:4 }}>Cantidad (gramos)</label>
+                <label htmlFor="nut-edit-grams" style={{ fontSize:12, color:"var(--muted)", fontWeight:600, display:"block", marginBottom:4 }}>Cantidad ({mealUnit(editMeal.meal) === "ml" ? "ml" : "gramos"})</label>
                 <input id="nut-edit-grams" className="input" inputMode="decimal" value={editMeal.grams}
                   onChange={e => setEditMeal(m => ({ ...m, grams: e.target.value.replace(",", ".") }))} />
               </div>

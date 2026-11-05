@@ -1,5 +1,5 @@
 import { supabase } from "./supabase.js";
-import { serverTerms, filterFoodsByQuery } from "./nutrition.js";
+import { serverTerms, filterFoodsByQuery, dedupeKey, macrosCoherentes } from "./nutrition.js";
 
 // Catálogo compartido: los alimentos que crea un usuario quedan disponibles para todos.
 // Todo se guarda por 100 g. Si la tabla no existe o no hay red, falla en silencio
@@ -12,7 +12,8 @@ function toFood(row) {
     id: `shared-${row.id}`,
     name: row.name,
     cat: "Creado por usuarios",
-    serving: "100g",
+    serving: row.unit === "ml" ? "100ml" : "100g",
+    ...(row.unit === "ml" ? { unit: "ml" } : {}),
     grams: 100,
     kcal: round1(row.kcal),
     protein: round1(row.protein),
@@ -28,15 +29,26 @@ export async function searchSharedFoods(query, limit = 10) {
     // El servidor no normaliza acentos ni alias: pide candidatos por prefijo (frutilla -> "fru"/"fre")
     // y el orden fino se hace acá con la misma lógica que la base local.
     const terms = serverTerms(q);
-    let req = supabase
-      .from("shared_foods")
-      .select("id,name,kcal,protein,carbs,fat");
-    req = terms.length > 1
-      ? req.or(terms.map((t) => `name.ilike.%${t}%`).join(","))
-      : req.ilike("name", `%${terms[0] || q}%`);
-    const { data, error } = await req.order("name").limit(terms.length ? limit * 3 : limit);
+    // La columna `unit` (g/ml) se agregó después: si la base todavía no la tiene, se reintenta sin ella.
+    const run = (cols) => {
+      let req = supabase.from("shared_foods").select(cols);
+      req = terms.length > 1
+        ? req.or(terms.map((t) => `name.ilike.%${t}%`).join(","))
+        : req.ilike("name", `%${terms[0] || q}%`);
+      return req.order("name").limit(terms.length ? limit * 3 : limit);
+    };
+    let { data, error } = await run("id,name,kcal,protein,carbs,fat,unit");
+    if (error) ({ data, error } = await run("id,name,kcal,protein,carbs,fat"));
     if (error || !data) return [];
-    const foods = data.map(toFood);
+    // Se descartan los que tienen calorías incoherentes con sus macros y los repetidos (mismo alimento con otro orden de palabras)
+    const seenKeys = new Set();
+    const foods = data.map(toFood).filter((f) => {
+      if (!macrosCoherentes(f) || f.protein + f.carbs + f.fat > 100) return false;
+      const k = dedupeKey(f.name);
+      if (seenKeys.has(k)) return false;
+      seenKeys.add(k);
+      return true;
+    });
     return terms.length ? filterFoodsByQuery(foods, q, limit) : foods;
   } catch {
     return [];
@@ -44,7 +56,7 @@ export async function searchSharedFoods(query, limit = 10) {
 }
 
 // `food` trae los valores de la porción cargada (grams). Se normaliza a 100 g.
-export async function publishSharedFood({ name, grams, kcal, protein, carbs, fat }) {
+export async function publishSharedFood({ name, grams, kcal, protein, carbs, fat, unit }) {
   const g = Number(grams) > 0 ? Number(grams) : 100;
   const per100 = (v) => round1((Number(v) || 0) / g * 100);
   const row = {
@@ -56,8 +68,14 @@ export async function publishSharedFood({ name, grams, kcal, protein, carbs, fat
   };
   if (row.name.length < 2 || row.name.length > 80 || row.kcal <= 0 || row.kcal > 900) return { ok: false, duplicate: false };
   if (row.protein + row.carbs + row.fat > 100) return { ok: false, duplicate: false };
+  if (!macrosCoherentes(row)) return { ok: false, duplicate: false };
+  if (unit === "ml") row.unit = "ml";
   try {
-    const { error } = await supabase.from("shared_foods").insert(row);
+    // Si ya hay uno equivalente (aunque cambie el orden de las palabras), no se vuelve a publicar
+    const prev = await searchSharedFoods(row.name, 15);
+    if (prev.some((f) => dedupeKey(f.name) === dedupeKey(row.name))) return { ok: true, duplicate: true };
+    let { error } = await supabase.from("shared_foods").insert(row);
+    if (error && row.unit) { delete row.unit; ({ error } = await supabase.from("shared_foods").insert(row)); }
     // 23505 = ya existe con ese nombre: ya está disponible para todos (no es un alta nueva)
     if (error?.code === "23505") return { ok: true, duplicate: true };
     return { ok: !error, duplicate: false };
