@@ -71,17 +71,17 @@ function mergeShared(local, shared, limit) {
 }
 
 const QUICK_FOODS = [
-  { name: "Arroz (100g cocido)",    kcal: 130, protein: 3,  carbs: 28, fat: 0 },
-  { name: "Pechuga pollo (100g)",   kcal: 165, protein: 31, carbs: 0,  fat: 3 },
+  { name: "Arroz (100g cocido)",    grams: 100, kcal: 130, protein: 3,  carbs: 28, fat: 0 },
+  { name: "Pechuga pollo (100g)",   grams: 100, kcal: 165, protein: 31, carbs: 0,  fat: 3 },
   { name: "Huevo entero",           kcal: 72,  protein: 6,  carbs: 0,  fat: 5 },
   { name: "Banana mediana",         kcal: 89,  protein: 1,  carbs: 23, fat: 0 },
-  { name: "Avena (50g)",            kcal: 189, protein: 7,  carbs: 32, fat: 4 },
-  { name: "Atún al natural (100g)", kcal: 116, protein: 26, carbs: 0,  fat: 1 },
-  { name: "Papa hervida (100g)",    kcal: 77,  protein: 2,  carbs: 17, fat: 0 },
-  { name: "Leche entera (250ml)",   kcal: 152, protein: 8,  carbs: 12, fat: 8 },
-  { name: "Yogur griego (150g)",    kcal: 100, protein: 10, carbs: 4,  fat: 5 },
-  { name: "Almendras (30g)",        kcal: 173, protein: 6,  carbs: 6,  fat: 15 },
-  { name: "Carne picada 90% (100g)",kcal: 218, protein: 26, carbs: 0,  fat: 13 },
+  { name: "Avena (50g)",            grams: 50, kcal: 189, protein: 7,  carbs: 32, fat: 4 },
+  { name: "Atún al natural (100g)", grams: 100, kcal: 116, protein: 26, carbs: 0,  fat: 1 },
+  { name: "Papa hervida (100g)",    grams: 100, kcal: 77,  protein: 2,  carbs: 17, fat: 0 },
+  { name: "Leche entera (250ml)",   grams: 250, unit: "ml", kcal: 152, protein: 8,  carbs: 12, fat: 8 },
+  { name: "Yogur griego (150g)",    grams: 150, kcal: 100, protein: 10, carbs: 4,  fat: 5 },
+  { name: "Almendras (30g)",        grams: 30, kcal: 173, protein: 6,  carbs: 6,  fat: 15 },
+  { name: "Carne picada 90% (100g)",grams: 100, kcal: 218, protein: 26, carbs: 0,  fat: 13 },
   { name: "Pan integral (1 rebanada)",kcal: 70, protein: 3, carbs: 13, fat: 1 },
 ];
 
@@ -274,12 +274,20 @@ export default function NutritionPage() {
 
   const today = todayLocal();
   const age = (() => {
-    const dob = profile?.date_of_birth ? new Date(profile.date_of_birth) : null;
-    if (!dob || isNaN(dob)) return null;
+    // "YYYY-MM-DD" se interpreta en fecha LOCAL (new Date("YYYY-MM-DD") es UTC y corre el cumpleaños un día en Argentina)
+    const raw = String(profile?.date_of_birth || "");
+    const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(raw);
+    let y, mo, d;
+    if (iso) { y = Number(iso[1]); mo = Number(iso[2]) - 1; d = Number(iso[3]); }
+    else {
+      const dob = raw ? new Date(raw) : null;
+      if (!dob || isNaN(dob)) return null;
+      y = dob.getFullYear(); mo = dob.getMonth(); d = dob.getDate();
+    }
     const now = new Date();
-    let a = now.getFullYear() - dob.getFullYear();
-    if (now < new Date(now.getFullYear(), dob.getMonth(), dob.getDate())) a -= 1;
-    return a;
+    let a = now.getFullYear() - y;
+    if (now.getMonth() < mo || (now.getMonth() === mo && now.getDate() < d)) a -= 1;
+    return a >= 0 && a < 120 ? a : null;
   })();
   const isMinor = age !== null && age < 18;
   const bodyWeight = Number([...weightLog].sort((a,b) => String(b.date).localeCompare(String(a.date)))[0]?.kg) || null;
@@ -478,7 +486,14 @@ export default function NutritionPage() {
   }
 
   function addQuickFood(food) {
-    logMeal({ type: form.type, name: food.name, kcal: r2(food.kcal), protein: r2(food.protein), carbs: r2(food.carbs), fat: r2(food.fat) });
+    const meal = { type: form.type, name: food.name, kcal: r2(food.kcal), protein: r2(food.protein), carbs: r2(food.carbs), fat: r2(food.fat) };
+    // Con gramos y valores por 100 g, el registro se puede editar después (igual que los de la base)
+    if (Number(food.grams) > 0) {
+      meal.grams = Number(food.grams);
+      if (food.unit === "ml") meal.unit = "ml";
+      meal.base = normalizePer100({ grams: food.grams, kcal: food.kcal, protein: food.protein, carbs: food.carbs, fat: food.fat });
+    }
+    logMeal(mealCopy(meal));
   }
 
   const macroBar = (val, target, color) => {
@@ -1332,6 +1347,19 @@ export default function NutritionPage() {
                       <button key={fct} type="button" className={`nut-portion-btn${portion === fct ? " is-active" : ""}`}
                         aria-pressed={portion === fct} onClick={() => pickPortion(fct)}>{label}</button>
                     ))}
+                    {(() => {
+                      // Stepper "× N unidades": suma o resta de a una unidad (mín. ½)
+                      const units = portion ?? (Number(form.grams) > 0 ? r2(Number(form.grams) / baseFood.grams) : 1);
+                      const dec = units > 1 ? units - 1 : 0.5;
+                      const inc = units < 20 ? units + 1 : units;
+                      return (
+                        <span role="group" aria-label="Cantidad de unidades" style={{ display:"inline-flex", alignItems:"center", gap:4, marginLeft:6 }}>
+                          <button type="button" className="nut-portion-btn" aria-label="Una unidad menos" disabled={units <= 0.5} onClick={() => pickPortion(dec)}>−</button>
+                          <span style={{ fontSize:12, fontWeight:700, minWidth:44, textAlign:"center" }}>× {units}</span>
+                          <button type="button" className="nut-portion-btn" aria-label="Una unidad más" disabled={units >= 20} onClick={() => pickPortion(inc)}>+</button>
+                        </span>
+                      );
+                    })()}
                   </div>
                 )}
                 {foodMode === "buscar" && baseFood?.alcohol && <div className="nut-alcohol-note" role="note" style={{ marginTop:6 }}>{ALCOHOL_NOTE}</div>}

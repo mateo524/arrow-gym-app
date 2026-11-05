@@ -29,7 +29,10 @@ function ExerciseList({ items, favoriteExercises, toggleFavorite, onExerciseTap,
             <div
               className="exercise-row-info"
               style={{ flex: 1, cursor: "pointer", padding: "10px 0" }}
+              role="button"
+              tabIndex={0}
               onClick={() => onExerciseTap ? onExerciseTap(ex.name) : handlePick(ex)}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onExerciseTap ? onExerciseTap(ex.name) : handlePick(ex); } }}
             >
               <b>{ex.name}</b>
               <small>{ex.group} · {ex.muscle} · {ex.equipment}</small>

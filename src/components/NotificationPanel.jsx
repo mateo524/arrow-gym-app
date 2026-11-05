@@ -68,9 +68,10 @@ export default function NotificationPanel() {
       {open && (
         <div
           style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.65)", zIndex:500, display:"flex", flexDirection:"column", justifyContent:"flex-start" }}
+          onKeyDown={e => { if (e.key === "Escape") setOpen(false); }}
           onClick={e => { if (e.target === e.currentTarget) setOpen(false); }}
         >
-          <div style={{ background:"var(--bg)", borderRadius:"0 0 20px 20px", maxHeight:"85vh", display:"flex", flexDirection:"column" }}>
+          <div role="dialog" aria-modal="true" aria-label="Notificaciones" style={{ background:"var(--bg)", borderRadius:"0 0 20px 20px", maxHeight:"85vh", display:"flex", flexDirection:"column" }}>
             {/* Header */}
             <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"18px 18px 12px" }}>
               <div style={{ display:"flex", alignItems:"center", gap:10 }}>
@@ -155,7 +156,7 @@ export default function NotificationPanel() {
                                   <Icon name="Check" size={12} style={{display:"inline-block",verticalAlign:"middle",marginRight:3}} /> Visto
                                 </button>
                               )}
-                              <button
+                              <button type="button" aria-label="Descartar notificación"
                                 onClick={e => { e.stopPropagation(); dismiss(notif.id); }}
                                 style={{ background:"none", border:"1px solid var(--line)", borderRadius:10, padding:"7px 10px", fontSize:12, color:"var(--muted)", cursor:"pointer" }}>
                                 <Icon name="X" size={12} style={{display:"inline-block",verticalAlign:"middle"}} />

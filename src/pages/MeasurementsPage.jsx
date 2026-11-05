@@ -978,7 +978,7 @@ export default function MeasurementsPage() {
                         {photo.note && <div style={{ fontSize:11, color:"var(--muted)", marginTop:2 }}>{photo.note}</div>}
                       </div>
                       {!compareMode && (
-                        <button onClick={() => deleteProgressPhoto(photo.id)}
+                        <button type="button" aria-label="Eliminar foto" onClick={() => deleteProgressPhoto(photo.id)}
                           style={{ position:"absolute", top:6, right:6, background:"rgba(0,0,0,.6)", border:"none", borderRadius:8, width:26, height:26, cursor:"pointer", color:"#fff", fontSize:13, display:"flex", alignItems:"center", justifyContent:"center" }}>
                           <Icon name="X" size={13} style={{display:'inline-block',verticalAlign:'middle'}} />
                         </button>
@@ -997,7 +997,7 @@ export default function MeasurementsPage() {
         <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.97)", zIndex:9999, display:"flex", flexDirection:"column" }}>
           <div style={{ flexShrink:0, display:"flex", justifyContent:"space-between", alignItems:"center", padding:"12px 16px", paddingTop:"max(12px, env(safe-area-inset-top, 12px))" }}>
             <span style={{ fontSize:13, color:"rgba(255,255,255,.5)" }}>Comparación</span>
-            <button onClick={() => setCompareSelected([])}
+            <button type="button" aria-label="Cerrar comparación" onClick={() => setCompareSelected([])}
               style={{ background:"rgba(255,255,255,.18)", border:"none", borderRadius:12, width:44, height:44, cursor:"pointer", color:"#fff", fontSize:22, display:"flex", alignItems:"center", justifyContent:"center", fontWeight:700 }}>×</button>
           </div>
           <div style={{ flex:1, display:"flex", gap:4, overflow:"hidden", padding:"0 8px" }}>
@@ -1023,17 +1023,17 @@ export default function MeasurementsPage() {
         return (
           <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.97)", zIndex:9999, display:"flex", flexDirection:"column" }}>
             <div style={{ flexShrink:0, display:"flex", justifyContent:"flex-end", padding:"12px 16px", paddingTop:"max(12px, env(safe-area-inset-top, 12px))" }}>
-              <button onClick={() => setFullscreenPhoto(null)}
+              <button type="button" aria-label="Cerrar foto" onClick={() => setFullscreenPhoto(null)}
                 style={{ background:"rgba(255,255,255,.18)", border:"none", borderRadius:12, width:44, height:44, cursor:"pointer", color:"#fff", fontSize:22, display:"flex", alignItems:"center", justifyContent:"center", fontWeight:700 }}>×</button>
             </div>
             <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden", padding:"0 12px", position:"relative" }}>
               {idx > 0 && (
-                <button onClick={() => setFullscreenPhoto(sorted[idx - 1])}
+                <button type="button" aria-label="Foto anterior" onClick={() => setFullscreenPhoto(sorted[idx - 1])}
                   style={{ position:"absolute", left:4, background:"rgba(255,255,255,.18)", border:"none", borderRadius:12, width:44, height:44, cursor:"pointer", color:"#fff", fontSize:22, display:"flex", alignItems:"center", justifyContent:"center", zIndex:1 }}>‹</button>
               )}
               <PhotoImg photo={fullscreenPhoto} alt={fullscreenPhoto.date} style={{ maxWidth:"100%", maxHeight:"100%", objectFit:"contain", borderRadius:8 }} />
               {idx < sorted.length - 1 && (
-                <button onClick={() => setFullscreenPhoto(sorted[idx + 1])}
+                <button type="button" aria-label="Foto siguiente" onClick={() => setFullscreenPhoto(sorted[idx + 1])}
                   style={{ position:"absolute", right:4, background:"rgba(255,255,255,.18)", border:"none", borderRadius:12, width:44, height:44, cursor:"pointer", color:"#fff", fontSize:22, display:"flex", alignItems:"center", justifyContent:"center", zIndex:1 }}>›</button>
               )}
             </div>

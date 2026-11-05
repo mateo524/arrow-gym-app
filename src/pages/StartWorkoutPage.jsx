@@ -22,14 +22,38 @@ const WEEKLY_REC = {
 };
 
 // BUG-18: static object — no benefit from useMemo, moved to module scope
-const EXERCISES_BY_SPLIT = {
-  push:     ["Press de banca plano","Incline Chest Press Machine","Landmine Shoulder Press","Cable Lateral Raise","Triceps Pushdown","Chest Press Machine"],
-  pull:     ["Cable Lat Pulldown","Close Grip Lat Pulldown","Dumbbell Row","High Row Machine","Cable Face Pull","Cable Biceps Curl","Hammer Curl"],
-  legs:     ["Leg Extension","Leg Curl","Bulgarian Split Squat","Sentadilla","Peso muerto"],
-  upper:    ["Press de banca plano","Cable Lat Pulldown","Landmine Shoulder Press","Dumbbell Row","Cable Biceps Curl","Triceps Pushdown"],
-  lower:    ["Sentadilla","Peso muerto","Leg Extension","Leg Curl","Bulgarian Split Squat"],
-  fullbody: ["Press de banca plano","Cable Lat Pulldown","Sentadilla","Dumbbell Row","Leg Extension","Cable Biceps Curl","Triceps Pushdown"],
+// Los nombres deben coincidir EXACTO con src/data/exerciseDatabase.js (hay un test que lo verifica).
+export const EXERCISES_BY_SPLIT = {
+  push:     ["Press de banca plano","Press inclinado en máquina","Landmine press","Elevaciones laterales en polea","Extensión de tríceps con cuerda","Press de pecho en máquina"],
+  pull:     ["Jalón en polea","Remo con barra","Remo con mancuerna","Remo alto en máquina","Face pull","Curl en polea baja","Curl martillo"],
+  legs:     ["Sentadilla libre","Peso muerto rumano","Extensión de piernas","Curl femoral acostado","Estocada búlgara","Hip thrust con barra","Elevación de pantorrillas en prensa"],
+  upper:    ["Press de banca plano","Jalón en polea","Landmine press","Remo con mancuerna","Curl en polea baja","Extensión de tríceps con cuerda"],
+  lower:    ["Sentadilla libre","Peso muerto","Extensión de piernas","Curl femoral acostado","Hip thrust con barra","Elevación de pantorrillas en prensa"],
+  fullbody: ["Press de banca plano","Jalón en polea","Sentadilla libre","Remo con mancuerna","Extensión de piernas","Curl en polea baja","Extensión de tríceps con cuerda"],
 };
+
+// Series x repeticiones según el objetivo del coach. Los multiarticulares (primeros de la lista, o barra)
+// llevan más series y menos reps que los de aislamiento.
+const COACH_ISOLATION = /^(Elevaciones|Face pull|Extensión|Curl|Elevación de pantorrillas|Patada)/;
+export function coachSetScheme(goal, exerciseName, index = 0) {
+  const isolation = COACH_ISOLATION.test(exerciseName || "");
+  const compound = !isolation && index < 3;
+  if (goal === "fuerza") return isolation ? { sets: 3, reps: "8" } : { sets: 4, reps: "5" };
+  if (goal === "resistencia") return compound ? { sets: 3, reps: "15" } : { sets: 2, reps: "20" };
+  // hipertrofia (default)
+  return compound ? { sets: 4, reps: "8-10" } : { sets: 3, reps: "10-12" };
+}
+export function buildCoachPlan(goal, names, startIndex = 0) {
+  const plan = {};
+  (names || []).forEach((n, i) => { plan[n] = coachSetScheme(goal, n, startIndex + i); });
+  return plan;
+}
+// Ejercicio de rutina con su plan de series (formato de RoutinesPage: sets = [{reps, weight}])
+function routineExerciseWithPlan(name, plan) {
+  const p = plan?.[name];
+  if (!p) return { name };
+  return { name, sets: Array.from({ length: p.sets }, () => ({ reps: p.reps, weight: "" })) };
+}
 
 export default function StartWorkoutPage() {
   const startWorkout = useStore((s) => s.startWorkout);
@@ -71,6 +95,7 @@ export default function StartWorkoutPage() {
   const [savingEditRoutine, setSavingEditRoutine] = useState(false);
   const [coachSplit, setCoachSplit] = useState("");
   const [coachGoal, setCoachGoal] = useState("");
+  const [coachPlan, setCoachPlan] = useState({}); // nombre de ejercicio -> { sets, reps }
 
   // BUG-19: wrapped with useCallback so effects always see the current closure
   const fetchRoutines = useCallback(() => {
@@ -151,7 +176,8 @@ export default function StartWorkoutPage() {
   }, [historyTypes]);
 
   function startAssignedRoutine(routine) {
-    const exercises = (routine.exercises || []).map((ex) => ex.name || ex).filter(Boolean);
+    // Se pasan los ejercicios completos (con sets/reps/peso objetivo si la rutina los tiene)
+    const exercises = (routine.exercises || []).filter((ex) => (ex && (ex.name || typeof ex === "string")));
     startRoutineWorkout(routine.name, exercises);
   }
 
@@ -245,7 +271,7 @@ export default function StartWorkoutPage() {
       const { data, error } = await supabase.from("routines").insert({
         user_id: profile.id,
         name,
-        exercises: exercises.map(e => ({ name: e })),
+        exercises: exercises.map(e => routineExerciseWithPlan(e, coachSplit && coachGoal ? coachPlan : {})),
         day_index: assignedRoutines.length,
       }).select().single();
       if (error) {
@@ -269,6 +295,7 @@ export default function StartWorkoutPage() {
     setShowCreatePicker(false);
     setNewRoutineName("");
     setNewRoutineExercises([]);
+    setCoachPlan({});
   }
 
   async function saveEditedRoutine() {
@@ -280,7 +307,11 @@ export default function StartWorkoutPage() {
     try {
       const { data, error } = await supabase.from("routines").update({
         name,
-        exercises: exercises.map(e => ({ name: e })),
+        // Conservar sets/reps/peso de los ejercicios que ya estaban en la rutina
+        exercises: exercises.map(e => {
+          const prev = (editRoutineTarget.exercises || []).find(x => (x?.name || x) === e);
+          return prev && typeof prev === "object" ? { ...prev, name: e } : { name: e };
+        }),
       }).eq("id", editRoutineTarget.id).eq("user_id", profile.id).select().single();
       if (error) {
         setSavedMsg("Error al guardar los cambios");
@@ -769,7 +800,7 @@ export default function StartWorkoutPage() {
                     <p style={{ fontSize:11, fontWeight:700, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em", margin:"0 0 8px" }}>¿Cuál es tu objetivo?</p>
                     <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
                       {COACH_GOALS.map(g => (
-                        <button key={g.id} onClick={() => setCoachGoal(g.id)}
+                        <button key={g.id} onClick={() => { setCoachGoal(g.id); setCoachPlan(buildCoachPlan(g.id, newRoutineExercises)); }}
                           style={{ background:"var(--panel2)", border:"1px solid var(--line)", borderRadius:14, padding:"14px 14px", cursor:"pointer", textAlign:"left", display:"flex", alignItems:"center", gap:10 }}>
                           <span style={{ width:36, height:36, borderRadius:10, background:"rgba(168,85,247,.12)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}><Icon name={g.icon} size={18} style={{display:'inline-block',verticalAlign:'middle'}} /></span>
                           <div>
@@ -788,6 +819,8 @@ export default function StartWorkoutPage() {
                     {newRoutineExercises.map((ex, i) => (
                       <div key={i} style={{ display:"flex", alignItems:"center", gap:8, padding:"7px 10px", background:"var(--panel2)", borderRadius:10, marginBottom:5 }}>
                         <span style={{ flex:1, fontSize:13 }}>{ex}</span>
+                        {coachPlan[ex] && <span style={{ fontSize:12, color:"var(--muted)", fontWeight:700 }}>{coachPlan[ex].sets}×{coachPlan[ex].reps}</span>}
+
                         <button onClick={() => setNewRoutineExercises(p => p.filter((_, idx) => idx !== i))}
                           style={{ background:"none", border:"none", color:"var(--danger)", cursor:"pointer", fontSize:15, padding:"2px 4px" }}><Icon name="X" size={14} style={{display:'inline-block',verticalAlign:'middle'}} /></button>
                       </div>
@@ -798,7 +831,7 @@ export default function StartWorkoutPage() {
                     </button>
                     {showCreatePicker && (
                       <div style={{ border:"1px solid var(--line)", borderRadius:12, overflow:"hidden", marginBottom:8, marginTop:6, maxHeight:200, overflowY:"auto" }}>
-                        <ExercisePicker compact onPick={ex => { if (!newRoutineExercises.includes(ex.name)) setNewRoutineExercises(p => [...p, ex.name]); }} />
+                        <ExercisePicker compact onPick={ex => { if (!newRoutineExercises.includes(ex.name)) { setNewRoutineExercises(p => [...p, ex.name]); if (coachGoal) setCoachPlan(p => ({ ...p, ...buildCoachPlan(coachGoal, [ex.name], newRoutineExercises.length) })); } }} />
                       </div>
                     )}
                   </div>

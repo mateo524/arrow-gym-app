@@ -258,9 +258,9 @@ export default function HistoryPage() {
         <>
           {/* Month nav */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-            <button className="ghost" style={{ padding: "8px 14px", fontSize: 18 }} onClick={prevMonth}>‹</button>
+            <button type="button" aria-label="Mes anterior" className="ghost" style={{ padding: "8px 14px", fontSize: 18 }} onClick={prevMonth}>‹</button>
             <span style={{ fontSize: 14, color: "var(--muted)" }}>{MONTH_NAMES[viewMonth]} {viewYear}</span>
-            <button className="ghost" style={{ padding: "8px 14px", fontSize: 18, opacity: isCurrentMonth ? 0.3 : 1 }} onClick={nextMonth} disabled={isCurrentMonth}>›</button>
+            <button type="button" aria-label="Mes siguiente" className="ghost" style={{ padding: "8px 14px", fontSize: 18, opacity: isCurrentMonth ? 0.3 : 1 }} onClick={nextMonth} disabled={isCurrentMonth}>›</button>
             <button
               className="ghost"
               style={{ padding:"6px 12px", fontSize:12, color: compareMode ? "var(--green)" : "var(--muted)", border: compareMode ? "1px solid var(--green)" : "1px solid var(--line)", borderRadius:10 }}
@@ -435,6 +435,11 @@ export default function HistoryPage() {
                     <div style={{ display:"flex", alignItems:"center", gap:8 }}>
                       {compareMode && (
                         <div
+                          role="checkbox"
+                          aria-checked={compareIds.includes(workout.id)}
+                          aria-label={`Seleccionar ${workout.type || "entrenamiento"} para comparar`}
+                          tabIndex={0}
+                          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setCompareIds(prev => prev.includes(workout.id) ? prev.filter(id => id !== workout.id) : prev.length < 2 ? [...prev, workout.id] : prev); } }}
                           style={{ width:20, height:20, borderRadius:6, border:`2px solid ${compareIds.includes(workout.id) ? "var(--green)" : "var(--line)"}`, background: compareIds.includes(workout.id) ? "var(--green)" : "transparent", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center" }}
                           onClick={(e) => {
                             e.stopPropagation();
@@ -517,7 +522,7 @@ export default function HistoryPage() {
             <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:20, padding:16, boxShadow:"0 8px 32px rgba(0,0,0,.5)" }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
                 <b style={{ fontSize:14 }}>Comparación</b>
-                <button className="ghost" style={{ padding:"4px 10px", fontSize:12 }} onClick={() => setCompareIds([])}><Icon name="X" size={14} /></button>
+                <button type="button" aria-label="Cerrar comparación" className="ghost" style={{ padding:"4px 10px", fontSize:12 }} onClick={() => setCompareIds([])}><Icon name="X" size={14} /></button>
               </div>
               <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) auto minmax(0,1fr)", gap:8, alignItems:"start" }}>
                 <div style={{ textAlign:"left" }}>

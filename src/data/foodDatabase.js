@@ -86,8 +86,8 @@ export const FOOD_DB = [
   { id:"b8",  cat:"Pan",       name:"Crackers/Agua",          serving:"4 unidades",  grams:28,  kcal:108, protein:2,  carbs:19, fat:3 },
 
   // ── PAPA / TUBÉRCULOS ────────────────────────────────────────────────
-  { id:"v1",  cat:"Verduras",  name:"Papa hervida",           serving:"1 mediana",   grams:150, kcal:130, protein:2.8,  carbs:30, fat:0.1 },
-  { id:"v2",  cat:"Verduras",  name:"Papa al horno",          serving:"1 mediana",   grams:150, kcal:130, protein:3,  carbs:30, fat:0 },
+  { id:"v1",  cat:"Verduras",  name:"Papa hervida",           serving:"1 mediana",   grams:150, kcal:115, protein:2.6,  carbs:26, fat:0.1 },
+  { id:"v2",  cat:"Verduras",  name:"Papa al horno",          serving:"1 mediana",   grams:150, kcal:140, protein:3.7,  carbs:31.7, fat:0.2 },
   { id:"v3",  cat:"Verduras",  name:"Puré de papa con leche y manteca",           serving:"1 taza 200g", grams:200, kcal:226, protein:3.7,  carbs:33.6, fat:8.4 },
   { id:"v4",  cat:"Verduras",  name:"Batata hervida",         serving:"1 mediana",   grams:150, kcal:114, protein:2.1,  carbs:26.6, fat:0.2 },
   { id:"v5",  cat:"Verduras",  name:"Papas fritas caseras",   serving:"1 porción",   grams:100, kcal:312, protein:3,  carbs:41, fat:15 },
@@ -245,7 +245,6 @@ export const FOOD_DB = [
   { id:"sw6", cat:"Snacks",    name:"Papas fritas de bolsa",  serving:"1 porción",   grams:30,  kcal:160, protein:2,  carbs:16, fat:10 },
   { id:"sw7", cat:"Snacks",    name:"Barritas de cereal",     serving:"1 unidad",    grams:30,  kcal:120, protein:2,  carbs:22, fat:3 },
   { id:"sw8", cat:"Snacks",    name:"Helado cremoso",         serving:"1 bocha",     grams:100, kcal:200, protein:3,  carbs:25, fat:10 },
-  { id:"sw9", cat:"Snacks",    name:"Medialunas",             serving:"2 unidades",  grams:80,  kcal:320, protein:6,  carbs:40, fat:16 },
   { id:"sw10",cat:"Snacks",    name:"Budín inglés (1 feta)",  serving:"1 rebanada",  grams:40,  kcal:130, protein:2,  carbs:20, fat:5 },
 
   // ── CONDIMENTOS / SALSAS ─────────────────────────────────────────────
@@ -510,7 +509,6 @@ export const FOOD_DB = [
   { id:"pr-fideos-aceite", cat:"Comidas básicas", name:"Fideos con aceite de oliva y ajo", serving:"1 plato 250g", grams:250, kcal:420, protein:10, carbs:62, fat:14 },
   { id:"pr-pure-pollo", cat:"Comidas básicas", name:"Puré de papa con pollo", serving:"1 plato 350g", grams:350, kcal:440, protein:30, carbs:42, fat:16 },
   { id:"pr-pure-milan", cat:"Comidas básicas", name:"Milanesa con papas fritas", serving:"1 plato 350g", grams:350, kcal:720, protein:32, carbs:62, fat:38 },
-  { id:"pr-papas-fritas", cat:"Cereales", name:"Papas fritas (porción)", serving:"150g", grams:150, kcal:450, protein:5, carbs:58, fat:22 },
   { id:"pr-papas-horno", cat:"Cereales", name:"Papas al horno con romero", serving:"200g", grams:200, kcal:190, protein:4, carbs:38, fat:3 },
   { id:"pr-batata-horno", cat:"Cereales", name:"Batata al horno", serving:"200g", grams:200, kcal:180, protein:3, carbs:41, fat:0.3 },
   { id:"pr-ravioles-verd", cat:"Comidas básicas", name:"Ravioles de verdura", serving:"1 plato 300g", grams:300, kcal:420, protein:15, carbs:66, fat:10 },
@@ -598,7 +596,6 @@ export const FOOD_DB = [
   { id:"n-cafe-espresso-30", cat:"Bebidas", name:"Café espresso (sin azúcar)", serving:"1 pocillo 30ml", grams:30, unit:"ml", kcal:3, protein:0, carbs:0.5, fat:0.1 },
   { id:"n-soja-choco-250", cat:"Bebidas", name:"Bebida de soja chocolatada", serving:"1 vaso 250ml", grams:250, unit:"ml", kcal:145, protein:5.2, carbs:23.7, fat:3.6 },
   { id:"n-milkshake-choco-300", cat:"Bebidas", name:"Milkshake de chocolate", serving:"1 vaso 300ml", grams:300, unit:"ml", kcal:357, protein:9.1, carbs:63.5, fat:8.1 },
-  { id:"n-papas-bolsa-50", cat:"Snacks", name:"Papas fritas de bolsa (bolsa chica)", serving:"1 bolsa 50g", grams:50, kcal:266, protein:3.2, carbs:26.9, fat:17 },
   { id:"n-papas-light-30", cat:"Snacks", name:"Papas fritas reducidas en grasa", serving:"1 porción 30g", grams:30, kcal:141, protein:2.1, carbs:20.1, fat:6.2 },
   { id:"n-chips-maiz-30", cat:"Snacks", name:"Chips de maíz (tipo nachos/Doritos)", serving:"1 porción 30g", grams:30, kcal:162, protein:1.9, carbs:17.2, fat:10 },
   { id:"n-pretzels-30", cat:"Snacks", name:"Pretzels salados", serving:"1 porción 30g", grams:30, kcal:115, protein:3, carbs:24.1, fat:0.9 },
@@ -717,7 +714,6 @@ export const FOOD_DB = [
   { id:"n-empanada-humita-horno", cat:"Comidas ARG", name:"Empanada de humita (al horno)", serving:"1 unidad 90g", grams:90, kcal:232, protein:4.6, carbs:34.7, fat:8.4 },
   { id:"n-empanada-caprese-horno", cat:"Comidas ARG", name:"Empanada caprese (al horno)", serving:"1 unidad 90g", grams:90, kcal:268, protein:9.7, carbs:28.9, fat:12.3 },
   { id:"n-empanada-verdura-horno", cat:"Comidas ARG", name:"Empanada de verdura (al horno)", serving:"1 unidad 90g", grams:90, kcal:247, protein:7.3, carbs:30.1, fat:10.7 },
-  { id:"n-pizza-fugazza", cat:"Comidas ARG", name:"Pizza fugazza (porción)", serving:"1 porción 100g", grams:100, kcal:233, protein:5.1, carbs:38.1, fat:6.5 },
   { id:"n-pizza-jamon-morrones", cat:"Comidas ARG", name:"Pizza de jamón y morrones (porción)", serving:"1 porción 130g", grams:130, kcal:341, protein:15.8, carbs:41.3, fat:12.3 },
   { id:"n-pizza-calabresa", cat:"Comidas ARG", name:"Pizza calabresa (porción)", serving:"1 porción 120g", grams:120, kcal:354, protein:14.9, carbs:39.5, fat:14.9 },
   { id:"n-provoleta", cat:"Comidas ARG", name:"Provoleta a la parrilla", serving:"1 porción 100g", grams:100, kcal:351, protein:25.6, carbs:2.1, fat:26.6 },
@@ -811,7 +807,6 @@ export const FOOD_DB = [
   { id:"n-pate-higado", cat:"Fiambres", name:"Paté de hígado", serving:"2 cucharadas 30g", grams:30, kcal:60, protein:4, carbs:2, fat:3.9 },
   { id:"n-bratwurst", cat:"Fiambres", name:"Salchicha alemana (bratwurst, cocida)", serving:"1 unidad 85g", grams:85, kcal:283, protein:11.7, carbs:2.4, fat:24.8 },
   { id:"n-papa-cruda", cat:"Verduras", name:"Papa cruda (con piel)", serving:"1 mediana 213g", grams:213, kcal:164, protein:4.4, carbs:37.3, fat:0.2 },
-  { id:"n-papa-horno-con-piel", cat:"Verduras", name:"Papa al horno con piel", serving:"1 mediana 173g", grams:173, kcal:161, protein:4.3, carbs:36.6, fat:0.2 },
   { id:"n-puree-papa-leche", cat:"Verduras", name:"Puré de papa (solo con leche, sin manteca)", serving:"1 taza 210g", grams:210, kcal:174, protein:4, carbs:36.9, fat:1.2 },
   { id:"n-papa-rosti", cat:"Verduras", name:"Papa hash brown / rösti casera (frita)", serving:"1 taza 156g", grams:156, kcal:413, protein:4.7, carbs:54.8, fat:19.5 },
   { id:"n-batata-asada", cat:"Verduras", name:"Batata asada al horno (pulpa)", serving:"1 mediana 150g", grams:150, kcal:135, protein:3, carbs:31.1, fat:0.2 },

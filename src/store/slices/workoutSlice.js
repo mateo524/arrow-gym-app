@@ -1,7 +1,7 @@
 import { ROUTINES } from "../../data/seedData.js";
 import { T } from "../../lib/telemetry.js";
 import { applySavedOrder } from "../../lib/exerciseOrder.js";
-import { buildCoachReport, hydrateSet, calcEffective1RM, getPersonalizedChallenge } from "../../lib/analytics.js";
+import { buildCoachReport, hydrateSet, calcEffective1RM, getPersonalizedChallenge, isWarmup } from "../../lib/analytics.js";
 import { loadInitialWorkouts, normalizeSet } from "../../lib/storageMigration.js";
 import { syncWorkoutUp, syncWorkoutDelete, syncAllWorkoutsUp, fetchWorkoutsFromDB, mergeWorkouts } from "../../lib/workoutSync.js";
 import { supabase } from "../../lib/supabase.js";
@@ -49,7 +49,7 @@ function getExerciseStats(workouts, exercise) {
   const ordered = [...(workouts || [])].sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
   let lastWeight = "", lastReps = "", lastSets = 0, lastDate = null, lastExtraWeight = "";
   for (const workout of ordered) {
-    const sets = [...(workout.sets || [])].filter((s) => sameExercise(s.exercise, exercise));
+    const sets = [...(workout.sets || [])].filter((s) => sameExercise(s.exercise, exercise) && !isWarmup(s));
     if (sets.length) {
       const completed = sets.find((s) => s.weight !== "" || s.reps !== "");
       if (completed) {
@@ -83,6 +83,28 @@ function makeSet(exercise, weight = "", reps = "", workouts = [], bodyWeightKg =
   };
 }
 
+// Expande un ejercicio de rutina a su plan de series.
+// Acepta: string (rutinas viejas, 1 serie), {name, sets:[{reps,weight}]} (RoutinesPage),
+// {name, sets:N, reps, weight} (rutinas guardadas desde StartWorkoutPage / coach).
+const MAX_PLAN_SETS = 12;
+export function expandRoutineExercise(ex) {
+  if (ex == null) return null;
+  if (typeof ex === "string") return ex.trim() ? { name: ex, plan: [{}] } : null;
+  const name = String(ex.name || ex.exercise || "").trim();
+  if (!name) return null;
+  const clean = (v) => (v === undefined || v === null || v === "" ? "" : String(v));
+  let plan;
+  if (Array.isArray(ex.sets) && ex.sets.length > 0) {
+    plan = ex.sets.slice(0, MAX_PLAN_SETS).map((s) => ({ reps: clean(s?.reps), weight: clean(s?.weight) }));
+  } else {
+    const n = Math.floor(Number(ex.sets));
+    plan = n > 0
+      ? Array.from({ length: Math.min(n, MAX_PLAN_SETS) }, () => ({ reps: clean(ex.reps), weight: clean(ex.weight) }))
+      : [{ reps: clean(ex.reps), weight: clean(ex.weight) }];
+  }
+  return { name, plan };
+}
+
 function makePrefilledSet(exercise, workouts, bodyWeightKg = 0) {
   // Fix #8: do NOT pre-fill weight/reps — user must enter them manually.
   // lastWeight/lastReps are stored as metadata in makeSet for display purposes only.
@@ -93,7 +115,7 @@ function makePrefilledSet(exercise, workouts, bodyWeightKg = 0) {
 function getExerciseSetAtIndex(workouts, exercise, setIndex) {
   const ordered = [...(workouts || [])].sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
   for (const workout of ordered) {
-    const sets = (workout.sets || []).filter((s) => sameExercise(s.exercise, exercise));
+    const sets = (workout.sets || []).filter((s) => sameExercise(s.exercise, exercise) && !isWarmup(s));
     if (sets.length > setIndex) {
       return { weight: sets[setIndex].weight ?? "", reps: sets[setIndex].reps ?? "" };
     } else if (sets.length > 0) {
@@ -313,17 +335,26 @@ export const createWorkoutSlice = (set, get) => ({
     const adj = get().activePlanAdjustment;
     const factor = adj && new Date(adj.expiresAt) >= new Date() ? adj.factor : 1;
     const bw = getBodyWeight(get());
+    const ordered = applySavedOrder(exercises || [], (get().exerciseOrderByRoutine || {})[name]);
+    const plannedSets = ordered.map(expandRoutineExercise).filter(Boolean).flatMap((px) =>
+      px.plan.map((p) => {
+        const s = makePrefilledSet(px.name, workouts, bw);
+        if (!s.isBodyweight && factor !== 1 && s.lastWeight) {
+          const scaled = String(Math.max(0, Math.round(Number(s.lastWeight) * factor * 2) / 2) || s.lastWeight);
+          return { ...s, weight: scaled, lastWeight: scaled, reps: "", planReps: scaleRepsForDeload(s.lastReps) };
+        }
+        // Objetivo de la rutina como sugerencia (no se completa el valor real: el usuario lo confirma)
+        return {
+          ...s,
+          ...(p.reps ? { planReps: String(p.reps) } : {}),
+          ...(p.weight && !s.isBodyweight ? { planWeight: String(p.weight) } : {}),
+        };
+      })
+    );
     set({
       activeWorkout: {
         id: uid("workout"), type: name, date: today(), startedAt: Date.now(),
-        sets: applySavedOrder(exercises, (get().exerciseOrderByRoutine || {})[name]).map((ex) => {
-          const s = makePrefilledSet(ex, workouts, bw);
-          if (!s.isBodyweight && factor !== 1 && s.lastWeight) {
-            const scaled = String(Math.max(0, Math.round(Number(s.lastWeight) * factor * 2) / 2) || s.lastWeight);
-            return { ...s, weight: scaled, lastWeight: scaled, reps: "", planReps: scaleRepsForDeload(s.lastReps) };
-          }
-          return s;
-        }),
+        sets: plannedSets,
       },
       currentPage: "workout",
     });
@@ -462,32 +493,40 @@ export const createWorkoutSlice = (set, get) => ({
           const hasWeight = Number(s.weight) > 0;
           return s.exercise && (hasWeight || isBodyweight) && Number(s.reps) > 0;
         })
-        .map(normalizeSet),
+        .map((s) => ({
+          ...normalizeSet(s),
+          // normalizeSet no conoce setType: se conserva (solo si no es "normal")
+          ...(s.setType && s.setType !== "normal" ? { setType: s.setType } : {}),
+        })),
     };
     if (!clean.sets.length) return;
     const report = buildCoachReport(clean, get().workouts, getAuthProfile());
     const existingPrs = get().prs || [];
     const history = get().workouts || [];
     const newPrsList = [];
-    const prByExercise = new Set();
+    const effWeight = (s) => (s.isBodyweight
+      ? (Number(s.weight) || 0) + (Number(s.extraWeight) || 0)
+      : Number(s.weight) || 0);
+    // Mejor serie (mayor e1RM) de la sesión por ejercicio, sin calentamientos; se compara una sola vez con el historial
+    const bestByExercise = new Map();
     clean.sets.forEach((s) => {
-      const effectiveWeight = s.isBodyweight
-        ? (Number(s.weight) || 0) + (Number(s.extraWeight) || 0)
-        : Number(s.weight) || 0;
-      const w = effectiveWeight, r = Number(s.reps) || 0;
+      if (isWarmup(s)) return;
+      const w = effWeight(s), r = Number(s.reps) || 0;
+      if (!w || !r) return;
+      const orm = calcEffective1RM(w, r, Number(s.rir) || 0);
+      if (orm <= 0) return;
       const exKey = String(s.exercise || "").trim().toLowerCase();
-      if (!w || !r || prByExercise.has(exKey)) return;
-      const rir = Number(s.rir) || 0;
-      const currentORM = calcEffective1RM(w, r, rir);
-      if (currentORM <= 0) return;
-      const prev = history.flatMap((wk) => wk.sets || []).filter((ps) => sameExercise(ps.exercise, s.exercise));
-      const maxWeight = Math.max(...prev.map((ps) => Number(ps.weight) || 0), 0);
-      const prevBestORM = prev.reduce((best, ps) => {
-        return Math.max(best, calcEffective1RM(Number(ps.weight) || 0, Number(ps.reps) || 0, Number(ps.rir) || 0));
-      }, 0);
-      if (currentORM > prevBestORM) {
-        prByExercise.add(exKey);
-        newPrsList.push({ exercise: s.exercise, weight: w, reps: r, orm: Math.round(currentORM), type: w > maxWeight ? "weight" : "orm", date: clean.date, group: s.group, muscle: s.muscle });
+      const cur = bestByExercise.get(exKey);
+      if (!cur || orm > cur.orm) bestByExercise.set(exKey, { s, w, r, orm });
+    });
+    bestByExercise.forEach(({ s, w, r, orm }) => {
+      const prev = history.flatMap((wk) => wk.sets || []).filter((ps) => sameExercise(ps.exercise, s.exercise) && !isWarmup(ps));
+      const maxWeight = Math.max(...prev.map((ps) => effWeight(ps)), 0);
+      const prevBestORM = prev.reduce((best, ps) => (
+        Math.max(best, calcEffective1RM(effWeight(ps), Number(ps.reps) || 0, Number(ps.rir) || 0))
+      ), 0);
+      if (orm > prevBestORM) {
+        newPrsList.push({ exercise: s.exercise, weight: w, reps: r, orm: Math.round(orm), type: w > maxWeight ? "weight" : "orm", date: clean.date, group: s.group, muscle: s.muscle });
       }
     });
     // Auto-expire plan if it has passed its end date
@@ -748,7 +787,8 @@ export const createWorkoutSlice = (set, get) => ({
 
   getLastWorkoutForExercise: (exerciseName) => {
     const history = get().workouts || [];
-    for (const workout of [...history]) {
+    const byDateDesc = [...history].sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
+    for (const workout of byDateDesc) {
       const exercise = (workout.sets || []).find((s) =>
         sameExercise(s.exercise, exerciseName) && s.weight !== "" && s.reps !== "" && Number(s.reps) > 0
       );
@@ -789,7 +829,7 @@ export const createWorkoutSlice = (set, get) => ({
 
   repeatLastWorkout: () => {
     const state = get();
-    const last = (state.workouts || [])[0];
+    const last = [...(state.workouts || [])].sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")))[0];
     if (!last) return;
     const exercises = [...new Set((last.sets || []).map((s) => s.exercise))];
     const workouts = state.workouts || [];
@@ -810,11 +850,26 @@ export const createWorkoutSlice = (set, get) => ({
   deleteWorkout: (id) => {
     const uid_ = getAuthUserId();
     if (uid_) syncWorkoutDelete(id, uid_);
-    set(s => ({
-      workouts: (s.workouts || []).filter(w => w.id !== id),
+    set(s => {
+      const removed = (s.workouts || []).find(w => w.id === id);
+      const remaining = (s.workouts || []).filter(w => w.id !== id);
+      let prs = s.prs || [];
+      if (removed) {
+        // Quitar los récords de este entrenamiento (fecha + ejercicio), salvo que otro entrenamiento del mismo día siga teniendo ese ejercicio
+        const exKeys = new Set((removed.sets || []).map(x => String(x.exercise || "").trim().toLowerCase()));
+        const stillThere = (date, key) => remaining.some(w => w.date === date && (w.sets || []).some(x => String(x.exercise || "").trim().toLowerCase() === key));
+        prs = prs.filter(p => {
+          const key = String(p.exercise || "").trim().toLowerCase();
+          return !(p.date === removed.date && exKeys.has(key) && !stillThere(p.date, key));
+        });
+      }
+      return {
+      workouts: remaining,
+      prs,
       coachReports: (s.coachReports || []).filter(r => r.workoutId !== id),
       selectedWorkoutId: s.selectedWorkoutId === id ? null : s.selectedWorkoutId,
-    }));
+      };
+    });
     queueGymSync(get);
   },
 

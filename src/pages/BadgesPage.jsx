@@ -40,7 +40,7 @@ export default function BadgesPage() {
     <div style={{ paddingBottom: 100, background: "var(--bg)", minHeight: "100vh" }}>
       {/* Header */}
       <div style={{ padding: "56px 20px 16px", display: "flex", alignItems: "center", gap: 12 }}>
-        <button onClick={() => setPage("home")} style={{ background: "var(--panel)", border: "none", borderRadius: 12, width: 40, height: 40, cursor: "pointer", color: "var(--text)", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>‹</button>
+        <button type="button" aria-label="Volver al inicio" onClick={() => setPage("home")} style={{ background: "var(--panel)", border: "none", borderRadius: 12, width: 40, height: 40, cursor: "pointer", color: "var(--text)", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>‹</button>
         <div>
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800 }}>Logros</h1>
           <p style={{ margin: 0, fontSize: 12, color: "var(--muted)" }}>{earned.length} desbloqueados · {totalEarned}/{totalPossible} niveles</p>

@@ -109,9 +109,9 @@ export default function CountdownTimer({ defaultSeconds = 60, onComplete, setInd
       {/* Duration selector */}
       {!running && !done && (
         <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-          <button onClick={() => changeDuration(-15)} style={{ width:32, height:32, borderRadius:"50%", background:"var(--panel2)", border:"1px solid var(--line)", cursor:"pointer", fontSize:16, color:"var(--text)", display:"flex", alignItems:"center", justifyContent:"center" }}>−</button>
+          <button type="button" aria-label="Restar 15 segundos" onClick={() => changeDuration(-15)} style={{ width:32, height:32, borderRadius:"50%", background:"var(--panel2)", border:"1px solid var(--line)", cursor:"pointer", fontSize:16, color:"var(--text)", display:"flex", alignItems:"center", justifyContent:"center" }}>−</button>
           <span style={{ fontSize:13, color:"var(--muted)", minWidth:60, textAlign:"center" }}>duración</span>
-          <button onClick={() => changeDuration(15)} style={{ width:32, height:32, borderRadius:"50%", background:"var(--panel2)", border:"1px solid var(--line)", cursor:"pointer", fontSize:16, color:"var(--text)", display:"flex", alignItems:"center", justifyContent:"center" }}>+</button>
+          <button type="button" aria-label="Sumar 15 segundos" onClick={() => changeDuration(15)} style={{ width:32, height:32, borderRadius:"50%", background:"var(--panel2)", border:"1px solid var(--line)", cursor:"pointer", fontSize:16, color:"var(--text)", display:"flex", alignItems:"center", justifyContent:"center" }}>+</button>
         </div>
       )}
 

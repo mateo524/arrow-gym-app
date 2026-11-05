@@ -5,6 +5,8 @@ import Icon from "../components/Icon.jsx";
 import Modal from "../components/Modal.jsx";
 import useAuthStore from "../store/useAuthStore.js";
 
+const PAGE_SIZE = 200;
+const USER_COLS = "id, name, email, role, trainer_id, weight_kg, height_cm, age, shoulder_alert, created_at";
 const EMPTY_FORM = { name: "", email: "", password: "", trainer_id: "", weight_kg: "", height_cm: "", age: "", shoulder_alert: false };
 
 export default function AdminPage() {
@@ -14,6 +16,10 @@ export default function AdminPage() {
   const [clients, setClients] = useState([]);
   const [trainerRequests, setTrainerRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [hasMore, setHasMore] = useState({ trainers: false, clients: false });
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [reports, setReports] = useState([]);
   const [tickets, setTickets] = useState([]);
   const [auditLog, setAuditLog] = useState([]);
@@ -35,14 +41,22 @@ export default function AdminPage() {
 
   async function loadData() {
     setLoading(true);
-    const [{ data: t }, { data: c }, { data: r }] = await Promise.all([
-      supabase.from("profiles").select("*").eq("role", "trainer").order("name"),
-      supabase.from("profiles").select("*, trainer:trainer_id(name)").eq("role", "user").order("name"),
-      supabase.from("trainer_role_requests").select("*, user:user_id(id, name, email)").eq("status", "pending").order("created_at"),
+    setLoadError("");
+    const [tr, cr, rr] = await Promise.all([
+      supabase.from("profiles").select(USER_COLS).eq("role", "trainer").order("name").range(0, PAGE_SIZE - 1),
+      supabase.from("profiles").select(`${USER_COLS}, trainer:trainer_id(name)`).eq("role", "user").order("name").range(0, PAGE_SIZE - 1),
+      supabase.from("trainer_role_requests").select("id, user_id, created_at, user:user_id(id, name, email)").eq("status", "pending").order("created_at"),
     ]);
-    setTrainers(t || []);
-    setClients(c || []);
-    setTrainerRequests(r || []);
+    const firstError = tr.error || cr.error || rr.error;
+    if (firstError) {
+      setLoadError(friendlyError(firstError));
+      setLoading(false);
+      return;
+    }
+    setTrainers(tr.data || []);
+    setClients(cr.data || []);
+    setHasMore({ trainers: (tr.data || []).length === PAGE_SIZE, clients: (cr.data || []).length === PAGE_SIZE });
+    setTrainerRequests(rr.data || []);
     // Moderación / soporte / auditoría: si las tablas aún no existen, quedan vacías
     const [fr, tk, al] = await Promise.all([
       supabase.from("food_reports").select("id, food_id, reason, resolved, created_at, food:food_id(id, name, kcal, protein, carbs, fat, hidden)").order("created_at", { ascending: false }).limit(200),
@@ -53,6 +67,18 @@ export default function AdminPage() {
     setTickets(tk.data || []);
     setAuditLog(al.data || []);
     setLoading(false);
+  }
+
+  async function loadMore(kind) {
+    setLoadingMore(true);
+    const list = kind === "trainers" ? trainers : clients;
+    const base = supabase.from("profiles").select(kind === "trainers" ? USER_COLS : `${USER_COLS}, trainer:trainer_id(name)`).eq("role", kind === "trainers" ? "trainer" : "user");
+    const { data, error } = await base.order("name").range(list.length, list.length + PAGE_SIZE - 1);
+    setLoadingMore(false);
+    if (error) { window.__showToast?.(friendlyError(error), "error"); return; }
+    const rows = data || [];
+    (kind === "trainers" ? setTrainers : setClients)((prev) => [...prev, ...rows]);
+    setHasMore((h) => ({ ...h, [kind]: rows.length === PAGE_SIZE }));
   }
 
   async function logAudit(action, targetType, targetId, details = {}) {
@@ -141,38 +167,30 @@ export default function AdminPage() {
 
   async function handleDeleteUser(id) {
     setDeleteError("");
-
-    // 1. Delete profile from profiles table
-    const { error: profileError } = await supabase.from("profiles").delete().eq("id", id);
-    if (profileError) {
-      setDeleteError(profileError.message || "Error al eliminar el perfil.");
-      return;
-    }
-
-    // 2. Delete the Supabase Auth user via Edge Function
-    // NOTE: The Edge Function at create-user must support DELETE + { userId } in the body.
-    // If it does not yet support DELETE, the profile is still removed above; the auth user
-    // will remain active until the Edge Function is updated to handle deletion.
+    setDeleting(true);
     try {
+      // La Edge Function borra primero la cuenta de Auth y después el perfil.
       const { data: { session } } = await supabase.auth.getSession();
-      const accessToken = session?.access_token;
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${accessToken}`,
+          "Authorization": `Bearer ${session?.access_token}`,
         },
         body: JSON.stringify({ userId: id }),
       });
-      if (!res.ok) {
-        const result = await res.json().catch(() => ({}));
-        // Non-fatal: profile is already deleted; surface a warning but continue
-        setDeleteError(result.error || "Perfil eliminado, pero no se pudo borrar el usuario de Auth.");
+      const result = await res.json().catch(() => ({}));
+      if (!res.ok || result.error) {
+        setDeleteError(result.error || (res.status === 405 ? "El servidor todavía no soporta eliminar usuarios (falta desplegar la función)." : friendlyError(`HTTP ${res.status}`)));
+        setDeleting(false);
+        return;
       }
-    } catch {
-      setDeleteError("Perfil eliminado, pero ocurrió un error al contactar el servidor de Auth.");
+    } catch (e) {
+      setDeleteError(friendlyError(e));
+      setDeleting(false);
+      return;
     }
-
+    setDeleting(false);
     await logAudit(deleteUserTarget?.role === "trainer" ? "trainer_delete" : "user_delete", "user", id, { label: deleteUserTarget?.email });
     setDeleteUserTarget(null);
     await loadData();
@@ -197,10 +215,10 @@ export default function AdminPage() {
 
       <div className="tab-row">
         <button className={`tab-btn${tab === "clients" ? " active" : ""}`} onClick={() => setTab("clients")}>
-          Clientes <span className="tab-count">{clients.length}</span>
+          Clientes <span className="tab-count">{clients.length}{hasMore.clients ? "+" : ""}</span>
         </button>
         <button className={`tab-btn${tab === "trainers" ? " active" : ""}`} onClick={() => setTab("trainers")}>
-          Entrenadores <span className="tab-count">{trainers.length}</span>
+          Entrenadores <span className="tab-count">{trainers.length}{hasMore.trainers ? "+" : ""}</span>
         </button>
         <button className={`tab-btn${tab === "requests" ? " active" : ""}`} onClick={() => setTab("requests")} style={{ position: "relative" }}>
           Solicitudes
@@ -316,6 +334,12 @@ export default function AdminPage() {
 
       {loading ? (
         <div className="loading-state"><Icon name="Loader" size={24} className="spin" /><p>Cargando…</p></div>
+      ) : loadError ? (
+        <div className="empty-state">
+          <Icon name="AlertTriangle" size={40} />
+          <p>{loadError}</p>
+          <button type="button" className="ghost" onClick={loadData}>Reintentar</button>
+        </div>
       ) : tab === "food" ? (
         reports.length === 0 ? (
           <div className="empty-state"><Icon name="CheckCircle" size={40} /><p>No hay alimentos reportados.</p></div>
@@ -428,15 +452,19 @@ export default function AdminPage() {
               </button>
             </div>
           ))}
+          {hasMore[tab] && (
+            <button type="button" className="ghost" disabled={loadingMore} onClick={() => loadMore(tab)} style={{ margin: "12px auto", display: "block" }}>
+              {loadingMore ? "Cargando…" : "Cargar más"}
+            </button>
+          )}
         </div>
       )}
 
       {rejectTarget && (
-        <div className="modal-overlay" onClick={() => setRejectTarget(null)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+        <Modal onClose={() => setRejectTarget(null)} titleId="admin-reject-title">
             <div className="modal-header">
-              <h2>Rechazar solicitud</h2>
-              <button className="ghost icon-btn" onClick={() => setRejectTarget(null)}><Icon name="X" size={20} /></button>
+              <h2 id="admin-reject-title">Rechazar solicitud</h2>
+              <button type="button" className="ghost icon-btn" aria-label="Cerrar" onClick={() => setRejectTarget(null)}><Icon name="X" size={20} /></button>
             </div>
             <p style={{ marginBottom: 10 }}>Solicitud de <strong>{rejectTarget.name}</strong>.</p>
             <textarea value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder="Motivo del rechazo" rows={3} maxLength={300} aria-label="Motivo del rechazo" style={{ width: "100%", marginBottom: 12 }} />
@@ -444,8 +472,7 @@ export default function AdminPage() {
               <button className="ghost" onClick={() => setRejectTarget(null)}>Cancelar</button>
               <button className="danger" disabled={rejectReason.trim().length < 3} onClick={async () => { const t = rejectTarget; setRejectTarget(null); await handleRejectTrainer(t.id, t.userId, rejectReason.trim()); }}>Rechazar</button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
 
       {deleteUserTarget && (
@@ -466,8 +493,8 @@ export default function AdminPage() {
             )}
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
               <button className="ghost" onClick={() => setDeleteUserTarget(null)}>Cancelar</button>
-              <button className="danger" onClick={() => handleDeleteUser(deleteUserTarget.id)}>
-                <Icon name="Trash2" size={14} /> Eliminar
+              <button className="danger" disabled={deleting} onClick={() => handleDeleteUser(deleteUserTarget.id)}>
+                <Icon name="Trash2" size={14} /> {deleting ? "Eliminando…" : "Eliminar"}
               </button>
             </div>
         </Modal>

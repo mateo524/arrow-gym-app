@@ -3,6 +3,7 @@ import useStore from "../store/useStore.js";
 import useAuthStore from "../store/useAuthStore.js";
 import Icon from "../components/Icon.jsx";
 import ExercisePicker from "../components/ExercisePicker.jsx";
+import Modal from "../components/Modal.jsx";
 
 const EMPTY_ROUTINE = { name: "", exercises: [] };
 
@@ -48,12 +49,16 @@ export default function RoutinesPage() {
 
   async function loadNotifications() {
     const { supabase } = await import("../lib/supabase.js");
-    const { data } = await supabase
+    const { data, error: notifError } = await supabase
       .from("notifications")
       .select("*")
       .eq("user_id", profile?.id)
       .eq("read", false)
       .order("created_at", { ascending: false });
+    if (notifError) {
+      setError(notifError.message || "No se pudieron cargar las notificaciones.");
+      return;
+    }
     setNotifications(data || []);
   }
 
@@ -73,8 +78,21 @@ export default function RoutinesPage() {
     };
 
     let err;
+    if (editing && isReadOnly(editing)) {
+      // Rutina del entrenador / grupal: no se puede editar, se guarda una copia propia
+      setSaving(false);
+      await duplicateRoutine({ ...editing, name: form.name.trim(), exercises: form.exercises });
+      return;
+    }
     if (editing) {
-      ({ error: err } = await supabase.from("routines").update(payload).eq("id", editing.id).eq("user_id", profile.id));
+      let updated;
+      ({ data: updated, error: err } = await supabase.from("routines").update(payload).eq("id", editing.id).eq("user_id", profile.id).select());
+      if (!err && (!updated || updated.length === 0)) {
+        // 0 filas afectadas: no es tuya (o ya no existe). No cerrar el modal como si hubiera guardado.
+        setError("No se guardaron los cambios: esta rutina no es tuya o ya no existe. Podés duplicarla como tuya.");
+        setSaving(false);
+        return;
+      }
     } else {
       ({ error: err } = await supabase.from("routines").insert(payload));
     }
@@ -82,6 +100,30 @@ export default function RoutinesPage() {
     if (err) { setError(err.message); setSaving(false); return; }
 
     setSaving(false);
+    setShowCreate(false);
+    setEditing(null);
+    setForm(EMPTY_ROUTINE);
+    loadRoutines();
+  }
+
+  // Rutina que la persona no puede modificar: del entrenador o grupal ([GRUPO: ...])
+  function isReadOnly(r) {
+    return !!r && (r.user_id !== profile?.id || String(r.notes || "").startsWith("[GRUPO:"));
+  }
+
+  async function duplicateRoutine(r) {
+    const { supabase } = await import("../lib/supabase.js");
+    setError("");
+    const baseName = String(r.name || "Rutina").trim();
+    const copyName = /\(copia\)$/i.test(baseName) ? baseName : `${baseName} (copia)`;
+    const { error: dupErr } = await supabase.from("routines").insert({
+      name: copyName,
+      exercises: r.exercises || [],
+      is_template: false,
+      user_id: profile?.id,
+      trainer_id: null,
+    });
+    if (dupErr) { setError(dupErr.message || "No se pudo duplicar la rutina."); return; }
     setShowCreate(false);
     setEditing(null);
     setForm(EMPTY_ROUTINE);
@@ -273,6 +315,10 @@ export default function RoutinesPage() {
         </div>
       </div>
 
+      {error && !showCreate && (
+        <div className="login-error" role="alert" style={{ marginBottom: 12 }}><Icon name="AlertCircle" size={14} /><span>{error}</span></div>
+      )}
+
       {/* Pending notifications */}
       {notifications.length > 0 && (
         <div style={{ marginBottom: 16 }}>
@@ -322,8 +368,14 @@ export default function RoutinesPage() {
                     })()}
                   </div>
                 </div>
-                <button className="ghost icon-btn" onClick={() => openEdit(r)}><Icon name="Edit2" size={16} /></button>
-                <button className="ghost icon-btn" style={{ color: "var(--danger)" }} onClick={() => setDeleteTarget({ id: r.id, name: r.name, user_id: r.user_id })}><Icon name="Trash2" size={16} /></button>
+                {isReadOnly(r) ? (
+                  <button className="ghost icon-btn" aria-label="Duplicar como mía" title="Duplicar como mía" onClick={() => duplicateRoutine(r)}><Icon name="Copy" size={16} /></button>
+                ) : (
+                  <>
+                    <button className="ghost icon-btn" aria-label="Editar rutina" onClick={() => openEdit(r)}><Icon name="Edit2" size={16} /></button>
+                    <button className="ghost icon-btn" aria-label="Eliminar rutina" style={{ color: "var(--danger)" }} onClick={() => setDeleteTarget({ id: r.id, name: r.name, user_id: r.user_id })}><Icon name="Trash2" size={16} /></button>
+                  </>
+                )}
               </div>
               {(r.exercises || []).length > 0 && (
                 <div style={{ marginTop: 10, borderTop: "1px solid var(--line)", paddingTop: 10, display: "flex", flexDirection: "column", gap: 4 }}>
@@ -342,11 +394,10 @@ export default function RoutinesPage() {
       </section>
 
       {/* Create/Edit modal */}
-      {showCreate && (
-        <div className="modal-overlay" onClick={() => setShowCreate(false)}>
-          <div className="modal-card" style={{ maxHeight: "85vh", overflow: "auto" }} onClick={e => e.stopPropagation()}>
+      {showCreate && !showExPicker && (
+        <Modal onClose={() => setShowCreate(false)} titleId="routine-modal-title" style={{ maxHeight: "85vh", overflow: "auto" }}>
             <div className="modal-header">
-              <h2>{editing ? "Editar rutina" : "Nueva rutina"}</h2>
+              <h2 id="routine-modal-title">{editing ? "Editar rutina" : "Nueva rutina"}</h2>
               <button className="ghost icon-btn" onClick={() => setShowCreate(false)}><Icon name="X" size={20} /></button>
             </div>
 
@@ -429,8 +480,8 @@ export default function RoutinesPage() {
                     </div>
                     {ex.sets.map((s, sIdx) => (
                       <div key={sIdx} style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 8, marginBottom: 6 }}>
-                        <input type="number" placeholder="Reps" value={s.reps}
-                          onChange={e => updateSet(exIdx, sIdx, "reps", e.target.value)}
+                        <input type="text" inputMode="numeric" placeholder="Reps (ej: 8-12)" value={s.reps}
+                          onChange={e => updateSet(exIdx, sIdx, "reps", e.target.value.replace(/[^0-9-]/g, "").slice(0, 7))}
                           style={{ background: "var(--bg)", border: "1px solid var(--line)", borderRadius: 8, padding: "6px 10px", color: "var(--text)", fontSize: 13 }} />
                         <input type="number" placeholder="Peso (kg)" value={s.weight}
                           onChange={e => updateSet(exIdx, sIdx, "weight", e.target.value)}
@@ -451,31 +502,27 @@ export default function RoutinesPage() {
                 {saving ? "Guardando…" : editing ? "Guardar cambios" : "Crear rutina"}
               </button>
             </form>
-          </div>
-        </div>
+        </Modal>
       )}
 
       {showExPicker && (
-        <div className="modal-overlay" style={{ zIndex: 300, alignItems: "center" }} onClick={() => setShowExPicker(false)}>
-          <div className="modal-card" style={{ maxHeight: "80vh", overflow: "auto" }} onClick={e => e.stopPropagation()}>
+        <Modal onClose={() => setShowExPicker(false)} titleId="routine-picker-title" style={{ maxHeight: "80vh", overflow: "auto" }}>
             <div className="modal-header">
-              <h2>Elegir ejercicio</h2>
+              <h2 id="routine-picker-title">Elegir ejercicio</h2>
               <button type="button" className="ghost icon-btn" aria-label="Cerrar" onClick={() => setShowExPicker(false)}><Icon name="X" size={20} /></button>
             </div>
             <ExercisePicker compact onPick={addExercise} />
-          </div>
-        </div>
+        </Modal>
       )}
 
       {/* Custom delete confirmation modal */}
       {deleteTarget && (
-        <div className="modal-overlay" onClick={() => setDeleteTarget(null)}>
-          <div className="modal-card confirm-modal" onClick={e => e.stopPropagation()}>
+        <Modal onClose={() => setDeleteTarget(null)} titleId="routine-delete-title" className="modal-card confirm-modal">
             <div style={{ textAlign: "center", padding: "8px 0 16px" }}>
               <div style={{ width: 52, height: 52, borderRadius: "50%", background: "rgba(239,68,68,.12)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>
                 <Icon name="Trash2" size={24} style={{ color: "var(--danger)" }} />
               </div>
-              <h2 style={{ margin: "0 0 8px", fontSize: 18 }}>Eliminar rutina</h2>
+              <h2 id="routine-delete-title" style={{ margin: "0 0 8px", fontSize: 18 }}>Eliminar rutina</h2>
               <p style={{ color: "var(--muted)", fontSize: 14, margin: 0 }}>
                 ¿Eliminar <strong style={{ color: "var(--text)" }}>"{deleteTarget.name}"</strong>? Esta acción no se puede deshacer.
               </p>
@@ -484,8 +531,7 @@ export default function RoutinesPage() {
               <button className="ghost" style={{ flex: 1 }} onClick={() => setDeleteTarget(null)}>Cancelar</button>
               <button className="primary" style={{ flex: 1, background: "var(--danger)", borderColor: "var(--danger)" }} onClick={confirmDelete}>Eliminar</button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
     </>
   );

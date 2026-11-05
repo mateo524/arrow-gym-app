@@ -7,7 +7,7 @@ const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),select:n
  * - role="dialog", aria-modal, aria-labelledby (usar `titleId` en el título) o `ariaLabel`
  * - Escape cierra, foco inicial dentro, Tab atrapado, foco devuelto al disparador al cerrar.
  */
-export default function Modal({ onClose, titleId, ariaLabel, className = "modal-card", style, children }) {
+export default function Modal({ onClose, titleId, ariaLabel, className = "modal-card", style, overlayStyle, children }) {
   const cardRef = useRef(null);
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
@@ -40,7 +40,7 @@ export default function Modal({ onClose, titleId, ariaLabel, className = "modal-
   }, []);
 
   return (
-    <div className="modal-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) closeRef.current?.(); }}>
+    <div className="modal-overlay" style={overlayStyle} onMouseDown={(e) => { if (e.target === e.currentTarget) closeRef.current?.(); }}>
       <div
         ref={cardRef}
         className={className}

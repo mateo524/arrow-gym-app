@@ -5,7 +5,6 @@ import { useHashLocation } from "wouter/use-hash-location";
 // Critical path: load HomePage and WorkoutPage eagerly, everything else lazy
 import HomePage from "./pages/HomePage.jsx";
 import WorkoutPage from "./pages/WorkoutPage.jsx";
-import LoginPage from "./pages/LoginPage.jsx";
 // Carga de páginas con reintento. Tras un deploy (o con el caché viejo del celular) el primer pedido de un
 // archivo de página puede fallar; se reintenta una vez y, si sigue fallando, se recarga la app una sola vez.
 function loadWithRetry(loader) {
@@ -24,6 +23,7 @@ function loadWithRetry(loader) {
 }
 const lazy = (loader) => reactLazy(() => loadWithRetry(loader));
 
+const LoginPage          = lazy(() => import("./pages/LoginPage.jsx"));
 const StartWorkoutPage   = lazy(() => import("./pages/StartWorkoutPage.jsx"));
 const ExercisesPage      = lazy(() => import("./pages/ExercisesPage.jsx"));
 const HistoryPage        = lazy(() => import("./pages/HistoryPage.jsx"));
@@ -459,7 +459,7 @@ function AppContent() {
     return () => clearTimeout(t);
   }, []);
 
-  // Push notification: ask permission once, fire at most once per day if inactive 3+ days
+  // Push notification: fire (solo si ya hay permiso), fire at most once per day if inactive 3+ days
   useEffect(() => {
     if (!user || !("Notification" in window)) return;
     // Solo a la mañana (8–11) o a la noche (19–22), y nunca en medio de un entrenamiento
@@ -478,7 +478,10 @@ function AppContent() {
     ].sort().reverse();
     const lastActive = allDays[0];
     if (!lastActive) return;
-    const daysSince = Math.floor((Date.now() - new Date(lastActive).getTime()) / 86400000);
+    // "YYYY-MM-DD" se parsea como local (new Date(str) lo interpretaría como UTC)
+    const lm = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(lastActive));
+    const lastDate = lm ? new Date(+lm[1], +lm[2] - 1, +lm[3]) : new Date(lastActive);
+    const daysSince = Math.floor((Date.now() - lastDate.getTime()) / 86400000);
     if (daysSince < 3) return;
     const notify = () => {
       const msgs = [
@@ -497,9 +500,8 @@ function AppContent() {
     };
     if (Notification.permission === "granted") {
       notify();
-    } else if (Notification.permission === "default") {
-      Notification.requestPermission().then(p => { if (p === "granted") notify(); }).catch(() => {});
     }
+    // Sin permiso concedido no se pide nada acá: el toggle de ProfilePage es el único lugar.
   }, [user]);
 
   // Backup active workout to sessionStorage every time it changes.
@@ -753,7 +755,11 @@ function AppContent() {
       </Suspense>
     );
   } else if (showLogin) {
-    inner = <LoginPage />;
+    inner = (
+      <Suspense fallback={<div style={{ minHeight:"100dvh", background:"var(--bg)" }} />}>
+        <LoginPage />
+      </Suspense>
+    );
   } else if (!hasAccess && !trialExpired) {
     inner = (
       <div style={{ minHeight:"100vh", background:"var(--bg)", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:24, textAlign:"center" }}>

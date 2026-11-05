@@ -889,7 +889,7 @@ export default function CoachPage() {
                   {coachNotif.body}
                 </p>
               </div>
-              <button
+              <button type="button" aria-label="Cerrar notificación"
                 className="ghost icon-btn"
                 style={{ flexShrink: 0, padding: 2, marginTop: -2 }}
                 onClick={() => {
@@ -1403,7 +1403,7 @@ export default function CoachPage() {
                   );
                 })()}
                 {/* Medidas link */}
-                <div style={{ flex:"0 0 auto", minWidth:100, background:"rgba(34,197,94,.07)", border:"1px solid rgba(34,197,94,.2)", borderRadius:12, padding:"8px 10px", cursor:"pointer" }} onClick={() => setPage("measurements")}>
+                <div style={{ flex:"0 0 auto", minWidth:100, background:"rgba(34,197,94,.07)", border:"1px solid rgba(34,197,94,.2)", borderRadius:12, padding:"8px 10px", cursor:"pointer" }} role="button" tabIndex={0} aria-label="Ver medidas" onClick={() => setPage("measurements")} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setPage("measurements"); } }}>
                   <p style={{ margin:"0 0 2px", fontSize:11, color:"var(--green)", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.05em" }}>Medidas</p>
                   <p style={{ margin:0, fontSize:13, fontWeight:800 }}>{bodyWeight ? `${bodyWeight}kg` : "–"}</p>
                   <p style={{ margin:"2px 0 0", fontSize:11, color:"var(--muted)" }}>Ver todo →</p>

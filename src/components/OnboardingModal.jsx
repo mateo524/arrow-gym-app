@@ -5,7 +5,7 @@ import useAuthStore from "../store/useAuthStore.js";
 import { supabase } from "../lib/supabase.js";
 import { T } from "../lib/telemetry.js";
 import { BRAND } from "../config/brand.js";
-import { SUBSCRIPTIONS_ENABLED } from "../config/pricing.js";
+import { SUBSCRIPTIONS_ENABLED, PRICE_ARS } from "../config/pricing.js";
 
 const CheckIcon = ({ color = "var(--accent)", size = 18 }) => (
   <svg className="check-ico" width={size} height={size} viewBox="0 0 20 20" fill="none" aria-hidden="true" style={{ marginLeft: "auto" }}>
@@ -359,7 +359,7 @@ export default function OnboardingModal() {
               <div style={{ background: "rgba(168,85,247,.06)", border: "1px solid rgba(168,85,247,.2)", borderRadius: 12, padding: "14px 16px", marginBottom: 24 }}>
                 <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>30 días de prueba gratuita</div>
                 <div style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.6 }}>
-                  Tenés 30 días para probar Loop sin pagar nada. Si querés seguir, la suscripción es <b style={{ color: "var(--text)" }}>$10.000 ARS/mes</b> — te avisamos antes de que venza.
+                  Tenés 30 días para probar Loop sin pagar nada. Si querés seguir, la suscripción es <b style={{ color: "var(--text)" }}>${PRICE_ARS.toLocaleString("es-AR")} ARS/mes</b> — te avisamos antes de que venza.
                 </div>
               </div>
             )}

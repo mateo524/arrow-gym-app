@@ -12,7 +12,7 @@ import { features } from "../config/features.js";
 import StreakCard, { FirstWorkoutCta } from "../components/StreakCard.jsx";
 import VacationCard from "../components/VacationCard.jsx";
 import ViewModeToggle from "../components/ViewModeToggle.jsx";
-import { SUBSCRIPTIONS_ENABLED } from "../config/pricing.js";
+import { SUBSCRIPTIONS_ENABLED, PRICE_ARS } from "../config/pricing.js";
 import { isOnVacation, idleDaysExcludingVacation } from "../lib/streak.js";
 
 export default function HomePage() {
@@ -283,6 +283,7 @@ export default function HomePage() {
       {/* Subscription banner for non-subscribers */}
       {SUBSCRIPTIONS_ENABLED && profile?.role === "user" && profile?.subscription_status !== "active" && (
         <div
+          role="button" tabIndex={0} onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); e.currentTarget.click(); } }} 
           onClick={async () => {
             try {
               const { supabase } = await import("../lib/supabase.js");
@@ -297,14 +298,14 @@ export default function HomePage() {
           <span style={{ fontSize: 14, flexShrink: 0, fontWeight: 700, color: "var(--accent)" }}>Premium</span>
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 700, fontSize: 13, color: "var(--text)" }}>Desbloqueá el Coach y Comidas</div>
-            <div style={{ fontSize: 12, color: "var(--muted)" }}>$10.000 por 30 días — pago mensual, sin débito automático; te avisamos antes de vencer</div>
+            <div style={{ fontSize: 12, color: "var(--muted)" }}>${PRICE_ARS.toLocaleString("es-AR")} por 30 días — pago mensual, sin débito automático; te avisamos antes de vencer</div>
           </div>
           <span style={{ fontSize: 18, color: "var(--muted)" }}>›</span>
         </div>
       )}
 
       {/* ── Health quick-access ── */}
-      {f.advanced_tools && <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)", gap:8, marginBottom:14 }} onClick={() => setPage("measurements")}>
+      {f.advanced_tools && <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)", gap:8, marginBottom:14, cursor:"pointer" }} role="button" tabIndex={0} onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); e.currentTarget.click(); } }} aria-label="Ver mediciones" onClick={() => setPage("measurements")}>
         {[
           { label:"Peso", value: lastWeight2 ? `${lastWeight2.kg}` : "—", unit:"kg", color:"var(--green)", iconName:"Scale" },
           { label:"Agua", value: todayWater2 > 0 ? String(todayWater2) : "—", unit: todayWater2 > 0 ? `/${waterGoalV}` : "", color:"#60a5fa", iconName:"Droplet" },
@@ -565,7 +566,7 @@ export default function HomePage() {
                   const def = achMap.get(a.id);
                   if (!def) return null;
                   return (
-                    <div key={a.id} onClick={() => setPage("badges")} style={{ flexShrink:0, background:"var(--panel)", border:"1px solid rgba(34,211,120,.25)", borderRadius:14, padding:"10px 14px", textAlign:"center", minWidth:80, cursor:"pointer" }}>
+                    <div key={a.id} role="button" tabIndex={0} onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); e.currentTarget.click(); } }} onClick={() => setPage("badges")} style={{ flexShrink:0, background:"var(--panel)", border:"1px solid rgba(34,211,120,.25)", borderRadius:14, padding:"10px 14px", textAlign:"center", minWidth:80, cursor:"pointer" }}>
                       <div style={{ fontSize:24 }}>{def.icon}</div>
                       <div style={{ fontSize:11, color:"var(--text)", fontWeight:600, marginTop:4 }}>{def.title}</div>
                     </div>
@@ -593,7 +594,7 @@ export default function HomePage() {
                 {upcomingAchievements.map((ach, i) => {
                   const pct = Math.min(100, Math.round(ach.ratio * 100));
                   return (
-                    <div key={i} onClick={() => setPage("badges")} style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:12, padding:"10px 12px", cursor:"pointer" }}>
+                    <div key={i} role="button" tabIndex={0} onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); e.currentTarget.click(); } }} onClick={() => setPage("badges")} style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:12, padding:"10px 12px", cursor:"pointer" }}>
                       <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:6 }}>
                         <span style={{ fontSize:18 }}>{ach.icon}</span>
                         <div style={{ flex:1, minWidth:0 }}>

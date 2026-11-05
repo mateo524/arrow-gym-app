@@ -44,7 +44,7 @@ export default function ChallengesPage() {
                     <div style={{ fontSize:15, fontWeight:800 }}>{ch.exercise}</div>
                     <div style={{ fontSize:12, color:"var(--muted)" }}>Día {done}/{ch.targetDays} · Empezó {ch.startDate}</div>
                   </div>
-                  <button onClick={() => deleteChallenge(ch.id)} style={{ background:"none", border:"none", color:"var(--muted)", cursor:"pointer", fontSize:16 }}><Icon name="X" size={16} style={{display:'inline-block',verticalAlign:'middle'}} /></button>
+                  <button type="button" aria-label="Eliminar reto" onClick={() => deleteChallenge(ch.id)} style={{ background:"none", border:"none", color:"var(--muted)", cursor:"pointer", fontSize:16 }}><Icon name="X" size={16} style={{display:'inline-block',verticalAlign:'middle'}} /></button>
                 </div>
                 <div style={{ height:8, background:"var(--panel2)", borderRadius:4, overflow:"hidden", marginBottom:10 }}>
                   <div style={{ height:"100%", width:`${pct}%`, background: pct>=100 ? "var(--green)" : "#60a5fa", borderRadius:4, transition:"width .4s" }} />

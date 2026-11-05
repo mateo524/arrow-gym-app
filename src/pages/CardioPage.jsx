@@ -181,7 +181,7 @@ export default function CardioPage() {
                     {c.rounds ? ` · ${c.rounds} rondas` : ""}
                   </p>
                 </div>
-                <button onClick={() => deleteCardio(c.id)}
+                <button type="button" aria-label="Eliminar actividad" onClick={() => deleteCardio(c.id)}
                   style={{ background: "none", border: "none", color: "var(--muted)", fontSize: 16, cursor: "pointer", padding: 4 }}>
                   <Icon name="X" size={14} style={{display:'inline-block',verticalAlign:'middle'}} />
                 </button>

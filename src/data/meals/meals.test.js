@@ -51,7 +51,7 @@ describe("armador de planes", () => {
         expect(d.protein).toBeGreaterThan(targets[1] * 0.85);
       }
     }
-  });
+  }, 30000); // arma 4 planes de 7 dias: en CI lento superaba los 5 s por defecto
 
   it("no repite el mismo plato en el mismo momento en días seguidos", () => {
     const plan = make({ days: 7 });

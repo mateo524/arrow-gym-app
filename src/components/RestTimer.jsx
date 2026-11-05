@@ -23,10 +23,12 @@ export default function RestTimer({ duration = 90, onComplete, onSkip, onClose, 
   const [remaining, setRemaining] = useState(duration);
   const [running, setRunning] = useState(false);
   const [paused, setPaused] = useState(false);
+  const [ringTotal, setRingTotal] = useState(duration);
   const [customInput, setCustomInput] = useState("");
   const doneRef = useRef(false);
   const pausedAtRef = useRef(null);
   const timerRef = useRef(null);
+  const totalRef = useRef(duration); // duración total de la corrida actual (admite +/-15s)
   const startTimeRef = useRef(null);
   const wakeLockRef = useRef(null);
   const onCompleteRef = useRef(onComplete);
@@ -79,10 +81,30 @@ export default function RestTimer({ duration = 90, onComplete, onSkip, onClose, 
       pausedAtRef.current = null;
       setPaused(false);
       acquireWakeLock();
+      // Reprogramar el aviso del service worker con el tiempo que queda
+      const leftMs = Math.max(0, totalRef.current * 1000 - (Date.now() - startTimeRef.current));
+      swPost({ type: 'SCHEDULE_TIMER', id: 'rest-timer', delayMs: leftMs, label: nextLabel || '' });
     } else {
       pausedAtRef.current = Date.now();
       setPaused(true);
       releaseWakeLock(); // screen can sleep while paused
+      // En pausa no debe sonar el aviso en segundo plano
+      swPost({ type: 'CANCEL_TIMER', id: 'rest-timer' });
+    }
+  }
+
+  function adjustTime(deltaSec) {
+    if (!running || !startTimeRef.current) return;
+    const refNow = pausedAtRef.current ?? Date.now();
+    const elapsedMs = refNow - startTimeRef.current;
+    const newTotal = Math.max(Math.ceil(elapsedMs / 1000) + 1, totalRef.current + deltaSec, 5);
+    totalRef.current = newTotal;
+    setRingTotal(newTotal);
+    const leftMs = Math.max(0, newTotal * 1000 - elapsedMs);
+    setRemaining(Math.max(0, Math.ceil(leftMs / 1000)));
+    if (!pausedAtRef.current) {
+      swPost({ type: 'CANCEL_TIMER', id: 'rest-timer' });
+      swPost({ type: 'SCHEDULE_TIMER', id: 'rest-timer', delayMs: leftMs, label: nextLabel || '' });
     }
   }
 
@@ -93,6 +115,10 @@ export default function RestTimer({ duration = 90, onComplete, onSkip, onClose, 
     setRunning(true);
     acquireWakeLock();
     startTimeRef.current = Date.now();
+    totalRef.current = d;
+    setRingTotal(d);
+    pausedAtRef.current = null;
+    setPaused(false);
     setRemaining(d);
     // Schedule SW notification as fallback for background/locked screen
     requestNotifPermission().then(() => {
@@ -102,7 +128,7 @@ export default function RestTimer({ duration = 90, onComplete, onSkip, onClose, 
     timerRef.current = setInterval(() => {
       if (pausedAtRef.current) return; // paused — don't advance
       const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
-      const left = Math.max(0, d - elapsed);
+      const left = Math.max(0, totalRef.current - elapsed);
       setRemaining(left);
       if (left <= 0) {
         clearInterval(timerRef.current);
@@ -112,7 +138,7 @@ export default function RestTimer({ duration = 90, onComplete, onSkip, onClose, 
         if (doneRef.current) return;
         doneRef.current = true;
         if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-        if (Notification?.permission === "granted") {
+        if (typeof Notification !== "undefined" && Notification.permission === "granted") {
           try { new Notification("Loop - Descanso terminado", { body: "Listo para la próxima serie.", tag: "rest-timer", silent: true }); } catch {}
         }
         try { if (soundEnabled) playDone(); } catch {}
@@ -126,6 +152,8 @@ export default function RestTimer({ duration = 90, onComplete, onSkip, onClose, 
     stopTimer();
     setSelectedDuration(duration);
     setRemaining(duration);
+    setRingTotal(duration);
+    totalRef.current = duration;
     setRunning(false);
     setPaused(false);
   }, [duration]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -143,6 +171,7 @@ export default function RestTimer({ duration = 90, onComplete, onSkip, onClose, 
     doneRef.current = false;
     setSelectedDuration(secs);
     setRemaining(secs);
+    setRingTotal(secs);
     if (wasRunning) startTimer(secs);
   }
 
@@ -155,7 +184,7 @@ export default function RestTimer({ duration = 90, onComplete, onSkip, onClose, 
     if (!running) startTimer(secs);
   }
 
-  const progress = selectedDuration > 0 ? remaining / selectedDuration : 0;
+  const progress = ringTotal > 0 ? Math.min(1, remaining / ringTotal) : 0;
   const offset = CIRCUMFERENCE * (1 - progress);
   const minutes = Math.floor(remaining / 60);
   const seconds = remaining % 60;
@@ -187,6 +216,12 @@ export default function RestTimer({ duration = 90, onComplete, onSkip, onClose, 
         {nextLabel && <small className="rest-next-label">Proximo: {nextLabel}</small>}
       </div>
 
+      {running && (
+        <div style={{ display: "flex", gap: 8, width: "100%", marginBottom: 8 }}>
+          <button className="ghost rest-skip-btn" onClick={() => adjustTime(-15)} aria-label="Restar 15 segundos" style={{ flex: 1 }}>−15s</button>
+          <button className="ghost rest-skip-btn" onClick={() => adjustTime(15)} aria-label="Sumar 15 segundos" style={{ flex: 1 }}>+15s</button>
+        </div>
+      )}
       {running ? (
         <div style={{ display: "flex", gap: 8, width: "100%" }}>
           <button

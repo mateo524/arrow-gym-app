@@ -4,6 +4,9 @@ import useAuthStore from "../store/useAuthStore.js";
 import useStore from "../store/useStore.js";
 import { EXERCISE_DATABASE } from "../data/exerciseDatabase.js";
 import Icon from "../components/Icon.jsx";
+import Modal from "../components/Modal.jsx";
+import { dateToLocal } from "../lib/dates.js";
+import { friendlyError } from "../lib/errors.js";
 import AssignRoutineModal from "../components/AssignRoutineModal.jsx";
 import { getGroupTotals, filterCurrentWeek } from "../lib/analytics.js";
 import { PRICE_ARS, TRIAL_DAYS, INACTIVITY_DAYS, SUBSCRIPTIONS_ENABLED } from "../config/pricing.js";
@@ -79,6 +82,9 @@ export default function TrainerPage() {
   const [trainerTab, setTrainerTab] = useState("alumnos");
   const [saving, setSaving] = useState(false);
   const [payModal, setPayModal] = useState(null);
+  const [payAmount, setPayAmount] = useState(String(PRICE_ARS));
+  const [paySaving, setPaySaving] = useState(false);
+  const [clientsError, setClientsError] = useState("");
   const [showAssign, setShowAssign] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
 
@@ -185,13 +191,58 @@ export default function TrainerPage() {
     }
   }
 
+  async function confirmPayment() {
+    if (!payModal || paySaving) return;
+    const amount = Number(payAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      window.__showToast?.("Ingresá un monto válido.", "error");
+      return;
+    }
+    setPaySaving(true);
+    const patch = {
+      last_payment_date: dateToLocal(new Date()),
+      next_payment_date: dateToLocal(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)),
+    };
+    const update = (fields) => sb(
+      supabase.from("profiles").update(fields).eq("id", payModal.id),
+      { label: "registrar_cobro" }
+    );
+    // last_payment_amount requiere supabase/APLICAR_AHORA_7.sql; si todavía no existe, se guarda sin el monto.
+    let { error: payError } = await update({ ...patch, last_payment_amount: amount });
+    if (payError && /last_payment_amount|column/i.test(payError.message || "")) {
+      ({ error: payError } = await update(patch));
+    }
+    setPaySaving(false);
+    if (payError) {
+      window.__showToast?.("No se pudo registrar el cobro. Intentá de nuevo.", "error");
+      return;
+    }
+    setPayModal(null);
+    window.__showToast?.("Cobro registrado.", "success");
+    await loadClients();
+  }
+
   async function loadClients() {
     if (!profile?.id) { setLoading(false); return; }
     setLoading(true);
-    const query = isAdmin
-      ? supabase.from("profiles").select("*").eq("role", "user")
-      : supabase.from("profiles").select("*").eq("role", "user").eq("trainer_id", profile.id);
-    const { data } = await query.order("name");
+    setClientsError("");
+    // Solo las columnas que usa esta pantalla (evita traer gym_data y demás). Si alguna
+    // columna opcional todavía no existe en la base, reintenta con el set mínimo.
+    const COLS = "id, name, email, role, trainer_id, created_at, subscription_status, vacation_until";
+    const COLS_MIN = "id, name, email, role, trainer_id, created_at, subscription_status";
+    const run = (cols) => {
+      const q = supabase.from("profiles").select(cols).eq("role", "user");
+      return (isAdmin ? q : q.eq("trainer_id", profile.id)).order("name");
+    };
+    let { data, error } = await run(COLS);
+    if (error && (error.code === "42703" || /column/i.test(error.message || ""))) {
+      ({ data, error } = await run(COLS_MIN));
+    }
+    if (error) {
+      setClientsError(friendlyError(error));
+      setLoading(false);
+      return;
+    }
     const loadedClients = data || [];
     setClients(loadedClients);
     setLoading(false);
@@ -204,7 +255,7 @@ export default function TrainerPage() {
     if (!clientIds || clientIds.length === 0) return;
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
-    const sevenDaysAgoStr = sevenDaysAgo.toISOString().slice(0, 10);
+    const sevenDaysAgoStr = dateToLocal(sevenDaysAgo);
 
     // Query workouts logged by clients in the last 7 days
     // Adjust table/column names if your schema differs
@@ -272,7 +323,7 @@ export default function TrainerPage() {
     const days = daysSinceLast(userId);
     // De vacaciones: no cuenta como inactivo ni en riesgo
     const vac = clients.find((c) => c.id === userId)?.vacation_until;
-    if (vac && String(vac).slice(0, 10) >= new Date().toISOString().slice(0, 10)) {
+    if (vac && String(vac).slice(0, 10) >= dateToLocal(new Date())) {
       return { level: "vacation", chip: "De vacaciones", color: "#38bdf8", bg: "rgba(56,189,248,.15)", days };
     }
     if (days === null) {
@@ -360,7 +411,7 @@ export default function TrainerPage() {
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
-      days.push(d.toISOString().slice(0, 10));
+      days.push(dateToLocal(d));
     }
     return days;
   }
@@ -373,7 +424,7 @@ export default function TrainerPage() {
     for (let i = 0; i < 7; i++) {
       const d = new Date();
       d.setDate(d.getDate() - i);
-      if (trained.has(d.toISOString().slice(0, 10))) break;
+      if (trained.has(dateToLocal(d))) break;
       streak++;
     }
     return streak;
@@ -403,7 +454,7 @@ export default function TrainerPage() {
       .from("user_workouts")
       .select("id, date, type, sets")
       .eq("user_id", clientId)
-      .gte("date", thirtyDaysAgo.toISOString().slice(0, 10))
+      .gte("date", dateToLocal(thirtyDaysAgo))
       .order("date", { ascending: false });
 
     if (!error) setClientWorkouts(data || []);
@@ -881,6 +932,12 @@ export default function TrainerPage() {
 
           {trainerTab === "alumnos" && (loading ? (
             <div className="loading-state"><Icon name="Loader" size={24} className="spin" /><p>Cargando…</p></div>
+          ) : clientsError ? (
+            <div className="empty-state">
+              <Icon name="AlertTriangle" size={40} />
+              <p>{clientsError}</p>
+              <button className="ghost" onClick={loadClients}>Reintentar</button>
+            </div>
           ) : clients.length === 0 ? (
             <div className="empty-state">
               <Icon name="Users" size={40} />
@@ -971,6 +1028,12 @@ export default function TrainerPage() {
             <div>
               {loading ? (
                 <div className="loading-state"><Icon name="Loader" size={24} className="spin" /><p>Cargando…</p></div>
+              ) : clientsError ? (
+                <div className="empty-state">
+                  <Icon name="AlertTriangle" size={40} />
+                  <p>{clientsError}</p>
+                  <button className="ghost" onClick={loadClients}>Reintentar</button>
+                </div>
               ) : clients.length === 0 ? (
                 <div className="empty-state"><Icon name="Users" size={40} /><p>No tenés alumnos aún.</p></div>
               ) : (() => {
@@ -1027,7 +1090,7 @@ export default function TrainerPage() {
                               }}
                             >WA</button>
                             <button
-                              onClick={() => setPayModal(c)}
+                              onClick={() => { setPayAmount(String(PRICE_ARS)); setPayModal(c); }}
                               style={{ background:"var(--green)", color:"#fff", border:"none", borderRadius:8, padding:"6px 12px", fontSize:12, cursor:"pointer" }}
                             >
                               Cobrado
@@ -1340,11 +1403,11 @@ export default function TrainerPage() {
   )}
 
   {deleteRoutineTarget && (
-    <div className="modal-overlay" onClick={() => setDeleteRoutineTarget(null)}>
-      <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+    <Modal onClose={() => setDeleteRoutineTarget(null)} titleId="del-routine-title" className="modal-box">
+      <div>
         <div className="modal-header">
           <Icon name="Trash2" size={20} style={{ color: "var(--danger, #e05)" }} />
-          <h3>Eliminar rutina</h3>
+          <h3 id="del-routine-title">Eliminar rutina</h3>
         </div>
         <p>¿Estás seguro de que querés eliminar esta rutina? Esta acción no se puede deshacer.</p>
         <div className="modal-actions">
@@ -1352,16 +1415,16 @@ export default function TrainerPage() {
           <button className="danger" onClick={confirmDeleteRoutine}>Eliminar</button>
         </div>
       </div>
-    </div>
+    </Modal>
   )}
 
   {/* Apply Program to Client modal */}
   {showApplyProgram && (
-    <div className="modal-overlay" onClick={() => setShowApplyProgram(false)}>
-      <div className="modal-box" style={{ maxWidth: 380 }} onClick={(e) => e.stopPropagation()}>
+    <Modal onClose={() => setShowApplyProgram(false)} titleId="apply-program-title" className="modal-box" style={{ maxWidth: 380 }}>
+      <div>
         <div className="modal-header">
           <Icon name="BookOpen" size={20} style={{ color: "var(--accent)" }} />
-          <h3>Aplicar "{showApplyProgram.programName}"</h3>
+          <h3 id="apply-program-title">Aplicar "{showApplyProgram.programName}"</h3>
         </div>
         <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 12 }}>
           Seleccioná el cliente al que querés asignar este programa.
@@ -1382,36 +1445,19 @@ export default function TrainerPage() {
           <button className="ghost" onClick={() => setShowApplyProgram(false)}>Cancelar</button>
         </div>
       </div>
-    </div>
+    </Modal>
   )}
 
   {payModal && (
-    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.6)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:999 }} onClick={() => setPayModal(null)}>
-      <div style={{ background:"var(--panel)", borderRadius:16, padding:24, width:"min(340px,90vw)" }} onClick={e => e.stopPropagation()}>
-        <div style={{ fontWeight:700, fontSize:16, marginBottom:4 }}>Registrar cobro</div>
-        <div style={{ fontSize:13, color:"var(--muted)", marginBottom:16 }}>{payModal.name || payModal.email}</div>
-        <div style={{ fontSize:13, marginBottom:8 }}>Monto cobrado (ARS)</div>
-        <input id="pay-amount" type="number" defaultValue={PRICE_ARS} style={{ width:"100%", padding:"8px 12px", borderRadius:8, border:"1px solid var(--line)", background:"var(--bg)", color:"var(--text)", fontSize:14, marginBottom:16, boxSizing:"border-box" }} />
-        <button onClick={async () => {
-          const amount = document.getElementById("pay-amount").value;
-          const today = new Date().toISOString().split("T")[0];
-          const nextDate = new Date(Date.now() + 30*24*60*60*1000).toISOString().split("T")[0];
-          const { error: payError } = await sb(
-            supabase.from("profiles").update({ last_payment_date: today, next_payment_date: nextDate }).eq("id", payModal.id),
-            { label: "registrar_cobro" }
-          );
-          if (payError) {
-            window.__showToast?.("No se pudo registrar el cobro. Intentá de nuevo.", "error");
-            return;
-          }
-          setPayModal(null);
-          // Refetch clients
-          window.location.reload();
-        }} style={{ width:"100%", background:"var(--accent)", color:"#fff", border:"none", borderRadius:10, padding:"12px", fontSize:15, fontWeight:700, cursor:"pointer" }}>
-          Confirmar cobro
-        </button>
-      </div>
-    </div>
+    <Modal onClose={() => { if (!paySaving) setPayModal(null); }} titleId="pay-modal-title" className="modal-box" style={{ width:"min(340px,90vw)" }}>
+      <div style={{ fontWeight:700, fontSize:16, marginBottom:4 }} id="pay-modal-title">Registrar cobro</div>
+      <div style={{ fontSize:13, color:"var(--muted)", marginBottom:16 }}>{payModal.name || payModal.email}</div>
+      <label htmlFor="pay-amount" style={{ display:"block", fontSize:13, marginBottom:8 }}>Monto cobrado (ARS)</label>
+      <input id="pay-amount" type="number" inputMode="decimal" min="0" step="any" value={payAmount} onChange={(e) => setPayAmount(e.target.value)} style={{ width:"100%", padding:"8px 12px", borderRadius:8, border:"1px solid var(--line)", background:"var(--bg)", color:"var(--text)", fontSize:14, marginBottom:16, boxSizing:"border-box" }} />
+      <button disabled={paySaving} onClick={confirmPayment} style={{ width:"100%", background:"var(--accent)", color:"#fff", border:"none", borderRadius:10, padding:"12px", fontSize:15, fontWeight:700, cursor:"pointer", opacity: paySaving ? 0.6 : 1 }}>
+        {paySaving ? "Guardando…" : "Confirmar cobro"}
+      </button>
+    </Modal>
   )}
 
 </>);

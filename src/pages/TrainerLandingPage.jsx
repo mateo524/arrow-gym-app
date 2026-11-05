@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase.js";
 import Icon from "../components/Icon";
 import { SUBSCRIPTIONS_ENABLED } from "../config/pricing.js";
+import { friendlyError } from "../lib/errors.js";
 
 export default function TrainerLandingPage({ inviteCode, onJoin, onBack }) {
   const [trainer, setTrainer] = useState(null);
@@ -10,16 +11,28 @@ export default function TrainerLandingPage({ inviteCode, onJoin, onBack }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [accepted, setAccepted] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const [networkFailed, setNetworkFailed] = useState(false);
 
   useEffect(() => {
     if (!inviteCode) { setError("Link inválido."); setLoading(false); return; }
     (async () => {
+      setLoading(true);
+      setError("");
+      setNetworkFailed(false);
       // Resolve invite code → trainer_id
-      const { data: codeRow } = await supabase
+      const { data: codeRow, error: codeErr } = await supabase
         .from("invite_codes")
         .select("trainer_id")
         .eq("code", inviteCode)
         .maybeSingle();
+
+      if (codeErr) {
+        setError(friendlyError(codeErr));
+        setNetworkFailed(true);
+        setLoading(false);
+        return;
+      }
 
       if (!codeRow?.trainer_id) {
         setError("Este link no es válido o expiró.");
@@ -41,7 +54,7 @@ export default function TrainerLandingPage({ inviteCode, onJoin, onBack }) {
       setRoutines(routinesRes.data || []);
       setLoading(false);
     })();
-  }, [inviteCode]);
+  }, [inviteCode, attempt]);
 
   const trainerName = trainer?.name || trainer?.email?.split("@")[0] || "tu entrenador";
   const initial = trainerName[0]?.toUpperCase() || "T";
@@ -58,6 +71,7 @@ export default function TrainerLandingPage({ inviteCode, onJoin, onBack }) {
     return (
       <div style={{ minHeight: "100dvh", background: "var(--bg)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24, textAlign: "center" }}>
         <p style={{ color: "var(--muted)", fontSize: 14 }}>{error}</p>
+        {networkFailed && <button type="button" className="primary" style={{ marginTop: 16 }} onClick={() => setAttempt((n) => n + 1)}>Reintentar</button>}
         <button className="ghost" style={{ marginTop: 16 }} onClick={onBack}>Volver al inicio</button>
       </div>
     );

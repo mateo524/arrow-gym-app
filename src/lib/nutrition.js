@@ -3,7 +3,14 @@
 const round1 = (n) => Math.round((Number(n) || 0) * 10) / 10;
 
 // ── TDEE ────────────────────────────────────────────────────────────────────
-const MULTIPLIERS = { mantenimiento: 1.55, volumen: 1.65, definicion: 1.5, rendimiento: 1.7 };
+// Todo se expresa respecto del mantenimiento: definición = mantenimiento x 0,82 (-18 %), volumen = x 1,10 (+10 %).
+const MAINTENANCE_MULT = 1.55;
+const MULTIPLIERS = {
+  mantenimiento: MAINTENANCE_MULT,
+  volumen: MAINTENANCE_MULT * 1.10,
+  definicion: MAINTENANCE_MULT * 0.82,
+  rendimiento: 1.7,
+};
 
 // Calorías diarias estimadas. null si no hay peso.
 // Mifflin-St Jeor con altura, edad y sexo; si falta algo, fallback kg * 22.
@@ -18,8 +25,8 @@ export function calcTdee({ bodyWeight, height, sex, age, goal } = {}) {
     : bw * 22;
   const isMinor = a !== null && a < 18;
   const safeGoal = isMinor && goal === "definicion" ? "mantenimiento" : goal;
-  const tdeeRaw = Math.round(rmr * (MULTIPLIERS[safeGoal] ?? 1.55));
-  const maintenance = Math.round(rmr * 1.55);
+  const tdeeRaw = Math.round(rmr * (MULTIPLIERS[safeGoal] ?? MAINTENANCE_MULT));
+  const maintenance = Math.round(rmr * MAINTENANCE_MULT);
   const maxDeficit = a !== null && a < 21 ? 0.8 : 0.75;
   const floor = sex === "M" ? 1500 : 1200;
   const t = safeGoal === "definicion" ? Math.max(tdeeRaw, Math.round(maintenance * maxDeficit)) : tdeeRaw;
@@ -98,6 +105,8 @@ const ALIAS_GROUPS = [
   ["lomo", "solomillo"],
   ["pancho", "hot dog"],
   ["sandwich", "emparedado"],
+  ["molida", "picada"],
+  ["platano", "banana"],
 ];
 
 // Stem simple: plural -s/-es.
@@ -121,6 +130,7 @@ function variantsOf(word) {
   return ALIAS_MAP.get(s) || [s];
 }
 
+const MATCH_STOP = new Set(["de", "del", "la", "el", "los", "las", "con", "en", "al", "y", "a", "un", "una", "sin"]);
 // Puntaje de relevancia de `name` (y opcionalmente `cat`) contra `query`. 0 = sin match.
 // Cada palabra de la búsqueda suma una sola vez, sin importar el orden.
 export function matchScore(name, query, cat = "") {
@@ -132,7 +142,10 @@ export function matchScore(name, query, cat = "") {
   // Palabras únicas (un solo representante por grupo de sinónimos): no se suma dos veces lo mismo
   const words = [];
   const seenKeys = new Set();
-  for (const w of q.split(" ").filter(Boolean)) {
+  const qWords = q.split(" ").filter(Boolean);
+  // Conectores ("de", "con"...) no cuentan como término, salvo que la búsqueda sean sólo conectores
+  const sig = qWords.filter((w) => !MATCH_STOP.has(w));
+  for (const w of sig.length ? sig : qWords) {
     const key = variantsOf(w)[0];
     if (seenKeys.has(key)) continue;
     seenKeys.add(key);
@@ -150,7 +163,6 @@ export function matchScore(name, query, cat = "") {
     for (const v of vs) {
       if (nTokens.some((t) => t === v)) { pts = Math.max(pts, 4); }
       else if (nTokens.some((t) => t.startsWith(v))) { pts = Math.max(pts, 3); }
-      else if (v.length >= 3 && n.includes(v)) { pts = Math.max(pts, 2); }
     }
     if (pts === 0 && c && vs.some((v) => c.includes(v))) pts = 1;
     if (pts > 0) { matched += 1; score += pts; }

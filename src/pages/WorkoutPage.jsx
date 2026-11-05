@@ -155,12 +155,12 @@ function getExerciseSessionHistory(workouts, exercise) {
 function getLastSessionForExercise(exerciseName, workoutHistory) {
   const lower = (exerciseName || "").trim().toLowerCase();
   const past = (workoutHistory || [])
-    .filter(w => (w.sets || []).some(s => (s.exercise || "").trim().toLowerCase() === lower && (s.weight || s.reps)));
+    .filter(w => (w.sets || []).some(s => (s.exercise || "").trim().toLowerCase() === lower && s.setType !== "warmup" && (s.weight || s.reps)));
   if (!past.length) return null;
   const last = past[0]; // workouts are sorted newest-first
   return {
     date: last.date,
-    sets: (last.sets || []).filter(s => (s.exercise || "").trim().toLowerCase() === lower && (s.weight || s.reps)),
+    sets: (last.sets || []).filter(s => (s.exercise || "").trim().toLowerCase() === lower && s.setType !== "warmup" && (s.weight || s.reps)),
   };
 }
 
@@ -577,15 +577,15 @@ export default function WorkoutPage() {
     const currentGoal = (useStore.getState().userGoal || "").toLowerCase();
     let baseDuration = exerciseRestTimes[exercise] || 90;
     if (!exerciseRestTimes[exercise]) {
-      if (currentGoal.includes("fuerza")) baseDuration = 180;
-      else if (currentGoal.includes("hipertrofia")) baseDuration = 90;
-      else if (currentGoal.includes("volumen")) baseDuration = 60;
-      else if (currentGoal.includes("definicion")) baseDuration = 45;
+      if (currentGoal.includes("fuerza") || currentGoal.includes("rendimiento")) baseDuration = 150;
+      else if (currentGoal.includes("hipertrofia") || currentGoal.includes("volumen")) baseDuration = 105;
+      else if (currentGoal.includes("definicion")) baseDuration = 60;
     }
-    if (rpe !== null) {
-      if (rpe >= 9) baseDuration = Math.max(baseDuration, 150);
-      else if (rpe >= 8) baseDuration = Math.max(baseDuration, 90);
-      else if (rpe <= 6) baseDuration = Math.min(baseDuration, 60);
+    const rpeNum = rpe === "" || rpe == null ? null : Number(rpe);
+    if (rpeNum !== null && Number.isFinite(rpeNum)) {
+      if (rpeNum >= 9) baseDuration = Math.max(baseDuration, 150);
+      else if (rpeNum >= 8) baseDuration = Math.max(baseDuration, 90);
+      else if (rpeNum <= 6) baseDuration = Math.min(baseDuration, 60);
     }
     setRestDuration(baseDuration);
     setRestExercise(exercise);
@@ -1080,7 +1080,11 @@ export default function WorkoutPage() {
                       // PR badge only on the FIRST set in this session that beats the historical best
                       // Récord global: supera tu mejor peso histórico en este ejercicio y también
                       // el de las series anteriores de esta sesión (una serie igual o menor no es PR)
-                      const isNewPR = isNewPRWeight(setItem.weight, bestPR, sets.slice(0, index).map(s => s.weight));
+                      const isWarm = setItem.setType === "warmup";
+                      // Índice entre series de trabajo (los calentamientos no desplazan la comparación con la sesión anterior)
+                      const workIdx = sets.slice(0, index).filter(s => s.setType !== "warmup").length;
+                      const lastSets = lastSessionsByExercise[exercise]?.sets;
+                      const isNewPR = !isWarm && isNewPRWeight(setItem.weight, bestPR, sets.slice(0, index).filter(s => s.setType !== "warmup").map(s => s.weight));
                       return (
                         <div key={setItem.id} style={{ position: "relative" }}>
                           {setItem.isDropset && (
@@ -1091,10 +1095,10 @@ export default function WorkoutPage() {
                           <WorkoutSetCard
                             index={index + 1}
                             setItem={setItem}
-                            prevSet={lastSessionsByExercise[exercise]?.sets[index] || null}
+                            prevSet={isWarm ? null : (lastSets?.[workIdx] || null)}
                             beyondLastSession={
-                              !!(lastSessionsByExercise[exercise]?.sets?.length) &&
-                              index >= (lastSessionsByExercise[exercise]?.sets?.length || 0)
+                              !isWarm && !!(lastSets?.length) &&
+                              workIdx >= (lastSets?.length || 0)
                             }
                             onUpdate={(patch) => {
                               try { navigator.vibrate?.([30]); } catch {}

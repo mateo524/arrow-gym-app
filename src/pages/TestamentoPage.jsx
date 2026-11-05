@@ -121,7 +121,7 @@ export default function TestamentoPage() {
     <div className="page-container" style={{ maxWidth: 500, margin: "0 auto", padding: "0 0 100px" }}>
       {/* Header */}
       <div style={{ padding: "16px 16px 0", display: "flex", alignItems: "center", gap: 10 }}>
-        <button className="ghost icon-btn" onClick={() => setPage("trainer")}>
+        <button type="button" aria-label="Volver" className="ghost icon-btn" onClick={() => setPage("trainer")}>
           <Icon name="ArrowLeft" size={20} />
         </button>
         <div>
@@ -149,7 +149,7 @@ export default function TestamentoPage() {
               {isActive ? "Tus alumnos pueden consultarte via IA" : "Tus alumnos ven el chat normal"}
             </p>
           </div>
-          <button
+          <button type="button" aria-label="Activar o desactivar Modo Testamento" role="switch" aria-checked={isActive}
             onClick={toggleActive}
             style={{
               width: 48, height: 26, borderRadius: 13, border: "none", cursor: "pointer",
@@ -256,10 +256,10 @@ export default function TestamentoPage() {
                   {r.question_hint}
                 </p>
                 <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                  <button className="ghost icon-btn" onClick={() => edit(r)}>
+                  <button type="button" aria-label="Editar respuesta" className="ghost icon-btn" onClick={() => edit(r)}>
                     <Icon name="Edit2" size={14} />
                   </button>
-                  <button className="ghost icon-btn" onClick={() => remove(r.id)} style={{ color: "var(--danger)" }}>
+                  <button type="button" aria-label="Eliminar respuesta" className="ghost icon-btn" onClick={() => remove(r.id)} style={{ color: "var(--danger)" }}>
                     <Icon name="Trash2" size={14} />
                   </button>
                 </div>

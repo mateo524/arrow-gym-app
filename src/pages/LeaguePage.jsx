@@ -3,6 +3,7 @@ import { supabase } from "../lib/supabase.js";
 import useAuthStore from "../store/useAuthStore.js";
 import useStore from "../store/useStore.js";
 import Icon from "../components/Icon.jsx";
+import { friendlyError } from "../lib/errors.js";
 
 const MEDAL_COLORS = ['#f59e0b', '#94a3b8', '#b45309'];
 function renderMedal(rank, size = 16) {
@@ -28,6 +29,7 @@ export default function LeaguePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [trainerName, setTrainerName] = useState("");
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -38,7 +40,7 @@ export default function LeaguePage() {
       // Fetch league via SECURITY DEFINER function
       const { data, error: rpcErr } = await supabase.rpc("get_my_league");
       if (rpcErr) {
-        setError("No pudimos cargar la liga. Verificá tu conexión.");
+        setError(friendlyError(rpcErr));
         setLoading(false);
         return;
       }
@@ -57,18 +59,18 @@ export default function LeaguePage() {
 
       setLoading(false);
     })();
-  }, [user?.id, profile?.trainer_id]);
+  }, [user?.id, profile?.trainer_id, attempt]);
 
   const myRank = standings.findIndex((s) => s.user_id === user?.id);
   const myEntry = standings[myRank];
 
-  const noLeague = !loading && standings.length === 0;
+  const noLeague = !loading && !error && standings.length === 0;
 
   return (
     <div className="page-container" style={{ maxWidth: 480, margin: "0 auto", padding: "0 0 100px" }}>
       {/* Header */}
       <div style={{ padding: "16px 16px 0", display: "flex", alignItems: "center", gap: 10 }}>
-        <button className="ghost icon-btn" onClick={() => setPage("coach")}>
+        <button type="button" aria-label="Volver" className="ghost icon-btn" onClick={() => setPage("coach")}>
           <Icon name="ArrowLeft" size={20} />
         </button>
         <div>
@@ -90,8 +92,9 @@ export default function LeaguePage() {
         )}
 
         {error && (
-          <div className="card" style={{ textAlign: "center", padding: 32 }}>
-            <p style={{ color: "var(--muted)", fontSize: 14 }}>{error}</p>
+          <div className="card" role="alert" style={{ textAlign: "center", padding: 32 }}>
+            <p style={{ color: "var(--muted)", fontSize: 14, margin: "0 0 12px" }}>{error}</p>
+            <button type="button" className="ghost" onClick={() => setAttempt((n) => n + 1)}>Reintentar</button>
           </div>
         )}
 

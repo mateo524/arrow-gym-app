@@ -1,5 +1,5 @@
 import { openCheckout } from "../lib/checkout.js";
-import { SUBSCRIPTIONS_ENABLED } from "../config/pricing.js";
+import { SUBSCRIPTIONS_ENABLED, PRICE_ARS } from "../config/pricing.js";
 import { formatDMY } from "../lib/dates.js";
 import DateInput from "../components/DateInput.jsx";
 ﻿import { useState, useRef, useEffect } from "react";
@@ -8,6 +8,8 @@ import useAuthStore from "../store/useAuthStore.js";
 import { supabase } from "../lib/supabase.js";
 import { todayLocal } from "../lib/dates.js";
 import Icon from "../components/Icon.jsx";
+import Modal from "../components/Modal.jsx";
+import { friendlyError } from "../lib/errors.js";
 import SupportForm from "../components/SupportForm.jsx";
 import { parseImportFile } from "../lib/importCSV.js";
 import { subscribeToPush, requestPushPermission, isPushSupported, isIosNotInstalled } from "../lib/pushNotifications.js";
@@ -117,17 +119,21 @@ export default function ProfilePage() {
       const reg = await navigator.serviceWorker.ready;
       const existing = await reg.pushManager.getSubscription();
       if (existing) {
+        const endpoint = existing.endpoint;
         await existing.unsubscribe();
         localStorage.removeItem("pushSubscription");
         const { data: { user: u } } = await supabase.auth.getUser();
         if (u) {
-          await supabase.from("push_subscriptions").delete().eq("user_id", u.id);
+          // Solo se quita la suscripcion de ESTE dispositivo (por endpoint), no las de los demas.
+          let q = supabase.from("push_subscriptions").delete().eq("user_id", u.id);
+          if (endpoint) q = q.eq("subscription->>endpoint", endpoint);
+          await q;
         }
         setNotifEnabled(false);
       } else {
         const { permission, supported } = await requestPushPermission();
         if (!supported) {
-          alert("Tu navegador no soporta notificaciones push.");
+          window.__showToast?.("Tu navegador no soporta notificaciones push.", "error");
         } else if (permission === "granted") {
           const { data: { user: u } } = await supabase.auth.getUser();
           const sub = await subscribeToPush(u?.id, supabase);
@@ -135,17 +141,17 @@ export default function ProfilePage() {
             localStorage.setItem("pushSubscription", JSON.stringify(sub));
             setNotifEnabled(true);
           } else {
-            alert("No se pudo activar. Verificá que la app está instalada como PWA y volvá a intentar.");
+            window.__showToast?.("No se pudo activar. Verificá que la app está instalada como PWA y volvá a intentar.", "error");
           }
         } else if (permission === "denied") {
-          alert("Notificaciones bloqueadas. Habilitá los permisos del navegador en Configuración del sistema.");
+          window.__showToast?.("Notificaciones bloqueadas. Habilitá los permisos del navegador en Configuración del sistema.", "error");
         } else {
-          alert("Permiso no otorgado. Tocá Permitir cuando el navegador te lo solicite.");
+          window.__showToast?.("Permiso no otorgado. Tocá Permitir cuando el navegador te lo solicite.", "info");
         }
       }
     } catch (e) {
       console.error("Toggle notifications error:", e);
-      alert("Error al activar notificaciones. Intentá de nuevo.");
+      window.__showToast?.("Error al activar notificaciones. Intentá de nuevo.", "error");
     }
     setNotifLoading(false);
   }
@@ -237,6 +243,7 @@ export default function ProfilePage() {
   const [pwdMsg, setPwdMsg] = useState("");
   const [savingPwd, setSavingPwd] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showCancelSubConfirm, setShowCancelSubConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteStep, setDeleteStep] = useState(1);
   const [deleting, setDeleting] = useState(false);
@@ -285,7 +292,7 @@ export default function ProfilePage() {
     if (!uid) { setNameMsg("Error: sesión no válida"); return; }
     const { error } = await supabase.from("profiles").update({ name: trimmed }).eq("id", uid);
     if (error) {
-      setNameMsg("Error: " + error.message);
+      setNameMsg("Error: " + friendlyError(error));
     } else {
       useAuthStore.setState(s => ({ profile: { ...(s.profile || { id: uid }), name: trimmed } }));
       setNameMsg("Nombre actualizado");
@@ -302,7 +309,7 @@ export default function ProfilePage() {
     const { error } = await supabase.auth.updateUser({ password: newPwd });
     setSavingPwd(false);
     if (error) {
-      setPwdMsg("Error: " + error.message);
+      setPwdMsg("Error: " + friendlyError(error));
     } else {
       setPwdMsg("Contraseña actualizada");
       setNewPwd(""); setConfirmPwd("");
@@ -379,7 +386,11 @@ export default function ProfilePage() {
           };
 
           const handleCancel = async () => {
-            if (!confirm("¿Cancelar tu suscripción mensual? Seguirá activa hasta el próximo vencimiento.")) return;
+            setShowCancelSubConfirm(true);
+          };
+
+          const doCancel = async () => {
+            setShowCancelSubConfirm(false);
             try {
               const { data, error } = await supabase.functions.invoke("mp-cancel-subscription");
               if (!error && data?.ok) {
@@ -391,6 +402,19 @@ export default function ProfilePage() {
           };
 
           return (
+            <>
+            {showCancelSubConfirm && (
+              <Modal className="modal-card confirm-modal" ariaLabel="Cancelar suscripción" onClose={() => setShowCancelSubConfirm(false)}>
+                <div style={{ textAlign: "center", padding: "8px 0 16px" }}>
+                  <h2 style={{ margin: "0 0 6px" }}>¿Cancelar tu suscripción mensual?</h2>
+                  <p style={{ color: "var(--muted)", fontSize: 14, margin: 0 }}>Seguirá activa hasta el próximo vencimiento.</p>
+                </div>
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button className="ghost" style={{ flex: 1 }} onClick={() => setShowCancelSubConfirm(false)}>Volver</button>
+                  <button className="primary" style={{ flex: 1, background: "var(--danger)", color: "#fff" }} onClick={doCancel}>Cancelar suscripción</button>
+                </div>
+              </Modal>
+            )}
             <div style={{ background: isActive ? "rgba(52,211,153,.08)" : "rgba(168,85,247,.06)", border: `1px solid ${isActive ? "rgba(52,211,153,.25)" : "rgba(168,85,247,.2)"}`, borderRadius: 16, padding: "14px 16px", marginBottom: 12 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: isActive ? 8 : 0 }}>
                 <span style={{ fontSize: 12, fontWeight: 700, color: isActive ? "var(--green)" : "var(--muted)" }}>{isActive ? "Activa" : "Inactiva"}</span>
@@ -402,14 +426,14 @@ export default function ProfilePage() {
                     {isActive
                       ? hasPreapproval
                         ? `No se renueva solo, te avisamos antes de vencer${daysUntilRenewal !== null ? ` — vence en ${daysUntilRenewal} día${daysUntilRenewal !== 1 ? "s" : ""}` : ""}`
-                        : `Plan mensual $10.000 ARS${daysUntilRenewal !== null ? ` — vence en ${daysUntilRenewal} día${daysUntilRenewal !== 1 ? "s" : ""}` : ""}`
-                      : "Accedá al Coach y Comidas — $10.000/mes"}
+                        : `Plan mensual $${PRICE_ARS.toLocaleString("es-AR")} ARS${daysUntilRenewal !== null ? ` — vence en ${daysUntilRenewal} día${daysUntilRenewal !== 1 ? "s" : ""}` : ""}`
+                      : `Accedá al Coach y Comidas — $${PRICE_ARS.toLocaleString("es-AR")}/mes`}
                   </div>
                 </div>
               </div>
               {!isActive && (
                 <button className="primary" style={{ width: "100%", padding: "11px", borderRadius: 12, fontSize: 13, marginTop: 8 }} onClick={handleSubscribe}>
-                  Pagar plan mensual — $10.000 (30 días, sin débito automático)
+                  Pagar plan mensual — ${PRICE_ARS.toLocaleString("es-AR")} (30 días, sin débito automático)
                 </button>
               )}
               {isActive && (
@@ -433,6 +457,7 @@ export default function ProfilePage() {
                 <a href="#/legal/privacidad" target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: "var(--muted)" }}>Privacidad</a>
               </div>
             </div>
+            </>
           );
         })()}
 
@@ -945,8 +970,8 @@ export default function ProfilePage() {
 
       {/* Delete account modal */}
       {showDeleteConfirm && (
-        <div className="modal-overlay" onClick={() => { if (!deleting) { setShowDeleteConfirm(false); setDeleteStep(1); }}}>
-          <div className="modal-card confirm-modal" onClick={(e) => e.stopPropagation()}>
+        <Modal className="modal-card confirm-modal" ariaLabel="Eliminar cuenta" onClose={() => { if (!deleting) { setShowDeleteConfirm(false); setDeleteStep(1); }}}>
+          <div>
             {deleteStep === 1 ? (
               <>
                 <div style={{ textAlign: "center", padding: "8px 0 16px" }}>
@@ -1011,13 +1036,13 @@ export default function ProfilePage() {
               </>
             )}
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* Logout confirm modal */}
       {showLogoutConfirm && (
-        <div className="modal-overlay" onClick={() => setShowLogoutConfirm(false)}>
-          <div className="modal-card confirm-modal" onClick={(e) => e.stopPropagation()}>
+        <Modal className="modal-card confirm-modal" ariaLabel="Cerrar sesión" onClose={() => setShowLogoutConfirm(false)}>
+          <div>
             <div style={{ textAlign: "center", padding: "8px 0 16px" }}>
               <Icon name="LogOut" size={32} style={{ color: "var(--danger)" }} />
               <h2 style={{ margin: "12px 0 6px" }}>¿Cerrar sesión?</h2>
@@ -1035,7 +1060,7 @@ export default function ProfilePage() {
               </button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
     </>
   );

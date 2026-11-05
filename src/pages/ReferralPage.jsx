@@ -3,6 +3,7 @@ import useAuthStore from "../store/useAuthStore.js";
 import useStore from "../store/useStore.js";
 import { supabase } from "../lib/supabase.js";
 import Icon from "../components/Icon.jsx";
+import { friendlyError } from "../lib/errors.js";
 
 export default function ReferralPage() {
   const { profile } = useAuthStore();
@@ -12,6 +13,7 @@ export default function ReferralPage() {
   const [totalStudents, setTotalStudents] = useState(0);
   const [conversions, setConversions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [copied, setCopied] = useState(false);
   const [generating, setGenerating] = useState(false);
 
@@ -20,9 +22,10 @@ export default function ReferralPage() {
   const loadData = useCallback(async () => {
     if (!profile?.id) return;
     setLoading(true);
+    setLoadError("");
 
     // Traer código de invitación existente
-    const { data: codeData } = await supabase
+    const { data: codeData, error: codeError } = await supabase
       .from("invite_codes")
       .select("code")
       .eq("trainer_id", profile.id)
@@ -30,10 +33,15 @@ export default function ReferralPage() {
       .limit(1)
       .maybeSingle();
 
+    if (codeError) {
+      setLoadError(friendlyError(codeError));
+      setLoading(false);
+      return;
+    }
     if (codeData?.code) setInviteCode(codeData.code);
 
     // Traer todos los alumnos vinculados
-    const [{ data: students }, { data: convData }] = await Promise.all([
+    const [{ data: students, error: studentsError }, { data: convData, error: convError }] = await Promise.all([
       supabase
         .from("profiles")
         .select("id, name, email, created_at, subscription_status")
@@ -45,6 +53,14 @@ export default function ReferralPage() {
         .order("created_at", { ascending: false })
         .limit(10),
     ]);
+
+    // Si la tabla de conversiones todavía no existe en la base, se muestra la página sin esa lista.
+    const convMissing = convError && (convError.code === "42P01" || convError.code === "PGRST205");
+    if (studentsError || (convError && !convMissing)) {
+      setLoadError(friendlyError(studentsError || convError));
+      setLoading(false);
+      return;
+    }
 
     const all = students || [];
     setTotalStudents(all.length);
@@ -101,6 +117,12 @@ export default function ReferralPage() {
         {loading ? (
           <div style={{ textAlign: "center", padding: 40 }}>
             <Icon name="Loader" size={28} className="spin" />
+          </div>
+        ) : loadError ? (
+          <div style={{ textAlign: "center", padding: 40 }}>
+            <Icon name="AlertTriangle" size={32} />
+            <p style={{ margin: "12px 0" }}>{loadError}</p>
+            <button type="button" className="ghost" onClick={loadData}>Reintentar</button>
           </div>
         ) : (
           <>

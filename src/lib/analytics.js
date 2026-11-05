@@ -1,7 +1,13 @@
 ﻿import { BODY_GROUPS, MUSCLES_BY_GROUP, resolveExerciseGroup, resolveExerciseMuscle, findExerciseMeta, EXERCISE_MAP } from "../data/exerciseDatabase.js";
 
+// Tipos de serie: "normal" (default / datos viejos sin setType), "warmup", "drop", "failure".
+// Las series de calentamiento no cuentan para volumen, PR ni 1RM.
+export function isWarmup(set) {
+  return !!set && set.setType === "warmup";
+}
+
 export function hasData(set) {
-  return set && Number(set.weight) > 0 && Number(set.reps) > 0;
+  return set && !isWarmup(set) && Number(set.weight) > 0 && Number(set.reps) > 0;
 }
 
 /**
@@ -165,7 +171,7 @@ export function getMuscleIntensity(workouts, cardioHistory = []) {
 
 function previousSetsForExercise(exercise, history) {
   for (let i = 0; i < history.length; i++) {
-    const found = (history[i].sets || []).filter((s) => s.exercise === exercise);
+    const found = (history[i].sets || []).filter((s) => s.exercise === exercise && !isWarmup(s));
     if (found.length > 0) return found.map(hydrateSet);
   }
   return [];
@@ -213,7 +219,7 @@ export function buildCoachReport(workout, allWorkouts = [], userProfile = null) 
   const prs = [];
 
   Object.entries(byExercise).forEach(([exercise, sets]) => {
-    const setsWithData = sets.filter((s) => Number(s.weight) > 0 && Number(s.reps) > 0);
+    const setsWithData = sets.filter((s) => !isWarmup(s) && Number(s.weight) > 0 && Number(s.reps) > 0);
     if (!setsWithData.length) return;
 
     const reps = setsWithData.map((s) => Number(s.reps));
@@ -419,7 +425,7 @@ export function getDeloadSuggestion(workouts) {
 export function getExerciseProgression(workouts, exercise) {
   const pts = [];
   [...(workouts || [])].sort((a, b) => String(a.date).localeCompare(String(b.date))).forEach((w) => {
-    const sets = (w.sets || []).filter((s) => s.exercise === exercise && Number(s.weight) > 0 && Number(s.reps) > 0);
+    const sets = (w.sets || []).filter((s) => s.exercise === exercise && !isWarmup(s) && Number(s.weight) > 0 && Number(s.reps) > 0);
     if (!sets.length) return;
     const orms = sets.map((s) => calc1RM(s.weight, s.reps)).filter(v => v > 0);
     if (!orms.length) return;
@@ -583,7 +589,7 @@ function rulePerExercise(ctx) {
   const hints = [];
 
   Object.entries(byExercise).forEach(([exercise, sets]) => {
-    const setsWithData = sets.filter(s => Number(s.weight) > 0 && Number(s.reps) > 0);
+    const setsWithData = sets.filter(s => !isWarmup(s) && Number(s.weight) > 0 && Number(s.reps) > 0);
     if (!setsWithData.length) return;
 
     const maxWeight = Math.max(...setsWithData.map(s => Number(s.weight)));
@@ -966,7 +972,7 @@ export function getOneRMHistory(workouts, exercise) {
   [...(workouts || [])]
     .sort((a, b) => a.date.localeCompare(b.date))
     .forEach(w => {
-      const sets = (w.sets || []).filter(s => s.exercise === exercise && Number(s.weight) > 0 && Number(s.reps) > 0);
+      const sets = (w.sets || []).filter(s => s.exercise === exercise && !isWarmup(s) && Number(s.weight) > 0 && Number(s.reps) > 0);
       if (!sets.length) return;
       const best = Math.max(...sets.map(s => calc1RM(s.weight, s.reps)));
       if (best <= 0) return;
@@ -1152,7 +1158,7 @@ export function getAchievements(workouts = [], prs = [], mealLog = [], weightLog
   const totalPRs = prs.length;
   const totalSets = workouts.reduce((s, w) => s + (w.sets?.length || 0), 0);
   const totalReps = workouts.reduce((s, w) => s + (w.sets||[]).reduce((r, set) => r + (Number(set.reps)||0), 0), 0);
-  const totalVolume = workouts.reduce((s, w) => s + (w.sets||[]).reduce((v, set) => v + (Number(set.weight)||0)*(Number(set.reps)||0), 0), 0);
+  const totalVolume = workouts.reduce((s, w) => s + (w.sets||[]).filter((set) => !isWarmup(set)).reduce((v, set) => v + (Number(set.weight)||0)*(Number(set.reps)||0), 0), 0);
   const totalMinutes = workouts.reduce((s, w) => s + (Number(w.duration)||0)/60, 0);
   const streak = getStreak(workouts, restDays);
 

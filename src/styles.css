@@ -74,6 +74,18 @@
   --muted: #6b5f88;
   --text-secondary: #6b5f88;
   --text-muted: #6a5f85;
+  /* Acentos oscurecidos en modo claro: contraste AA (>=4.5:1) como texto sobre fondo/panel */
+  --green: #8b2fe0;
+  --accent: #8b2fe0;
+  --c-accent: #8b2fe0;
+  --danger: #c62828;
+  --c-danger: #c62828;
+  --cyan: #0e7490;
+  --accent-secondary: #0e7490;
+  --c-accent-secondary: #0e7490;
+  --yellow: #854d0e;
+  --c-warning: #854d0e;
+  --gold: #92400e;
   --glass-bg: rgba(0,0,0,.02);
   --glass-border: rgba(0,0,0,.06);
   --glass-highlight: rgba(0,0,0,.03);
@@ -3544,3 +3556,10 @@ img, video, canvas { max-width: 100%; }
     min-height: 36px;
   }
 }
+
+/* ── Accesibilidad táctil: área de toque >= 44px sin cambiar el tamaño visual ── */
+.set-icon-32, .set-delete-btn, .set-done-action, .set-rest-action, .fav-btn, .back-btn, .rpe-btn, .set-repeat-prev, .set-link-btn, .nut-link-btn { position: relative; }
+.set-icon-32::after, .set-delete-btn::after, .set-done-action::after, .set-rest-action::after, .rpe-btn::after { content: ""; position: absolute; inset: -6px -2px; }
+.fav-btn::after, .back-btn::after { content: ""; position: absolute; inset: -4px; }
+.set-repeat-prev::after, .set-link-btn::after, .nut-link-btn::after { content: ""; position: absolute; inset: -6px 0; }
+[role="button"]:focus-visible, [role="checkbox"]:focus-visible, [role="switch"]:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }

@@ -2,6 +2,7 @@
 import useStore from "../store/useStore.js";
 import { getWorkoutVolume, hydrateSet, formatDate } from "../lib/analytics.js";
 import Icon from "../components/Icon.jsx";
+import Modal from "../components/Modal.jsx";
 
 export default function WorkoutDetailPage() {
   const id = useStore((state) => state.selectedWorkoutId);
@@ -227,12 +228,10 @@ export default function WorkoutDetailPage() {
 
       {/* ── EDITAR SERIES ── */}
       {editingSets && (
-        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.8)", zIndex:300, display:"flex", alignItems:"flex-end" }}
-          onClick={e => { if (e.target === e.currentTarget) setEditingSets(false); }}>
-          <div style={{ width:"100%", background:"var(--bg)", borderRadius:"20px 20px 0 0", padding:"24px 20px", paddingBottom:"max(24px, env(safe-area-inset-bottom, 24px))", maxHeight:"90vh", overflowY:"auto" }}>
+        <Modal onClose={() => setEditingSets(false)} ariaLabel="Editar series" className="" overlayStyle={{ zIndex:300, background:"rgba(0,0,0,.8)", padding:0, alignItems:"flex-end" }} style={{ width:"100%", background:"var(--bg)", borderRadius:"20px 20px 0 0", padding:"24px 20px", paddingBottom:"max(24px, env(safe-area-inset-bottom, 24px))", maxHeight:"90vh", overflowY:"auto" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
               <h3 style={{ margin:0, fontSize:17 }}>Editar series</h3>
-              <button onClick={() => setEditingSets(false)} style={{ background:"none", border:"none", cursor:"pointer", fontSize:22, color:"var(--muted)" }}>×</button>
+              <button type="button" aria-label="Cerrar" onClick={() => setEditingSets(false)} style={{ background:"none", border:"none", cursor:"pointer", fontSize:22, color:"var(--muted)" }}>×</button>
             </div>
             {byExercise.map(({ exercise }) => {
               const exerciseDrafts = draftSets.filter(s => s.exercise === exercise);
@@ -261,18 +260,15 @@ export default function WorkoutDetailPage() {
             <button onClick={saveSets} className="primary" style={{ width:"100%", marginTop:4 }}>
               Guardar series
             </button>
-          </div>
-        </div>
+        </Modal>
       )}
 
       {/* ── EDITAR ENTRENAMIENTO ── */}
       {editing && (
-        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.75)", zIndex:300, display:"flex", alignItems:"flex-end" }}
-          onClick={e => { if (e.target === e.currentTarget) setEditing(false); }}>
-          <div style={{ width:"100%", background:"var(--bg)", borderRadius:"20px 20px 0 0", padding:"24px 20px", paddingBottom:"max(24px, env(safe-area-inset-bottom, 24px))" }}>
+        <Modal onClose={() => setEditing(false)} ariaLabel="Editar entrenamiento" className="" overlayStyle={{ zIndex:300, background:"rgba(0,0,0,.75)", padding:0, alignItems:"flex-end" }} style={{ width:"100%", background:"var(--bg)", borderRadius:"20px 20px 0 0", padding:"24px 20px", paddingBottom:"max(24px, env(safe-area-inset-bottom, 24px))" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:18 }}>
               <h3 style={{ margin:0, fontSize:17 }}>Editar entrenamiento</h3>
-              <button onClick={() => setEditing(false)} style={{ background:"none", border:"none", cursor:"pointer", fontSize:22, color:"var(--muted)" }}>×</button>
+              <button type="button" aria-label="Cerrar" onClick={() => setEditing(false)} style={{ background:"none", border:"none", cursor:"pointer", fontSize:22, color:"var(--muted)" }}>×</button>
             </div>
             <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
               <div>
@@ -291,15 +287,12 @@ export default function WorkoutDetailPage() {
                 Guardar cambios
               </button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
 
       {/* ── CONFIRMAR BORRAR ── */}
       {confirmDelete && (
-        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.75)", zIndex:300, display:"flex", alignItems:"center", justifyContent:"center", padding:24 }}
-          onClick={e => { if (e.target === e.currentTarget) setConfirmDelete(false); }}>
-          <div style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:20, padding:"24px 20px", width:"100%", maxWidth:340 }}>
+        <Modal onClose={() => setConfirmDelete(false)} ariaLabel="Eliminar entrenamiento" className="" overlayStyle={{ zIndex:300, background:"rgba(0,0,0,.75)", padding:24, alignItems:"center" }} style={{ background:"var(--panel)", border:"1px solid var(--line)", borderRadius:20, padding:"24px 20px", width:"100%", maxWidth:340 }}>
             <h3 style={{ margin:"0 0 8px", fontSize:17 }}>Eliminar entrenamiento</h3>
             <p style={{ fontSize:13, color:"var(--muted)", margin:"0 0 20px" }}>
               ¿Borrar "{workout.type}" del {formatDate(workout.date)}? Esta acción no se puede deshacer.
@@ -311,8 +304,7 @@ export default function WorkoutDetailPage() {
                 Eliminar
               </button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
     </section>
   );

@@ -1,5 +1,6 @@
 import { Suspense, lazy } from "react";
 import Icon from "./Icon.jsx";
+import Modal from "./Modal.jsx";
 import { findExerciseMeta } from "../data/exerciseDatabase.js";
 import { techniqueFor } from "../data/technique/index.js";
 
@@ -21,14 +22,7 @@ export default function ExerciseHowTo({ exercise, tip, onClose, accent = "var(--
   const tech = techniqueFor(exercise);
   const note = tip && tip !== meta.tip && tip !== tech?.tip ? tip : "";
   return (
-    <div className="modal-overlay" onClick={onClose} style={{ zIndex: 500 }}>
-      <div
-        className="modal-card"
-        role="dialog"
-        aria-label={`Cómo se hace ${exercise}`}
-        style={{ maxWidth: 380, maxHeight: "88dvh", overflowY: "auto" }}
-        onClick={(e) => e.stopPropagation()}
-      >
+    <Modal onClose={onClose} ariaLabel={`Cómo se hace ${exercise}`} overlayStyle={{ zIndex: 500 }} style={{ maxWidth: 380, maxHeight: "88dvh", overflowY: "auto" }}>
         <div className="modal-header">
           <h2 style={{ fontSize: 17, margin: 0 }}>Cómo se hace: {exercise}</h2>
           <button className="ghost icon-btn" onClick={onClose} aria-label="Cerrar"><Icon name="X" size={18} /></button>
@@ -87,7 +81,6 @@ export default function ExerciseHowTo({ exercise, tip, onClose, accent = "var(--
         )}
 
         <button className="ghost" style={{ width: "100%", marginTop: 16 }} onClick={onClose}>Cerrar</button>
-      </div>
-    </div>
+    </Modal>
   );
 }

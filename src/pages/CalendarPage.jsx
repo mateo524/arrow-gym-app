@@ -135,7 +135,10 @@ export default function CalendarPage() {
           return (
             <div
               key={dateStr}
+              role="button"
+              tabIndex={0}
               onClick={() => handleDayClick(day)}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleDayClick(day); } }}
               style={{
                 ...styles.cell,
                 ...(isToday ? styles.cellToday : {}),

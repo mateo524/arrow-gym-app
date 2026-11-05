@@ -14,7 +14,7 @@ describe("calcTdee", () => {
   });
   it("Mifflin-St Jeor con datos completos", () => {
     const rmr = 10 * 80 + 6.25 * 180 - 5 * 30 + 5;
-    expect(calcTdee({ bodyWeight: 80, height: 180, age: 30, sex: "M", goal: "volumen" })).toBe(Math.round(rmr * 1.65));
+    expect(calcTdee({ bodyWeight: 80, height: 180, age: 30, sex: "M", goal: "volumen" })).toBe(Math.round(rmr * 1.55 * 1.10));
   });
   it("aplica pisos 1500 H / 1200 M", () => {
     expect(calcTdee({ bodyWeight: 30, goal: "definicion", sex: "M" })).toBe(1500);
@@ -23,7 +23,7 @@ describe("calcTdee", () => {
   it("definición nunca baja del tope de déficit sobre mantenimiento", () => {
     const rmr = 100 * 22;
     const t = calcTdee({ bodyWeight: 100, goal: "definicion", sex: "M", age: 30 });
-    expect(t).toBe(Math.round(rmr * 1.5));
+    expect(t).toBe(Math.round(rmr * 1.55 * 0.82));
     expect(t).toBeGreaterThanOrEqual(Math.round(rmr * 1.55 * 0.75));
   });
   it("menores de 18 no hacen déficit", () => {

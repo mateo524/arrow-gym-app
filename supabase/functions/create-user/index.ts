@@ -1,4 +1,5 @@
 // create-user: un admin o entrenador crea una cuenta (sin mail de confirmación, activa al instante).
+// También: DELETE { userId } -> un admin/superadmin elimina una cuenta (Auth primero, después el perfil).
 //
 // Versión endurecida del código que corría en producción (que no estaba en el repo). Cambios:
 //  - El ROL que se puede crear depende de quién llama (antes cualquiera podía crear un superadmin):
@@ -10,12 +11,14 @@
 //  - La cuenta se crea con el rol real en app_metadata (handle_new_user ya no lee el rol de user_metadata).
 //
 // DESPLIEGUE (manual): Supabase Dashboard > Edge Functions > create-user > pegar este código > Deploy.
-// Mantener "Verify JWT" activado.
+// Mantener "Verify JWT" activado. Definir el secret ALLOWED_ORIGIN (URL de la app).
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": Deno.env.get("ALLOWED_ORIGIN") ?? "",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, DELETE, OPTIONS",
+  "Vary": "Origin",
   "Content-Type": "application/json",
 };
 
@@ -34,7 +37,7 @@ const num = (v: unknown) => {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (req.method !== "POST") return json({ error: "Método no permitido" }, 405);
+  if (req.method !== "POST" && req.method !== "DELETE") return json({ error: "Método no permitido" }, 405);
 
   try {
     const authHeader = req.headers.get("Authorization");
@@ -49,6 +52,34 @@ Deno.serve(async (req) => {
     if (!caller) return json({ error: "Unauthorized" }, 401);
 
     const { data: callerProfile } = await callerClient.from("profiles").select("role").eq("id", caller.id).single();
+
+    if (req.method === "DELETE") {
+      if (!callerProfile || !["admin", "superadmin"].includes(callerProfile.role)) {
+        return json({ error: "Forbidden: solo admins pueden eliminar usuarios" }, 403);
+      }
+      const delBody = await req.json().catch(() => ({}));
+      const targetId = String(delBody.userId ?? "");
+      if (!/^[0-9a-f-]{36}$/i.test(targetId)) return json({ error: "userId inválido" }, 400);
+      if (targetId === caller.id) return json({ error: "No podés eliminar tu propia cuenta desde acá" }, 400);
+
+      const delAdmin = createClient(supabaseUrl, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
+      const { data: target } = await delAdmin.from("profiles").select("id, role").eq("id", targetId).maybeSingle();
+      // Admins/superadmins solo los elimina un superadmin.
+      if (target && ["admin", "superadmin"].includes(target.role) && callerProfile.role !== "superadmin") {
+        return json({ error: "Solo un superadmin puede eliminar administradores" }, 403);
+      }
+
+      // Alumnos del entrenador eliminado quedan sin entrenador
+      await delAdmin.from("profiles").update({ trainer_id: null }).eq("trainer_id", targetId);
+
+      // 1) Auth primero: si falla, no se toca nada más.
+      const { error: authErr } = await delAdmin.auth.admin.deleteUser(targetId);
+      if (authErr && !/not.?found/i.test(authErr.message)) return json({ error: authErr.message }, 400);
+      // 2) Perfil (si no cayó por cascade)
+      const { error: profErr } = await delAdmin.from("profiles").delete().eq("id", targetId);
+      if (profErr) return json({ error: `Cuenta de Auth eliminada, pero el perfil falló: ${profErr.message}` }, 500);
+      return json({ success: true });
+    }
     const allowedRoles = callerProfile ? CAN_CREATE[callerProfile.role] : undefined;
     if (!allowedRoles) return json({ error: "Forbidden: solo admins y entrenadores pueden crear usuarios" }, 403);
 

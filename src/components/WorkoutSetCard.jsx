@@ -4,6 +4,15 @@ import useStore from "../store/useStore.js";
 import { calc1RM } from "../lib/analytics.js";
 import useAuthStore from "../store/useAuthStore.js";
 import { isAdvancedView } from "../config/features.js";
+import PlateCalculator from "./PlateCalculator.jsx";
+
+// Tipo de serie: normal (default y datos viejos), calentamiento (no cuenta para volumen/PR/1RM), drop, al fallo
+const SET_TYPES = [
+  { id: "normal",  short: "N", label: "Normal",       color: "var(--muted)" },
+  { id: "warmup",  short: "C", label: "Calentamiento", color: "#f59e0b" },
+  { id: "drop",    short: "D", label: "Drop set",     color: "#38bdf8" },
+  { id: "failure", short: "F", label: "Al fallo",     color: "var(--danger)" },
+];
 
 function haptic(type = "tap") {
   if (!navigator.vibrate) return;
@@ -21,6 +30,16 @@ export default function WorkoutSetCard({
   const advancedView = isAdvancedView(useAuthStore((s) => s.profile));
   const setPage = useStore(s => s.setPage);
   const [showPRPanel, setShowPRPanel] = useState(false);
+  const [showPlates, setShowPlates] = useState(false);
+  const setType = setItem.setType || (setItem.isDropset ? "drop" : "normal");
+  const typeMeta = SET_TYPES.find((t) => t.id === setType) || SET_TYPES[0];
+  const isWarmupSet = setType === "warmup";
+  const rirValue = setItem.rir !== undefined && setItem.rir !== "" && setItem.rir !== null ? Number(setItem.rir) : null;
+  function cycleType() {
+    const next = SET_TYPES[(SET_TYPES.findIndex((t) => t.id === setType) + 1) % SET_TYPES.length].id;
+    haptic();
+    onUpdate({ setType: next, isDropset: next === "drop" });
+  }
   const [editingNote, setEditingNote] = useState(false);
   const exerciseNotes = useStore(s => s.exerciseNotes) || {};
   const setExerciseNote = useStore(s => s.setExerciseNote);
@@ -48,7 +67,7 @@ export default function WorkoutSetCard({
 
   const hasData = isBodyweight
     ? (Number(setItem.weight) > 0 && setItem.reps !== '' && setItem.reps !== null && setItem.reps !== undefined && Number(setItem.reps) > 0)
-    : ((setItem.weight !== '' && setItem.weight !== null && setItem.weight !== undefined) &&
+    : ((setItem.weight !== '' && setItem.weight !== null && setItem.weight !== undefined && Number(setItem.weight) > 0) &&
        (setItem.reps !== '' && setItem.reps !== null && setItem.reps !== undefined && Number(setItem.reps) > 0));
 
   // Prev data — only from indexed prevSet when not beyondLastSession
@@ -80,7 +99,9 @@ export default function WorkoutSetCard({
     return calc1RM(eff, Math.min(Number(setItem.reps) + rir, 30));
   })();
 
-  const hasExtras = showRepeatPrev || needsBodyWeight || editingNote || (note && !editingNote) || (advancedView && showPRPanel) || (coachSuggestion !== null && coachSuggestion !== undefined);
+  const showPlateBtn = setItem.equipment === "Barra" && !isBodyweight && Number(setItem.weight) > 0;
+  const showRir = advancedView && hasData && !isWarmupSet;
+  const hasExtras = showPlateBtn || showRir || showRepeatPrev || needsBodyWeight || editingNote || (note && !editingNote) || (advancedView && showPRPanel) || (coachSuggestion !== null && coachSuggestion !== undefined);
 
   return (
     <div style={{ marginBottom: 4 }}>
@@ -121,7 +142,7 @@ export default function WorkoutSetCard({
               className="set-val-sm"
               inputMode="numeric"
               value={setItem.reps}
-              placeholder={!beyondLastSession ? (setItem.planReps || antR || "—") : "—"}
+              placeholder={setItem.planReps || (!beyondLastSession ? (antR || "—") : "—")}
               onChange={(e) => { haptic(); onUpdate({ reps: sanitizeReps(e.target.value), ...(done ? { done: false } : {}) }); }}
               onFocus={(e) => e.target.select()}
               style={{ borderColor: setItem.reps ? "rgba(168,85,247,.5)" : undefined }}
@@ -133,9 +154,11 @@ export default function WorkoutSetCard({
               className="set-val-sm"
               inputMode="decimal"
               value={setItem.weight}
-              placeholder={!beyondLastSession
-                ? String(antW || (coachSuggestion?.weight != null ? coachSuggestion.weight : ""))
-                : ""}
+              placeholder={setItem.planWeight
+                ? String(setItem.planWeight)
+                : !beyondLastSession
+                  ? String(antW || (coachSuggestion?.weight != null ? coachSuggestion.weight : ""))
+                  : ""}
               onChange={(e) => { haptic(); onUpdate({ weight: sanitizeWeight(e.target.value), ...(done ? { done: false } : {}) }); }}
               onFocus={(e) => e.target.select()}
               style={{ borderColor: setItem.weight ? "rgba(168,85,247,.5)" : undefined }}
@@ -145,7 +168,7 @@ export default function WorkoutSetCard({
               className="set-val-sm"
               inputMode="numeric"
               value={setItem.reps}
-              placeholder={!beyondLastSession ? (setItem.planReps || antR || "—") : "—"}
+              placeholder={setItem.planReps || (!beyondLastSession ? (antR || "—") : "—")}
               onChange={(e) => { haptic(); onUpdate({ reps: sanitizeReps(e.target.value), ...(done ? { done: false } : {}) }); }}
               onFocus={(e) => e.target.select()}
               style={{ borderColor: setItem.reps ? "rgba(168,85,247,.5)" : undefined }}
@@ -155,6 +178,16 @@ export default function WorkoutSetCard({
 
         {/* Right: actions */}
         <div className="set-row-actions set-actions-tight">
+          <button
+            type="button"
+            className="set-delete-btn set-icon-32"
+            aria-label={`Tipo de serie: ${typeMeta.label}. Tocá para cambiar`}
+            title={`Tipo de serie: ${typeMeta.label}`}
+            style={{ color: typeMeta.color, fontWeight: 800, fontSize: 12 }}
+            onClick={cycleType}
+          >
+            {typeMeta.short}
+          </button>
           <button
             className="set-delete-btn set-icon-32"
             aria-label="Nota"
@@ -224,6 +257,32 @@ export default function WorkoutSetCard({
             >
               {repSrc.fromLast ? "Usar última vez" : "Repetir anterior"}: {isBodyweight ? `+${Number(repSrc.extraWeight) || 0}` : `${repSrc.weight}`}kg × {repSrc.reps}
             </button>
+          )}
+          {(showPlateBtn || showRir) && (
+            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+              {showRir && (
+                <div role="group" aria-label="Repeticiones en reserva (RIR)" style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <span style={{ fontSize: 11, color: "var(--muted)" }} title="Repeticiones que te quedaron en reserva">RIR</span>
+                  {[0, 1, 2, 3, 4].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      aria-pressed={rirValue === n}
+                      className={rirValue === n ? "chip chip-active" : "chip"}
+                      style={{ minWidth: 28, padding: "3px 8px", fontSize: 12 }}
+                      onClick={() => { haptic(); onUpdate({ rir: rirValue === n ? "" : n }); }}
+                    >
+                      {n}{n === 4 ? "+" : ""}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {showPlateBtn && (
+                <button type="button" className="ghost" style={{ fontSize: 11, padding: "3px 8px", marginLeft: "auto" }} onClick={() => setShowPlates(true)}>
+                  <Icon name="Scale" size={11} style={{ display: "inline-block", verticalAlign: "middle", marginRight: 3 }} />Discos
+                </button>
+              )}
+            </div>
           )}
           {needsBodyWeight && (
             <p style={{ margin: 0, fontSize: 12, color: "var(--muted)" }}>
@@ -295,6 +354,13 @@ export default function WorkoutSetCard({
             </div>
           )}
         </div>
+      )}
+      {showPlates && (
+        <PlateCalculator
+          target={Number(setItem.weight) || 0}
+          onSelect={(w) => onUpdate({ weight: String(w), ...(done ? { done: false } : {}) })}
+          onClose={() => setShowPlates(false)}
+        />
       )}
     </div>
   );
