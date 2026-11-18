@@ -4,6 +4,7 @@ import { useShallow } from "zustand/react/shallow";
 import useStore from "../store/useStore.js";
 import useAuthStore from "../store/useAuthStore.js";
 import { todayLocal, dateToLocal } from "../lib/dates.js";
+import { monthToDateVolumes, formatVolume } from "../lib/monthVolume.js";
 import { getWorkoutVolume, formatDate, getMuscleIntensity, filterCurrentWeek, getNextWorkoutSuggestion, getDeloadSuggestion, ACHIEVEMENTS_DEF, getAchievements } from "../lib/analytics.js";
 import AdvancedMuscleDiagram from "../components/AdvancedMuscleDiagram.jsx";
 import Icon from "../components/Icon.jsx";
@@ -134,16 +135,8 @@ export default function HomePage() {
   }, [workouts, vacationPeriods, onVacation]);
 
   // Feature 3: Monthly volume
-  const monthlyVolume = useMemo(() => {
-    const currentMonth = todayLocal().slice(0, 7);
-    const d = new Date(currentMonth + "-01");
-    d.setMonth(d.getMonth() - 1);
-    const prevMonth = dateToLocal(d).slice(0, 7);
-    const calcVol = prefix => (workouts || [])
-      .filter(w => (w.date || "").startsWith(prefix))
-      .reduce((s, w) => s + (w.sets || []).reduce((sv, set) => sv + (Number(set.weight) || 0) * (Number(set.reps) || 0), 0), 0);
-    return { current: calcVol(currentMonth), prev: calcVol(prevMonth) };
-  }, [workouts]);
+  // Mes en curso hasta hoy vs. mes anterior hasta el mismo día del mes
+  const monthlyVolume = useMemo(() => monthToDateVolumes(workouts), [workouts]);
 
   // Feature 4: Split prediction
   const nextSplitPrediction = useMemo(() => {
@@ -512,11 +505,11 @@ export default function HomePage() {
           {f.advanced_tools && monthlyVolume.current > 0 && (() => {
             const vol = monthlyVolume.current;
             const prev = monthlyVolume.prev;
-            const volStr = vol >= 1000 ? `${(vol / 1000).toFixed(1)} k` : `${vol.toLocaleString("es-AR")} kg`;
+            const volStr = formatVolume(vol);
             let comparison = null;
             if (prev > 0) {
               const pct = Math.round(((vol - prev) / prev) * 100);
-              comparison = pct >= 0 ? `+${pct}% vs mes pasado` : `${pct}% vs mes pasado`;
+              comparison = `${pct >= 0 ? "+" : ""}${pct}% vs el ${monthlyVolume.prevDay} del mes pasado (${formatVolume(prev)})`;
             } else {
               comparison = "primer mes ⭐";
             }
@@ -525,7 +518,7 @@ export default function HomePage() {
                 <div style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>Volumen del mes</div>
                 <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
                   <div style={{ fontSize: 28, fontWeight: 900, color: "var(--green)", lineHeight: 1 }}>{volStr}</div>
-                  <div style={{ fontSize: 12, color: "var(--muted)" }}>levantaste este mes</div>
+                  <div style={{ fontSize: 12, color: "var(--muted)" }}>levantaste hasta hoy</div>
                 </div>
                 <div style={{ fontSize: 12, color: prev > 0 && vol >= prev ? "#34d399" : "var(--muted)", marginTop: 4 }}>{comparison}</div>
               </div>

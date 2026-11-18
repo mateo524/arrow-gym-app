@@ -6,10 +6,12 @@ import useStore from "../store/useStore.js";
 import useAuthStore from "../store/useAuthStore.js";
 import { supabase } from "../lib/supabase.js";
 import { uploadProgressPhoto } from "../lib/uploadPhoto.js";
-import { todayLocal } from "../lib/dates.js";
+import { todayLocal, dateToLocal } from "../lib/dates.js";
 import { formatDate } from "../lib/analytics.js";
 import Icon from "../components/Icon.jsx";
 import { isAdvancedView } from "../config/features.js";
+import { missingForAnthropometry } from "../lib/anthropometry.js";
+import AnthropometryTab from "../components/AnthropometryTab.jsx";
 
 function calcDurninWomersleyPct(tri, sub, bic, ili, age) {
   const sum4 = tri + sub + bic + ili;
@@ -94,7 +96,10 @@ function WeightSparkline({ data }) {
 
 function WeightChart({ data }) {
   if (!data || data.length < 2) return null;
-  const pts = [...data].reverse().slice(-30).filter(p => Number(p.kg) > 0);
+  // Últimos 30 DÍAS (hoy y los 29 anteriores), no los últimos 30 registros
+  const since = new Date(); since.setDate(since.getDate() - 29);
+  const sinceStr = dateToLocal(since);
+  const pts = [...data].reverse().filter(p => Number(p.kg) > 0 && String(p.date || "") >= sinceStr);
   if (pts.length < 2) return null;
   const vals = pts.map(p => Number(p.kg));
   const minVal = Math.min(...vals);
@@ -124,7 +129,7 @@ function WeightChart({ data }) {
   return (
     <div style={{ marginTop: 12 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".05em" }}>Últimos {pts.length} registros</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".05em" }}>Últimos 30 días</span>
         <span style={{ fontSize: 13, fontWeight: 800, color: diff > 0 ? "var(--danger)" : diff < 0 ? "var(--green)" : "var(--muted)" }}>
           {diff > 0 ? "+" : ""}{diff.toFixed(1)} kg
         </span>
@@ -256,6 +261,8 @@ export default function MeasurementsPage() {
     return { value: bmiVal.toFixed(1), category, color };
   }, [profile, latestWeightEntry]);
 
+  const anthroDone = missingForAnthropometry(profile, currentWeight).complete;
+
   const bodyFat = useMemo(() => {
     const tri = Number(profile?.triceps_mm);
     const sub = Number(profile?.subscapular_mm);
@@ -364,6 +371,7 @@ export default function MeasurementsPage() {
       if (updated.weight_kg) logEntry.weight_kg = Number(updated.weight_kg);
       supabase.from("measurements_log").upsert(logEntry, { onConflict: "user_id,date" }).then(() => {}, () => {});
       useStore.getState().saveMeasHistoryEntry(logEntry);
+      if (!anthroDone && missingForAnthropometry(updated, currentWeight).complete) window.__showToast?.("¡Antropometría completa! Ya podés descargar el informe en PDF.", "success");
       setPlieguesMsg("✓ Pliegues guardados");
       setTimeout(() => { setEditPliegues(false); setPlieguesMsg(""); }, 1400);
     }
@@ -415,6 +423,7 @@ export default function MeasurementsPage() {
     supabase.from("measurements_log").upsert({ user_id: uid, date: todayLocal(), ...payload }, { onConflict: "user_id,date" }).then(() => {}, () => {});
     // Guardar historial local de circunferencias via Zustand (safeSetItem quota guard)
     useStore.getState().saveMeasHistoryEntry({ user_id: uid, date: todayLocal(), ...payload });
+    if (!anthroDone && missingForAnthropometry(updated, currentWeight).complete) window.__showToast?.("¡Antropometría completa! Ya podés descargar el informe en PDF.", "success");
     setPerimetrosMsg("✓ Guardado");
     setTimeout(() => { setEditPerimetros(false); setPerimetrosMsg(""); }, 1400);
   }
@@ -570,6 +579,7 @@ export default function MeasurementsPage() {
             ...(isAdvancedView(profile) ? [
               { id: "pliegues", label: "Pliegues" },
               { id: "perimetros", label: "Perímetros" },
+              { id: "antropometria", label: <>Antropom.{anthroDone ? " ✓" : ""}</> },
             ] : []),
             { id: "fotos", label: <><Icon name="Camera" size={13} style={{display:'inline-block',verticalAlign:'middle',marginRight:3}} /> Fotos</> },
           ].map(({ id, label }) => (
@@ -746,6 +756,11 @@ export default function MeasurementsPage() {
               </form>
             )}
           </>
+        )}
+
+        {/* Tab 4: Antropometría (informe + PDF) */}
+        {measTab === "antropometria" && (
+          <AnthropometryTab profile={profile} weightKg={currentWeight} onGoTab={setMeasTab} />
         )}
 
         {/* Tab 3: Perímetros */}
