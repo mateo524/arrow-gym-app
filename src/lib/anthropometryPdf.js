@@ -95,6 +95,13 @@ export async function buildAnthropometryPdf(report) {
   row1.forEach((s, i) => stat(M + i * (cw + 3), y, cw, s[0], s[1], s[2]));
   y += 25;
   row2.forEach((s, i) => stat(M + i * (cw + 3), y, cw, s[0], s[1], s[2]));
+  y += 25;
+  const cw3 = (W - 2 * M - 6) / 3;
+  [
+    ["% GRASA YUHASZ", `${num(report.fatYuhasz)} %`, report.fatYuhaszCategory],
+    ["PROMEDIO % GRASA", `${num(report.fatAvg)} %`, "Durnin-W., Faulkner y Yuhasz"],
+    ["MASA MUSCULAR (LEE)", `${num(report.muscle.kg)} kg`, `${num(report.muscle.pct)} % del peso corporal`],
+  ].forEach((s3, i) => stat(M + i * (cw3 + 3), y, cw3, s3[0], s3[1], s3[2]));
   y += 31;
 
   const half = (W - 2 * M - 8) / 2;
@@ -174,11 +181,18 @@ export async function buildAnthropometryPdf(report) {
   text("Somatocarta", cx0 + cwid / 2, cy0 - 2, { size: 8, bold: true, color: MUTED, align: "center" });
 
   y = Math.max(ey + 8, cy0 + chei + 14);
+  y = section("Masa muscular esquelética (Lee 2000)", M, y, W - 2 * M);
+  text(`${num(report.muscle.kg)} kg  (${num(report.muscle.pct)} % del peso corporal)`, M, y + 2, { bold: true, size: 11 });
+  doc.setFont("helvetica", "normal"); doc.setFontSize(8.2); doc.setTextColor(...MUTED);
+  doc.text(doc.splitTextToSize(`Perímetros corregidos usados (perímetro menos pi x pliegue): brazo ${num(report.muscle.cag)} cm, muslo ${num(report.muscle.ctg)} cm, pantorrilla ${num(report.muscle.ccg)} cm. La ecuación original suma un ajuste por etnia que no se aplica acá; en personas asiáticas o afrodescendientes el valor puede diferir.`, W - 2 * M), M, y + 7);
+  y += 22;
   y = section("Método y fuentes", M, y, W - 2 * M);
   const refs = [
     "Pliegues, perímetros y diámetros: medidos según el perfil restringido de ISAK (International Society for the Advancement of Kinanthropometry).",
     "% de grasa Durnin-Womersley (1974): densidad corporal con la suma de tríceps, bíceps, subescapular y cresta ilíaca, con coeficientes por sexo y edad; conversión a % de grasa con la ecuación de Siri.",
     "% de grasa Faulkner (1968): 0,153 x (tríceps + subescapular + supraespinal + abdominal) + 5,783.",
+    "% de grasa Yuhasz: hombres 0,1051 x suma de 6 pliegues + 2,585; mujeres 0,1548 x suma de 6 pliegues + 3,580 (versión estándar, fuente secundaria).",
+    "Masa muscular: Lee, Wang, Heo, Ross, Janssen y Heymsfield (2000), Am J Clin Nutr 72:796-803, con perímetros de brazo relajado, muslo medio y pantorrilla corregidos por pliegue.",
     "Somatotipo: método antropométrico de Heath y Carter (1990). Perímetros corregidos: perímetro menos pliegue (en cm).",
     "IMC y relación cintura-cadera: criterios de la OMS. Categorías de % de grasa: American Council on Exercise.",
   ];

@@ -221,7 +221,7 @@ export default function MeasurementsPage() {
   // Perímetros
   const [editPerimetros, setEditPerimetros] = useState(false);
   const [perimetrosMsg, setPerimetrosMsg] = useState("");
-  const [perimetrosFields, setPerimetrosFields] = useState({ armRelaxed: "", armFlexed: "", waist: "", hip: "", calfPer: "", humerus: "", femur: "" });
+  const [perimetrosFields, setPerimetrosFields] = useState({ armRelaxed: "", armFlexed: "", waist: "", hip: "", thigh: "", calfPer: "", humerus: "", femur: "" });
   const setPerimetrosField = (k, v) => setPerimetrosFields(f => ({ ...f, [k]: v }));
 
   // Hidratación
@@ -383,6 +383,7 @@ export default function MeasurementsPage() {
       armFlexed: String(profile?.arm_flexed_cm || ""),
       waist: String(profile?.waist_cm || ""),
       hip: String(profile?.hip_cm || ""),
+      thigh: String(profile?.thigh_cm || ""),
       calfPer: String(profile?.calf_cm || ""),
       humerus: String(profile?.humerus_cm || ""),
       femur: String(profile?.femur_cm || ""),
@@ -394,12 +395,13 @@ export default function MeasurementsPage() {
   async function savePerimetros(e) {
     e.preventDefault();
     if (!uid) { setPerimetrosMsg("Error: sesión no válida"); return; }
-    const { armRelaxed, armFlexed, waist, hip, calfPer, humerus, femur } = perimetrosFields;
+    const { armRelaxed, armFlexed, waist, hip, thigh, calfPer, humerus, femur } = perimetrosFields;
     const payload = {};
     if (armRelaxed) payload.arm_relaxed_cm = toNum(armRelaxed);
     if (armFlexed)  payload.arm_flexed_cm  = toNum(armFlexed);
     if (waist)      payload.waist_cm       = toNum(waist);
     if (hip)        payload.hip_cm         = toNum(hip);
+    if (thigh)      payload.thigh_cm       = toNum(thigh);
     if (calfPer)    payload.calf_cm        = toNum(calfPer);
     if (humerus)    payload.humerus_cm     = toNum(humerus);
     if (femur)      payload.femur_cm       = toNum(femur);
@@ -784,6 +786,7 @@ export default function MeasurementsPage() {
                         { label: "Brazo contraído", val: profile?.arm_flexed_cm },
                         { label: "Cintura", val: profile?.waist_cm },
                         { label: "Caderas", val: profile?.hip_cm },
+                        { label: "Muslo medio", val: profile?.thigh_cm },
                         { label: "Pantorrilla", val: profile?.calf_cm },
                       ].map(({ label, val }) => val ? (
                         <div key={label} style={{ background: "var(--panel2)", borderRadius: 10, padding: "8px 10px" }}>
@@ -866,6 +869,7 @@ export default function MeasurementsPage() {
                     { label: "Brazo contraído (cm)", k: "armFlexed" },
                     { label: "Cintura (cm)", k: "waist" },
                     { label: "Caderas (cm)", k: "hip" },
+                    { label: "Muslo medio (cm)", k: "thigh" },
                     { label: "Pantorrilla (cm)", k: "calfPer" },
                   ].map(({ label, k }) => (
                     <label key={label} style={fieldGroupStyle}>
@@ -874,6 +878,7 @@ export default function MeasurementsPage() {
                     </label>
                   ))}
                 </div>
+                <p style={{ fontSize: 11, color: "var(--muted)", margin: 0, lineHeight: 1.5 }}>Muslo medio: se mide a la mitad de la distancia entre el pliegue de la ingle y el borde superior de la rótula, con la persona de pie. Se usa para calcular la masa muscular.</p>
                 <p style={{ fontSize: 11, color: "var(--muted)", margin: "4px 0 0", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Diámetros</p>
                 <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 10 }}>
                   {[

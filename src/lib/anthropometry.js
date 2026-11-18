@@ -6,6 +6,8 @@
 //    coeficientes por sexo y franja de edad; % grasa con Siri (495/D - 450).
 //  - Faulkner (1968): % grasa = 0,153 x (tríceps + subescapular + supraespinal + abdominal) + 5,783.
 //  - Heath & Carter (1990), Manual de instrucciones del somatotipo antropométrico.
+//  - Yuhasz (1974): % grasa con la suma de 6 pliegues, ecuaciones por sexo (versión estándar publicada por topendsports.com).
+//  - Lee et al. (2000), Am J Clin Nutr 72:796-803: masa muscular esquelética con perímetros corregidos por pliegue.
 //  - ISAK: suma de 6 pliegues (tríceps, subescapular, supraespinal, abdominal, muslo frontal, pantorrilla medial).
 //  - OMS: IMC e índice cintura-cadera. ACE: categorías de % grasa.
 
@@ -25,6 +27,7 @@ export const GIRTH_FIELDS = [
   { key: "arm_flexed_cm", label: "Brazo flexionado y contraído" },
   { key: "waist_cm", label: "Cintura" },
   { key: "hip_cm", label: "Cadera" },
+  { key: "thigh_cm", label: "Muslo medio" },
   { key: "calf_cm", label: "Pantorrilla (máximo)" },
 ];
 
@@ -80,6 +83,24 @@ export function durninWomersley({ triceps, biceps, subscapular, iliacCrest, sex,
 
 export function faulkner({ triceps, subscapular, supraspinal, abdominal }) {
   return r1(0.153 * (triceps + subscapular + supraspinal + abdominal) + 5.783);
+}
+
+/** Yuhasz: pliegues de tríceps, subescapular, supraespinal, abdominal, muslo frontal y pantorrilla medial (mm). */
+export function yuhasz(sum6, sex) {
+  return r1(sex === "F" ? 0.1548 * sum6 + 3.58 : 0.1051 * sum6 + 2.585);
+}
+
+/**
+ * Masa muscular esquelética (Lee et al. 2000): SM = altura(m) x (0,00744 CAG^2 + 0,00088 CTG^2 + 0,00441 CCG^2) + 2,4 x sexo - 0,048 x edad + 7,8
+ * sexo: 1 = hombre, 0 = mujer. Perímetros corregidos (cm) = perímetro - pi x pliegue (cm): brazo relajado, muslo medio y pantorrilla.
+ * La ecuación original suma además un ajuste por etnia (asiáticos y afrodescendientes); la app no lo pide y se aplica 0.
+ */
+export function leeMuscleMass({ height, age, sex, armRelaxed, triceps, thigh, frontThigh, calf, medialCalf }) {
+  const cag = armRelaxed - (Math.PI * triceps) / 10;
+  const ctg = thigh - (Math.PI * frontThigh) / 10;
+  const ccg = calf - (Math.PI * medialCalf) / 10;
+  const kg = (height / 100) * (0.00744 * cag ** 2 + 0.00088 * ctg ** 2 + 0.00441 * ccg ** 2) + 2.4 * (sex === "M" ? 1 : 0) - 0.048 * age + 7.8;
+  return { kg: r1(kg), cag: r1(cag), ctg: r1(ctg), ccg: r1(ccg) };
 }
 
 /** Somatotipo Heath-Carter antropométrico. Devuelve endomorfia, mesomorfia, ectomorfia y coordenadas de la somatocarta. */
@@ -161,6 +182,11 @@ export function computeAnthropometry(profile, weightKg, today = new Date()) {
   const waistHip = r2(num(p.waist_cm) / num(p.hip_cm));
   const dw = durninWomersley({ ...s, sex, age });
   const fa = faulkner(s);
+  const yu = yuhasz(sum6, sex);
+  const muscle = leeMuscleMass({
+    height, age, sex, armRelaxed: num(p.arm_relaxed_cm), triceps: s.triceps, thigh: num(p.thigh_cm),
+    frontThigh: s.frontThigh, calf: num(p.calf_cm), medialCalf: s.medialCalf,
+  });
   const fatKg = r1((weight * dw.pct) / 100);
   const soma = somatotype({
     height, weight, triceps: s.triceps, subscapular: s.subscapular, supraspinal: s.supraspinal, medialCalf: s.medialCalf,
@@ -178,6 +204,9 @@ export function computeAnthropometry(profile, weightKg, today = new Date()) {
     waistHip, waistHipRisk: waistHipRisk(waistHip, sex),
     fatDW: dw.pct, fatDWCategory: fatCategory(dw.pct, sex), sum4DW: dw.sum4,
     fatFaulkner: fa,
+    fatYuhasz: yu, fatYuhaszCategory: fatCategory(yu, sex),
+    fatAvg: r1((dw.pct + fa + yu) / 3),
+    muscle: { ...muscle, pct: r1((muscle.kg / weight) * 100) },
     fatMassKg: fatKg, leanMassKg: r1(weight - fatKg),
     somatotype: soma, somatotypeLabel: somatotypeLabel(soma),
     warnings: plausibilityWarnings(p, weight),

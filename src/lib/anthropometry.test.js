@@ -1,14 +1,14 @@
 import { describe, it, expect } from "vitest";
 import {
   ageFromDob, missingForAnthropometry, durninWomersley, faulkner, somatotype, somatotypeLabel,
-  computeAnthropometry, fatCategory, bmiCategory,
+  computeAnthropometry, fatCategory, bmiCategory, yuhasz, leeMuscleMass,
 } from "./anthropometry.js";
 
 const FULL = {
   name: "Mateo", sex: "M", date_of_birth: "2000-06-15", height_cm: 175, weight_kg: 70,
   triceps_mm: 8, subscapular_mm: 10, biceps_mm: 4, iliac_crest_mm: 12, supraspinal_mm: 6, abdominal_mm: 14,
   front_thigh_mm: 12, medial_calf_mm: 6,
-  arm_relaxed_cm: 30, arm_flexed_cm: 33, waist_cm: 80, hip_cm: 96, calf_cm: 37, humerus_cm: 6.8, femur_cm: 9.5,
+  arm_relaxed_cm: 30, arm_flexed_cm: 33, waist_cm: 80, hip_cm: 96, thigh_cm: 55, calf_cm: 37, humerus_cm: 6.8, femur_cm: 9.5,
 };
 
 describe("antropometría", () => {
@@ -20,9 +20,9 @@ describe("antropometría", () => {
 
   it("detecta qué falta", () => {
     expect(missingForAnthropometry(FULL, 70).complete).toBe(true);
-    const r = missingForAnthropometry({ ...FULL, femur_cm: "", sex: null }, 70);
+    const r = missingForAnthropometry({ ...FULL, femur_cm: "", sex: null, thigh_cm: "" }, 70);
     expect(r.complete).toBe(false);
-    expect(r.missing).toEqual(expect.arrayContaining(["Sexo", "Diámetro del fémur (biepicondíleo)"]));
+    expect(r.missing).toEqual(expect.arrayContaining(["Sexo", "Diámetro del fémur (biepicondíleo)", "Muslo medio"]));
   });
 
   it("Durnin-Womersley: hombre de 25 años con 40 mm de suma da cerca de 16 %", () => {
@@ -39,6 +39,22 @@ describe("antropometría", () => {
 
   it("Faulkner", () => {
     expect(faulkner({ triceps: 10, subscapular: 12, supraspinal: 8, abdominal: 14 })).toBeCloseTo(12.5, 1);
+  });
+
+  it("Yuhasz: ecuaciones por sexo", () => {
+    expect(yuhasz(56, "M")).toBeCloseTo(8.5, 1);  // 0,1051 x 56 + 2,585
+    expect(yuhasz(56, "F")).toBeCloseTo(12.2, 1); // 0,1548 x 56 + 3,580
+    expect(yuhasz(80, "F")).toBeGreaterThan(yuhasz(80, "M"));
+  });
+
+  it("Lee 2000: masa muscular en un rango plausible y cambia con sexo y edad", () => {
+    const base = { height: 175, age: 26, sex: "M", armRelaxed: 30, triceps: 8, thigh: 55, frontThigh: 12, calf: 37, medialCalf: 6 };
+    const m = leeMuscleMass(base);
+    expect(m.cag).toBeCloseTo(27.5, 1);
+    expect(m.ctg).toBeCloseTo(51.2, 1);
+    expect(m.kg).toBeGreaterThan(28); expect(m.kg).toBeLessThan(38);
+    expect(Math.abs(leeMuscleMass({ ...base, sex: "F" }).kg - (m.kg - 2.4))).toBeLessThan(0.11);
+    expect(Math.abs(leeMuscleMass({ ...base, age: 46 }).kg - (m.kg - 0.96))).toBeLessThan(0.11);
   });
 
   it("somatotipo: caso típico queda en rangos razonables", () => {
@@ -69,6 +85,10 @@ describe("antropometría", () => {
     expect(r.bmi).toBeCloseTo(22.9, 1);
     expect(r.waistHip).toBeCloseTo(0.83, 2);
     expect(r.fatMassKg + r.leanMassKg).toBeCloseTo(70, 1);
+    expect(r.fatYuhasz).toBeCloseTo(8.5, 1);
+    expect(r.fatAvg).toBeGreaterThan(8); expect(r.fatAvg).toBeLessThan(16);
+    expect(r.muscle.pct).toBeGreaterThan(40); expect(r.muscle.pct).toBeLessThan(55);
+    expect(r.girths).toHaveLength(6);
     expect(r.skinfolds).toHaveLength(8);
     expect(computeAnthropometry({ ...FULL, hip_cm: "" }, 70).complete).toBe(false);
     expect(fatCategory(15, "M")).toBe("Fitness");

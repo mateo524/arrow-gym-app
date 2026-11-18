@@ -105,7 +105,7 @@ export default function AnthropometryTab({ profile, weightKg, onGoTab }) {
       </p>
 
       <Progress label="Pliegues cutáneos" done={skin} total={8} goTab={onGoTab} tab="pliegues" />
-      <Progress label="Perímetros" done={girth} total={5} goTab={onGoTab} tab="perimetros" />
+      <Progress label="Perímetros" done={girth} total={GIRTH_FIELDS.length} goTab={onGoTab} tab="perimetros" />
       <Progress label="Diámetros óseos" done={breadth} total={2} goTab={onGoTab} tab="perimetros" />
       <Progress label="Datos básicos (peso, talla, edad, sexo)" done={4 - basicsMissing.length} total={4} goTab={onGoTab} tab="basico" />
 
@@ -134,6 +134,8 @@ export default function AnthropometryTab({ profile, weightKg, onGoTab }) {
               ["% grasa (Durnin-W.)", `${n1(report.fatDW)} %`, report.fatDWCategory],
               ["% grasa (Faulkner)", `${n1(report.fatFaulkner)} %`, "4 pliegues"],
               ["Masa grasa", `${n1(report.fatMassKg)} kg`, `Magra: ${n1(report.leanMassKg)} kg`],
+              ["% grasa (Yuhasz)", `${n1(report.fatYuhasz)} %`, report.fatYuhaszCategory],
+              ["Masa muscular (Lee)", `${n1(report.muscle.kg)} kg`, `${n1(report.muscle.pct)} % del peso`],
               ["Suma de 6 pliegues", `${n1(report.sum6)} mm`, "perfil restringido"],
               ["Suma de 8 pliegues", `${n1(report.sum8)} mm`, "los 8 pliegues"],
             ].map(([l, v, sub]) => (

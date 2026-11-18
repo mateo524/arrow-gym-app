@@ -11,14 +11,16 @@ const FULL = {
   id: "u1", name: "Mateo", sex: "M", date_of_birth: "2000-06-15", height_cm: 175, weight_kg: 70,
   triceps_mm: 8, subscapular_mm: 10, biceps_mm: 4, iliac_crest_mm: 12, supraspinal_mm: 6, abdominal_mm: 14,
   front_thigh_mm: 12, medial_calf_mm: 6,
-  arm_relaxed_cm: 30, arm_flexed_cm: 33, waist_cm: 80, hip_cm: 96, calf_cm: 37, humerus_cm: 6.8, femur_cm: 9.5,
+  arm_relaxed_cm: 30, arm_flexed_cm: 33, waist_cm: 80, hip_cm: 96, thigh_cm: 55, calf_cm: 37, humerus_cm: 6.8, femur_cm: 9.5,
 };
 
 describe("pestaña Antropometría", () => {
   it("con datos incompletos muestra el avance y qué falta, sin botón de PDF", () => {
-    const html = renderToStaticMarkup(h(AnthropometryTab, { profile: { ...FULL, abdominal_mm: "", femur_cm: "", sex: null }, weightKg: 70, onGoTab: () => {} }));
+    const html = renderToStaticMarkup(h(AnthropometryTab, { profile: { ...FULL, abdominal_mm: "", femur_cm: "", thigh_cm: "", sex: null }, weightKg: 70, onGoTab: () => {} }));
     expect(html).toContain("7/8");
     expect(html).toContain("1/2");
+    expect(html).toContain("Muslo medio");
+    expect(html).toContain("5/6");
     expect(html).toContain("Abdominal");
     expect(html).toContain("Masculino"); // pide el sexo
     expect(html).not.toContain("Descargar informe en PDF");
