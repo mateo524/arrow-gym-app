@@ -392,6 +392,14 @@ export default function MeasurementsPage() {
     setEditPerimetros(true);
   }
 
+  // Desde la pestaña Antropometría: ir a la sección y abrirla directo en modo edición
+  function goEdit(tab) {
+    setMeasTab(tab);
+    if (tab === "pliegues") openPliegues();
+    else if (tab === "perimetros") openPerimetros();
+    else if (tab === "basico") openBasico();
+  }
+
   async function savePerimetros(e) {
     e.preventDefault();
     if (!uid) { setPerimetrosMsg("Error: sesión no válida"); return; }
@@ -762,7 +770,7 @@ export default function MeasurementsPage() {
 
         {/* Tab 4: Antropometría (informe + PDF) */}
         {measTab === "antropometria" && (
-          <AnthropometryTab profile={profile} weightKg={currentWeight} onGoTab={setMeasTab} />
+          <AnthropometryTab profile={profile} weightKg={currentWeight} onGoTab={goEdit} />
         )}
 
         {/* Tab 3: Perímetros */}
