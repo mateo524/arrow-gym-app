@@ -758,7 +758,8 @@ export default function WorkoutPage() {
   }
 
   function handleFinishClick() {
-    cancelRestTimerPush();
+    // Cerrar el descanso: su panel quedaba encima del resumen y tapaba los botones de guardar
+    handleSkipRest();
     setPrCelebration(null);
     if (navigator.vibrate) navigator.vibrate(20);
     const allSets = active?.sets || [];
@@ -1670,7 +1671,7 @@ export default function WorkoutPage() {
     )}
 
     {/* ── REST TIMER OVERLAY ────────────────────────────────────────────── */}
-    {restExercise && (
+    {restExercise && !showSummary && !showSaveRoutine && (
       <div className="rest-overlay">
         <div className="rest-overlay-label">
           <small>Descansando — {restExercise}</small>
